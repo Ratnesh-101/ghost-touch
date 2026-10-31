@@ -1,0 +1,34 @@
+# Render Blueprint configuration for Ghost Touch backend
+# See docs/DEPLOY.md for step-by-step deployment instructions.
+services:
+  - type: web
+    name: ghost-touch-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install .
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health
+    envVars:
+      # Render's documented environment variable for pinning Python version
+      - key: PYTHON_VERSION
+        value: 3.11.10
+      # Secrets entered in Render dashboard (not committed in git)
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: NVIDIA_API_KEY
+        sync: false
+      # Non-secret service configuration with defaults
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
+      - key: GEMINI_THINKING_BUDGET
+        value: "0"
+      - key: VISION_PROVIDERS
+        value: gemini,nvidia
+      - key: PROVIDER_TIMEOUT_SECONDS
+        value: "8.0"
+      - key: SCENE_TIMEOUT_SECONDS
+        value: "15.0"
+      # Replace this with the deployed Vercel frontend URL (no trailing slash)
+      - key: ALLOWED_ORIGINS
+        value: https://your-frontend-app.vercel.app
