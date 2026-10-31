@@ -1,0 +1,296 @@
+{
+  "$defs": {
+    "Axes": {
+      "description": "Optional axis positions, normalized to [0, 1].",
+      "properties": {
+        "x_axis_y": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "X Axis Y"
+        },
+        "y_axis_x": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Y Axis X"
+        }
+      },
+      "title": "Axes",
+      "type": "object"
+    },
+    "Bar": {
+      "description": "A bar-chart bar with normalized geometry and a numeric value.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        },
+        "x0": {
+          "title": "X0",
+          "type": "number"
+        },
+        "x1": {
+          "title": "X1",
+          "type": "number"
+        },
+        "y_base": {
+          "title": "Y Base",
+          "type": "number"
+        },
+        "y_top": {
+          "title": "Y Top",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "x0",
+        "x1",
+        "y_top",
+        "y_base",
+        "label",
+        "value"
+      ],
+      "title": "Bar",
+      "type": "object"
+    },
+    "Point": {
+      "description": "A named vertex with normalized coordinates.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "x",
+        "y"
+      ],
+      "title": "Point",
+      "type": "object"
+    },
+    "Polyline": {
+      "description": "An ordered sequence of normalized (x, y) points; used for curves.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "points": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "points"
+      ],
+      "title": "Polyline",
+      "type": "object"
+    },
+    "Segment": {
+      "description": "A straight line between two existing points, referenced by id.",
+      "properties": {
+        "a": {
+          "title": "A",
+          "type": "string"
+        },
+        "b": {
+          "title": "B",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        }
+      },
+      "required": [
+        "id",
+        "a",
+        "b"
+      ],
+      "title": "Segment",
+      "type": "object"
+    }
+  },
+  "axes": {
+    "x_axis_y": 0.56,
+    "y_axis_x": 0.5
+  },
+  "bars": [],
+  "facts": [
+    "Equation of the curve is y = x^2 - 4",
+    "Vertex is at (0, -4)",
+    "x-intercepts are at (-2, 0) and (2, 0)",
+    "y-intercept is at (0, -4)"
+  ],
+  "kind": "function_graph",
+  "points": [
+    {
+      "id": "vertex",
+      "label": "(0, -4)",
+      "x": 0.5,
+      "y": 0.894
+    },
+    {
+      "id": "x_intercept_neg",
+      "label": "(-2, 0)",
+      "x": 0.258,
+      "y": 0.56
+    },
+    {
+      "id": "x_intercept_pos",
+      "label": "(2, 0)",
+      "x": 0.742,
+      "y": 0.56
+    }
+  ],
+  "polylines": [
+    {
+      "id": "curve_parabola",
+      "label": "y = x^2 - 4",
+      "points": [
+        [0.107, 0.012],
+        [0.12, 0.052],
+        [0.133, 0.09],
+        [0.146, 0.127],
+        [0.16, 0.163],
+        [0.174, 0.198],
+        [0.188, 0.231],
+        [0.202, 0.264],
+        [0.216, 0.295],
+        [0.23, 0.325],
+        [0.244, 0.354],
+        [0.258, 0.382],
+        [0.272, 0.408],
+        [0.286, 0.434],
+        [0.3, 0.458],
+        [0.314, 0.481],
+        [0.328, 0.503],
+        [0.342, 0.524],
+        [0.356, 0.543],
+        [0.37, 0.562],
+        [0.384, 0.579],
+        [0.398, 0.595],
+        [0.412, 0.61],
+        [0.426, 0.623],
+        [0.44, 0.636],
+        [0.454, 0.647],
+        [0.468, 0.657],
+        [0.482, 0.665],
+        [0.496, 0.672],
+        [0.5, 0.894],
+        [0.518, 0.665],
+        [0.532, 0.657],
+        [0.546, 0.647],
+        [0.56, 0.636],
+        [0.574, 0.623],
+        [0.588, 0.61],
+        [0.602, 0.595],
+        [0.616, 0.579],
+        [0.63, 0.562],
+        [0.644, 0.543],
+        [0.658, 0.524],
+        [0.672, 0.503],
+        [0.686, 0.481],
+        [0.7, 0.458],
+        [0.714, 0.434],
+        [0.728, 0.408],
+        [0.742, 0.382],
+        [0.756, 0.354],
+        [0.77, 0.325],
+        [0.784, 0.295],
+        [0.798, 0.264],
+        [0.812, 0.231],
+        [0.826, 0.198],
+        [0.84, 0.163],
+        [0.854, 0.127],
+        [0.867, 0.09],
+        [0.88, 0.052],
+        [0.893, 0.012]
+      ]
+    }
+  ],
+  "segments": [],
+  "title": "Graph of y = x^2 - 4",
+  "version": 1
+}

@@ -1,0 +1,390 @@
+{
+  "provider": null,
+  "model": "rescore",
+  "samples": [
+    {
+      "sample_id": "photo/09_bar_rainfall",
+      "variant": "photo",
+      "kind_truth": "bar_chart",
+      "kind_pred": null,
+      "composite": 0.0,
+      "metrics": {},
+      "latency_s": null,
+      "error": "SpikeError: no saved prediction"
+    },
+    {
+      "sample_id": "photo/10_bar_trees",
+      "variant": "photo",
+      "kind_truth": "bar_chart",
+      "kind_pred": null,
+      "composite": 0.0,
+      "metrics": {},
+      "latency_s": null,
+      "error": "SpikeError: no saved prediction"
+    },
+    {
+      "sample_id": "clean/01_right_triangle",
+      "variant": "clean",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.95,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 1.0,
+        "corner_error": 0.06646803743153543,
+        "corner_accuracy_abs": 0.5568797504564306,
+        "corner_accuracy": 1.0,
+        "facts_recall": 0.5,
+        "appearance_labels": 0.0
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "clean/02_rectangle",
+      "variant": "clean",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.975,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 1.0,
+        "corner_error": 0.06255420382136603,
+        "corner_accuracy_abs": 0.5829719745242264,
+        "corner_accuracy": 1.0,
+        "facts_recall": 0.75,
+        "appearance_labels": 0.0
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "clean/03_altitude",
+      "variant": "clean",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.85,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 0.6666666666666665,
+        "corner_error": 0.06048534186398685,
+        "corner_accuracy_abs": 0.596764387573421,
+        "corner_accuracy": 0.9999999999999998,
+        "facts_recall": 0.3333333333333333,
+        "appearance_labels": 0.0
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "clean/04_triangle_angles",
+      "variant": "clean",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.9986350867545362,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 1.0,
+        "corner_error": 0.06029747907244571,
+        "corner_accuracy_abs": 0.5980168061836952,
+        "corner_accuracy": 0.9909005783635747,
+        "facts_recall": 1.0,
+        "appearance_labels": 0.0
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "clean/05_sine_graph",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.8459801659879529,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.7318077762695251,
+        "curve_score_abs": 0.3361874137071446,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 1.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.6666666666666666,
+        "appearance_labels": 0.0
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "clean/06_parabola",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.694079890271758,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.505362719122425,
+        "curve_score_abs": 0.0,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 0.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.6666666666666666,
+        "appearance_labels": 0.0
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "clean/07_line_graph",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.9050980504319669,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.8631808528117783,
+        "curve_score_abs": 0.8508821790323225,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 1.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.6666666666666666,
+        "appearance_labels": 0.0
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "clean/08_bar_subjects",
+      "variant": "clean",
+      "kind_truth": "bar_chart",
+      "kind_pred": "bar_chart",
+      "composite": 1.0,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "bar_label_f1": 1.0,
+        "bar_count_match": 1.0,
+        "value_accuracy": 1.0,
+        "height_concordance": 1.0,
+        "facts_recall": 1.0,
+        "appearance_labels": null
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "clean/09_bar_rainfall",
+      "variant": "clean",
+      "kind_truth": "bar_chart",
+      "kind_pred": "bar_chart",
+      "composite": 0.9,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "bar_label_f1": 1.0,
+        "bar_count_match": 1.0,
+        "value_accuracy": 1.0,
+        "height_concordance": 1.0,
+        "facts_recall": 0.0,
+        "appearance_labels": null
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "clean/10_bar_trees",
+      "variant": "clean",
+      "kind_truth": "bar_chart",
+      "kind_pred": "bar_chart",
+      "composite": 1.0,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "bar_label_f1": 1.0,
+        "bar_count_match": 1.0,
+        "value_accuracy": 1.0,
+        "height_concordance": 1.0,
+        "facts_recall": 1.0,
+        "appearance_labels": null
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "photo/01_right_triangle",
+      "variant": "photo",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.9133333333333333,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 1.0,
+        "corner_error": 0.18911271832484092,
+        "corner_accuracy_abs": 0.0,
+        "corner_accuracy": 0.7555555555555554,
+        "facts_recall": 0.5,
+        "appearance_labels": 0.0
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "photo/02_rectangle",
+      "variant": "photo",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.975,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 1.0,
+        "corner_error": 0.10689189457342259,
+        "corner_accuracy_abs": 0.287387369510516,
+        "corner_accuracy": 1.0,
+        "facts_recall": 0.75,
+        "appearance_labels": 0.0
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "photo/03_altitude",
+      "variant": "photo",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.8405255692692891,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 0.6666666666666665,
+        "corner_error": 0.12918876707480478,
+        "corner_accuracy_abs": 0.1720748861679681,
+        "corner_accuracy": 0.7146149062397055,
+        "facts_recall": 0.6666666666666666,
+        "appearance_labels": 0.0
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "photo/04_triangle_angles",
+      "variant": "photo",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.9685818488874516,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 1.0,
+        "corner_error": 0.11702388285609178,
+        "corner_accuracy_abs": 0.23362965544412836,
+        "corner_accuracy": 0.790545659249677,
+        "facts_recall": 1.0,
+        "appearance_labels": 0.0
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "photo/05_sine_graph",
+      "variant": "photo",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.8169396779292448,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.6672733583612849,
+        "curve_score_abs": 0.02897885707653848,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 1.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.6666666666666666,
+        "appearance_labels": 0.0
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "photo/06_parabola",
+      "variant": "photo",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.48333333333333334,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.0,
+        "curve_score_abs": 0.0,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 1.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.3333333333333333,
+        "appearance_labels": 0.0
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "photo/07_line_graph",
+      "variant": "photo",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.8843098817229686,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.8169849223473375,
+        "curve_score_abs": 0.6775148042928069,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 1.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.6666666666666666,
+        "appearance_labels": 0.0
+      },
+      "latency_s": null,
+      "error": null
+    },
+    {
+      "sample_id": "photo/08_bar_subjects",
+      "variant": "photo",
+      "kind_truth": "bar_chart",
+      "kind_pred": "bar_chart",
+      "composite": 0.7,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "bar_label_f1": 1.0,
+        "bar_count_match": 1.0,
+        "value_accuracy": 0.25,
+        "height_concordance": 1.0,
+        "facts_recall": 0.25,
+        "appearance_labels": null
+      },
+      "latency_s": null,
+      "error": null
+    }
+  ]
+}

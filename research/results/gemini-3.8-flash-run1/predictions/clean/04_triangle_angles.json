@@ -1,0 +1,246 @@
+{
+  "$defs": {
+    "Axes": {
+      "description": "Optional axis positions, normalized to [0, 1].",
+      "properties": {
+        "x_axis_y": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "X Axis Y"
+        },
+        "y_axis_x": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Y Axis X"
+        }
+      },
+      "title": "Axes",
+      "type": "object"
+    },
+    "Bar": {
+      "description": "A bar-chart bar with normalized geometry and a numeric value.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        },
+        "x0": {
+          "title": "X0",
+          "type": "number"
+        },
+        "x1": {
+          "title": "X1",
+          "type": "number"
+        },
+        "y_base": {
+          "title": "Y Base",
+          "type": "number"
+        },
+        "y_top": {
+          "title": "Y Top",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "x0",
+        "x1",
+        "y_top",
+        "y_base",
+        "label",
+        "value"
+      ],
+      "title": "Bar",
+      "type": "object"
+    },
+    "Point": {
+      "description": "A named vertex with normalized coordinates.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "x",
+        "y"
+      ],
+      "title": "Point",
+      "type": "object"
+    },
+    "Polyline": {
+      "description": "An ordered sequence of normalized (x, y) points; used for curves.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "points": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "points"
+      ],
+      "title": "Polyline",
+      "type": "object"
+    },
+    "Segment": {
+      "description": "A straight line between two existing points, referenced by id.",
+      "properties": {
+        "a": {
+          "title": "A",
+          "type": "string"
+        },
+        "b": {
+          "title": "B",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        }
+      },
+      "required": [
+        "id",
+        "a",
+        "b"
+      ],
+      "title": "Segment",
+      "type": "object"
+    }
+  },
+  "axes": null,
+  "bars": [],
+  "facts": [
+    "Triangle XYZ has angle X equal to 70\u00b0",
+    "Triangle XYZ has angle Y equal to 60\u00b0",
+    "Triangle XYZ has angle Z equal to 50\u00b0"
+  ],
+  "kind": "geometry",
+  "points": [
+    {
+      "id": "X",
+      "label": "X",
+      "x": 0.242,
+      "y": 0.24
+    },
+    {
+      "id": "Y",
+      "label": "Y",
+      "x": 0.171,
+      "y": 0.778
+    },
+    {
+      "id": "Z",
+      "label": "Z",
+      "x": 0.83,
+      "y": 0.673
+    }
+  ],
+  "polylines": [],
+  "segments": [
+    {
+      "a": "X",
+      "b": "Y",
+      "id": "XY",
+      "label": "XY"
+    },
+    {
+      "a": "Y",
+      "b": "Z",
+      "id": "YZ",
+      "label": "YZ"
+    },
+    {
+      "a": "X",
+      "b": "Z",
+      "id": "XZ",
+      "label": "XZ"
+    }
+  ],
+  "title": "Triangle XYZ with angles 70\u00b0, 60\u00b0, and 50\u00b0",
+  "version": 1
+}

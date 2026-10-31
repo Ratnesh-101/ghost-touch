@@ -1,0 +1,73 @@
+{
+  "$defs": {},
+  "kind": "geometry",
+  "title": "Rectangle PQRS with diagonal PR",
+  "points": [
+    {
+      "id": "P",
+      "x": 0.12,
+      "y": 0.15,
+      "label": "P"
+    },
+    {
+      "id": "Q",
+      "x": 0.85,
+      "y": 0.15,
+      "label": "Q"
+    },
+    {
+      "id": "R",
+      "x": 0.85,
+      "y": 0.85,
+      "label": "R"
+    },
+    {
+      "id": "S",
+      "x": 0.12,
+      "y": 0.85,
+      "label": "S"
+    }
+  ],
+  "segments": [
+    {
+      "id": "PQ",
+      "a": "P",
+      "b": "Q",
+      "label": "8 cm"
+    },
+    {
+      "id": "QR",
+      "a": "Q",
+      "b": "R",
+      "label": "5 cm"
+    },
+    {
+      "id": "RS",
+      "a": "R",
+      "b": "S",
+      "label": null
+    },
+    {
+      "id": "SP",
+      "a": "S",
+      "b": "P",
+      "label": null
+    },
+    {
+      "id": "PR",
+      "a": "P",
+      "b": "R",
+      "label": "diagonal PR"
+    }
+  ],
+  "polylines": [],
+  "bars": [],
+  "axes": null,
+  "facts": [
+    "PQRS is a rectangle.",
+    "The length of side PQ is 8 cm.",
+    "The length of side QR is 5 cm.",
+    "PR is a diagonal of rectangle PQRS.",
+    "There are right angles at vertices P, Q, R, and S."
+  ]
+}

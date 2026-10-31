@@ -1,0 +1,16 @@
+{
+  "provider": "gemini",
+  "model": "gemini-3.8-flash",
+  "samples": [
+    {
+      "sample_id": "clean/01_right_triangle",
+      "variant": "clean",
+      "kind_truth": "geometry",
+      "kind_pred": null,
+      "composite": 0.0,
+      "metrics": {},
+      "latency_s": null,
+      "error": "ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+    }
+  ]
+}

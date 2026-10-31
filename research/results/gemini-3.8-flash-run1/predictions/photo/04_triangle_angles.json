@@ -1,0 +1,49 @@
+{
+  "kind": "geometry",
+  "title": "Triangle XYZ with angles",
+  "points": [
+    {
+      "id": "X",
+      "x": 0.1,
+      "y": 0.08,
+      "label": "X"
+    },
+    {
+      "id": "Y",
+      "x": 0.05,
+      "y": 0.92,
+      "label": "Y"
+    },
+    {
+      "id": "Z",
+      "x": 0.95,
+      "y": 0.72,
+      "label": "Z"
+    }
+  ],
+  "segments": [
+    {
+      "id": "XY",
+      "a": "X",
+      "b": "Y"
+    },
+    {
+      "id": "YZ",
+      "a": "Y",
+      "b": "Z"
+    },
+    {
+      "id": "ZX",
+      "a": "Z",
+      "b": "X"
+    }
+  ],
+  "polylines": [],
+  "bars": [],
+  "axes": null,
+  "facts": [
+    "Angle at vertex X is 70\u00b0",
+    "Angle at vertex Y is 60\u00b0",
+    "Angle at vertex Z is 50\u00b0"
+  ]
+}

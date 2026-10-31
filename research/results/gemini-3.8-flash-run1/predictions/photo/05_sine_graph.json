@@ -1,0 +1,519 @@
+{
+  "$defs": {
+    "Axes": {
+      "description": "Optional axis positions, normalized to [0, 1].",
+      "properties": {
+        "x_axis_y": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "X Axis Y"
+        },
+        "y_axis_x": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Y Axis X"
+        }
+      },
+      "title": "Axes",
+      "type": "object"
+    },
+    "Bar": {
+      "description": "A bar-chart bar with normalized geometry and a numeric value.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        },
+        "x0": {
+          "title": "X0",
+          "type": "number"
+        },
+        "x1": {
+          "title": "X1",
+          "type": "number"
+        },
+        "y_base": {
+          "title": "Y Base",
+          "type": "number"
+        },
+        "y_top": {
+          "title": "Y Top",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "x0",
+        "x1",
+        "y_top",
+        "y_base",
+        "label",
+        "value"
+      ],
+      "title": "Bar",
+      "type": "object"
+    },
+    "Point": {
+      "description": "A named vertex with normalized coordinates.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "x",
+        "y"
+      ],
+      "title": "Point",
+      "type": "object"
+    },
+    "Polyline": {
+      "description": "An ordered sequence of normalized (x, y) points; used for curves.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "points": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "points"
+      ],
+      "title": "Polyline",
+      "type": "object"
+    },
+    "Segment": {
+      "description": "A straight line between two existing points, referenced by id.",
+      "properties": {
+        "a": {
+          "title": "A",
+          "type": "string"
+        },
+        "b": {
+          "title": "B",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        }
+      },
+      "required": [
+        "id",
+        "a",
+        "b"
+      ],
+      "title": "Segment",
+      "type": "object"
+    }
+  },
+  "bars": [],
+  "axes": {
+    "x_axis_y": 0.48,
+    "y_axis_x": 0.15
+  },
+  "facts": [
+    "Graph of y = sin x",
+    "The x-axis represents the angle x in radians, with marked values from 1 to 6.",
+    "The y-axis represents sin x, ranging from -1 to 1.",
+    "The curve passes through the origin (0, 0).",
+    "The curve attains a maximum of 1 at x = \u03c0/2 \u2248 1.57.",
+    "The curve crosses the x-axis at x = \u03c0 \u2248 3.14.",
+    "The curve attains a minimum of -1 at x = 3\u03c0/2 \u2248 4.71.",
+    "The curve approaches 0 at x = 2\u03c0 \u2248 6.28."
+  ],
+  "kind": "function_graph",
+  "points": [
+    {
+      "id": "origin",
+      "label": "0",
+      "x": 0.15,
+      "y": 0.48
+    },
+    {
+      "id": "tick_x_1",
+      "label": "1",
+      "x": 0.267,
+      "y": 0.48
+    },
+    {
+      "id": "tick_x_2",
+      "label": "2",
+      "x": 0.383,
+      "y": 0.48
+    },
+    {
+      "id": "tick_x_3",
+      "label": "3",
+      "x": 0.5,
+      "y": 0.48
+    },
+    {
+      "id": "tick_x_4",
+      "label": "4",
+      "x": 0.617,
+      "y": 0.48
+    },
+    {
+      "id": "tick_x_5",
+      "label": "5",
+      "x": 0.733,
+      "y": 0.48
+    },
+    {
+      "id": "tick_x_6",
+      "label": "6",
+      "x": 0.85,
+      "y": 0.48
+    },
+    {
+      "id": "tick_y_1",
+      "label": "1",
+      "x": 0.15,
+      "y": 0.23
+    },
+    {
+      "id": "tick_y_neg1",
+      "label": "-1",
+      "x": 0.15,
+      "y": 0.73
+    },
+    {
+      "id": "axis_x_start",
+      "label": null,
+      "x": 0.1,
+      "y": 0.48
+    },
+    {
+      "id": "axis_x_end",
+      "label": "x",
+      "x": 0.95,
+      "y": 0.48
+    },
+    {
+      "id": "axis_y_top",
+      "label": "y",
+      "x": 0.15,
+      "y": 0.1
+    },
+    {
+      "id": "axis_y_bottom",
+      "label": null,
+      "x": 0.15,
+      "y": 0.88
+    }
+  ],
+  "polylines": [
+    {
+      "id": "curve_sin",
+      "label": "y = sin x",
+      "points": [
+        [
+          0.15,
+          0.48
+        ],
+        [
+          0.165,
+          0.449
+        ],
+        [
+          0.179,
+          0.418
+        ],
+        [
+          0.194,
+          0.389
+        ],
+        [
+          0.209,
+          0.362
+        ],
+        [
+          0.223,
+          0.336
+        ],
+        [
+          0.238,
+          0.313
+        ],
+        [
+          0.253,
+          0.293
+        ],
+        [
+          0.267,
+          0.276
+        ],
+        [
+          0.282,
+          0.261
+        ],
+        [
+          0.297,
+          0.25
+        ],
+        [
+          0.311,
+          0.242
+        ],
+        [
+          0.326,
+          0.236
+        ],
+        [
+          0.341,
+          0.234
+        ],
+        [
+          0.355,
+          0.235
+        ],
+        [
+          0.37,
+          0.24
+        ],
+        [
+          0.385,
+          0.247
+        ],
+        [
+          0.399,
+          0.258
+        ],
+        [
+          0.414,
+          0.271
+        ],
+        [
+          0.429,
+          0.288
+        ],
+        [
+          0.443,
+          0.307
+        ],
+        [
+          0.458,
+          0.329
+        ],
+        [
+          0.473,
+          0.354
+        ],
+        [
+          0.487,
+          0.381
+        ],
+        [
+          0.502,
+          0.409
+        ],
+        [
+          0.517,
+          0.439
+        ],
+        [
+          0.531,
+          0.469
+        ],
+        [
+          0.546,
+          0.5
+        ],
+        [
+          0.561,
+          0.53
+        ],
+        [
+          0.575,
+          0.56
+        ],
+        [
+          0.59,
+          0.588
+        ],
+        [
+          0.605,
+          0.615
+        ],
+        [
+          0.619,
+          0.64
+        ],
+        [
+          0.634,
+          0.662
+        ],
+        [
+          0.649,
+          0.681
+        ],
+        [
+          0.663,
+          0.698
+        ],
+        [
+          0.678,
+          0.711
+        ],
+        [
+          0.693,
+          0.72
+        ],
+        [
+          0.707,
+          0.726
+        ],
+        [
+          0.722,
+          0.728
+        ],
+        [
+          0.737,
+          0.726
+        ],
+        [
+          0.751,
+          0.72
+        ],
+        [
+          0.766,
+          0.71
+        ],
+        [
+          0.781,
+          0.696
+        ],
+        [
+          0.795,
+          0.678
+        ],
+        [
+          0.81,
+          0.657
+        ],
+        [
+          0.825,
+          0.632
+        ],
+        [
+          0.839,
+          0.605
+        ],
+        [
+          0.854,
+          0.574
+        ],
+        [
+          0.869,
+          0.542
+        ],
+        [
+          0.883,
+          0.509
+        ]
+      ]
+    }
+  ],
+  "segments": [
+    {
+      "a": "axis_x_start",
+      "b": "axis_x_end",
+      "id": "segment_x_axis",
+      "label": "x-axis"
+    },
+    {
+      "a": "axis_y_bottom",
+      "b": "axis_y_top",
+      "id": "segment_y_axis",
+      "label": "y-axis"
+    }
+  ],
+  "title": "Graph of y = sin x",
+  "version": 1
+}

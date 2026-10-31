@@ -1,0 +1,248 @@
+{
+  "$defs": {
+    "Axes": {
+      "description": "Optional axis positions, normalized to [0, 1].",
+      "properties": {
+        "x_axis_y": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "X Axis Y"
+        },
+        "y_axis_x": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Y Axis X"
+        }
+      },
+      "title": "Axes",
+      "type": "object"
+    },
+    "Bar": {
+      "description": "A bar-chart bar with normalized geometry and a numeric value.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "x0": {
+          "title": "X0",
+          "type": "number"
+        },
+        "x1": {
+          "title": "X1",
+          "type": "number"
+        },
+        "y_top": {
+          "title": "Y Top",
+          "type": "number"
+        },
+        "y_base": {
+          "title": "Y Base",
+          "type": "number"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "x0",
+        "x1",
+        "y_top",
+        "y_base",
+        "label",
+        "value"
+      ],
+      "title": "Bar",
+      "type": "object"
+    },
+    "Point": {
+      "description": "A named vertex with normalized coordinates.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        }
+      },
+      "required": [
+        "id",
+        "x",
+        "y"
+      ],
+      "title": "Point",
+      "type": "object"
+    },
+    "Polyline": {
+      "description": "An ordered sequence of normalized (x, y) points; used for curves.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Points",
+          "type": "array"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        }
+      },
+      "required": [
+        "id",
+        "points"
+      ],
+      "title": "Polyline",
+      "type": "object"
+    },
+    "Segment": {
+      "description": "A straight line between two existing points, referenced by id.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "a": {
+          "title": "A",
+          "type": "string"
+        },
+        "b": {
+          "title": "B",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        }
+      },
+      "required": [
+        "id",
+        "a",
+        "b"
+      ],
+      "title": "Segment",
+      "type": "object"
+    }
+  },
+  "kind": "bar_chart",
+  "title": "Favourite subjects of Class 8",
+  "bars": [
+    {
+      "id": "bar_maths",
+      "label": "Maths",
+      "value": 12,
+      "x0": 0.208,
+      "x1": 0.317,
+      "y_top": 0.403,
+      "y_base": 0.811
+    },
+    {
+      "id": "bar_science",
+      "label": "Science",
+      "value": 18,
+      "x0": 0.392,
+      "x1": 0.501,
+      "y_top": 0.198,
+      "y_base": 0.811
+    },
+    {
+      "id": "bar_english",
+      "label": "English",
+      "value": 8,
+      "x0": 0.576,
+      "x1": 0.686,
+      "y_top": 0.539,
+      "y_base": 0.811
+    },
+    {
+      "id": "bar_hindi",
+      "label": "Hindi",
+      "value": 10,
+      "x0": 0.761,
+      "x1": 0.87,
+      "y_top": 0.471,
+      "y_base": 0.811
+    }
+  ],
+  "axes": {
+    "x_axis_y": 0.811,
+    "y_axis_x": 0.171
+  },
+  "facts": [
+    "The bar chart shows the favourite subjects of Class 8 students.",
+    "The vertical axis represents the number of students, ranging from 0 to 20.",
+    "The horizontal axis represents subjects: Maths, Science, English, and Hindi.",
+    "Maths is the favourite subject of 12 students.",
+    "Science is the favourite subject of 18 students.",
+    "English is the favourite subject of 8 students.",
+    "Hindi is the favourite subject of 10 students."
+  ]
+}

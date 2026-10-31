@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "kind": "geometry",
+  "title": "Rectangle PQRS with diagonal PR",
+  "points": [
+    {"id": "P", "x": 0.153, "y": 0.285, "label": "P"},
+    {"id": "Q", "x": 0.848, "y": 0.285, "label": "Q"},
+    {"id": "R", "x": 0.848, "y": 0.717, "label": "R"},
+    {"id": "S", "x": 0.153, "y": 0.717, "label": "S"}
+  ],
+  "segments": [
+    {"id": "seg_PQ", "a": "P", "b": "Q", "label": "8 cm"},
+    {"id": "seg_QR", "a": "Q", "b": "R", "label": "5 cm"},
+    {"id": "seg_RS", "a": "R", "b": "S", "label": null},
+    {"id": "seg_SP", "a": "S", "b": "P", "label": null},
+    {"id": "seg_PR", "a": "P", "b": "R", "label": null}
+  ],
+  "polylines": [],
+  "bars": [],
+  "axes": null,
+  "facts": [
+    "PQRS is a rectangle",
+    "Length of PQ is 8 cm",
+    "Length of QR is 5 cm",
+    "PR is a diagonal",
+    "Angle SPQ is 90°",
+    "Angle PQR is 90°",
+    "Angle QRS is 90°",
+    "Angle RSP is 90°"
+  ]
+}

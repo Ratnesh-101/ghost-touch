@@ -1,0 +1,64 @@
+{
+  "kind": "bar_chart",
+  "title": "Rainfall (mm)",
+  "axes": {
+    "x_axis_y": 0.811,
+    "y_axis_x": 0.173
+  },
+  "bars": [
+    {
+      "id": "bar_jun",
+      "label": "Jun",
+      "value": 120,
+      "x0": 0.201,
+      "x1": 0.288,
+      "y_top": 0.553,
+      "y_base": 0.811
+    },
+    {
+      "id": "bar_jul",
+      "label": "Jul",
+      "value": 280,
+      "x0": 0.348,
+      "x1": 0.434,
+      "y_top": 0.206,
+      "y_base": 0.811
+    },
+    {
+      "id": "bar_aug",
+      "label": "Aug",
+      "value": 240,
+      "x0": 0.495,
+      "x1": 0.581,
+      "y_top": 0.293,
+      "y_base": 0.811
+    },
+    {
+      "id": "bar_sep",
+      "label": "Sep",
+      "value": 150,
+      "x0": 0.641,
+      "x1": 0.729,
+      "y_top": 0.488,
+      "y_base": 0.811
+    },
+    {
+      "id": "bar_oct",
+      "label": "Oct",
+      "value": 40,
+      "x0": 0.789,
+      "x1": 0.878,
+      "y_top": 0.725,
+      "y_base": 0.811
+    }
+  ],
+  "facts": [
+    "Rainfall in June is 120 mm.",
+    "Rainfall in July is 280 mm.",
+    "Rainfall in August is 240 mm.",
+    "Rainfall in September is 150 mm.",
+    "Rainfall in October is 40 mm.",
+    "July has the highest rainfall at 280 mm.",
+    "October has the lowest rainfall at 40 mm."
+  ]
+}

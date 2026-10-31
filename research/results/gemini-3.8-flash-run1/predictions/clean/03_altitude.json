@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "kind": "geometry",
+  "title": null,
+  "points": [
+    {
+      "id": "A",
+      "x": 0.5,
+      "y": 0.171,
+      "label": "A"
+    },
+    {
+      "id": "B",
+      "x": 0.136,
+      "y": 0.804,
+      "label": "B"
+    },
+    {
+      "id": "C",
+      "x": 0.864,
+      "y": 0.804,
+      "label": "C"
+    },
+    {
+      "id": "D",
+      "x": 0.5,
+      "y": 0.804,
+      "label": "D"
+    }
+  ],
+  "segments": [
+    {
+      "id": "seg_AB",
+      "a": "A",
+      "b": "B",
+      "label": "AB"
+    },
+    {
+      "id": "seg_AC",
+      "a": "A",
+      "b": "C",
+      "label": "AC"
+    },
+    {
+      "id": "seg_BD",
+      "a": "B",
+      "b": "D",
+      "label": "BD"
+    },
+    {
+      "id": "seg_DC",
+      "a": "D",
+      "b": "C",
+      "label": "DC"
+    },
+    {
+      "id": "seg_AD",
+      "a": "A",
+      "b": "D",
+      "label": "AD"
+    }
+  ],
+  "polylines": [],
+  "bars": [],
+  "axes": null,
+  "facts": [
+    "AD is perpendicular to BC",
+    "AD is an altitude of triangle ABC",
+    "Angle ADC is a right angle"
+  ]
+}
