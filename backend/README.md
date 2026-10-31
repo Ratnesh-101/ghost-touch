@@ -19,10 +19,20 @@ cp .env.example .env        # then fill in GEMINI_API_KEY
 ```
 
 ## Run
+Local development:
 ```bash
 uvicorn app.main:app --reload --port 8000
 # health:  http://localhost:8000/api/v1/health  ->  {"ok": true}
 ```
+
+Production run command (used by Render):
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+## Deploy
+Backend deploys to Render via the root `render.yaml` Blueprint.
+See `docs/DEPLOY.md` for step-by-step deployment instructions.
 
 ## Test
 ```bash
