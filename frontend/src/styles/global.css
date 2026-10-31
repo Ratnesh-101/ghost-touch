@@ -276,10 +276,54 @@ body {
   margin-top: 12px;
 }
 
-.gt-explore__back {
+.gt-explore__actions {
+  display: flex;
+  gap: 12px;
   width: 100%;
+}
+
+.gt-explore__ask {
+  flex: 1;
   min-height: 52px;
   font-size: 1.1rem;
+  border-color: var(--gt-line);
+}
+
+.gt-explore__back {
+  flex: 1;
+  min-height: 52px;
+  font-size: 1.1rem;
+}
+
+.gt-explore__ask-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.gt-explore__ask-input {
+  flex: 1;
+  min-height: 48px;
+  padding: 10px 14px;
+  font-size: 1rem;
+  border: 2px solid #2a2a38;
+  border-radius: 12px;
+  background: #000000;
+  color: var(--gt-text);
+  outline: none;
+}
+
+.gt-explore__ask-input:focus-visible {
+  border-color: var(--gt-focus);
+  box-shadow: 0 0 0 4px rgba(57, 255, 136, 0.35);
+}
+
+.gt-explore__send {
+  min-height: 52px;
+  min-width: 80px;
+  font-size: 1rem;
+  border-color: var(--gt-line);
 }
 
 .gt-explore__debug {

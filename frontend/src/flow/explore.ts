@@ -194,6 +194,32 @@ export function checkTwoFingerSwipeDown(
   return true;
 }
 
+export const TWO_FINGER_LONG_PRESS_MS = 600;
+export const TWO_FINGER_MAX_MOVE_PX = 20;
+
+/**
+ * Two-finger long-press gesture detector (starts Ask flow):
+ * Fires if both pointers have been held for at least minDurationMs (600 ms)
+ * without either pointer moving more than maxMovePx (20 px) from its initial touch point.
+ */
+export function checkTwoFingerLongPress(
+  p1: PointerHistory,
+  p2: PointerHistory,
+  now: number,
+  minDurationMs: number = TWO_FINGER_LONG_PRESS_MS,
+  maxMovePx: number = TWO_FINGER_MAX_MOVE_PX,
+): boolean {
+  const d1 = Math.hypot(p1.current.x - p1.start.x, p1.current.y - p1.start.y);
+  const d2 = Math.hypot(p2.current.x - p2.start.x, p2.current.y - p2.start.y);
+
+  if (d1 > maxMovePx || d2 > maxMovePx) return false;
+
+  const dt1 = now - p1.start.t;
+  const dt2 = now - p2.start.t;
+
+  return dt1 >= minDurationMs && dt2 >= minDurationMs;
+}
+
 export interface MovePipelineResult {
   target: Target;
   yNorm: number;

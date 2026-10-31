@@ -7,6 +7,7 @@ import {
   CENTRE_TICK_MS,
   checkAxisCrossing,
   checkCentreTick,
+  checkTwoFingerLongPress,
   checkTwoFingerSwipeDown,
   initialAxisState,
   initialCentreTickState,
@@ -14,6 +15,8 @@ import {
   pitchForY,
   processPointerMove,
   step,
+  TWO_FINGER_LONG_PRESS_MS,
+  TWO_FINGER_MAX_MOVE_PX,
   type Effect,
   type EngineState,
   type PointerHistory,
@@ -177,6 +180,61 @@ describe('Two-finger swipe down detector (checkTwoFingerSwipeDown)', () => {
       current: { x: 205, y: 200, t: 300 },
     };
     expect(checkTwoFingerSwipeDown(p1, p2)).toBe(false);
+  });
+});
+
+describe('Two-finger long-press detector (checkTwoFingerLongPress)', () => {
+  it('fires when held for at least 600 ms with displacement <= 20 px', () => {
+    const p1: PointerHistory = {
+      start: { x: 100, y: 100, t: 1000 },
+      current: { x: 105, y: 102, t: 1650 },
+    };
+    const p2: PointerHistory = {
+      start: { x: 200, y: 120, t: 1000 },
+      current: { x: 198, y: 124, t: 1650 },
+    };
+    expect(checkTwoFingerLongPress(p1, p2, 1650)).toBe(true);
+  });
+
+  it('does not fire if duration is under 600 ms', () => {
+    const p1: PointerHistory = {
+      start: { x: 100, y: 100, t: 1000 },
+      current: { x: 101, y: 101, t: 1400 },
+    };
+    const p2: PointerHistory = {
+      start: { x: 200, y: 120, t: 1000 },
+      current: { x: 200, y: 121, t: 1400 },
+    };
+    expect(checkTwoFingerLongPress(p1, p2, 1400)).toBe(false);
+  });
+
+  it('does not fire if pointer 1 moved more than 20 px', () => {
+    const p1: PointerHistory = {
+      start: { x: 100, y: 100, t: 1000 },
+      current: { x: 125, y: 100, t: 1700 }, // dx = 25 > 20
+    };
+    const p2: PointerHistory = {
+      start: { x: 200, y: 120, t: 1000 },
+      current: { x: 200, y: 122, t: 1700 },
+    };
+    expect(checkTwoFingerLongPress(p1, p2, 1700)).toBe(false);
+  });
+
+  it('does not fire if pointer 2 moved more than 20 px', () => {
+    const p1: PointerHistory = {
+      start: { x: 100, y: 100, t: 1000 },
+      current: { x: 102, y: 102, t: 1700 },
+    };
+    const p2: PointerHistory = {
+      start: { x: 200, y: 120, t: 1000 },
+      current: { x: 200, y: 145, t: 1700 }, // dy = 25 > 20
+    };
+    expect(checkTwoFingerLongPress(p1, p2, 1700)).toBe(false);
+  });
+
+  it('exports TWO_FINGER_LONG_PRESS_MS as 600 and TWO_FINGER_MAX_MOVE_PX as 20', () => {
+    expect(TWO_FINGER_LONG_PRESS_MS).toBe(600);
+    expect(TWO_FINGER_MAX_MOVE_PX).toBe(20);
   });
 });
 

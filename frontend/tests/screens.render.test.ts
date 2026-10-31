@@ -63,8 +63,26 @@ describe('screen markup (server render)', () => {
     expect(html).toContain('aria-label="Triangle. Double-tap and hold, then drag to feel the diagram. You start at the centre."');
     expect(html).toContain('Back');
     expect(html).toContain('gt-explore__back');
+    expect(html).toContain('Ask');
+    expect(html).toContain('gt-explore__ask');
     // When drivers can speak, StatusText contains no aria-live
     expect(html).not.toContain('aria-live');
+  });
+
+  it('Explore renders text fallback box and Send button when speech recognition is unavailable', () => {
+    const noListen: Drivers = { ...drivers, speech: { ...drivers.speech, canListen: false } };
+    const html = renderToStaticMarkup(
+      createElement(Explore, {
+        scene: { kind: 'geometry', title: 'Triangle' },
+        announced: 'Triangle announcement',
+        drivers: noListen,
+        onBack: vi.fn(),
+      }),
+    );
+    expect(html).toContain('gt-explore__ask-form');
+    expect(html).toContain('gt-explore__ask-input');
+    expect(html).toContain('Send');
+    expect(html).toContain('gt-explore__send');
   });
 
   it('Explore turns status text into polite live region when drivers cannot speak', () => {
@@ -102,5 +120,13 @@ describe('touch targets (Requirement 12.1)', () => {
   it('makes the Explore back button at least 48px tall', () => {
     const match = /\.gt-explore__back\s*{[^}]*min-height:\s*(\d+)px/s.exec(css);
     expect(Number(match?.[1])).toBeGreaterThanOrEqual(48);
+  });
+
+  it('makes the Explore ask and send buttons at least 48px tall', () => {
+    const matchAsk = /\.gt-explore__ask\s*{[^}]*min-height:\s*(\d+)px/s.exec(css);
+    expect(Number(matchAsk?.[1])).toBeGreaterThanOrEqual(48);
+
+    const matchSend = /\.gt-explore__send\s*{[^}]*min-height:\s*(\d+)px/s.exec(css);
+    expect(Number(matchSend?.[1])).toBeGreaterThanOrEqual(48);
   });
 });

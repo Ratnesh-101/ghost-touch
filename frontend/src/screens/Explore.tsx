@@ -4,8 +4,8 @@
  * Works with TalkBack on (pass-through gesture: double-tap, hold and drag)
  * and TalkBack off (direct touch or same gesture).
  *
- * Pure decisions live in `flow/explore.ts`; browser APIs live in `drivers/`
- * (history in `drivers/navigation.ts`, canvas context & DOM events here).
+ * Pure decisions live in `flow/explore.ts` and `flow/ask.ts`; browser APIs live
+ * in `drivers/` (history in `drivers/navigation.ts`, canvas context & DOM events here).
  */
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { AccessibleButton } from '../components/AccessibleButton';
@@ -19,15 +19,19 @@ import {
 import type { DiagramScene } from '../core/scene';
 import { runEffects, type Drivers } from '../drivers';
 import { onBack as subscribeBack, pushExploreEntry } from '../drivers/navigation';
+import { AskManager } from '../flow/ask';
 import {
   CENTRE_TICK_MS,
   checkCentreTick,
+  checkTwoFingerLongPress,
   checkTwoFingerSwipeDown,
   initialAxisState,
   initialCentreTickState,
   initialState,
   processPointerMove,
   step,
+  TWO_FINGER_LONG_PRESS_MS,
+  TWO_FINGER_MAX_MOVE_PX,
   type AxisTrackerState,
   type CentreTickState,
   type EngineState,
@@ -46,7 +50,9 @@ interface ExploreProps {
 
 export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const askButtonRef = useRef<HTMLButtonElement>(null);
   const backButtonRef = useRef<HTMLButtonElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
 
   const engineState = useRef<EngineState>(initialState());
   const centreTickState = useRef<CentreTickState>(initialCentreTickState());
@@ -55,7 +61,73 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
   const viewportRef = useRef<Viewport>(makeViewport(300, 300));
   const firstTouchOffset = useRef<{ dx: number; dy: number } | null>(null);
 
+  const askManager = useRef<AskManager>(new AskManager());
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [statusMessage, setStatusMessage] = useState(announced);
+  const [isBusy, setIsBusy] = useState(false);
+  const [showTextFallback, setShowTextFallback] = useState(!drivers.speech.canListen);
+  const [questionText, setQuestionText] = useState('');
   const [debugText, setDebugText] = useState('Relative cursor: waiting for touch');
+
+  const clearLongPressTimer = (): void => {
+    if (longPressTimer.current !== null) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handleVoiceAsk = async (): Promise<void> => {
+    clearLongPressTimer();
+    setIsBusy(true);
+    const outcome = await askManager.current.startVoiceAsk({
+      audio: drivers.audio,
+      speech: drivers.speech,
+      scene,
+      say: (text: string) => {
+        setStatusMessage(text);
+        drivers.speech.speak(text);
+      },
+      onStatusChange: (status: string) => {
+        setStatusMessage(status);
+      },
+      onFallbackNeeded: () => {
+        setShowTextFallback(true);
+      },
+    });
+    setIsBusy(false);
+    if (outcome.kind !== 'cancelled') {
+      askButtonRef.current?.focus();
+    }
+  };
+
+  const handleTextSubmit = async (): Promise<void> => {
+    if (!questionText.trim()) {
+      const msg = t('ask.errorEmpty');
+      setStatusMessage(msg);
+      drivers.speech.speak(msg);
+      return;
+    }
+    setIsBusy(true);
+    const q = questionText;
+    setQuestionText('');
+    const outcome = await askManager.current.submitTextAsk(q, {
+      audio: drivers.audio,
+      speech: drivers.speech,
+      scene,
+      say: (text: string) => {
+        setStatusMessage(text);
+        drivers.speech.speak(text);
+      },
+      onStatusChange: (status: string) => {
+        setStatusMessage(status);
+      },
+    });
+    setIsBusy(false);
+    if (outcome.kind !== 'cancelled') {
+      askButtonRef.current?.focus();
+    }
+  };
 
   const draw = (view: Viewport, cursor: ScreenPoint | null): void => {
     const canvas = canvasRef.current;
@@ -220,6 +292,8 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
     window.addEventListener('resize', handleResize);
 
     return () => {
+      clearLongPressTimer();
+      askManager.current.abort();
       unbindBack();
       window.removeEventListener('resize', handleResize);
       // Lift on unmount
@@ -249,6 +323,23 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
       start: { x: coords.x, y: coords.y, t: now },
       current: { x: coords.x, y: coords.y, t: now },
     });
+
+    // Check two-finger long-press timer setup
+    if (activePointers.current.size === 2) {
+      clearLongPressTimer();
+      longPressTimer.current = setTimeout(() => {
+        if (activePointers.current.size === 2) {
+          const entries = Array.from(activePointers.current.values());
+          const p1 = entries[0];
+          const p2 = entries[1];
+          if (p1 && p2 && checkTwoFingerLongPress(p1, p2, performance.now())) {
+            void handleVoiceAsk();
+          }
+        }
+      }, TWO_FINGER_LONG_PRESS_MS);
+    } else {
+      clearLongPressTimer();
+    }
 
     // Re-centre on each new hold (Requirement 13)
     engineState.current = initialState();
@@ -314,14 +405,22 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
       pointer.current = { x: coords.x, y: coords.y, t: now };
     }
 
-    // Check two-finger swipe down exit gesture
+    // Check two-finger gestures: swipe down exit or long-press drift cancel
     if (activePointers.current.size >= 2) {
       const entries = Array.from(activePointers.current.values());
       const p1 = entries[0];
       const p2 = entries[1];
-      if (p1 && p2 && checkTwoFingerSwipeDown(p1, p2)) {
-        onBack();
-        return;
+      if (p1 && p2) {
+        if (checkTwoFingerSwipeDown(p1, p2)) {
+          clearLongPressTimer();
+          onBack();
+          return;
+        }
+        const d1 = Math.hypot(p1.current.x - p1.start.x, p1.current.y - p1.start.y);
+        const d2 = Math.hypot(p2.current.x - p2.start.x, p2.current.y - p2.start.y);
+        if (d1 > TWO_FINGER_MAX_MOVE_PX || d2 > TWO_FINGER_MAX_MOVE_PX) {
+          clearLongPressTimer();
+        }
       }
     }
 
@@ -350,6 +449,7 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
   };
 
   const handlePointerLift = (e: PointerEvent<HTMLCanvasElement>): void => {
+    clearLongPressTimer();
     activePointers.current.delete(e.pointerId);
     if (activePointers.current.size === 0) {
       const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
@@ -370,7 +470,7 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
       </header>
 
       <StatusText className="gt-explore__status" spoken={drivers.speech.canSpeak}>
-        {announced}
+        {statusMessage}
       </StatusText>
 
       <div className="gt-explore__canvas-container">
@@ -392,14 +492,56 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
         {debugText}
       </div>
 
-      <footer className="gt-explore__footer">
-        <AccessibleButton
-          ref={backButtonRef}
-          className="gt-control gt-explore__back"
-          onClick={onBack}
+      {showTextFallback && (
+        <form
+          className="gt-explore__ask-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleTextSubmit();
+          }}
         >
-          {t('common.back')}
-        </AccessibleButton>
+          <label htmlFor="gt-ask-input" className="gt-visually-hidden">
+            {t('ask.placeholder')}
+          </label>
+          <input
+            id="gt-ask-input"
+            ref={textInputRef}
+            type="text"
+            className="gt-control gt-explore__ask-input"
+            placeholder={t('ask.placeholder')}
+            value={questionText}
+            onChange={(e) => setQuestionText(e.target.value)}
+            maxLength={500}
+            disabled={isBusy}
+          />
+          <AccessibleButton
+            type="submit"
+            className="gt-control gt-explore__send"
+            disabled={isBusy}
+          >
+            {t('ask.send')}
+          </AccessibleButton>
+        </form>
+      )}
+
+      <footer className="gt-explore__footer">
+        <div className="gt-explore__actions">
+          <AccessibleButton
+            ref={askButtonRef}
+            className="gt-control gt-explore__ask"
+            onClick={() => void handleVoiceAsk()}
+            disabled={isBusy}
+          >
+            {t('ask.button')}
+          </AccessibleButton>
+          <AccessibleButton
+            ref={backButtonRef}
+            className="gt-control gt-explore__back"
+            onClick={onBack}
+          >
+            {t('common.back')}
+          </AccessibleButton>
+        </div>
       </footer>
     </main>
   );
