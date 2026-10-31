@@ -1,6 +1,30 @@
-"""VisionProvider interface (Task 8).
+"""VisionProvider interface (Task 8.1).
 
-Concrete providers live in ``vision/<provider>.py`` and read the model name and
-API key from environment variables. The interface is kept here so the rest of
-the pipeline depends on the abstraction, never a specific vendor.
+Abstract base protocol and exception types for diagram vision providers.
 """
+
+from __future__ import annotations
+
+from typing import Protocol
+
+
+class VisionError(Exception):
+    """Provider-level failure: HTTP error, 429, 5xx, timeout, empty body."""
+
+    def __init__(self, provider: str, reason: str) -> None:
+        super().__init__(f"[{provider}] {reason}")
+        self.provider = provider
+        self.reason = reason
+
+
+class VisionProvider(Protocol):
+    """Protocol for vision model providers."""
+
+    name: str
+
+    async def extract(self, image: bytes, mime: str, prompt: str, *, timeout: float) -> str:
+        """Extract raw diagram text (expected JSON) from an image.
+
+        Raises VisionError on failure. Never returns unvalidated DiagramScene.
+        """
+        ...
