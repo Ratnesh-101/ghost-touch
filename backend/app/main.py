@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Single import of validate_scene from the TEMP stub (Kiro replaces with app/validate.py in 8.3)
 from app._temp.validate_stub import ValidationResult, validate_scene
+from app.ask import AskRequest, AskResponse, answer_question
 from app.raw_mode import RawModeError, build_raw_scene
 from app.vision import ProviderChain, VisionError, build_chain_from_env
 from app.vision.prompts import build_prompt
@@ -210,3 +211,15 @@ async def process_scene(
     except Exception as exc:
         logger.error("Unexpected error in scene pipeline: %s", exc)
         return build_raw_mode_response("error", used_provider_name)
+
+
+@app.post("/api/v1/ask", response_model=AskResponse)
+async def ask_question_route(
+    request: AskRequest,
+    chain: Annotated[ProviderChain, Depends(get_provider_chain)],
+) -> AskResponse:
+    """Answer questions about a diagram scene (Task 9.1).
+
+    Uses vision/language provider completion with fallback to deterministic facts lookup.
+    """
+    return await answer_question(request, chain)
