@@ -123,3 +123,15 @@ Format for each entry:
 - The owner reset git to a fresh repository with everything staged. With temporary `git add`/`git commit` permission, Claude Code split it into logical, conventional commits in build order, using real timestamps (no `--date`). `backend/.env` and `.claude/settings.local.json` were never staged (both ignored; a pattern scan of every file found no keys).
 - Verified before committing the agy work: tests, `tsc`, build, no edits to Kiro-owned files, no commits by the agents. Scaffold files were committed in their original form and pipeline changes in later commits.
 - Not a clean per-task history in two places: Capture, i18n and App were committed in their final (T06b/T07) form, and the intermediate `ExploreStub` never entered history. Total commit count is above the 25-30 target (over-split).
+
+## 2026-11-01 — Antigravity — T09b frontend Ask flow (launched by Claude Code with the owner's permission flag)
+- Added the Ask client (`api/ask.ts`, 12 s timeout, abort), the pure Ask flow (`flow/ask.ts`: listening cue, voice question, spoken answer, one Ask at a time, a spoken line for every failure, text-box fallback), and an Ask button, text box and optional two-finger long-press (600 ms) in the Explore screen. Status text keeps the no-live-region pattern while the app speaks.
+- 194 frontend tests pass, `tsc` clean, build OK (31 new tests). Not tested on a phone. The backend half (T09a) is built separately. Details: `docs/handoffs/T09b-report.md`.
+
+## 2026-11-01 — Antigravity — T10a deployment preparation (launched by Claude Code with the owner's permission flag)
+- Added `render.yaml` (Render blueprint, secrets `sync: false`), `frontend/vercel.json` (SPA fallback that keeps `/assets` and `/samples`, no-cache for the service worker, manifest and index), `.github/workflows/ci.yml` and `docs/DEPLOY.md`. Nothing was deployed. Environment variable names in `render.yaml` match what the backend reads.
+- Claude Code then changed the CI test step to retry once and documented why: the Kiro-owned P1 property test fails in about 1 run in 5 (`docs/kiro-evidence/pbt-p1-flake.md`); the comment from the agent called it "very rare", which is not what was measured. Python 3.11 in CI is untested locally (the dev venv is 3.13).
+- Details: `docs/handoffs/T10a-report.md`.
+
+## 2026-11-01 — Claude Code — STEMergent draft and demo script
+- Added `docs/STEMERGENT_SUBMISSION.md` and `docs/DEMO_SCRIPT.md` as drafts: only things that exist are claimed; everything that needs the owner's facts or real results is marked `[FILL]` or `[ONLY IF REAL]`.
