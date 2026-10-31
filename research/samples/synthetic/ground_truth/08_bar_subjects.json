@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "kind": "bar_chart",
+  "title": "Favourite subjects of Class 8",
+  "points": [],
+  "segments": [],
+  "polylines": [],
+  "bars": [
+    {
+      "id": "b0",
+      "x0": 0.1625,
+      "x1": 0.29,
+      "y_top": 0.392,
+      "y_base": 0.86,
+      "label": "Maths",
+      "value": 12
+    },
+    {
+      "id": "b1",
+      "x0": 0.375,
+      "x1": 0.5025,
+      "y_top": 0.158,
+      "y_base": 0.86,
+      "label": "Science",
+      "value": 18
+    },
+    {
+      "id": "b2",
+      "x0": 0.5875,
+      "x1": 0.715,
+      "y_top": 0.548,
+      "y_base": 0.86,
+      "label": "English",
+      "value": 8
+    },
+    {
+      "id": "b3",
+      "x0": 0.8,
+      "x1": 0.9275,
+      "y_top": 0.47,
+      "y_base": 0.86,
+      "label": "Hindi",
+      "value": 10
+    }
+  ],
+  "axes": null,
+  "facts": [
+    "Maths: 12",
+    "Science: 18",
+    "English: 8",
+    "Hindi: 10"
+  ]
+}

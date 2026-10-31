@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "kind": "bar_chart",
+  "title": "Rainfall (mm)",
+  "points": [],
+  "segments": [],
+  "polylines": [],
+  "bars": [
+    {
+      "id": "b0",
+      "x0": 0.154,
+      "x1": 0.256,
+      "y_top": 0.548,
+      "y_base": 0.86,
+      "label": "Jun",
+      "value": 120
+    },
+    {
+      "id": "b1",
+      "x0": 0.324,
+      "x1": 0.426,
+      "y_top": 0.132,
+      "y_base": 0.86,
+      "label": "Jul",
+      "value": 280
+    },
+    {
+      "id": "b2",
+      "x0": 0.494,
+      "x1": 0.596,
+      "y_top": 0.236,
+      "y_base": 0.86,
+      "label": "Aug",
+      "value": 240
+    },
+    {
+      "id": "b3",
+      "x0": 0.664,
+      "x1": 0.766,
+      "y_top": 0.47,
+      "y_base": 0.86,
+      "label": "Sep",
+      "value": 150
+    },
+    {
+      "id": "b4",
+      "x0": 0.834,
+      "x1": 0.936,
+      "y_top": 0.756,
+      "y_base": 0.86,
+      "label": "Oct",
+      "value": 40
+    }
+  ],
+  "axes": null,
+  "facts": [
+    "Jun: 120",
+    "Jul: 280",
+    "Aug: 240",
+    "Sep: 150",
+    "Oct: 40"
+  ]
+}

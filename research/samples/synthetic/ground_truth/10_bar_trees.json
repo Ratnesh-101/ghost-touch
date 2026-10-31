@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "kind": "bar_chart",
+  "title": "Trees planted by houses",
+  "points": [],
+  "segments": [],
+  "polylines": [],
+  "bars": [
+    {
+      "id": "b0",
+      "x0": 0.1767,
+      "x1": 0.3467,
+      "y_top": 0.405,
+      "y_base": 0.86,
+      "label": "Red",
+      "value": 35
+    },
+    {
+      "id": "b1",
+      "x0": 0.46,
+      "x1": 0.63,
+      "y_top": 0.21,
+      "y_base": 0.86,
+      "label": "Blue",
+      "value": 50
+    },
+    {
+      "id": "b2",
+      "x0": 0.7433,
+      "x1": 0.9133,
+      "y_top": 0.535,
+      "y_base": 0.86,
+      "label": "Green",
+      "value": 25
+    }
+  ],
+  "axes": null,
+  "facts": [
+    "Red: 35",
+    "Blue: 50",
+    "Green: 25"
+  ]
+}
