@@ -1,4 +1,5 @@
 """Smoke test for the health endpoint (Task 1 DoD)."""
+
 from fastapi.testclient import TestClient
 
 from app.main import app
