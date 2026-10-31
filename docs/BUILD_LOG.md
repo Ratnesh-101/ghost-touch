@@ -135,3 +135,10 @@ Format for each entry:
 
 ## 2026-11-01 — Claude Code — STEMergent draft and demo script
 - Added `docs/STEMERGENT_SUBMISSION.md` and `docs/DEMO_SCRIPT.md` as drafts: only things that exist are claimed; everything that needs the owner's facts or real results is marked `[FILL]` or `[ONLY IF REAL]`.
+
+## 2026-11-01 — Antigravity — T09a backend Ask (launched by Claude Code with the owner's permission flag)
+- Added `POST /api/v1/ask` (`app/ask.py`): answers in at most 2 short sentences from the scene and its facts only, the exact sentence "I don't know from this diagram." otherwise, the question treated as data inside delimiters, text-only completion added to the providers with the same fallback chain, and a deterministic **facts lookup** fallback so Ask works with no key or quota. 126 backend tests pass, `ruff` clean. No real API was called. Details: `docs/handoffs/T09a-report.md`.
+
+## 2026-11-01 — Claude Code — Independent reviews of T06b, T07 and T08, and fix briefs
+- Two fresh reviewers wrote `docs/reviews/T06b-T07-review.md` (FIX FIRST: stale history entry makes the first Android Back do nothing after leaving Explore; centre tick skipped on some holds; bar tone sticks; PDF rendered at 72 dpi; stale viewport; spurious axis speech; weak tests) and `docs/reviews/T08-review.md` (FIX FIRST: thinking setting may be rejected by the current Gemini model; no pixel cap or real file-type check; OpenCV on the event loop; unvalidated Raw Mode scene returned; example env file means zero providers; chain rebuilt per request; upload read before the size check).
+- Wrote `docs/briefs/F1-frontend-review-fixes.md` and `F2-backend-review-fixes.md`. A live probe of the Gemini thinking settings could not run: the free-tier quota is still exhausted (429 on every variant). So the thinking fix is specified to degrade safely (retry once without the setting) rather than assume one parameter works.
