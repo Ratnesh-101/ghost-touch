@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Ghost Touch – Haptics Test</title>
+<style>
+  :root{--bg:#0b0b10;--fg:#e8ffe8;--accent:#39ff88;--muted:#8a8fa0}
+  html,body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;touch-action:none;overscroll-behavior:none}
+  header{padding:12px 16px 6px}
+  h1{font-size:18px;margin:0 0 4px}
+  #status{color:var(--muted);font-size:13px;min-height:16px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 8px}
+  button{background:#1a1a24;color:var(--fg);border:1px solid #333;border-radius:10px;padding:10px 12px;font-size:14px}
+  button.on{border-color:var(--accent);color:var(--accent)}
+  canvas{display:block;width:100%;background:#000;touch-action:none}
+  #start{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--accent);z-index:9;text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<div id="start">👻 Tap anywhere to start</div>
+
+<header>
+  <h1>Ghost Touch · haptics test</h1>
+  <div id="status"></div>
+</header>
+
+<div class="row">
+  <button data-p="20">Tick 20ms</button>
+  <button data-p="60">Buzz 60ms</button>
+  <button data-p="300">Long 300ms</button>
+  <button data-p="50,90,50">Corner</button>
+  <button data-p="40,120,80">Heartbeat</button>
+</div>
+<div class="row">
+  <button id="mShape" class="on">Triangle</button>
+  <button id="mGraph">Graph + theremin</button>
+  <button id="sound" class="on">Sound on</button>
+</div>
+
+<canvas id="c"></canvas>
+
+<script>
+const statusEl = document.getElementById('status');
+const canVibrate = 'vibrate' in navigator;
+statusEl.textContent = canVibrate ? 'Vibration API: supported ✅' : 'Vibration API: NOT supported ❌ (use Chrome on Android)';
+const vib = p => canVibrate ? navigator.vibrate(p) : false;
+
+// ---------- audio (theremin) ----------
+let audioCtx, osc, gain, soundOn = true;
+document.getElementById('start').addEventListener('pointerdown', e => {
+  e.currentTarget.remove();
+  vib(40);
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  osc = audioCtx.createOscillator(); gain = audioCtx.createGain();
+  osc.type = 'sine'; gain.gain.value = 0;
+  osc.connect(gain).connect(audioCtx.destination); osc.start();
+});
+function setTone(f){
+  if(!gain) return;
+  const t = audioCtx.currentTime;
+  if(f && soundOn){ osc.frequency.setTargetAtTime(f, t, 0.02); gain.gain.setTargetAtTime(0.15, t, 0.02); }
+  else gain.gain.setTargetAtTime(0, t, 0.03);
+}
+function speak(text){
+  if(!soundOn || !window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text); u.rate = 1.1;
+  speechSynthesis.speak(u);
+}
+
+// ---------- pattern buttons ----------
+document.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => {
+  const ok = vib(b.dataset.p.split(',').map(Number));
+  statusEl.textContent = `vibrate(${b.dataset.p}) returned ${ok}`;
+}));
+
+// ---------- canvas ----------
+const c = document.getElementById('c'), ctx = c.getContext('2d');
+let W, H, mode = 'shape', segs = [], verts = [];
+
+function resize(){
+  W = c.getBoundingClientRect().width;
+  H = Math.max(240, window.innerHeight - c.getBoundingClientRect().top);
+  c.style.height = H + 'px';
+  const d = window.devicePixelRatio || 1;
+  c.width = W * d; c.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0);
+  build(); draw();
+}
+function build(){
+  segs = []; verts = [];
+  if(mode === 'shape'){
+    const m = Math.min(W, H), cx = W / 2, cy = H / 2;
+    const A = [cx, cy - m * 0.35], B = [cx - m * 0.38, cy + m * 0.3], C = [cx + m * 0.38, cy + m * 0.3];
+    verts = [{p:A,n:'A'},{p:B,n:'B'},{p:C,n:'C'}];
+    segs = [[A,B],[B,C],[C,A]];
+  } else {
+    let prev = null;
+    for(let i = 0; i <= 100; i++){
+      const x = W * 0.05 + i * (W * 0.9 / 100);
+      const y = H / 2 - Math.sin(i / 100 * Math.PI * 2) * H * 0.3;
+      const p = [x, y]; if(prev) segs.push([prev, p]); prev = p;
+    }
+  }
+}
+function draw(){
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = '#39ff88'; ctx.lineWidth = 4; ctx.shadowColor = '#39ff88'; ctx.shadowBlur = 12;
+  ctx.beginPath(); segs.forEach(([a,b]) => { ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); }); ctx.stroke();
+  ctx.shadowBlur = 0; ctx.fillStyle = '#e8ffe8'; ctx.font = '16px system-ui';
+  verts.forEach(v => { ctx.beginPath(); ctx.arc(v.p[0], v.p[1], 6, 0, 7); ctx.fill(); ctx.fillText(v.n, v.p[0] + 10, v.p[1] - 10); });
+}
+function distSeg(p, a, b){
+  const dx = b[0]-a[0], dy = b[1]-a[1];
+  const t = Math.max(0, Math.min(1, ((p[0]-a[0])*dx + (p[1]-a[1])*dy) / (dx*dx + dy*dy || 1)));
+  return Math.hypot(p[0] - (a[0] + t*dx), p[1] - (a[1] + t*dy));
+}
+
+// ---------- touch → haptics ----------
+const LINE = 14, VERT = 22;
+let onLine = false, lastBuzz = 0, lastVert = null, quietUntil = 0;
+function handle(e){
+  e.preventDefault();
+  const r = c.getBoundingClientRect();
+  const p = [e.clientX - r.left, e.clientY - r.top];
+  const now = performance.now();
+
+  const v = verts.find(v => Math.hypot(p[0]-v.p[0], p[1]-v.p[1]) < VERT);
+  if(v){
+    if(lastVert !== v.n){ lastVert = v.n; vib([50,90,50]); quietUntil = now + 450; speak('Point ' + v.n); }
+    onLine = false; setTone(null); return;
+  }
+  lastVert = null;
+
+  if(segs.some(([a,b]) => distSeg(p, a, b) < LINE)){
+    if(now >= quietUntil && now - lastBuzz > 70){ vib(80); lastBuzz = now; }   // continuous buzz on line, silent briefly after a corner
+    onLine = true;
+    setTone(mode === 'graph' ? 200 + (1 - p[1] / H) * 800 : null); // higher on screen = higher pitch
+  } else if(onLine){
+    if(now >= quietUntil) vib(0);   // don't cut off a corner pulse
+    onLine = false; setTone(null);
+  }
+}
+c.addEventListener('pointerdown', e => { c.setPointerCapture(e.pointerId); handle(e); });
+c.addEventListener('pointermove', handle);
+['pointerup','pointercancel'].forEach(ev => c.addEventListener(ev, () => { vib(0); onLine = false; lastVert = null; setTone(null); }));
+
+// ---------- controls ----------
+const mS = document.getElementById('mShape'), mG = document.getElementById('mGraph'), sb = document.getElementById('sound');
+mS.onclick = () => { mode = 'shape'; mS.classList.add('on'); mG.classList.remove('on'); build(); draw(); };
+mG.onclick = () => { mode = 'graph'; mG.classList.add('on'); mS.classList.remove('on'); build(); draw(); };
+sb.onclick = () => { soundOn = !soundOn; sb.classList.toggle('on', soundOn); sb.textContent = soundOn ? 'Sound on' : 'Sound off'; setTone(null); };
+window.addEventListener('resize', resize);
+resize();
+</script>
+</body>
+</html>
