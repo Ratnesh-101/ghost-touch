@@ -1,0 +1,38 @@
+# --- Dependencies ---
+node_modules/
+frontend/node_modules/
+
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# --- Build output ---
+frontend/dist/
+backend/scene.schema.json
+
+# --- Env / secrets (never commit) ---
+.env
+.env.*
+!.env.example
+
+# --- Claude Code local settings (permissions, per-machine) ---
+.claude/settings.local.json
+
+# --- Editor / OS ---
+.DS_Store
+Thumbs.db
+*.log
+
+# IMPORTANT: .kiro/ MUST stay committed (Kiroween requirement). Do not ignore it.
+
+.env
+.claude/settings.local.json
