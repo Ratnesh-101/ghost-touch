@@ -1,0 +1,256 @@
+/**
+ * Pure hit-testing core — maps a finger position to a diagram target.
+ *
+ * Per architecture rules (tech.md): this module is pure (no DOM, React, or
+ * browser API access). Hit testing happens in screen-pixel space: scene
+ * coordinates (normalized [0, 1]) are converted to screen pixels via
+ * `toScreen` from `geometry.ts`, then distances are compared against the
+ * hit radii.
+ *
+ * Priority order (design.md): vertex > line > bar interior > none.
+ *   - Vertex hits take priority over line hits (Requirement 4.6).
+ *   - Among several vertex hits, the closest wins; likewise for lines.
+ *   - A bar is reported when the finger is inside the bar rectangle.
+ */
+
+import { toScreen, toNorm, distToSegment } from './geometry';
+import type { ScreenPoint, Viewport } from './geometry';
+import type { DiagramScene, Point } from './scene';
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
+
+/** The element kind that distinguishes a `line` target's source. */
+export type LineElementKind = 'segment' | 'polyline' | 'axis';
+
+/**
+ * Whatever is under the finger. The haptic engine consumes this to decide
+ * which effects to emit.
+ */
+export type Target =
+  | { kind: 'vertex'; id: string; label?: string }
+  | { kind: 'line'; id: string; elementKind: LineElementKind }
+  | { kind: 'bar'; id: string; label: string; value: number }
+  | { kind: 'none' };
+
+/** Hit radii in CSS pixels. Vertex hits take priority over line hits. */
+export interface Radii {
+  vertex: number;
+  line: number;
+}
+
+/**
+ * Default hit radii from the haptic vocabulary in tech.md:
+ * vertex 22 CSS px, line 14 CSS px.
+ */
+export const DEFAULT_RADII: Radii = { vertex: 22, line: 14 };
+
+// ---------------------------------------------------------------------------
+// Internal hit candidates (carry distance so the closest wins)
+// ---------------------------------------------------------------------------
+
+interface VertexHit {
+  id: string;
+  label: string | undefined;
+  dist: number;
+}
+
+interface LineHit {
+  id: string;
+  elementKind: LineElementKind;
+  dist: number;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Index scene points by id for fast endpoint lookup. */
+function indexPoints(points: Point[] | undefined): Map<string, Point> {
+  const map = new Map<string, Point>();
+  if (points !== undefined) {
+    for (const p of points) {
+      map.set(p.id, p);
+    }
+  }
+  return map;
+}
+
+/**
+ * Keep the closer of `prev` and a vertex candidate at `dist`, but only if the
+ * candidate is within `radius`. A null `prev` always loses to a valid hit.
+ */
+function closerVertex(
+  prev: VertexHit | null,
+  id: string,
+  label: string | undefined,
+  dist: number,
+  radius: number,
+): VertexHit | null {
+  if (dist > radius) return prev;
+  if (prev === null || dist < prev.dist) return { id, label, dist };
+  return prev;
+}
+
+/**
+ * Keep the closer of `prev` and a line candidate at `dist`, but only if the
+ * candidate is within `radius`. A null `prev` always loses to a valid hit.
+ */
+function closerLine(
+  prev: LineHit | null,
+  id: string,
+  elementKind: LineElementKind,
+  dist: number,
+  radius: number,
+): LineHit | null {
+  if (dist > radius) return prev;
+  if (prev === null || dist < prev.dist) return { id, elementKind, dist };
+  return prev;
+}
+
+/** Find the nearest vertex within the vertex radius, or null. */
+function findVertex(
+  scene: DiagramScene,
+  finger: ScreenPoint,
+  view: Viewport,
+  radii: Radii,
+): VertexHit | null {
+  let best: VertexHit | null = null;
+  const points = scene.points;
+  if (points === undefined) return best;
+  for (const p of points) {
+    const s = toScreen({ x: p.x, y: p.y }, view);
+    const dist = Math.hypot(finger.x - s.x, finger.y - s.y);
+    best = closerVertex(best, p.id, p.label ?? undefined, dist, radii.vertex);
+  }
+  return best;
+}
+
+/** Find the nearest line (segment, polyline, or axis) within the line radius. */
+function findLine(
+  scene: DiagramScene,
+  finger: ScreenPoint,
+  view: Viewport,
+  radii: Radii,
+  pointMap: Map<string, Point>,
+): LineHit | null {
+  let best: LineHit | null = null;
+
+  // Segments — resolve endpoint ids to points, then distance to segment.
+  const segments = scene.segments;
+  if (segments !== undefined) {
+    for (const seg of segments) {
+      const a = pointMap.get(seg.a);
+      const b = pointMap.get(seg.b);
+      if (a === undefined || b === undefined) continue; // dangling ref — skip
+      const sa = toScreen({ x: a.x, y: a.y }, view);
+      const sb = toScreen({ x: b.x, y: b.y }, view);
+      best = closerLine(best, seg.id, 'segment', distToSegment(finger, sa, sb), radii.line);
+    }
+  }
+
+  // Polylines — distance to each consecutive pair of points.
+  const polylines = scene.polylines;
+  if (polylines !== undefined) {
+    for (const poly of polylines) {
+      const pts = poly.points;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i];
+        const b = pts[i + 1];
+        if (a === undefined || b === undefined) continue;
+        const sa = toScreen({ x: a[0], y: a[1] }, view);
+        const sb = toScreen({ x: b[0], y: b[1] }, view);
+        best = closerLine(best, poly.id, 'polyline', distToSegment(finger, sa, sb), radii.line);
+      }
+    }
+  }
+
+  // Axes — full-width horizontal (x) and full-height vertical (y) lines.
+  const axes = scene.axes;
+  if (axes !== null && axes !== undefined) {
+    const xAxisY = axes.x_axis_y;
+    if (xAxisY !== null && xAxisY !== undefined) {
+      const sa = toScreen({ x: 0, y: xAxisY }, view);
+      const sb = toScreen({ x: 1, y: xAxisY }, view);
+      best = closerLine(best, 'x-axis', 'axis', distToSegment(finger, sa, sb), radii.line);
+    }
+    const yAxisX = axes.y_axis_x;
+    if (yAxisX !== null && yAxisX !== undefined) {
+      const sa = toScreen({ x: yAxisX, y: 0 }, view);
+      const sb = toScreen({ x: yAxisX, y: 1 }, view);
+      best = closerLine(best, 'y-axis', 'axis', distToSegment(finger, sa, sb), radii.line);
+    }
+  }
+
+  return best;
+}
+
+/**
+ * Find a bar whose interior contains the finger, or null.
+ *
+ * `toScreen` is a uniform scale + translation, so containment in normalized
+ * space is equivalent to containment in screen space. Checking in
+ * normalized space avoids re-deriving each bar's screen rectangle.
+ */
+function findBar(
+  scene: DiagramScene,
+  finger: ScreenPoint,
+  view: Viewport,
+): Target | null {
+  const bars = scene.bars;
+  if (bars === undefined) return null;
+  const fn = toNorm(finger, view);
+  for (const bar of bars) {
+    if (fn.x >= bar.x0 && fn.x <= bar.x1 && fn.y >= bar.y_top && fn.y <= bar.y_base) {
+      return { kind: 'bar', id: bar.id, label: bar.label, value: bar.value };
+    }
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// hitTest
+// ---------------------------------------------------------------------------
+
+/**
+ * Map a finger position (screen pixels) to the target under it.
+ *
+ * Priority (design.md): vertex > line > bar interior > none.
+ *   1. Vertex — nearest point within `radii.vertex` (Requirements 4.3, 4.6).
+ *   2. Line   — nearest segment / polyline / axis within `radii.line`.
+ *   3. Bar    — finger inside a bar rectangle.
+ *   4. None   — nothing under the finger.
+ *
+ * Vertex is checked first and short-circuits, so a position within the
+ * vertex radius is never classified as a line (Requirement 4.6).
+ */
+export function hitTest(
+  scene: DiagramScene,
+  finger: ScreenPoint,
+  view: Viewport,
+  radii: Radii = DEFAULT_RADII,
+): Target {
+  const pointMap = indexPoints(scene.points);
+
+  // Priority 1: vertex (closest wins). Short-circuits before any line check.
+  const vertex = findVertex(scene, finger, view, radii);
+  if (vertex !== null) {
+    return vertex.label !== undefined
+      ? { kind: 'vertex', id: vertex.id, label: vertex.label }
+      : { kind: 'vertex', id: vertex.id };
+  }
+
+  // Priority 2: line — segments, polylines, axes (closest wins).
+  const line = findLine(scene, finger, view, radii, pointMap);
+  if (line !== null) {
+    return { kind: 'line', id: line.id, elementKind: line.elementKind };
+  }
+
+  // Priority 3: bar interior.
+  const bar = findBar(scene, finger, view);
+  if (bar !== null) return bar;
+
+  // Priority 4: nothing under the finger.
+  return { kind: 'none' };
+}
