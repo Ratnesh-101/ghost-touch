@@ -1,0 +1,17 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Run tests on core save",
+      "trigger": "PostFileSave",
+      "action": {
+        "type": "command",
+        "command": "npm --prefix frontend test"
+      },
+      "description": "Runs Vitest + fast-check whenever pure core logic changes",
+      "matcher": "frontend[\\\\/]src[\\\\/]core[\\\\/].*\\.ts$",
+      "timeout": 120,
+      "enabled": true
+    }
+  ]
+}

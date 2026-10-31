@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Review builder handoff",
+      "trigger": "PostFileSave",
+      "action": {
+        "type": "agent",
+        "prompt": "A builder handoff report was just saved. Follow the review protocol in #review exactly. Read the matching brief in docs/briefs/, the report, and every file the report lists. Re-run the Definition of Done commands where possible instead of trusting the report. Write the result to docs/reviews/<TNN>-review.md, using the same TNN as the report. Do not edit any code during the review."
+      },
+      "description": "Kiro reviews Antigravity's work when a handoff report is saved",
+      "matcher": "docs[\\\\/]handoffs[\\\\/].*-report\\.md$",
+      "enabled": true
+    }
+  ]
+}

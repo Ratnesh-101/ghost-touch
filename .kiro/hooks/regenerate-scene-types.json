@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Regenerate scene types",
+      "trigger": "PostFileSave",
+      "action": {
+        "type": "agent",
+        "prompt": "backend/app/schema.py changed. In the backend folder, using the .venv Python, run `python -m app.export_schema`. Then in the frontend folder run `npm run gen:types`. Report whether frontend/src/types/scene.gen.ts changed, and flag any frontend code that no longer type-checks (run `npx tsc --noEmit` in frontend)."
+      },
+      "description": "Keeps the TypeScript DiagramScene type in sync with the Pydantic schema",
+      "matcher": "backend[\\\\/]app[\\\\/]schema\\.py$",
+      "enabled": true
+    }
+  ]
+}
