@@ -93,3 +93,44 @@ class GeminiProvider:
         # Unwrap markdown fences if present
         cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.IGNORECASE).strip()
         return cleaned
+
+    async def complete(self, prompt: str, *, timeout: float) -> str:
+        """Call Gemini to complete a text-only prompt (Task 9.1).
+
+        Raises VisionError on any failure.
+        """
+        if not self._client:
+            raise VisionError(self.name, "API key not configured")
+
+        try:
+            thinking_cfg = (
+                types.ThinkingConfig(thinking_budget=self.thinking_budget)
+                if self.thinking_budget is not None
+                else None
+            )
+            config = types.GenerateContentConfig(
+                temperature=0.0,
+                thinking_config=thinking_cfg,
+            )
+            response = await asyncio.wait_for(
+                self._client.aio.models.generate_content(
+                    model=self.model,
+                    contents=prompt,
+                    config=config,
+                ),
+                timeout=timeout,
+            )
+        except TimeoutError as exc:
+            raise VisionError(self.name, f"request timed out after {timeout:.1f}s") from exc
+        except errors.APIError as exc:
+            msg = _redact_secrets(str(exc), self.api_key)
+            raise VisionError(self.name, f"API error ({exc.code}): {msg}") from exc
+        except Exception as exc:
+            msg = _redact_secrets(str(exc), self.api_key)
+            raise VisionError(self.name, f"call failed: {msg}") from exc
+
+        text = response.text
+        if not text or not text.strip():
+            raise VisionError(self.name, "empty response from gemini")
+
+        return text.strip()

@@ -28,3 +28,10 @@ class VisionProvider(Protocol):
         Raises VisionError on failure. Never returns unvalidated DiagramScene.
         """
         ...
+
+    async def complete(self, prompt: str, *, timeout: float) -> str:
+        """Generate text completion from a prompt (text-only).
+
+        Raises VisionError on failure.
+        """
+        ...

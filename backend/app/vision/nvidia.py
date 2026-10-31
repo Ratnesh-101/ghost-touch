@@ -168,3 +168,74 @@ class NvidiaProvider:
             r"^```(?:json)?\s*|\s*```$", "", content.strip(), flags=re.IGNORECASE
         ).strip()
         return cleaned
+
+    async def complete(self, prompt: str, *, timeout: float) -> str:
+        """Call NVIDIA hosted API to complete a text-only prompt (Task 9.1).
+
+        Raises VisionError on any failure.
+        """
+        if not self.api_key:
+            raise VisionError(self.name, "API key not configured")
+
+        body: dict[str, Any] = {
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            "temperature": 0.0,
+            "max_tokens": 1024,
+            "stream": False,
+        }
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        url = f"{self.base_url}/chat/completions"
+
+        client_to_use = self._client or httpx.AsyncClient()
+        try:
+            try:
+                response = await client_to_use.post(
+                    url,
+                    headers=headers,
+                    json=body,
+                    timeout=timeout,
+                )
+            finally:
+                if self._client is None:
+                    await client_to_use.aclose()
+        except httpx.TimeoutException as exc:
+            raise VisionError(self.name, f"request timed out after {timeout:.1f}s") from exc
+        except httpx.RequestError as exc:
+            msg = _redact_secrets(str(exc), self.api_key)
+            raise VisionError(self.name, f"connection error: {msg}") from exc
+        except Exception as exc:
+            msg = _redact_secrets(str(exc), self.api_key)
+            raise VisionError(self.name, f"request failed: {msg}") from exc
+
+        if response.status_code == 429:
+            raise VisionError(self.name, "rate limited (429)")
+        if response.status_code >= 500:
+            raise VisionError(self.name, f"server error ({response.status_code})")
+        if response.status_code != 200:
+            msg = _redact_secrets(response.text[:200], self.api_key)
+            raise VisionError(self.name, f"HTTP {response.status_code}: {msg}")
+
+        try:
+            data = response.json()
+        except Exception as exc:
+            raise VisionError(self.name, f"invalid response JSON: {exc}") from exc
+
+        choices = data.get("choices") or []
+        if not choices:
+            raise VisionError(self.name, "empty choices in response")
+
+        content = choices[0].get("message", {}).get("content")
+        if not content or not content.strip():
+            raise VisionError(self.name, "empty content in response")
+
+        return content.strip()

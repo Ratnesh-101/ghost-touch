@@ -53,3 +53,27 @@ class ProviderChain:
 
         error_reason = last_error.reason if last_error else "all providers failed"
         raise VisionError("chain", error_reason)
+
+    async def complete(self, prompt: str, *, timeout: float | None = None) -> tuple[str, str]:
+        """Complete prompt text using the first succeeding provider (Task 9.1).
+
+        Returns (answer_text, provider_name_used).
+        Raises VisionError if all providers fail or if no providers are configured.
+        """
+        if not self.providers:
+            raise VisionError("chain", "no providers configured")
+
+        effective_timeout = timeout if timeout is not None else self.call_timeout
+        last_error: VisionError | None = None
+        for provider in self.providers:
+            try:
+                logger.info("Calling text completion provider: %s", provider.name)
+                answer_text = await provider.complete(prompt, timeout=effective_timeout)
+                return answer_text, provider.name
+            except VisionError as exc:
+                logger.warning("Provider %s complete failed: %s", provider.name, exc.reason)
+                last_error = exc
+                continue
+
+        error_reason = last_error.reason if last_error else "all providers failed"
+        raise VisionError("chain", error_reason)

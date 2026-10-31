@@ -129,3 +129,57 @@ def test_nvidia_provider_key_never_appears_in_error_text() -> None:
         assert "[REDACTED]" in error_str
 
     asyncio.run(_run())
+
+
+def test_nvidia_provider_complete_success() -> None:
+    captured_request: httpx.Request | None = None
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal captured_request
+        captured_request = request
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "role": "assistant",
+                            "content": "AB is 5 cm.",
+                        }
+                    }
+                ]
+            },
+        )
+
+    async def _run() -> None:
+        transport = httpx.MockTransport(handler)
+        async with httpx.AsyncClient(transport=transport) as client:
+            provider = NvidiaProvider(api_key=FAKE_KEY, client=client)
+            result = await provider.complete("What is AB?", timeout=5.0)
+
+        assert captured_request is not None
+        assert captured_request.headers.get("Authorization") == f"Bearer {FAKE_KEY}"
+        body = json.loads(captured_request.content.decode("utf-8"))
+        assert body["messages"][0]["content"] == "What is AB?"
+        assert result == "AB is 5 cm."
+
+    asyncio.run(_run())
+
+
+def test_nvidia_provider_complete_empty_content_raises() -> None:
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"role": "assistant", "content": "   "}}]},
+        )
+
+    async def _run() -> None:
+        transport = httpx.MockTransport(handler)
+        async with httpx.AsyncClient(transport=transport) as client:
+            provider = NvidiaProvider(api_key=FAKE_KEY, client=client)
+            with pytest.raises(VisionError) as exc_info:
+                await provider.complete("What is AB?", timeout=5.0)
+
+        assert "empty content" in exc_info.value.reason
+
+    asyncio.run(_run())

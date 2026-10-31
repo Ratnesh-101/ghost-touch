@@ -24,6 +24,12 @@ class MockProvider:
             raise VisionError(self.name, f"{self.name} simulated failure")
         return self.return_value
 
+    async def complete(self, prompt: str, *, timeout: float) -> str:
+        self.call_count += 1
+        if self.fail:
+            raise VisionError(self.name, f"{self.name} complete simulated failure")
+        return self.return_value
+
 
 def test_chain_first_provider_succeeds_second_never_called() -> None:
     async def _run() -> None:
@@ -78,3 +84,28 @@ def test_build_chain_from_env_missing_keys_skipped(monkeypatch: pytest.MonkeyPat
 
     chain = build_chain_from_env()
     assert len(chain.providers) == 0
+
+
+def test_chain_complete_fallback() -> None:
+    async def _run() -> None:
+        p1 = MockProvider("gemini", fail=True)
+        p2 = MockProvider("nvidia", "AB is 5 cm")
+        chain = ProviderChain([p1, p2])
+
+        ans, used = await chain.complete("prompt")
+        assert ans == "AB is 5 cm"
+        assert used == "nvidia"
+        assert p1.call_count == 1
+        assert p2.call_count == 1
+
+    asyncio.run(_run())
+
+
+def test_chain_complete_empty_providers_raises() -> None:
+    async def _run() -> None:
+        chain = ProviderChain([])
+        with pytest.raises(VisionError) as exc_info:
+            await chain.complete("prompt")
+        assert "no providers configured" in exc_info.value.reason
+
+    asyncio.run(_run())
