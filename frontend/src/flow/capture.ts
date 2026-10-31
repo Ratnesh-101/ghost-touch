@@ -1,0 +1,123 @@
+/**
+ * Capture-screen behaviour: validate, shrink, upload, and the waiting tone.
+ *
+ * The component only wires buttons to these functions, so the rules (what is
+ * rejected, what is said, when the progress tone stops) are unit tested with
+ * fakes instead of a browser.
+ */
+import { requestScene, type SceneResponse } from '../api/scene';
+import {
+  MAX_CAMERA_BYTES,
+  MAX_UPLOAD_BYTES,
+  prepareImage,
+  validateImageFile,
+  type FileInfo,
+  type FileRejection,
+} from '../drivers/camera';
+import {
+  PdfError,
+  renderFirstPage,
+  type PdfErrorReason,
+} from '../drivers/pdf';
+import type { AudioDriver } from '../drivers';
+import { t } from '../i18n';
+
+/** Soft cue while the diagram is being read (Requirement 2.3). */
+export const PROGRESS_INTERVAL_MS = 1500;
+export const PROGRESS_BEEP_HZ = 440;
+export const PROGRESS_BEEP_MS = 120;
+
+const REJECTION_KEYS: Record<FileRejection, string> = {
+  empty: 'capture.errorEmpty',
+  pdf: 'capture.errorPdf',
+  type: 'capture.errorType',
+  size: 'capture.errorSize',
+};
+
+const PDF_ERROR_KEYS: Record<PdfErrorReason, string> = {
+  password: 'capture.errorPdfPassword',
+  invalid: 'capture.errorPdfInvalid',
+  empty: 'capture.errorPdfEmpty',
+};
+
+export function pdfErrorMessage(reason: PdfErrorReason): string {
+  return t(PDF_ERROR_KEYS[reason]);
+}
+
+/** Where the file came from decides the size limit: the camera's raw photo vs a chosen file. */
+export type FileSource = 'camera' | 'file';
+
+export function rejectionMessage(reason: FileRejection, source: FileSource = 'file'): string {
+  return reason === 'size' && source === 'camera' ? t('capture.errorSizeCamera') : t(REJECTION_KEYS[reason]);
+}
+
+export function maxBytesFor(source: FileSource): number {
+  return source === 'camera' ? MAX_CAMERA_BYTES : MAX_UPLOAD_BYTES;
+}
+
+/** Beep every 1.5 s until the returned function is called. */
+export function startProgressTone(audio: AudioDriver): () => void {
+  const timer = setInterval(() => audio.beep(PROGRESS_BEEP_HZ, PROGRESS_BEEP_MS), PROGRESS_INTERVAL_MS);
+  return () => clearInterval(timer);
+}
+
+export interface CaptureDeps {
+  audio: AudioDriver;
+  /** Say it aloud and show it in the status line. */
+  say: (text: string) => void;
+  prepare?: (file: Blob) => Promise<Blob>;
+  renderPdf?: (file: Blob) => Promise<Blob>;
+  request?: (image: Blob, signal: AbortSignal) => Promise<SceneResponse>;
+  signal: AbortSignal;
+  /** Defaults to 'file' (10 MB limit). */
+  source?: FileSource;
+}
+
+export type CaptureOutcome =
+  | { kind: 'scene'; response: SceneResponse }
+  | { kind: 'rejected' }
+  | { kind: 'failed' }
+  | { kind: 'cancelled' };
+
+/**
+ * Handle one chosen file. Speaks every state, always stops the progress tone,
+ * and never leaves the user in silence on failure.
+ */
+export async function processImageFile(
+  file: FileInfo & Blob,
+  deps: CaptureDeps,
+): Promise<CaptureOutcome> {
+  const source = deps.source ?? 'file';
+  const isPdf = file.type.toLowerCase() === 'application/pdf';
+  const rejection = validateImageFile(file, maxBytesFor(source), source === 'file');
+  if (rejection !== null) {
+    deps.say(rejectionMessage(rejection, source));
+    return { kind: 'rejected' };
+  }
+  const prepare = isPdf
+    ? (deps.renderPdf ?? deps.prepare ?? renderFirstPage)
+    : (deps.prepare ?? prepareImage);
+  const request = deps.request ?? ((image, signal) => requestScene(image, { signal }));
+
+  const announcement = isPdf
+    ? `${t('capture.firstPagePdf')} ${t('capture.reading')}`
+    : t('capture.reading');
+  deps.say(announcement);
+
+  const stopTone = startProgressTone(deps.audio);
+  try {
+    const image = await prepare(file);
+    const response = await request(image, deps.signal);
+    return { kind: 'scene', response };
+  } catch (err: unknown) {
+    if (deps.signal.aborted) return { kind: 'cancelled' };
+    if (err instanceof PdfError) {
+      deps.say(pdfErrorMessage(err.reason));
+      return { kind: 'failed' };
+    }
+    deps.say(t('capture.error'));
+    return { kind: 'failed' };
+  } finally {
+    stopTone();
+  }
+}
