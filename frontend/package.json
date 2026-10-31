@@ -1,0 +1,33 @@
+{
+  "name": "ghost-touch-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Ghost Touch frontend — feel STEM diagrams by touch on Android.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:prop": "vitest run --dir tests -t prop",
+    "gen:types": "json2ts -i ../backend/scene.schema.json -o src/types/scene.gen.ts"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^6.4.299",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^2.1.9",
+    "fast-check": "^3.23.2",
+    "json-schema-to-typescript": "^15.0.2",
+    "typescript": "~5.6.3",
+    "vite": "^6.0.0",
+    "vite-plugin-pwa": "^0.21.1",
+    "vitest": "^2.1.9"
+  }
+}
