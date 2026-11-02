@@ -171,3 +171,20 @@ Format for each entry:
 - Frontend fixed: busy Ask no longer re-enables buttons or steals focus; typed question kept on failure; speech synthesis cancelled before the mic opens; `abort()` cancels listening and the stale-`finally` race is closed; separate "I didn't hear anything" message for the mic timeout; `.pdf` accepted by the file picker; stuck `suppressNextPop` cleared after 500 ms; two-finger Ask works after one-finger exploring; refs for scene/onBack in the mount effect.
 - Not done, needs the owner: a progress tone or speech during the Ask "thinking" phase (new audio cue). Known and left alone: a yes/no question such as "Is angle C acute?" returns the matching fact rather than "I don't know".
 - Tests: new `backend/tests/test_review_fixes.py` (one test per finding), `frontend/tests/flow.ask.abort.test.ts`, `frontend/tests/drivers.navigation.suppress.test.ts`. Backend pytest and ruff clean; frontend `tsc` clean, 226 tests pass.
+
+
+## 2026-11-02 - Kiro / Antigravity - Kiro follow-up pass (credits ran out)
+- Kiro (Kiro's own agent) completed, from the independent review's findings:
+  - Vertex "Point <id>" speech fallback (`frontend/src/core/hapticEngine.ts`).
+  - `pitchForY` NaN guard (`frontend/src/core/pitch.ts`).
+  - Scene-derived bar maximum (`maxValue`) for bar pitch (`frontend/src/core/hitTest.ts`, `hapticEngine.ts`, `pitch.ts`).
+  - Strengthened property tests (P3 corner pulse, P5 with quiet-window recovery, P7 strict with anchors, P11 `pitchForValue` monotonicity).
+  - Bar-edge hit testing and P2 (`frontend/src/core/hitTest.ts`, `frontend/tests/hitTest.prop.test.ts`).
+  - The real validator (`backend/app/validate.py`) with P9 (`backend/tests/test_validate_props.py`) and P13 property tests, and the `backend/app/main.py` import swap.
+- Kiro's credits expired during spec hygiene. The remainder was completed by an Antigravity agent at the owner's request:
+  - Task 1 (Schema typing & ranges): Updated `backend/app/schema.py` so `Polyline.points` is typed with 2-element list `list[Annotated[list[Annotated[float, Field(ge=0.0, le=1.0)]], Field(min_length=2, max_length=2)]]`, and added `Field(ge=0.0, le=1.0)` bounds across Point, Bar, Axes, and Polyline coordinates replacing redundant hand-written range validators. Updated validation test match patterns in `backend/tests/test_schema.py` and `backend/tests/test_schema_props.py`. Ran the schema export generator by hand (`python -m app.export_schema`) because the Kiro save-hook does not run outside Kiro. Added `--no-additionalProperties` to `gen:types` in `frontend/package.json` to eliminate `[k: string]: unknown`, regenerated `frontend/src/types/scene.gen.ts`, and updated `frontend/src/core/scene.ts` to re-export the generated types directly.
+  - Task 2 (Removal of backend TEMP stub): Deleted dead `backend/app/_temp` directory (`validate_stub.py`), sorted imports via `ruff check backend --fix`, and formatted backend files with `ruff format`.
+  - Task 3 (P10 Property Test): Created `backend/tests/test_raw_mode_props.py` with Hypothesis tests generating random images of varying sizes/shapes/noise, asserting `build_raw_scene` produces <= 300 segments with all coordinates normalized in [0, 1] (Requirement 8.2).
+  - Task 4 (P12 Integration Test): Created `frontend/tests/explore.p12.test.ts` testing the complete gesture pipeline through `hitTest`, `step`, and `runEffects` across centre ticks, vertex haptics, line segments, polylines/curves, bars, axis crossings, and finger lift silence (Requirement 13.2).
+  - Task 5 (Spec hygiene): Repaired mojibake (Windows-1252 sequences for –, —, →, ≤) in `.kiro/specs/ghost-touch/tasks.md` without BOM and preserving LF line endings. Updated "P1–P11" to "P1–P13" in `design.md` and `tasks.md`. Changed task 7.4 description to "Two-finger swipe down exit shortcut (TalkBack off)" matching Requirement 13.1. Ticked demonstrably completed tasks (3, 5.1-5.3, 6.1-6.4, 7.1-7.4, 7.6-7.9, 8.1-8.2, 8.4-8.5, 8.7, 9.1-9.2) while leaving unverified tasks (7.5, 10, 11-16) unticked.
+  - These follow-up parts are the work of the Antigravity agent, not Kiro.
