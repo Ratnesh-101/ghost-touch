@@ -285,7 +285,7 @@ def test_prompt_injection_stays_inside_delimiters(triangle: DiagramScene) -> Non
     # cannot break out of the data block prematurely.
     # The actual unescaped delimiter should only occur once at the end
     assert prompt.count(QUESTION_DELIMITER_END) == 1
-    assert "&lt;/user_question&gt;" in prompt
+    assert "[tag removed]" in prompt
     assert prompt.endswith(QUESTION_DELIMITER_END)
 
 

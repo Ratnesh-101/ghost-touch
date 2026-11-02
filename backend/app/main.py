@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app._temp.validate_stub import ValidationResult, validate_scene
 from app.ask import AskRequest, AskResponse, answer_question
 from app.image_utils import validate_image_bytes
+from app.limits import MULTIPART_OVERHEAD, RequestGuardMiddleware, default_rate_limits
 from app.raw_mode import RawModeError, build_raw_scene
 from app.vision import ProviderChain, VisionError, build_chain_from_env
 from app.vision.prompts import build_prompt
@@ -34,6 +35,7 @@ ALLOWED_MIME_TYPES = {
     "image/webp",
 }
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_ASK_BODY_SIZE = 512 * 1024  # a scene plus a 500-character question is far smaller
 RAW_MODE_RESERVE_SECONDS = 2.5  # Reserve inside 15s total budget for Raw Mode fallback
 
 _cached_chain: ProviderChain | None = None
@@ -111,6 +113,16 @@ app = FastAPI(
 # X-Vision-Provider (Finding 12).
 _allowed = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173")
 _origins = [o.strip() for o in _allowed.split(",") if o.strip()]
+
+# Added first so CORS (added next) wraps it and 413/429 replies still carry CORS headers.
+app.add_middleware(
+    RequestGuardMiddleware,
+    body_limits={
+        "/api/v1/scene": MAX_UPLOAD_SIZE + MULTIPART_OVERHEAD,
+        "/api/v1/ask": MAX_ASK_BODY_SIZE,
+    },
+    rate_limits=default_rate_limits(),
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -274,74 +286,76 @@ async def process_scene(
     if not chain.providers:
         return await run_raw_mode("no_provider", "none")
 
-    used_provider_name = "none"
+    provider_state = {"name": "none"}
     if total_deadline > RAW_MODE_RESERVE_SECONDS:
         ai_budget = total_deadline - RAW_MODE_RESERVE_SECONDS
     else:
         ai_budget = max(0.05, total_deadline * 0.7)
+    ai_deadline = start_time + ai_budget
 
+    def ai_payload(scene: Any, provider: str, note: str = "") -> dict[str, Any]:
+        response.headers["X-Vision-Provider"] = provider
+        elapsed_ms = int((time.monotonic() - start_time) * 1000)
+        logger.info(
+            "scene processed: provider=%s mode=ai reason=none%s elapsed_ms=%d",
+            provider,
+            note,
+            elapsed_ms,
+        )
+        return {"scene": scene.model_dump(), "mode": "ai"}
+
+    async def attempt_ai() -> tuple[dict[str, Any] | None, str]:
+        """One AI extraction plus at most one validation retry.
+
+        Returns (payload, "") on success or (None, fallback_reason). Raw Mode is NOT run here,
+        so the AI deadline can never cancel it half way (it runs once, after this returns).
+        """
+        raw_text, provider_state["name"] = await chain.extract(
+            image_bytes, content_type, build_prompt(), deadline=ai_deadline
+        )
+        used = provider_state["name"]
+        result = validator(raw_text)
+        if result.scene is not None:
+            return ai_payload(result.scene, used), ""
+
+        # One validation retry on the same provider that answered
+        remaining = ai_deadline - time.monotonic()
+        if remaining < 3.0:
+            return None, "timeout"
+        provider = chain.get_provider(used)
+        if provider is None:
+            return None, "invalid"
+
+        retry_raw = await provider.extract(
+            image_bytes,
+            content_type,
+            build_prompt(result.errors),
+            timeout=min(remaining, chain.call_timeout),
+        )
+        retry_result = validator(retry_raw)
+        if retry_result.scene is not None:
+            return ai_payload(retry_result.scene, used, " (after retry)"), ""
+        return None, "invalid"
+
+    payload: dict[str, Any] | None = None
+    fallback_reason = "error"
     try:
         async with asyncio.timeout(ai_budget):
-            initial_prompt = build_prompt()
-            raw_text, used_provider_name = await chain.extract(
-                image_bytes, content_type, initial_prompt
-            )
-            result = validator(raw_text)
-
-            if result.scene is not None:
-                response.headers["X-Vision-Provider"] = used_provider_name
-                elapsed_ms = int((time.monotonic() - start_time) * 1000)
-                logger.info(
-                    "scene processed: provider=%s mode=ai reason=none elapsed_ms=%d",
-                    used_provider_name,
-                    elapsed_ms,
-                )
-                return {
-                    "scene": result.scene.model_dump(),
-                    "mode": "ai",
-                }
-
-            # Step 5: One validation retry on the same provider that answered
-            remaining = ai_budget - (time.monotonic() - start_time)
-            if remaining < 3.0:
-                return await run_raw_mode("timeout", used_provider_name)
-
-            provider = chain.get_provider(used_provider_name)
-            if provider is None:
-                return await run_raw_mode("invalid", used_provider_name)
-
-            retry_prompt = build_prompt(result.errors)
-            retry_timeout = min(remaining, chain.call_timeout)
-            retry_raw = await provider.extract(
-                image_bytes, content_type, retry_prompt, timeout=retry_timeout
-            )
-            retry_result = validator(retry_raw)
-
-            if retry_result.scene is not None:
-                response.headers["X-Vision-Provider"] = used_provider_name
-                elapsed_ms = int((time.monotonic() - start_time) * 1000)
-                logger.info(
-                    "scene processed: provider=%s mode=ai reason=none (after retry) elapsed_ms=%d",
-                    used_provider_name,
-                    elapsed_ms,
-                )
-                return {
-                    "scene": retry_result.scene.model_dump(),
-                    "mode": "ai",
-                }
-
-            return await run_raw_mode("invalid", used_provider_name)
-
+            payload, fallback_reason = await attempt_ai()
     except TimeoutError:
-        return await run_raw_mode("timeout", used_provider_name)
+        fallback_reason = "timeout"
     except VisionError as exc:
         logger.warning("All vision providers failed: %s", exc)
-        return await run_raw_mode("provider_error", used_provider_name)
+        fallback_reason = "provider_error"
     except HTTPException:
         raise
     except Exception as exc:
         logger.error("Unexpected error in scene pipeline: %s", exc)
-        return await run_raw_mode("error", used_provider_name)
+        fallback_reason = "error"
+
+    if payload is not None:
+        return payload
+    return await run_raw_mode(fallback_reason, provider_state["name"])
 
 
 @app.post("/api/v1/ask", response_model=AskResponse)
