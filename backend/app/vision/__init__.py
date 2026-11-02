@@ -1,4 +1,4 @@
-"""Vision provider package for Ghost Touch (Task 8.1)."""
+"""Vision provider package for Ghost Touch (Task 8.1, F2)."""
 
 from __future__ import annotations
 
@@ -17,16 +17,20 @@ def build_chain_from_env() -> ProviderChain:
     """Build a ProviderChain from environment variables.
 
     Providers whose API keys are missing are skipped silently at startup.
+    Treats empty or unset VISION_PROVIDERS as 'gemini,nvidia'.
     Logs one line with configured provider names only.
     """
-    configured_providers = [
-        p.strip().lower()
-        for p in os.environ.get("VISION_PROVIDERS", "gemini,nvidia").split(",")
-        if p.strip()
-    ]
+    raw_setting = os.environ.get("VISION_PROVIDERS", "").strip()
+    providers_str = raw_setting if raw_setting else "gemini,nvidia"
+
+    configured_providers = [p.strip().lower() for p in providers_str.split(",") if p.strip()]
+
     try:
         call_timeout = float(os.environ.get("PROVIDER_TIMEOUT_SECONDS", "8.0"))
+        if call_timeout <= 0:
+            call_timeout = 8.0
     except ValueError:
+        logger.warning("Invalid PROVIDER_TIMEOUT_SECONDS; using default 8.0s")
         call_timeout = 8.0
 
     providers: list[VisionProvider] = []

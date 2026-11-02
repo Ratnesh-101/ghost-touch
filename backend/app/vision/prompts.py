@@ -1,7 +1,7 @@
-"""Prompt builder for STEM diagram extraction (Task 8.2).
+"""Prompt builder for STEM diagram extraction (Task 8.2, F2).
 
 Provides the extraction prompt with DiagramScene JSON schema and
-teacher vocabulary rules (TouchSight lessons), plus retry prompt with validation errors.
+teacher vocabulary rules (TouchSight lessons), plus retry prompt with capped validation errors.
 """
 
 from __future__ import annotations
@@ -38,12 +38,14 @@ BASE_PROMPT_TEMPLATE = (
 
 
 def build_prompt(errors: list[str] | None = None) -> str:
-    """Build the vision extraction prompt, optionally with validation retry feedback."""
+    """Build the vision extraction prompt, optionally with capped validation retry feedback."""
     schema_json = json.dumps(DiagramScene.model_json_schema())
     prompt = BASE_PROMPT_TEMPLATE.replace("{schema}", schema_json)
 
     if errors:
-        error_lines = "\n".join(f"- {err}" for err in errors)
+        # Finding 11: cap number of error lines to 5 and line length to 150 chars
+        capped_errors = [f"- {err[:150]}" for err in errors[:5]]
+        error_lines = "\n".join(capped_errors)
         prompt += (
             f"\n\nYour previous JSON was invalid:\n{error_lines}\n"
             "Return corrected JSON only.\n"

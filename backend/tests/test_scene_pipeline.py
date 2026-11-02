@@ -348,3 +348,110 @@ def test_pipeline_empty_upload_returns_422(client: TestClient) -> None:
     files = {"image": ("empty.png", b"", "image/png")}
     response = client.post("/api/v1/scene", files=files)
     assert response.status_code == 422
+
+
+# --- 7. F2 Fixes: Hostile Images, Empty/Rejecting Raw Mode, CORS & Headers ---
+
+
+def test_pipeline_text_file_declared_as_png_returns_415(client: TestClient) -> None:
+    """Finding 3: Magic byte mismatch rejects text file declared as image/png."""
+    files = {"image": ("fake.png", b"Hello, this is just plain text content", "image/png")}
+    response = client.post("/api/v1/scene", files=files)
+    assert response.status_code == 415
+    assert "Invalid image file signature" in response.json()["detail"]
+
+
+def test_pipeline_truncated_jpeg_returns_422(client: TestClient) -> None:
+    """Finding 3: Truncated JPEG is rejected before OpenCV decode or paid providers."""
+    truncated_jpg = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00"
+    files = {"image": ("corrupt.jpg", truncated_jpg, "image/jpeg")}
+    response = client.post("/api/v1/scene", files=files)
+    assert response.status_code == 422
+    assert "corrupted or truncated" in response.json()["detail"]
+
+
+def test_pipeline_huge_png_resolution_returns_422(client: TestClient) -> None:
+    """Finding 3: PNG that decodes to a huge image (>40 MP) is capped and rejected."""
+    import struct
+
+    # Construct PNG IHDR with 10000x5000 = 50 MP (> 40 MP cap)
+    huge_png_header = (
+        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+        + struct.pack(">II", 10000, 5000)
+        + b"\x08\x02\x00\x00\x00\x00\x00\x00\x00"
+    )
+    files = {"image": ("huge.png", huge_png_header, "image/png")}
+    response = client.post("/api/v1/scene", files=files)
+    assert response.status_code == 422
+    assert "exceeds maximum allowed 40 megapixels" in response.json()["detail"]
+
+
+def test_pipeline_blank_photo_returns_422(client: TestClient) -> None:
+    """Finding 5: Blank or featureless photo returns clear spoken 422 error."""
+    blank_img = np.zeros((200, 200, 3), dtype=np.uint8)  # Solid black, 0 outlines
+    ok, buf = cv2.imencode(".png", blank_img)
+    assert ok
+
+    # Route to Raw Mode
+    app.dependency_overrides[get_provider_chain] = lambda: ProviderChain([])
+    files = {"image": ("blank.png", buf.tobytes(), "image/png")}
+    response = client.post("/api/v1/scene", files=files)
+
+    assert response.status_code == 422
+    assert "No diagram outlines detected" in response.json()["detail"]
+
+
+def test_pipeline_rejecting_validator_on_raw_returns_422(client: TestClient) -> None:
+    """Finding 5: If validator rejects the Raw Mode scene, never return unchecked scene."""
+    app.dependency_overrides[get_provider_chain] = lambda: ProviderChain([])
+    app.dependency_overrides[get_validator] = lambda: (
+        lambda _raw: ValidationResult(scene=None, errors=["Rule 5 invariant violated"])
+    )
+
+    files = {"image": ("test.png", make_test_image_bytes(), "image/png")}
+    response = client.post("/api/v1/scene", files=files)
+
+    assert response.status_code == 422
+    assert "Extracted outline could not be validated" in response.json()["detail"]
+
+
+def test_pipeline_raw_mode_header_is_none(client: TestClient) -> None:
+    """Finding 11: Header X-Vision-Provider is 'none' whenever mode is 'raw'."""
+    app.dependency_overrides[get_provider_chain] = lambda: ProviderChain([])
+
+    files = {"image": ("test.png", make_test_image_bytes(), "image/png")}
+    response = client.post("/api/v1/scene", files=files)
+
+    assert response.status_code == 200
+    assert response.json()["mode"] == "raw"
+    assert response.headers.get("X-Vision-Provider") == "none"
+
+
+def test_pipeline_cors_expose_headers(client: TestClient) -> None:
+    """Finding 12: CORS middleware exposes X-Vision-Provider."""
+    response = client.get(
+        "/api/v1/health",
+        headers={"Origin": "http://localhost:5173"},
+    )
+    assert "x-vision-provider" in response.headers.get("access-control-expose-headers", "").lower()
+
+
+def test_pipeline_retry_stays_on_answering_provider(client: TestClient) -> None:
+    """Finding 14: Validation retry runs on the answering provider, not switching providers."""
+    # Provider A returns invalid JSON on attempt 1, valid on retry
+    provider_a = FakeProvider("gemini", ["{invalid json", VALID_SCENE_JSON])
+    # Provider B should never be called
+    provider_b = FakeProvider("nvidia", [VALID_SCENE_JSON])
+
+    chain = ProviderChain([provider_a, provider_b])
+    app.dependency_overrides[get_provider_chain] = lambda: chain
+
+    files = {"image": ("test.png", make_test_image_bytes(), "image/png")}
+    response = client.post("/api/v1/scene", files=files)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["mode"] == "ai"
+    assert response.headers.get("X-Vision-Provider") == "gemini"
+    assert provider_a.call_count == 2
+    assert provider_b.call_count == 0
