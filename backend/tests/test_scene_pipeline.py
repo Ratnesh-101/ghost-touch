@@ -15,9 +15,9 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from app._temp.validate_stub import ValidationResult
 from app.main import app, get_provider_chain, get_validator
 from app.schema import DiagramScene
+from app.validate import ValidationResult
 from app.vision.base import VisionError
 from app.vision.chain import ProviderChain
 
@@ -206,7 +206,8 @@ def test_pipeline_invalid_twice_falls_back_to_raw(client: TestClient) -> None:
     data = response.json()
     assert data["mode"] == "raw"
     assert data["reason"] == "invalid"
-    assert provider.call_count == 2
+    # first extraction, the validation retry, then one equation-route rescue before Raw Mode
+    assert provider.call_count == 3
 
 
 def test_pipeline_garbage_non_json_falls_back_to_raw(client: TestClient) -> None:

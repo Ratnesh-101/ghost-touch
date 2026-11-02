@@ -8,22 +8,25 @@ import os
 from app.vision.base import VisionError, VisionProvider
 from app.vision.chain import ProviderChain
 from app.vision.gemini import GeminiProvider
+from app.vision.nebius import NebiusProvider
 from app.vision.nvidia import NvidiaProvider
 from app.vision.openai_provider import OpenAIProvider
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_PROVIDER_ORDER = "gemini,openai,nebius"
 
 
 def build_chain_from_env() -> ProviderChain:
     """Build a ProviderChain from environment variables.
 
     Providers whose API keys are missing are skipped silently at startup.
-    Treats empty or unset VISION_PROVIDERS as 'gemini,openai,nvidia' (Gemini first, then OpenAI,
-    then NVIDIA, which is also the provider to use for key checks and bulk test runs).
-    Logs one line with configured provider names only.
+    Treats empty or unset VISION_PROVIDERS as 'gemini,openai,nebius' (Gemini first, then OpenAI,
+    then Nebius as the last fallback; Nebius is also the key used for bulk test runs).
+    ``nvidia`` is still accepted when listed explicitly. Logs one line with provider names only.
     """
     raw_setting = os.environ.get("VISION_PROVIDERS", "").strip()
-    providers_str = raw_setting if raw_setting else "gemini,openai,nvidia"
+    providers_str = raw_setting if raw_setting else DEFAULT_PROVIDER_ORDER
 
     configured_providers = [p.strip().lower() for p in providers_str.split(",") if p.strip()]
 
@@ -43,6 +46,9 @@ def build_chain_from_env() -> ProviderChain:
         elif name == "openai":
             if os.environ.get("OPENAI_API_KEY"):
                 providers.append(OpenAIProvider())
+        elif name == "nebius":
+            if os.environ.get("NEBIUS_API_KEY"):
+                providers.append(NebiusProvider())
         elif name == "nvidia":
             if os.environ.get("NVIDIA_API_KEY"):
                 providers.append(NvidiaProvider())
@@ -55,6 +61,7 @@ def build_chain_from_env() -> ProviderChain:
 
 __all__ = [
     "GeminiProvider",
+    "NebiusProvider",
     "NvidiaProvider",
     "OpenAIProvider",
     "ProviderChain",

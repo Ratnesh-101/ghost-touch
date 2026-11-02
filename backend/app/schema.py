@@ -20,35 +20,21 @@ invariants by construction (see property P9).
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 UNIT_RANGE = "[0, 1]"
 """Documented coordinate range, used in validation messages."""
-
-
-def _in_unit_interval(value: float, name: str) -> float:
-    """Return ``value`` if it lies in [0, 1], else raise ``ValueError``."""
-    if not 0.0 <= value <= 1.0:
-        raise ValueError(
-            f"{name}={value!r} is out of range; all coordinates must be in {UNIT_RANGE}"
-        )
-    return value
 
 
 class Point(BaseModel):
     """A named vertex with normalized coordinates."""
 
     id: str
-    x: float
-    y: float
+    x: float = Field(ge=0.0, le=1.0)
+    y: float = Field(ge=0.0, le=1.0)
     label: str | None = None
-
-    @field_validator("x", "y")
-    @classmethod
-    def _coords_in_range(cls, value: float) -> float:
-        return _in_unit_interval(value, "Point coordinate")
 
 
 class Segment(BaseModel):
@@ -64,47 +50,32 @@ class Polyline(BaseModel):
     """An ordered sequence of normalized (x, y) points; used for curves."""
 
     id: str
-    points: list[tuple[float, float]]
+    points: list[
+        Annotated[
+            list[Annotated[float, Field(ge=0.0, le=1.0)]],
+            Field(min_length=2, max_length=2),
+        ]
+    ]
     label: str | None = None
-
-    @field_validator("points")
-    @classmethod
-    def _points_in_range(cls, value: list[tuple[float, float]]) -> list[tuple[float, float]]:
-        for index, (x, y) in enumerate(value):
-            _in_unit_interval(x, f"Polyline points[{index}].x")
-            _in_unit_interval(y, f"Polyline points[{index}].y")
-        return value
 
 
 class Bar(BaseModel):
     """A bar-chart bar with normalized geometry and a numeric value."""
 
     id: str
-    x0: float
-    x1: float
-    y_top: float
-    y_base: float
+    x0: float = Field(ge=0.0, le=1.0)
+    x1: float = Field(ge=0.0, le=1.0)
+    y_top: float = Field(ge=0.0, le=1.0)
+    y_base: float = Field(ge=0.0, le=1.0)
     label: str
     value: float
-
-    @field_validator("x0", "x1", "y_top", "y_base")
-    @classmethod
-    def _coords_in_range(cls, value: float) -> float:
-        return _in_unit_interval(value, "Bar coordinate")
 
 
 class Axes(BaseModel):
     """Optional axis positions, normalized to [0, 1]."""
 
-    x_axis_y: float | None = None
-    y_axis_x: float | None = None
-
-    @field_validator("x_axis_y", "y_axis_x")
-    @classmethod
-    def _coords_in_range(cls, value: float | None) -> float | None:
-        if value is None:
-            return value
-        return _in_unit_interval(value, "Axes coordinate")
+    x_axis_y: float | None = Field(default=None, ge=0.0, le=1.0)
+    y_axis_x: float | None = Field(default=None, ge=0.0, le=1.0)
 
 
 class DiagramScene(BaseModel):

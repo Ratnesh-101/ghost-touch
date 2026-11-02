@@ -172,6 +172,15 @@ Format for each entry:
 - Not done, needs the owner: a progress tone or speech during the Ask "thinking" phase (new audio cue). Known and left alone: a yes/no question such as "Is angle C acute?" returns the matching fact rather than "I don't know".
 - Tests: new `backend/tests/test_review_fixes.py` (one test per finding), `frontend/tests/flow.ask.abort.test.ts`, `frontend/tests/drivers.navigation.suppress.test.ts`. Backend pytest and ruff clean; frontend `tsc` clean, 226 tests pass.
 
+## 2026-11-02 - Kiro - Tasks 2, 3 and 4 (and Requirement 13) completed
+- Task 2 (schema, export and fixtures): Built `DiagramScene` Pydantic models in `backend/app/schema.py` with coordinate and reference invariants, JSON Schema exporter in `backend/app/export_schema.py`, generated TypeScript scene types in `frontend/src/types/scene.gen.ts`, and bundled diagram sample fixtures (`triangle.py`, `sine.py`, `barchart.py`, exporter in `backend/fixtures/export_samples.py`, and JSON samples in `frontend/public/samples/`).
+- Task 3 (geometry and hit-testing): Built letterboxed viewport geometry mapping and distance calculations in `frontend/src/core/geometry.ts` with property test P8 (`geometry.prop.test.ts`), and hit-testing in `frontend/src/core/hitTest.ts` with property tests P1 and P8 (`hitTest.prop.test.ts`), plus the P1 test generator fix resolving pixel collisions in tiny viewports (commit `59aa637`).
+- Task 4 (haptic engine and pitch): Built pure haptic engine state machine in `frontend/src/core/hapticEngine.ts` and pitch mapping in `frontend/src/core/pitch.ts` (`pitchForY` and `pitchForValue`), accompanied by property tests P3 to P7 in `frontend/tests/hapticEngine.prop.test.ts` and `frontend/tests/pitch.prop.test.ts`.
+- Requirement 13 spec update: Applied Method A1 relative cursor touch interactions to requirements, design, tasks, and tech steering (commit `8e73583`).
+- Stub swap: Replaced imports from temporary stubs with real core modules in `frontend/src/drivers/index.ts`, `frontend/src/flow/explore.ts`, and test files (commit `9b1742f`).
+- These modules, tests, and spec updates were built plainly by Kiro.
+- An independent review by Claude Code and Antigravity agents found follow-ups (unlabelled-vertex speech fallback, hard-coded bar pitch maximum, weak P5 and P7 assertions, bar-edge hit testing, validator task 8.3 still open, mojibake in tasks.md) which are assigned back to Kiro.
+
 ## 2026-11-02 — Antigravity — Frontend Polish ("pretty frontend"; accessibility is the product)
 - Built CSS custom properties design-token system in `frontend/src/styles/tokens.css` (dark background `#0b0b10`, glowing creature green `#39ff88`, high-contrast text meeting WCAG AAA, 48px+ touch targets, spacing scale, border radii, card shadows, creature glow).
 - Polished `frontend/src/styles/global.css` to consume tokens and provide:
@@ -202,11 +211,18 @@ Format for each entry:
   - `npm --prefix frontend run build`: cleanly built client and PWA service worker (12 precache entries, 228.82 KiB).
 - Files: `frontend/src/styles/tokens.css`, `frontend/src/styles/global.css`, `frontend/src/screens/Start.tsx`, `frontend/src/screens/Capture.tsx`, `frontend/src/screens/Explore.tsx`, `frontend/tests/polish.test.ts`, `docs/BUILD_LOG.md`.
 
-## 2026-11-02 - Kiro - Tasks 2, 3 and 4 (and Requirement 13) completed
-- Task 2 (schema, export and fixtures): Built `DiagramScene` Pydantic models in `backend/app/schema.py` with coordinate and reference invariants, JSON Schema exporter in `backend/app/export_schema.py`, generated TypeScript scene types in `frontend/src/types/scene.gen.ts`, and bundled diagram sample fixtures (`triangle.py`, `sine.py`, `barchart.py`, exporter in `backend/fixtures/export_samples.py`, and JSON samples in `frontend/public/samples/`).
-- Task 3 (geometry and hit-testing): Built letterboxed viewport geometry mapping and distance calculations in `frontend/src/core/geometry.ts` with property test P8 (`geometry.prop.test.ts`), and hit-testing in `frontend/src/core/hitTest.ts` with property tests P1 and P8 (`hitTest.prop.test.ts`), plus the P1 test generator fix resolving pixel collisions in tiny viewports (commit `59aa637`).
-- Task 4 (haptic engine and pitch): Built pure haptic engine state machine in `frontend/src/core/hapticEngine.ts` and pitch mapping in `frontend/src/core/pitch.ts` (`pitchForY` and `pitchForValue`), accompanied by property tests P3 to P7 in `frontend/tests/hapticEngine.prop.test.ts` and `frontend/tests/pitch.prop.test.ts`.
-- Requirement 13 spec update: Applied Method A1 relative cursor touch interactions to requirements, design, tasks, and tech steering (commit `8e73583`).
-- Stub swap: Replaced imports from temporary stubs with real core modules in `frontend/src/drivers/index.ts`, `frontend/src/flow/explore.ts`, and test files (commit `9b1742f`).
-- These modules, tests, and spec updates were built plainly by Kiro.
-- An independent review by Claude Code and Antigravity agents found follow-ups (unlabelled-vertex speech fallback, hard-coded bar pitch maximum, weak P5 and P7 assertions, bar-edge hit testing, validator task 8.3 still open, mojibake in tasks.md) which are assigned back to Kiro.
+## 2026-11-02 - Kiro / Antigravity - Kiro follow-up pass (credits ran out)
+- Kiro (Kiro's own agent) completed, from the independent review's findings:
+  - Vertex "Point <id>" speech fallback (`frontend/src/core/hapticEngine.ts`).
+  - `pitchForY` NaN guard (`frontend/src/core/pitch.ts`).
+  - Scene-derived bar maximum (`maxValue`) for bar pitch (`frontend/src/core/hitTest.ts`, `hapticEngine.ts`, `pitch.ts`).
+  - Strengthened property tests (P3 corner pulse, P5 with quiet-window recovery, P7 strict with anchors, P11 `pitchForValue` monotonicity).
+  - Bar-edge hit testing and P2 (`frontend/src/core/hitTest.ts`, `frontend/tests/hitTest.prop.test.ts`).
+  - The real validator (`backend/app/validate.py`) with P9 (`backend/tests/test_validate_props.py`) and P13 property tests, and the `backend/app/main.py` import swap.
+- Kiro's credits expired during spec hygiene. The remainder was completed by an Antigravity agent at the owner's request:
+  - Task 1 (Schema typing & ranges): Updated `backend/app/schema.py` so `Polyline.points` is typed with 2-element list `list[Annotated[list[Annotated[float, Field(ge=0.0, le=1.0)]], Field(min_length=2, max_length=2)]]`, and added `Field(ge=0.0, le=1.0)` bounds across Point, Bar, Axes, and Polyline coordinates replacing redundant hand-written range validators. Updated validation test match patterns in `backend/tests/test_schema.py` and `backend/tests/test_schema_props.py`. Ran the schema export generator by hand (`python -m app.export_schema`) because the Kiro save-hook does not run outside Kiro. Added `--no-additionalProperties` to `gen:types` in `frontend/package.json` to eliminate `[k: string]: unknown`, regenerated `frontend/src/types/scene.gen.ts`, and updated `frontend/src/core/scene.ts` to re-export the generated types directly.
+  - Task 2 (Removal of backend TEMP stub): Deleted dead `backend/app/_temp` directory (`validate_stub.py`), sorted imports via `ruff check backend --fix`, and formatted backend files with `ruff format`.
+  - Task 3 (P10 Property Test): Created `backend/tests/test_raw_mode_props.py` with Hypothesis tests generating random images of varying sizes/shapes/noise, asserting `build_raw_scene` produces <= 300 segments with all coordinates normalized in [0, 1] (Requirement 8.2).
+  - Task 4 (P12 Integration Test): Created `frontend/tests/explore.p12.test.ts` testing the complete gesture pipeline through `hitTest`, `step`, and `runEffects` across centre ticks, vertex haptics, line segments, polylines/curves, bars, axis crossings, and finger lift silence (Requirement 13.2).
+  - Task 5 (Spec hygiene): Repaired mojibake (Windows-1252 sequences for –, —, →, ≤) in `.kiro/specs/ghost-touch/tasks.md` without BOM and preserving LF line endings. Updated "P1–P11" to "P1–P13" in `design.md` and `tasks.md`. Changed task 7.4 description to "Two-finger swipe down exit shortcut (TalkBack off)" matching Requirement 13.1. Ticked demonstrably completed tasks (3, 5.1-5.3, 6.1-6.4, 7.1-7.4, 7.6-7.9, 8.1-8.2, 8.4-8.5, 8.7, 9.1-9.2) while leaving unverified tasks (7.5, 10, 11-16) unticked.
+  - These follow-up parts are the work of the Antigravity agent, not Kiro.

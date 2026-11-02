@@ -1,5 +1,5 @@
-/**
- * Pure hit-testing core — maps a finger position to a diagram target.
+﻿/**
+ * Pure hit-testing core - maps a finger position to a diagram target.
  *
  * Per architecture rules (tech.md): this module is pure (no DOM, React, or
  * browser API access). Hit testing happens in screen-pixel space: scene
@@ -11,6 +11,7 @@
  *   - Vertex hits take priority over line hits (Requirement 4.6).
  *   - Among several vertex hits, the closest wins; likewise for lines.
  *   - A bar is reported when the finger is inside the bar rectangle.
+ *   - Bar boundary edges are tested as lines (Requirement 6.3).
  */
 
 import { toScreen, toNorm, distToSegment } from './geometry';
@@ -22,7 +23,7 @@ import type { DiagramScene, Point } from './scene';
 // ---------------------------------------------------------------------------
 
 /** The element kind that distinguishes a `line` target's source. */
-export type LineElementKind = 'segment' | 'polyline' | 'axis';
+export type LineElementKind = 'segment' | 'polyline' | 'axis' | 'bar-edge';
 
 /**
  * Whatever is under the finger. The haptic engine consumes this to decide
@@ -31,7 +32,7 @@ export type LineElementKind = 'segment' | 'polyline' | 'axis';
 export type Target =
   | { kind: 'vertex'; id: string; label?: string }
   | { kind: 'line'; id: string; elementKind: LineElementKind }
-  | { kind: 'bar'; id: string; label: string; value: number }
+  | { kind: 'bar'; id: string; label: string; value: number; maxValue: number }
   | { kind: 'none' };
 
 /** Hit radii in CSS pixels. Vertex hits take priority over line hits. */
@@ -127,7 +128,7 @@ function findVertex(
   return best;
 }
 
-/** Find the nearest line (segment, polyline, or axis) within the line radius. */
+/** Find the nearest line (segment, polyline, axis, or bar edge) within the line radius. */
 function findLine(
   scene: DiagramScene,
   finger: ScreenPoint,
@@ -137,20 +138,20 @@ function findLine(
 ): LineHit | null {
   let best: LineHit | null = null;
 
-  // Segments — resolve endpoint ids to points, then distance to segment.
+  // Segments - resolve endpoint ids to points, then distance to segment.
   const segments = scene.segments;
   if (segments !== undefined) {
     for (const seg of segments) {
       const a = pointMap.get(seg.a);
       const b = pointMap.get(seg.b);
-      if (a === undefined || b === undefined) continue; // dangling ref — skip
+      if (a === undefined || b === undefined) continue; // dangling ref - skip
       const sa = toScreen({ x: a.x, y: a.y }, view);
       const sb = toScreen({ x: b.x, y: b.y }, view);
       best = closerLine(best, seg.id, 'segment', distToSegment(finger, sa, sb), radii.line);
     }
   }
 
-  // Polylines — distance to each consecutive pair of points.
+  // Polylines - distance to each consecutive pair of points.
   const polylines = scene.polylines;
   if (polylines !== undefined) {
     for (const poly of polylines) {
@@ -166,7 +167,7 @@ function findLine(
     }
   }
 
-  // Axes — full-width horizontal (x) and full-height vertical (y) lines.
+  // Axes - full-width horizontal (x) and full-height vertical (y) lines.
   const axes = scene.axes;
   if (axes !== null && axes !== undefined) {
     const xAxisY = axes.x_axis_y;
@@ -183,6 +184,21 @@ function findLine(
     }
   }
 
+  // Bar edges - each bar has four boundary edges (Req 6.3).
+  const bars = scene.bars;
+  if (bars !== undefined) {
+    for (const bar of bars) {
+      const tl = toScreen({ x: bar.x0, y: bar.y_top }, view);
+      const tr = toScreen({ x: bar.x1, y: bar.y_top }, view);
+      const bl = toScreen({ x: bar.x0, y: bar.y_base }, view);
+      const br = toScreen({ x: bar.x1, y: bar.y_base }, view);
+      best = closerLine(best, bar.id, 'bar-edge', distToSegment(finger, tl, tr), radii.line);
+      best = closerLine(best, bar.id, 'bar-edge', distToSegment(finger, bl, br), radii.line);
+      best = closerLine(best, bar.id, 'bar-edge', distToSegment(finger, tl, bl), radii.line);
+      best = closerLine(best, bar.id, 'bar-edge', distToSegment(finger, tr, br), radii.line);
+    }
+  }
+
   return best;
 }
 
@@ -192,6 +208,10 @@ function findLine(
  * `toScreen` is a uniform scale + translation, so containment in normalized
  * space is equivalent to containment in screen space. Checking in
  * normalized space avoids re-deriving each bar's screen rectangle.
+ *
+ * The returned target includes `maxValue` - the maximum bar value in the
+ * scene - so the engine can map the bar's pitch relative to the scene's
+ * range rather than a hard-coded constant.
  */
 function findBar(
   scene: DiagramScene,
@@ -199,11 +219,15 @@ function findBar(
   view: Viewport,
 ): Target | null {
   const bars = scene.bars;
-  if (bars === undefined) return null;
+  if (bars === undefined || bars.length === 0) return null;
   const fn = toNorm(finger, view);
+  let maxBarValue = 0;
+  for (const b of bars) {
+    if (b.value > maxBarValue) maxBarValue = b.value;
+  }
   for (const bar of bars) {
     if (fn.x >= bar.x0 && fn.x <= bar.x1 && fn.y >= bar.y_top && fn.y <= bar.y_base) {
-      return { kind: 'bar', id: bar.id, label: bar.label, value: bar.value };
+      return { kind: 'bar', id: bar.id, label: bar.label, value: bar.value, maxValue: maxBarValue };
     }
   }
   return null;
@@ -217,10 +241,10 @@ function findBar(
  * Map a finger position (screen pixels) to the target under it.
  *
  * Priority (design.md): vertex > line > bar interior > none.
- *   1. Vertex — nearest point within `radii.vertex` (Requirements 4.3, 4.6).
- *   2. Line   — nearest segment / polyline / axis within `radii.line`.
- *   3. Bar    — finger inside a bar rectangle.
- *   4. None   — nothing under the finger.
+ *   1. Vertex - nearest point within `radii.vertex` (Requirements 4.3, 4.6).
+ *   2. Line   - nearest segment / polyline / axis / bar-edge within `radii.line`.
+ *   3. Bar    - finger inside a bar rectangle.
+ *   4. None   - nothing under the finger.
  *
  * Vertex is checked first and short-circuits, so a position within the
  * vertex radius is never classified as a line (Requirement 4.6).
@@ -241,7 +265,7 @@ export function hitTest(
       : { kind: 'vertex', id: vertex.id };
   }
 
-  // Priority 2: line — segments, polylines, axes (closest wins).
+  // Priority 2: line - segments, polylines, axes, bar edges (closest wins).
   const line = findLine(scene, finger, view, radii, pointMap);
   if (line !== null) {
     return { kind: 'line', id: line.id, elementKind: line.elementKind };

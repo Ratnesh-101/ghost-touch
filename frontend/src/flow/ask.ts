@@ -130,6 +130,9 @@ export class AskManager {
       }
 
       deps.onStatusChange?.(t('ask.thinking'));
+      // One spoken cue so a blind user is never left in silence while the request runs;
+      // the answer's speak() cancels it. The microphone is already closed here.
+      deps.say(t('ask.thinking'));
       const doRequest =
         deps.request ?? ((sc, q, l, sig) => requestAsk(sc, q, l, { signal: sig }));
       const response = await doRequest(deps.scene, question, lang, controller.signal);
@@ -183,6 +186,7 @@ export class AskManager {
 
     try {
       deps.onStatusChange?.(t('ask.thinking'));
+      deps.say(t('ask.thinking'));
       const lang = deps.lang ?? 'en-IN';
       const doRequest =
         deps.request ?? ((sc, q, l, sig) => requestAsk(sc, q, l, { signal: sig }));

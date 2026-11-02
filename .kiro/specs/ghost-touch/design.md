@@ -135,7 +135,7 @@ Each property maps to requirements and runs with fast-check (frontend) or Hypoth
 | Image too large | Downscale client-side to 1600 px longest side before upload |
 
 ## Testing Strategy
-- **Property tests:** P1–P11 as above; these are the headline of the Kiro write-up.
+- **Property tests:** P1–P13 as above; these are the headline of the Kiro write-up.
 - **Unit tests:** fixtures for the three sample diagrams; provider mocked with recorded responses.
 - **Device test checklist (manual, on Nord CE6 + one budget phone):** distinguish line vs. corner with eyes closed; trace a triangle and name it; identify the highest bar; follow a sine curve and count peaks.
 - **User test (Kiroween):** at least one session with a blind student or a school for the blind, recorded with consent for the demo.

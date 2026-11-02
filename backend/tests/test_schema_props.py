@@ -143,15 +143,21 @@ def test_valid_scene_constructs_holds_invariants_and_round_trips(data: dict) -> 
 
 @given(bad_coord())
 def test_point_coordinate_out_of_range_rejected(bad: float) -> None:
-    with pytest.raises(ValidationError, match="out of range"):
+    with pytest.raises(
+        ValidationError, match=r"greater than or equal to 0|less than or equal to 1"
+    ):
         DiagramScene(kind="geometry", points=[{"id": "p0", "x": bad, "y": 0.5}])
-    with pytest.raises(ValidationError, match="out of range"):
+    with pytest.raises(
+        ValidationError, match=r"greater than or equal to 0|less than or equal to 1"
+    ):
         DiagramScene(kind="geometry", points=[{"id": "p0", "x": 0.5, "y": bad}])
 
 
 @given(bad_coord())
 def test_polyline_coordinate_out_of_range_rejected(bad: float) -> None:
-    with pytest.raises(ValidationError, match="out of range"):
+    with pytest.raises(
+        ValidationError, match=r"greater than or equal to 0|less than or equal to 1"
+    ):
         DiagramScene(
             kind="function_graph",
             polylines=[{"id": "l0", "points": [[bad, 0.5]]}],
@@ -160,7 +166,9 @@ def test_polyline_coordinate_out_of_range_rejected(bad: float) -> None:
 
 @given(bad_coord())
 def test_bar_coordinate_out_of_range_rejected(bad: float) -> None:
-    with pytest.raises(ValidationError, match="out of range"):
+    with pytest.raises(
+        ValidationError, match=r"greater than or equal to 0|less than or equal to 1"
+    ):
         DiagramScene(
             kind="bar_chart",
             bars=[
@@ -179,7 +187,9 @@ def test_bar_coordinate_out_of_range_rejected(bad: float) -> None:
 
 @given(bad_coord())
 def test_axes_coordinate_out_of_range_rejected(bad: float) -> None:
-    with pytest.raises(ValidationError, match="out of range"):
+    with pytest.raises(
+        ValidationError, match=r"greater than or equal to 0|less than or equal to 1"
+    ):
         DiagramScene(kind="geometry", axes={"x_axis_y": bad, "y_axis_x": 0.5})
 
 

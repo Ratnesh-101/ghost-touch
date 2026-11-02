@@ -24,7 +24,7 @@ export type Y = number;
 export type Points = Point[];
 export type Id2 = string;
 export type Label2 = string | null;
-export type Points1 = [unknown, unknown][];
+export type Points1 = [number, number][];
 export type Polylines = Polyline[];
 export type A = string;
 export type B = string;
@@ -47,7 +47,6 @@ export interface DiagramScene {
   segments?: Segments;
   title?: Title;
   version?: Version;
-  [k: string]: unknown;
 }
 /**
  * Optional axis positions, normalized to [0, 1].
@@ -55,7 +54,6 @@ export interface DiagramScene {
 export interface Axes {
   x_axis_y?: XAxisY;
   y_axis_x?: YAxisX;
-  [k: string]: unknown;
 }
 /**
  * A bar-chart bar with normalized geometry and a numeric value.
@@ -68,7 +66,6 @@ export interface Bar {
   x1: X1;
   y_base: YBase;
   y_top: YTop;
-  [k: string]: unknown;
 }
 /**
  * A named vertex with normalized coordinates.
@@ -78,7 +75,6 @@ export interface Point {
   label?: Label1;
   x: X;
   y: Y;
-  [k: string]: unknown;
 }
 /**
  * An ordered sequence of normalized (x, y) points; used for curves.
@@ -87,7 +83,6 @@ export interface Polyline {
   id: Id2;
   label?: Label2;
   points: Points1;
-  [k: string]: unknown;
 }
 /**
  * A straight line between two existing points, referenced by id.
@@ -97,5 +92,4 @@ export interface Segment {
   b: B;
   id: Id3;
   label?: Label3;
-  [k: string]: unknown;
 }
