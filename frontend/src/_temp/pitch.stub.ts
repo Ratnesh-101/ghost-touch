@@ -13,6 +13,7 @@ export function pitchForY(yNorm: number): number {
  * Guards against non-positive max.
  */
 export function pitchForValue(v: number, max: number): number {
-  if (max <= 0) return 200;
+  if (max <= 0 || !Number.isFinite(max)) return 200;
+  if (!Number.isFinite(v) || v <= 0) return 200;
   return Math.min(1000, Math.max(200, 200 + (v / max) * 800));
 }

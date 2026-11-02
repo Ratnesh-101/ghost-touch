@@ -28,8 +28,8 @@ export function initialState(): EngineState {
     lastVertexId: null,
     lastBarId: null,
     onLine: false,
-    lastBuzz: 0,
-    quietUntil: 0,
+    lastBuzz: -Infinity,
+    quietUntil: -Infinity,
   };
 }
 
@@ -102,13 +102,15 @@ export function step(
   }
 
   // target.kind === 'none'
-  next.lastBarId = null;
   if (state.onLine) {
     if (t >= state.quietUntil) {
       effects.push({ kind: 'vibrate', pattern: 0 });
     }
     effects.push({ kind: 'tone', hz: null });
     next.onLine = false;
+  } else if (state.lastBarId !== null) {
+    effects.push({ kind: 'tone', hz: null });
   }
+  next.lastBarId = null;
   return { state: next, effects };
 }
