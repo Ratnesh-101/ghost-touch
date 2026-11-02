@@ -1,0 +1,56 @@
+{
+  "provider": "nebius",
+  "model": "google/gemma-3-27b-it",
+  "samples": [
+    {
+      "sample_id": "clean/05_sine_graph",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.8243770368322733,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.8319489707383849,
+        "curve_score_abs": 0.0,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 1.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.0,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 38.047894400020596,
+      "error": null
+    },
+    {
+      "sample_id": "clean/06_parabola",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.8247191013036079,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.8327091140080177,
+        "curve_score_abs": 0.0,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 1.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.0,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 35.873391900007846,
+      "error": null
+    },
+    {
+      "sample_id": "clean/07_line_graph",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": null,
+      "composite": 0.0,
+      "metrics": {},
+      "latency_s": null,
+      "error": "ReadTimeout: The read operation timed out"
+    }
+  ]
+}

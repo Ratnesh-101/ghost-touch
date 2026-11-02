@@ -1,0 +1,36 @@
+{
+  "provider": "nebius",
+  "model": "nvidia/Nemotron-3.5-Super-VL",
+  "samples": [
+    {
+      "sample_id": "clean/05_sine_graph",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": null,
+      "composite": 0.0,
+      "metrics": {},
+      "latency_s": null,
+      "error": "SpikeError: empty response from nebius"
+    },
+    {
+      "sample_id": "clean/06_parabola",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": null,
+      "composite": 0.0,
+      "metrics": {},
+      "latency_s": null,
+      "error": "SpikeError: empty response from nebius"
+    },
+    {
+      "sample_id": "clean/07_line_graph",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": null,
+      "composite": 0.0,
+      "metrics": {},
+      "latency_s": null,
+      "error": "SpikeError: empty response from nebius"
+    }
+  ]
+}

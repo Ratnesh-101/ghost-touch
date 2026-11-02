@@ -1,0 +1,66 @@
+{
+  "provider": "nebius",
+  "model": "openbmb/MiniCPM-V-4_5",
+  "samples": [
+    {
+      "sample_id": "clean/05_sine_graph",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.7770546800909385,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.7267881779798634,
+        "curve_score_abs": 0.0,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 1.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.0,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 2.1745611999940593,
+      "error": null
+    },
+    {
+      "sample_id": "clean/06_parabola",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.8247191013036079,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.8327091140080177,
+        "curve_score_abs": 0.0,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 1.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.0,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 1.5982433000172023,
+      "error": null
+    },
+    {
+      "sample_id": "clean/07_line_graph",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.8962197291435793,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.9915993980968429,
+        "curve_score_abs": 0.8743446948568091,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 1.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.0,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 1.6711018000205513,
+      "error": null
+    }
+  ]
+}

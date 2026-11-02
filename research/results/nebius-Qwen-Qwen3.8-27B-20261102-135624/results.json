@@ -1,0 +1,56 @@
+{
+  "provider": "nebius",
+  "model": "Qwen/Qwen3.8-27B",
+  "samples": [
+    {
+      "sample_id": "clean/05_sine_graph",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.8243770368322733,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.8319489707383849,
+        "curve_score_abs": 0.0,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 1.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.0,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 5.789880600001197,
+      "error": null
+    },
+    {
+      "sample_id": "clean/06_parabola",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.8245501199278282,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.8323335998396183,
+        "curve_score_abs": 0.9916726854801678,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 1.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.0,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 10.027586600015638,
+      "error": null
+    },
+    {
+      "sample_id": "clean/07_line_graph",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": null,
+      "composite": 0.0,
+      "metrics": {},
+      "latency_s": null,
+      "error": "SpikeError: empty response from nebius"
+    }
+  ]
+}
