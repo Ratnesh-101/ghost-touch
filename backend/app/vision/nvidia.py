@@ -10,7 +10,6 @@ from __future__ import annotations
 import asyncio
 import base64
 import os
-import re
 from typing import Any
 
 import cv2
@@ -18,6 +17,7 @@ import httpx
 import numpy as np
 
 from app.image_utils import MAX_IMAGE_PIXELS, sniff_image_dimensions
+from app.vision._openai_compat import post_chat_completion, strip_fences
 from app.vision.base import VisionError
 
 DEFAULT_INLINE_LIMIT = 180_000  # bytes; hosted NVIDIA endpoints cap inline images
@@ -73,14 +73,6 @@ def fit_image_for_inline(image: bytes, max_bytes: int = DEFAULT_INLINE_LIMIT) ->
     return last_buffer
 
 
-def _redact_secrets(text: str, secret: str | None) -> str:
-    """Redact secret string and Bearer tokens from text."""
-    result = re.sub(r"Bearer\s+[A-Za-z0-9_\-\.]+", "Bearer [REDACTED]", text)
-    if secret:
-        result = result.replace(secret, "[REDACTED]")
-    return result
-
-
 class NvidiaProvider:
     """Vision provider using NVIDIA's OpenAI-compatible hosted API."""
 
@@ -133,72 +125,15 @@ class NvidiaProvider:
             "stream": False,
         }
 
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-        url = f"{self.base_url}/chat/completions"
-
-        client_to_use = self._client or httpx.AsyncClient()
-        try:
-            try:
-                response = await client_to_use.post(
-                    url,
-                    headers=headers,
-                    json=body,
-                    timeout=timeout,
-                )
-            finally:
-                if self._client is None:
-                    await client_to_use.aclose()
-        except httpx.TimeoutException as exc:
-            raise VisionError(self.name, f"request timed out after {timeout:.1f}s") from exc
-        except httpx.RequestError as exc:
-            msg = _redact_secrets(str(exc), self.api_key)
-            raise VisionError(self.name, f"connection error: {msg}") from exc
-        except Exception as exc:
-            msg = _redact_secrets(str(exc), self.api_key)
-            raise VisionError(self.name, f"request failed: {msg}") from exc
-
-        if response.status_code == 429:
-            raise VisionError(self.name, "rate limited (429)")
-        if response.status_code >= 500:
-            raise VisionError(self.name, f"server error ({response.status_code})")
-        if response.status_code != 200:
-            msg = _redact_secrets(response.text[:200], self.api_key)
-            raise VisionError(self.name, f"HTTP {response.status_code}: {msg}")
-
-        try:
-            data = response.json()
-        except Exception as exc:
-            raise VisionError(self.name, f"invalid response JSON: {exc}") from exc
-
-        if not isinstance(data, dict):
-            raise VisionError(
-                self.name, f"invalid response JSON: expected dict, got {type(data).__name__}"
-            )
-
-        choices = data.get("choices")
-        if not choices or not isinstance(choices, list):
-            raise VisionError(self.name, "empty choices in response")
-
-        first_choice = choices[0]
-        if not isinstance(first_choice, dict):
-            raise VisionError(self.name, "first choice in response is not an object")
-
-        message = first_choice.get("message")
-        if not isinstance(message, dict):
-            raise VisionError(self.name, "message in response is not an object")
-
-        content = message.get("content")
-        if not content or not isinstance(content, str) or not content.strip():
-            raise VisionError(self.name, "empty content in response")
-
-        # Unwrap markdown fences (```json ... ```)
-        cleaned = re.sub(
-            r"^```(?:json)?\s*|\s*```$", "", content.strip(), flags=re.IGNORECASE
-        ).strip()
-        return cleaned
+        text = await post_chat_completion(
+            name=self.name,
+            base_url=self.base_url,
+            api_key=self.api_key,
+            body=body,
+            timeout=timeout,
+            client=self._client,
+        )
+        return strip_fences(text)
 
     async def complete(self, prompt: str, *, timeout: float) -> str:
         """Call NVIDIA hosted API to complete a text-only prompt (Task 9.1).
@@ -221,65 +156,11 @@ class NvidiaProvider:
             "stream": False,
         }
 
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-        url = f"{self.base_url}/chat/completions"
-
-        client_to_use = self._client or httpx.AsyncClient()
-        try:
-            try:
-                response = await client_to_use.post(
-                    url,
-                    headers=headers,
-                    json=body,
-                    timeout=timeout,
-                )
-            finally:
-                if self._client is None:
-                    await client_to_use.aclose()
-        except httpx.TimeoutException as exc:
-            raise VisionError(self.name, f"request timed out after {timeout:.1f}s") from exc
-        except httpx.RequestError as exc:
-            msg = _redact_secrets(str(exc), self.api_key)
-            raise VisionError(self.name, f"connection error: {msg}") from exc
-        except Exception as exc:
-            msg = _redact_secrets(str(exc), self.api_key)
-            raise VisionError(self.name, f"request failed: {msg}") from exc
-
-        if response.status_code == 429:
-            raise VisionError(self.name, "rate limited (429)")
-        if response.status_code >= 500:
-            raise VisionError(self.name, f"server error ({response.status_code})")
-        if response.status_code != 200:
-            msg = _redact_secrets(response.text[:200], self.api_key)
-            raise VisionError(self.name, f"HTTP {response.status_code}: {msg}")
-
-        try:
-            data = response.json()
-        except Exception as exc:
-            raise VisionError(self.name, f"invalid response JSON: {exc}") from exc
-
-        if not isinstance(data, dict):
-            raise VisionError(
-                self.name, f"invalid response JSON: expected dict, got {type(data).__name__}"
-            )
-
-        choices = data.get("choices")
-        if not choices or not isinstance(choices, list):
-            raise VisionError(self.name, "empty choices in response")
-
-        first_choice = choices[0]
-        if not isinstance(first_choice, dict):
-            raise VisionError(self.name, "first choice in response is not an object")
-
-        message = first_choice.get("message")
-        if not isinstance(message, dict):
-            raise VisionError(self.name, "message in response is not an object")
-
-        content = message.get("content")
-        if not content or not isinstance(content, str) or not content.strip():
-            raise VisionError(self.name, "empty content in response")
-
-        return content.strip()
+        return await post_chat_completion(
+            name=self.name,
+            base_url=self.base_url,
+            api_key=self.api_key,
+            body=body,
+            timeout=timeout,
+            client=self._client,
+        )
