@@ -1,29 +1,27 @@
+@import './tokens.css';
+
 /*
  * Ghost Touch global styles.
- * Theme: dark background, glowing green strokes, theremin vibe.
- * Halloween lives in the creature, never the user (product.md).
+ * Theme: Dark "creature" aesthetic (#0b0b10, glowing green #39ff88 accents, subtle glow).
+ * Frankenstein pitch: Nerves (buzzer) + Eyes (vision LLM) + Voice (synthesizer).
+ * Halloween lives in the creature's feel, never in blindness (product.md).
+ * Accessibility is the product: WCAG AAA contrast, 48px+ touch targets, visible focus.
  */
 
 :root {
-  /* Backgrounds */
+  /* Retain for test suite regex check (tests/screens.render.test.ts) */
+  --gt-target: 48px;
   --gt-bg: #0b0b10;
-  --gt-surface: #121219;
-
-  /* Glowing green line color (product.md) */
+  --gt-surface: #14141e;
   --gt-line: #39ff88;
-
-  /* Text — high contrast. #eafff5 on #0b0b10 is well above 7:1 (Req 12.2). */
   --gt-text: #eafff5;
   --gt-text-muted: #9fb3a8;
-
-  /* Accent / focus */
   --gt-focus: #39ff88;
-
-  /* Touch target minimum (Req 12.1) */
-  --gt-target: 48px;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -34,66 +32,73 @@ body,
   padding: 0;
   height: 100%;
   width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   background: var(--gt-bg);
+  background-image: var(--gt-bg-radial);
+  background-attachment: fixed;
   color: var(--gt-text);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--gt-font-sans);
   font-size: 18px;
-  line-height: 1.5;
-  /* Prevent the page from scrolling while the explore canvas captures touch. */
+  line-height: var(--gt-line-height-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent the page from scrolling while explore canvas captures touch. */
   overscroll-behavior: none;
 }
 
 /*
- * Requirement 12.1: every control gets an accessible name (handled per-component
- * via aria-label) and a touch target of at least 48×48 CSS px (enforced here).
+ * Requirement 12.1: every control gets an accessible name and a touch target
+ * of at least 48×48 CSS px (enforced here).
  */
 .gt-control {
   min-width: var(--gt-target);
   min-height: var(--gt-target);
   padding: 12px 18px;
-  border-radius: 12px;
+  border-radius: var(--gt-radius-md);
   border: 2px solid transparent;
   background: var(--gt-surface);
   color: var(--gt-text);
   font: inherit;
+  font-weight: 600;
   cursor: pointer;
-  /* Large, obvious focus ring for keyboard / switch users. */
   outline: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gt-space-xs);
+  text-decoration: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--gt-transition-fast),
+    border-color var(--gt-transition-fast),
+    box-shadow var(--gt-transition-fast),
+    transform var(--gt-transition-fast);
 }
 
 .gt-control:hover {
   border-color: var(--gt-line);
+  background: var(--gt-surface-hover);
+}
+
+.gt-control:active {
+  background: var(--gt-surface-active);
+  transform: scale(0.985);
 }
 
 .gt-control:focus-visible {
   border-color: var(--gt-focus);
-  box-shadow: 0 0 0 4px rgba(57, 255, 136, 0.35);
+  box-shadow: 0 0 0 3px var(--gt-bg), 0 0 0 6px var(--gt-focus);
 }
 
-/* Full-screen start surface: tap anywhere to begin. */
-.gt-start {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  min-height: 100dvh;
-  padding: 24px;
-  text-align: center;
-}
-
-.gt-start__title {
-  color: var(--gt-line);
-  text-shadow: 0 0 12px rgba(57, 255, 136, 0.6);
-  margin: 0;
-}
-
-.gt-start__hint {
-  color: var(--gt-text-muted);
-  max-width: 32ch;
+.gt-control:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  border-color: transparent;
 }
 
 .gt-visually-hidden {
@@ -108,7 +113,663 @@ body {
   border: 0;
 }
 
-/* Hidden #/debug page (Task 5). */
+/* ==========================================================================
+   START SCREEN — Hero Creature Theme & Full-Screen Tap Surface
+   ========================================================================== */
+
+.gt-start-surface {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: var(--gt-space-xl) var(--gt-space-lg);
+  border: 0;
+  background: var(--gt-bg);
+  background-image: var(--gt-bg-radial);
+  color: var(--gt-text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overflow-y: auto;
+}
+
+.gt-start-surface:focus-visible {
+  outline: 4px solid var(--gt-focus);
+  outline-offset: -8px;
+}
+
+.gt-start__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gt-space-md);
+  max-width: 440px;
+  width: 100%;
+  margin: auto 0;
+}
+
+/* Creature Emblem */
+.gt-start__creature-emblem {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--gt-space-xs);
+}
+
+.gt-start__creature-emblem svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 16px var(--gt-green-glow));
+  transition: transform var(--gt-transition-normal), filter var(--gt-transition-normal);
+}
+
+.gt-start-surface:hover .gt-start__creature-emblem svg {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 24px var(--gt-green-glow-strong));
+}
+
+.gt-start__title {
+  font-size: clamp(2rem, 8vw, var(--gt-text-3xl));
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--gt-line);
+  text-shadow: 0 0 20px var(--gt-green-glow);
+  margin: 0;
+  line-height: var(--gt-line-height-tight);
+}
+
+.gt-start__tagline {
+  font-size: clamp(1rem, 4vw, var(--gt-text-lg));
+  color: var(--gt-text);
+  max-width: 32ch;
+  line-height: 1.4;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Stitched creature triad badge */
+.gt-start__triad {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--gt-space-xs);
+  margin-top: var(--gt-space-xs);
+  max-width: 380px;
+}
+
+.gt-start__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: var(--gt-radius-pill);
+  background: var(--gt-surface-card);
+  border: 1px solid var(--gt-border-subtle);
+  color: var(--gt-text-muted);
+  font-size: var(--gt-text-xs);
+  letter-spacing: 0.02em;
+  font-weight: 500;
+}
+
+.gt-start__chip--green {
+  border-color: var(--gt-border);
+  color: var(--gt-line);
+  background: var(--gt-green-subtle);
+}
+
+/* Tap to begin primary callout pill */
+.gt-start__action-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gt-space-sm);
+  margin-top: var(--gt-space-lg);
+  padding: 16px 28px;
+  border-radius: var(--gt-radius-pill);
+  background: var(--gt-surface-card);
+  border: 2px solid var(--gt-line);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 24px var(--gt-green-glow);
+  transition: all var(--gt-transition-normal);
+}
+
+.gt-start-surface:hover .gt-start__action-badge {
+  background: var(--gt-line);
+  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.8), 0 0 36px var(--gt-green-glow-strong);
+}
+
+.gt-start-surface:hover .gt-start__action-badge .gt-start__hint {
+  color: var(--gt-text-dark);
+}
+
+.gt-start-surface:hover .gt-start__pulse-dot {
+  background: var(--gt-text-dark);
+  box-shadow: none;
+}
+
+.gt-start__pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--gt-line);
+  box-shadow: 0 0 10px var(--gt-line);
+  animation: creature-pulse 2s infinite ease-in-out;
+}
+
+.gt-start__hint {
+  font-size: var(--gt-text-lg);
+  font-weight: 700;
+  color: var(--gt-text);
+  letter-spacing: 0.01em;
+  transition: color var(--gt-transition-fast);
+}
+
+.gt-start__subhint {
+  margin-top: var(--gt-space-xs);
+  font-size: var(--gt-text-xs);
+  color: var(--gt-text-muted);
+}
+
+@keyframes creature-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
+}
+
+/* ==========================================================================
+   CAPTURE SCREEN — Clean Layout, Clear Hierarchy, Tactile Cards
+   ========================================================================== */
+
+.gt-capture {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-lg);
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--gt-space-xl) var(--gt-space-md) var(--gt-space-3xl);
+  min-height: 100dvh;
+}
+
+.gt-capture__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-2xs);
+}
+
+.gt-capture__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--gt-space-sm);
+}
+
+.gt-capture__brand-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gt-line);
+  box-shadow: 0 0 12px var(--gt-line);
+  flex-shrink: 0;
+}
+
+.gt-capture__title {
+  margin: 0;
+  font-size: var(--gt-text-2xl);
+  font-weight: 800;
+  color: var(--gt-line);
+  text-shadow: 0 0 14px var(--gt-green-glow);
+  letter-spacing: -0.01em;
+}
+
+.gt-capture__tagline {
+  margin: 0;
+  font-size: var(--gt-text-sm);
+  color: var(--gt-text-muted);
+}
+
+/* Status / Progress Card */
+.gt-capture__status-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-xs);
+  padding: var(--gt-space-md) var(--gt-space-lg);
+  background: var(--gt-surface-card);
+  border: 1px solid var(--gt-border);
+  border-radius: var(--gt-radius-lg);
+  box-shadow: var(--gt-shadow-card);
+}
+
+.gt-capture__status-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gt-space-sm);
+}
+
+.gt-capture__status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--gt-line);
+  box-shadow: 0 0 8px var(--gt-line);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.gt-capture[aria-busy="true"] .gt-capture__status-indicator {
+  animation: creature-pulse 1.2s infinite ease-in-out;
+}
+
+.gt-capture__status {
+  min-height: 2.75rem;
+  margin: 0;
+  font-size: var(--gt-text-base);
+  line-height: 1.45;
+  color: var(--gt-text);
+  font-weight: 500;
+}
+
+/* Progress bar when reading */
+.gt-capture__progress-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--gt-radius-pill);
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.gt-capture__progress-bar {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--gt-line), transparent);
+  background-size: 200% 100%;
+  animation: creature-progress 1.5s infinite linear;
+}
+
+@keyframes creature-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Buttons Section */
+.gt-capture__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-md);
+}
+
+/* Test regex requirement: .gt-capture__button { min-height: (\d+)px */
+.gt-capture__button {
+  width: 100%;
+  min-height: 56px;
+  font-size: var(--gt-text-lg);
+  border-radius: var(--gt-radius-lg);
+  border: 2px solid var(--gt-border-subtle);
+  background: var(--gt-surface);
+  color: var(--gt-text);
+  box-shadow: var(--gt-shadow-card);
+}
+
+/* Primary "Take photo" button */
+.gt-capture__button--primary {
+  min-height: 64px;
+  font-size: var(--gt-text-xl);
+  font-weight: 700;
+  background: linear-gradient(180deg, #183324 0%, #12241b 100%);
+  border: 2px solid var(--gt-line);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6), 0 0 16px var(--gt-green-glow);
+}
+
+.gt-capture__button--primary:hover {
+  background: var(--gt-line);
+  color: var(--gt-text-dark);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.8), 0 0 28px var(--gt-green-glow-strong);
+}
+
+/* Secondary "Choose image" button */
+.gt-capture__button--secondary {
+  min-height: 54px;
+  font-size: var(--gt-text-base);
+  font-weight: 600;
+  background: var(--gt-surface);
+  border-color: rgba(57, 255, 136, 0.3);
+}
+
+.gt-capture__button--secondary:hover {
+  border-color: var(--gt-line);
+  background: var(--gt-surface-hover);
+}
+
+/* Sample Diagrams Grid */
+.gt-capture__samples-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-sm);
+  margin-top: var(--gt-space-xs);
+}
+
+.gt-capture__subtitle {
+  margin: 0;
+  font-size: var(--gt-text-base);
+  font-weight: 700;
+  color: var(--gt-line);
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: var(--gt-space-xs);
+}
+
+.gt-capture__subtitle::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--gt-border-subtle);
+}
+
+.gt-capture__samples-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gt-space-xs);
+}
+
+.gt-capture__sample-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gt-space-2xs);
+  min-height: 72px;
+  padding: var(--gt-space-xs) var(--gt-space-2xs);
+  font-size: var(--gt-text-xs);
+  font-weight: 600;
+  text-align: center;
+  background: var(--gt-surface-card);
+  border: 1px solid var(--gt-border-subtle);
+  border-radius: var(--gt-radius-md);
+  line-height: 1.25;
+}
+
+.gt-capture__sample-btn:hover {
+  border-color: var(--gt-line);
+  background: var(--gt-surface-hover);
+  box-shadow: 0 0 14px var(--gt-green-glow);
+}
+
+/* Sample icons drawn purely with CSS (no aria-hidden in HTML) */
+.gt-capture__sample-icon {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-bottom: 2px;
+  position: relative;
+}
+
+/* Triangle icon */
+.gt-capture__sample-icon--triangle {
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 16px solid var(--gt-line);
+}
+
+/* Sine curve icon */
+.gt-capture__sample-icon--sine {
+  width: 22px;
+  height: 14px;
+  border: 2px solid var(--gt-line);
+  border-radius: 50% / 100% 100% 0 0;
+  border-bottom: 0;
+  transform: skewX(-15deg);
+}
+
+/* Bar chart icon */
+.gt-capture__sample-icon--barchart {
+  width: 18px;
+  height: 16px;
+  border-bottom: 2px solid var(--gt-line);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.gt-capture__sample-icon--barchart::before,
+.gt-capture__sample-icon--barchart::after {
+  content: '';
+  display: block;
+  width: 4px;
+  background: var(--gt-line);
+}
+
+.gt-capture__sample-icon--barchart::before {
+  height: 8px;
+}
+
+.gt-capture__sample-icon--barchart::after {
+  height: 14px;
+}
+
+/* ==========================================================================
+   EXPLORE SCREEN — High-Contrast Chrome, Immersive Canvas, Distinct Actions
+   ========================================================================== */
+
+.gt-explore {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--gt-space-sm) var(--gt-space-md) var(--gt-space-md);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.gt-explore__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--gt-space-sm);
+  margin-bottom: var(--gt-space-2xs);
+}
+
+.gt-explore__title {
+  margin: 0;
+  font-size: var(--gt-text-xl);
+  font-weight: 800;
+  color: var(--gt-line);
+  text-shadow: 0 0 12px var(--gt-green-glow);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gt-explore__badge {
+  font-size: var(--gt-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gt-text-muted);
+  padding: 2px 8px;
+  border-radius: var(--gt-radius-sm);
+  background: var(--gt-surface-card);
+  border: 1px solid var(--gt-border-subtle);
+}
+
+.gt-explore__status-card {
+  padding: 6px var(--gt-space-md);
+  background: var(--gt-surface-card);
+  border-radius: var(--gt-radius-md);
+  border: 1px solid var(--gt-border-subtle);
+  margin-bottom: var(--gt-space-xs);
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.gt-explore__status {
+  margin: 0;
+  font-size: var(--gt-text-sm);
+  line-height: 1.4;
+  color: var(--gt-text);
+  font-weight: 500;
+}
+
+/* Responsive Explore Canvas Container */
+.gt-explore__canvas-container {
+  flex: 1;
+  display: flex;
+  position: relative;
+  min-height: 200px;
+  border-radius: var(--gt-radius-lg);
+  overflow: hidden;
+  border: 2px solid #20202e;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), inset 0 0 24px rgba(0, 0, 0, 0.6);
+  background: #000000;
+}
+
+.gt-explore__canvas-container:focus-within {
+  border-color: var(--gt-line);
+  box-shadow: 0 0 0 2px var(--gt-bg), 0 0 0 4px var(--gt-focus);
+}
+
+.gt-explore__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  background: #000000;
+  outline: none;
+  cursor: crosshair;
+}
+
+.gt-explore__canvas:focus-visible {
+  outline: 3px solid var(--gt-focus);
+  outline-offset: -3px;
+}
+
+.gt-explore__debug {
+  font-size: var(--gt-text-xs);
+  font-family: var(--gt-font-mono);
+  color: var(--gt-text-muted);
+  text-align: center;
+  margin-top: 4px;
+  min-height: 1.25rem;
+  opacity: 0.8;
+}
+
+/* Text fallback Ask form */
+.gt-explore__ask-form {
+  display: flex;
+  gap: var(--gt-space-xs);
+  margin-top: var(--gt-space-xs);
+  width: 100%;
+}
+
+.gt-explore__ask-input {
+  flex: 1;
+  min-height: 48px;
+  padding: 10px var(--gt-space-md);
+  font-size: var(--gt-text-base);
+  border: 2px solid var(--gt-border-subtle);
+  border-radius: var(--gt-radius-md);
+  background: #050508;
+  color: var(--gt-text);
+  outline: none;
+  transition: border-color var(--gt-transition-fast), box-shadow var(--gt-transition-fast);
+}
+
+.gt-explore__ask-input:focus-visible {
+  border-color: var(--gt-focus);
+  box-shadow: 0 0 0 3px var(--gt-bg), 0 0 0 5px var(--gt-focus);
+}
+
+/* Test regex requirement: .gt-explore__send { min-height: (\d+)px */
+.gt-explore__send {
+  min-height: 52px;
+  min-width: 84px;
+  font-size: var(--gt-text-base);
+  font-weight: 700;
+  border-radius: var(--gt-radius-md);
+  border: 2px solid var(--gt-line);
+  background: linear-gradient(180deg, #183324 0%, #12241b 100%);
+  color: var(--gt-text);
+}
+
+.gt-explore__send:hover {
+  background: var(--gt-line);
+  color: var(--gt-text-dark);
+}
+
+/* Explore Actions Footer */
+.gt-explore__footer {
+  margin-top: var(--gt-space-xs);
+}
+
+.gt-explore__actions {
+  display: flex;
+  gap: var(--gt-space-sm);
+  width: 100%;
+}
+
+/* Test regex requirement: .gt-explore__ask { min-height: (\d+)px */
+.gt-explore__ask {
+  flex: 1;
+  min-height: 52px;
+  font-size: var(--gt-text-lg);
+  font-weight: 700;
+  border-radius: var(--gt-radius-lg);
+  border: 2px solid var(--gt-line);
+  background: linear-gradient(180deg, #183324 0%, #12241b 100%);
+  color: var(--gt-text);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5), 0 0 14px var(--gt-green-glow);
+}
+
+.gt-explore__ask:hover {
+  background: var(--gt-line);
+  color: var(--gt-text-dark);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7), 0 0 22px var(--gt-green-glow-strong);
+}
+
+/* Test regex requirement: .gt-explore__back { min-height: (\d+)px */
+.gt-explore__back {
+  flex: 1;
+  min-height: 52px;
+  font-size: var(--gt-text-lg);
+  font-weight: 600;
+  border-radius: var(--gt-radius-lg);
+  border: 2px solid var(--gt-border-subtle);
+  background: var(--gt-surface);
+  color: var(--gt-text);
+}
+
+.gt-explore__back:hover {
+  border-color: var(--gt-line);
+  background: var(--gt-surface-hover);
+}
+
+/* ==========================================================================
+   DEBUG SCREEN (Task 5 — Preserved as-is)
+   ========================================================================== */
+
 .gt-debug {
   padding: 16px;
   max-width: 640px;
@@ -149,186 +810,117 @@ body {
   margin-bottom: 8px;
 }
 
-/* Start surface (Task 6): the whole viewport is one button. */
-.gt-start-surface {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  width: 100%;
-  height: 100%;
-  padding: 24px;
-  border: 0;
-  background: var(--gt-bg);
-  color: var(--gt-text);
-  font: inherit;
-  text-align: center;
-  cursor: pointer;
+/* ==========================================================================
+   ACCESSIBILITY & MEDIA QUERY OVERRIDES
+   ========================================================================== */
+
+/* Motion sensitivity: disable all animated glow and pulse */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .gt-start__pulse-dot,
+  .gt-capture__status-indicator,
+  .gt-capture__progress-bar {
+    animation: none !important;
+  }
+
+  .gt-start__creature-emblem svg {
+    filter: none !important;
+    transform: none !important;
+  }
 }
 
-.gt-start-surface .gt-start__title {
-  font-size: 2.5rem;
-  font-weight: 700;
+/* High Contrast & Forced Colors (Windows High Contrast / assistive themes) */
+@media (forced-colors: active) {
+  .gt-control,
+  .gt-capture__button,
+  .gt-explore__ask,
+  .gt-explore__back,
+  .gt-explore__send,
+  .gt-capture__sample-btn,
+  .gt-start__action-badge {
+    border: 2px solid ButtonText !important;
+  }
+
+  .gt-control:focus-visible,
+  .gt-start-surface:focus-visible,
+  .gt-explore__canvas:focus-visible,
+  .gt-explore__ask-input:focus-visible {
+    outline: 3px solid Highlight !important;
+    box-shadow: none !important;
+  }
+
+  .gt-capture__status-card,
+  .gt-explore__status-card,
+  .gt-explore__canvas-container {
+    border: 2px solid CanvasText !important;
+  }
 }
 
-.gt-start-surface:focus-visible {
-  outline: 4px solid var(--gt-focus);
-  outline-offset: -8px;
+/* Mobile landscape view (e.g. phones rotated sideways, max height 540px) */
+@media (max-height: 540px) and (orientation: landscape) {
+  .gt-start-surface {
+    padding: var(--gt-space-sm);
+  }
+
+  .gt-start__hero {
+    gap: var(--gt-space-xs);
+  }
+
+  .gt-start__creature-emblem {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 0;
+  }
+
+  .gt-start__action-badge {
+    margin-top: var(--gt-space-xs);
+    padding: 10px 20px;
+  }
+
+  .gt-capture {
+    padding: var(--gt-space-sm) var(--gt-space-md);
+    gap: var(--gt-space-sm);
+  }
+
+  .gt-explore {
+    padding: var(--gt-space-xs) var(--gt-space-sm);
+  }
+
+  .gt-explore__header {
+    margin-bottom: 2px;
+  }
+
+  .gt-explore__status-card {
+    min-height: 1.75rem;
+    padding: 2px var(--gt-space-sm);
+    margin-bottom: 4px;
+  }
+
+  .gt-explore__footer {
+    margin-top: 4px;
+  }
 }
 
-/* Capture and Explore stub screens: large stacked controls. */
-.gt-capture {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 24px 16px 40px;
-}
+/* Narrow mobile devices (360px portrait) */
+@media (max-width: 380px) {
+  .gt-capture {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
 
-.gt-capture__title {
-  margin: 0;
-  color: var(--gt-line);
-  text-shadow: 0 0 12px rgba(57, 255, 136, 0.6);
-}
+  .gt-capture__samples-grid {
+    gap: 6px;
+  }
 
-.gt-capture__subtitle {
-  margin: 8px 0 0;
-  font-size: 1.1rem;
-  color: var(--gt-text-muted);
-}
-
-.gt-capture__status {
-  min-height: 3.5rem;
-  margin: 0;
-  color: var(--gt-text);
-}
-
-.gt-capture__button {
-  width: 100%;
-  min-height: 64px;
-  font-size: 1.15rem;
-  border-color: var(--gt-line);
-}
-
-/* Explore screen (Task 7): dark canvas filling area, accessible back button outside */
-.gt-explore {
-  display: flex;
-  flex-direction: column;
-  height: 100dvh;
-  width: 100%;
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 12px 16px 16px;
-  box-sizing: border-box;
-}
-
-.gt-explore__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 4px;
-}
-
-.gt-explore__title {
-  margin: 0;
-  font-size: 1.25rem;
-  color: var(--gt-line);
-  text-shadow: 0 0 12px rgba(57, 255, 136, 0.6);
-}
-
-.gt-explore__status {
-  margin: 0 0 8px;
-  font-size: 0.95rem;
-  color: var(--gt-text-muted);
-  min-height: 2.5rem;
-}
-
-.gt-explore__canvas-container {
-  flex: 1;
-  display: flex;
-  position: relative;
-  min-height: 240px;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid #1a1a24;
-}
-
-.gt-explore__canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  touch-action: none;
-  background: #000000;
-  outline: none;
-}
-
-.gt-explore__canvas:focus-visible {
-  outline: 3px solid var(--gt-focus);
-  outline-offset: -3px;
-}
-
-.gt-explore__footer {
-  margin-top: 12px;
-}
-
-.gt-explore__actions {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-}
-
-.gt-explore__ask {
-  flex: 1;
-  min-height: 52px;
-  font-size: 1.1rem;
-  border-color: var(--gt-line);
-}
-
-.gt-explore__back {
-  flex: 1;
-  min-height: 52px;
-  font-size: 1.1rem;
-}
-
-.gt-explore__ask-form {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-  width: 100%;
-}
-
-.gt-explore__ask-input {
-  flex: 1;
-  min-height: 48px;
-  padding: 10px 14px;
-  font-size: 1rem;
-  border: 2px solid #2a2a38;
-  border-radius: 12px;
-  background: #000000;
-  color: var(--gt-text);
-  outline: none;
-}
-
-.gt-explore__ask-input:focus-visible {
-  border-color: var(--gt-focus);
-  box-shadow: 0 0 0 4px rgba(57, 255, 136, 0.35);
-}
-
-.gt-explore__send {
-  min-height: 52px;
-  min-width: 80px;
-  font-size: 1rem;
-  border-color: var(--gt-line);
-}
-
-.gt-explore__debug {
-  font-size: 0.75rem;
-  color: var(--gt-text-muted);
-  text-align: center;
-  margin-top: 4px;
+  .gt-capture__sample-btn {
+    padding: 8px 4px;
+    font-size: 0.72rem;
+  }
 }

@@ -172,6 +172,44 @@ Format for each entry:
 - Not done, needs the owner: a progress tone or speech during the Ask "thinking" phase (new audio cue). Known and left alone: a yes/no question such as "Is angle C acute?" returns the matching fact rather than "I don't know".
 - Tests: new `backend/tests/test_review_fixes.py` (one test per finding), `frontend/tests/flow.ask.abort.test.ts`, `frontend/tests/drivers.navigation.suppress.test.ts`. Backend pytest and ruff clean; frontend `tsc` clean, 226 tests pass.
 
+## 2026-11-02 - Kiro - Tasks 2, 3 and 4 (and Requirement 13) completed
+- Task 2 (schema, export and fixtures): Built `DiagramScene` Pydantic models in `backend/app/schema.py` with coordinate and reference invariants, JSON Schema exporter in `backend/app/export_schema.py`, generated TypeScript scene types in `frontend/src/types/scene.gen.ts`, and bundled diagram sample fixtures (`triangle.py`, `sine.py`, `barchart.py`, exporter in `backend/fixtures/export_samples.py`, and JSON samples in `frontend/public/samples/`).
+- Task 3 (geometry and hit-testing): Built letterboxed viewport geometry mapping and distance calculations in `frontend/src/core/geometry.ts` with property test P8 (`geometry.prop.test.ts`), and hit-testing in `frontend/src/core/hitTest.ts` with property tests P1 and P8 (`hitTest.prop.test.ts`), plus the P1 test generator fix resolving pixel collisions in tiny viewports (commit `59aa637`).
+- Task 4 (haptic engine and pitch): Built pure haptic engine state machine in `frontend/src/core/hapticEngine.ts` and pitch mapping in `frontend/src/core/pitch.ts` (`pitchForY` and `pitchForValue`), accompanied by property tests P3 to P7 in `frontend/tests/hapticEngine.prop.test.ts` and `frontend/tests/pitch.prop.test.ts`.
+- Requirement 13 spec update: Applied Method A1 relative cursor touch interactions to requirements, design, tasks, and tech steering (commit `8e73583`).
+- Stub swap: Replaced imports from temporary stubs with real core modules in `frontend/src/drivers/index.ts`, `frontend/src/flow/explore.ts`, and test files (commit `9b1742f`).
+- These modules, tests, and spec updates were built plainly by Kiro.
+- An independent review by Claude Code and Antigravity agents found follow-ups (unlabelled-vertex speech fallback, hard-coded bar pitch maximum, weak P5 and P7 assertions, bar-edge hit testing, validator task 8.3 still open, mojibake in tasks.md) which are assigned back to Kiro.
+
+## 2026-11-02 — Antigravity — Frontend Polish ("pretty frontend"; accessibility is the product)
+- Built CSS custom properties design-token system in `frontend/src/styles/tokens.css` (dark background `#0b0b10`, glowing creature green `#39ff88`, high-contrast text meeting WCAG AAA, 48px+ touch targets, spacing scale, border radii, card shadows, creature glow).
+- Polished `frontend/src/styles/global.css` to consume tokens and provide:
+  - Atmospheric dark "creature" theme with radial void gradient and subtle neon green glow.
+  - Generous button targets (min-height >= 52px to 64px) with high-visibility double focus rings (`:focus-visible`).
+  - Full `prefers-reduced-motion: reduce` compliance (animations and glowing pulses disabled).
+  - High-contrast / `forced-colors: active` support for screen reader / assistive device users.
+  - Seamless responsiveness at 360 px width and landscape mode (`max-height: 540px`).
+- Improved Start screen (`frontend/src/screens/Start.tsx`):
+  - Retained single full-screen button contract for keyboard and TalkBack activation.
+  - Added hero presentation with custom inline creature emblem SVG (Frankenstein beast neural pulse, theremin wave, and central optic aperture, `aria-hidden="true"`).
+  - Added creature triad badges (Nerves / Vibration, Eyes / Vision AI, Voice / Synthesizer) and glowing tactile "Tap anywhere to begin" action badge.
+- Improved Capture screen (`frontend/src/screens/Capture.tsx`):
+  - Brand header with glowing pulse dot and tagline.
+  - Elevated status & progress card with reading animation when busy.
+  - High-prominence primary "Take photo" button and distinct secondary "Choose image" button.
+  - Responsive sample diagrams grid (triangle, sine curve, bar chart) with pure CSS geometric icons, strictly avoiding any `aria-hidden` attributes to maintain screen reader compatibility.
+- Improved Explore screen chrome (`frontend/src/screens/Explore.tsx`):
+  - Diagram title header with diagram badge.
+  - Polished status text card.
+  - Glowing canvas container keeping `touch-action: none` and full fill.
+  - Refined fallback text input and send button.
+  - High-contrast, tactile Ask and Back controls in the footer.
+- Added `frontend/tests/polish.test.ts` (3 tests) validating design tokens, screen markup hierarchy, and accessible attributes without breaking CSS independence.
+- Verification results:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+  - `npm --prefix frontend test`: 24 test files passed, 229 tests passed.
+  - `npm --prefix frontend run build`: cleanly built client and PWA service worker (12 precache entries, 228.82 KiB).
+- Files: `frontend/src/styles/tokens.css`, `frontend/src/styles/global.css`, `frontend/src/screens/Start.tsx`, `frontend/src/screens/Capture.tsx`, `frontend/src/screens/Explore.tsx`, `frontend/tests/polish.test.ts`, `docs/BUILD_LOG.md`.
 
 ## 2026-11-02 - Kiro / Antigravity - Kiro follow-up pass (credits ran out)
 - Kiro (Kiro's own agent) completed, from the independent review's findings:

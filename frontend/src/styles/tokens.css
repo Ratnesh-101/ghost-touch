@@ -1,0 +1,90 @@
+/**
+ * Ghost Touch Design Tokens
+ *
+ * Theme: Dark "creature" aesthetic (#0b0b10 bg, #39ff88 glowing accents).
+ * Frankenstein pitch: Nerves (buzzer) + Eyes (vision LLM) + Voice (synthesizer).
+ * Accessibility is the product: WCAG AAA contrast, 48px+ touch targets, visible focus.
+ */
+
+:root {
+  /* --- Colors: Surfaces & Backgrounds --- */
+  --gt-bg: #0b0b10;
+  --gt-bg-elevated: #111119;
+  --gt-bg-radial: radial-gradient(circle at 50% 15%, #13241b 0%, #0b0b10 70%);
+  --gt-surface: #14141e;
+  --gt-surface-hover: #1c1c2a;
+  --gt-surface-active: #242436;
+  --gt-surface-subtle: rgba(255, 255, 255, 0.03);
+  --gt-surface-card: #12121b;
+
+  /* --- Colors: Creature Green Accents --- */
+  --gt-green: #39ff88;
+  --gt-green-dim: #25a357;
+  --gt-green-subtle: rgba(57, 255, 136, 0.08);
+  --gt-green-surface: rgba(57, 255, 136, 0.12);
+  --gt-green-glow: rgba(57, 255, 136, 0.35);
+  --gt-green-glow-strong: rgba(57, 255, 136, 0.6);
+
+  /* --- Colors: Borders --- */
+  --gt-border: rgba(57, 255, 136, 0.22);
+  --gt-border-subtle: #222232;
+  --gt-border-strong: #39ff88;
+
+  /* --- Colors: Text & Readability (WCAG AA/AAA compliant on dark) --- */
+  /* #eafff5 on #0b0b10 has a contrast ratio > 18:1 (exceeds AAA 7:1) */
+  --gt-text: #eafff5;
+  --gt-text-primary: #f5fff8;
+  /* #c2d6cc on #0b0b10 has a contrast ratio > 10:1 */
+  --gt-text-secondary: #c2d6cc;
+  /* #9fb3a8 on #0b0b10 has a contrast ratio > 6.5:1 (exceeds AA 4.5:1) */
+  --gt-text-muted: #9fb3a8;
+  /* Dark text on glowing green background has a contrast ratio > 15:1 */
+  --gt-text-dark: #051309;
+
+  /* --- Backward-compatible aliases --- */
+  --gt-line: #39ff88;
+  --gt-focus: #39ff88;
+
+  /* --- Minimum Touch Target (Req 12.1) --- */
+  --gt-target: 48px;
+
+  /* --- Spacing Scale --- */
+  --gt-space-2xs: 4px;
+  --gt-space-xs: 8px;
+  --gt-space-sm: 12px;
+  --gt-space-md: 16px;
+  --gt-space-lg: 20px;
+  --gt-space-xl: 24px;
+  --gt-space-2xl: 32px;
+  --gt-space-3xl: 48px;
+
+  /* --- Border Radii --- */
+  --gt-radius-sm: 8px;
+  --gt-radius-md: 12px;
+  --gt-radius-lg: 16px;
+  --gt-radius-xl: 24px;
+  --gt-radius-pill: 9999px;
+
+  /* --- Shadows & Glows --- */
+  --gt-shadow-card: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 1px rgba(57, 255, 136, 0.2);
+  --gt-shadow-glow: 0 0 18px rgba(57, 255, 136, 0.35);
+  --gt-shadow-glow-strong: 0 0 32px rgba(57, 255, 136, 0.55);
+  --gt-shadow-inner-glow: inset 0 0 16px rgba(57, 255, 136, 0.08);
+
+  /* --- Typography --- */
+  --gt-font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --gt-font-mono: ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  --gt-text-xs: 0.75rem;
+  --gt-text-sm: 0.875rem;
+  --gt-text-base: 1rem;
+  --gt-text-lg: 1.125rem;
+  --gt-text-xl: 1.25rem;
+  --gt-text-2xl: 1.625rem;
+  --gt-text-3xl: 2.25rem;
+  --gt-line-height-tight: 1.2;
+  --gt-line-height-normal: 1.5;
+
+  /* --- Transitions --- */
+  --gt-transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --gt-transition-normal: 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}

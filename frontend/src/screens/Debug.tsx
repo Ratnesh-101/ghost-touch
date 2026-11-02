@@ -6,8 +6,7 @@
  * linked from anywhere; open the site with `#/debug` appended.
  */
 import { useEffect, useState } from 'react';
-// TEMP-STUB import: when Kiro's core/hapticEngine.ts exists, change this one line.
-import { DEFAULT_HAPTICS } from '../_temp/hapticTypes.stub';
+import { DEFAULT_HAPTICS } from '../core/hapticEngine';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { createBrowserDrivers, ListenError, type Drivers } from '../drivers';
 import { t } from '../i18n';
