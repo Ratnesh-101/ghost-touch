@@ -34,8 +34,8 @@ export const CENTRE_RADIUS_PX = 24;
 export const CENTRE_REARM_RADIUS_PX = CENTRE_RADIUS_PX * 1.5; // 36 px
 
 export const DEFAULT_RADII: Radii = {
-  vertex: 22,
-  line: 14,
+  vertex: DEFAULT_HAPTICS.vertexRadius,
+  line: DEFAULT_HAPTICS.lineRadius,
 };
 
 export interface CentreTickState {
@@ -47,6 +47,17 @@ export function initialCentreTickState(): CentreTickState {
   return {
     armed: true,
     firstHoldSpoken: false,
+  };
+}
+
+/**
+ * Re-arms the centre tick for a new hold (pointerdown / lift) while preserving
+ * firstHoldSpoken so the spoken "Centre." announcement happens only on the first hold.
+ */
+export function rearmCentreTick(state: CentreTickState): CentreTickState {
+  return {
+    ...state,
+    armed: true,
   };
 }
 
@@ -101,6 +112,8 @@ export function checkCentreTick(
   };
 }
 
+export const DEFAULT_AXIS_HYSTERESIS_NORM = 0.015;
+
 export interface AxisTrackerState {
   lastXSide: 'left' | 'right' | null;
   lastYSide: 'above' | 'below' | null;
@@ -113,6 +126,36 @@ export function initialAxisState(): AxisTrackerState {
   };
 }
 
+/**
+ * Seeds axis tracker state on pointerdown without triggering speech.
+ */
+export function seedAxisState(
+  normPos: { x: number; y: number },
+  axes: { x_axis_y?: number | null; y_axis_x?: number | null } | undefined | null,
+  hysteresis: number = DEFAULT_AXIS_HYSTERESIS_NORM,
+): AxisTrackerState {
+  let lastXSide: 'left' | 'right' | null = null;
+  let lastYSide: 'above' | 'below' | null = null;
+
+  if (axes?.y_axis_x != null) {
+    if (normPos.x < axes.y_axis_x - hysteresis) {
+      lastXSide = 'left';
+    } else if (normPos.x > axes.y_axis_x + hysteresis) {
+      lastXSide = 'right';
+    }
+  }
+
+  if (axes?.x_axis_y != null) {
+    if (normPos.y < axes.x_axis_y - hysteresis) {
+      lastYSide = 'above';
+    } else if (normPos.y > axes.x_axis_y + hysteresis) {
+      lastYSide = 'below';
+    }
+  }
+
+  return { lastXSide, lastYSide };
+}
+
 export interface AxisCrossingResult {
   spoken: string[];
   nextState: AxisTrackerState;
@@ -121,30 +164,46 @@ export interface AxisCrossingResult {
 /**
  * Tracks crossing of coordinate axes (x_axis_y, y_axis_x from scene.axes)
  * and speaks "x-axis" or "y-axis" once per crossing in each direction.
+ * Uses a small dead band (hysteresis) to prevent jitter from repeating speech.
  */
 export function checkAxisCrossing(
   normPos: { x: number; y: number },
   axes: { x_axis_y?: number | null; y_axis_x?: number | null } | undefined | null,
   state: AxisTrackerState,
+  hysteresis: number = DEFAULT_AXIS_HYSTERESIS_NORM,
 ): AxisCrossingResult {
   const spoken: string[] = [];
   let nextXSide = state.lastXSide;
   let nextYSide = state.lastYSide;
 
   if (axes?.y_axis_x != null) {
-    const currentXSide: 'left' | 'right' = normPos.x < axes.y_axis_x ? 'left' : 'right';
-    if (state.lastXSide !== null && currentXSide !== state.lastXSide) {
-      spoken.push(t('explore.yAxis'));
+    const ax = axes.y_axis_x;
+    if (normPos.x < ax - hysteresis) {
+      if (state.lastXSide === 'right') {
+        spoken.push(t('explore.yAxis'));
+      }
+      nextXSide = 'left';
+    } else if (normPos.x > ax + hysteresis) {
+      if (state.lastXSide === 'left') {
+        spoken.push(t('explore.yAxis'));
+      }
+      nextXSide = 'right';
     }
-    nextXSide = currentXSide;
   }
 
   if (axes?.x_axis_y != null) {
-    const currentYSide: 'above' | 'below' = normPos.y < axes.x_axis_y ? 'above' : 'below';
-    if (state.lastYSide !== null && currentYSide !== state.lastYSide) {
-      spoken.push(t('explore.xAxis'));
+    const ay = axes.x_axis_y;
+    if (normPos.y < ay - hysteresis) {
+      if (state.lastYSide === 'below') {
+        spoken.push(t('explore.xAxis'));
+      }
+      nextYSide = 'above';
+    } else if (normPos.y > ay + hysteresis) {
+      if (state.lastYSide === 'above') {
+        spoken.push(t('explore.xAxis'));
+      }
+      nextYSide = 'below';
     }
-    nextYSide = currentYSide;
   }
 
   return {

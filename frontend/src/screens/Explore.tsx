@@ -12,13 +12,14 @@ import { AccessibleButton } from '../components/AccessibleButton';
 import { StatusText } from '../components/StatusText';
 import {
   makeViewport,
+  toNorm,
   toScreen,
   type ScreenPoint,
   type Viewport,
 } from '../core/geometry';
 import type { DiagramScene } from '../core/scene';
 import { runEffects, type Drivers } from '../drivers';
-import { onBack as subscribeBack, pushExploreEntry } from '../drivers/navigation';
+import { leaveExploreEntry, onBack as subscribeBack, pushExploreEntry } from '../drivers/navigation';
 import { AskManager } from '../flow/ask';
 import {
   CENTRE_TICK_MS,
@@ -29,6 +30,8 @@ import {
   initialCentreTickState,
   initialState,
   processPointerMove,
+  rearmCentreTick,
+  seedAxisState,
   step,
   TWO_FINGER_LONG_PRESS_MS,
   TWO_FINGER_MAX_MOVE_PX,
@@ -58,8 +61,13 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
   const centreTickState = useRef<CentreTickState>(initialCentreTickState());
   const axisState = useRef<AxisTrackerState>(initialAxisState());
   const activePointers = useRef<Map<number, PointerHistory>>(new Map());
+  const primaryPointerId = useRef<number | null>(null);
+  const leaving = useRef(false);
   const viewportRef = useRef<Viewport>(makeViewport(300, 300));
   const firstTouchOffset = useRef<{ dx: number; dy: number } | null>(null);
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const rafId = useRef<number | null>(null);
+  const pendingCursor = useRef<ScreenPoint | null>(null);
 
   const askManager = useRef<AskManager>(new AskManager());
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -68,13 +76,23 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
   const [isBusy, setIsBusy] = useState(false);
   const [showTextFallback, setShowTextFallback] = useState(!drivers.speech.canListen);
   const [questionText, setQuestionText] = useState('');
-  const [debugText, setDebugText] = useState('Relative cursor: waiting for touch');
+  const [debugText, setDebugText] = useState(() => t('explore.debugWaiting'));
 
   const clearLongPressTimer = (): void => {
     if (longPressTimer.current !== null) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
+  };
+
+  const handleExit = (): void => {
+    if (leaving.current) return;
+    leaving.current = true;
+    clearLongPressTimer();
+    activePointers.current.clear();
+    primaryPointerId.current = null;
+    leaveExploreEntry();
+    onBack();
   };
 
   const handleVoiceAsk = async (): Promise<void> => {
@@ -129,13 +147,20 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
     }
   };
 
-  const draw = (view: Viewport, cursor: ScreenPoint | null): void => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
+  const renderStaticScene = (view: Viewport, dpr: number): void => {
     const { canvasWidth: w, canvasHeight: h } = view;
+    if (typeof document === 'undefined') return;
+    let offscreen = offscreenCanvasRef.current;
+    if (!offscreen) {
+      offscreen = document.createElement('canvas');
+      offscreenCanvasRef.current = offscreen;
+    }
+    offscreen.width = Math.round(w * dpr);
+    offscreen.height = Math.round(h * dpr);
+    const ctx = offscreen.getContext('2d');
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
     ctx.clearRect(0, 0, w, h);
 
     // Background
@@ -248,6 +273,21 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
         }
       }
     }
+  };
+
+  const draw = (view: Viewport, cursor: ScreenPoint | null): void => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const { canvasWidth: w, canvasHeight: h } = view;
+    ctx.clearRect(0, 0, w, h);
+
+    const offscreen = offscreenCanvasRef.current;
+    if (offscreen) {
+      ctx.drawImage(offscreen, 0, 0, w, h);
+    }
 
     // Cursor indicator for sighted observers
     if (cursor !== null) {
@@ -258,13 +298,25 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
     }
   };
 
+  const scheduleDraw = (view: Viewport, cursor: ScreenPoint | null): void => {
+    pendingCursor.current = cursor;
+    if (rafId.current === null && typeof requestAnimationFrame !== 'undefined') {
+      rafId.current = requestAnimationFrame(() => {
+        rafId.current = null;
+        draw(view, pendingCursor.current);
+      });
+    } else if (typeof requestAnimationFrame === 'undefined') {
+      draw(view, cursor);
+    }
+  };
+
   const updateDimensions = (): void => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const width = Math.max(1, Math.round(rect.width));
     const height = Math.max(1, Math.round(rect.height));
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
 
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
@@ -276,12 +328,18 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
 
     const view = makeViewport(width, height);
     viewportRef.current = view;
-    draw(view, null);
+    renderStaticScene(view, dpr);
+    draw(view, pendingCursor.current);
   };
 
   useEffect(() => {
     pushExploreEntry();
     const unbindBack = subscribeBack(() => {
+      if (leaving.current) return;
+      leaving.current = true;
+      clearLongPressTimer();
+      activePointers.current.clear();
+      primaryPointerId.current = null;
       onBack();
     });
 
@@ -291,11 +349,25 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
     const handleResize = (): void => updateDimensions();
     window.addEventListener('resize', handleResize);
 
+    const canvas = canvasRef.current;
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && canvas) {
+      observer = new ResizeObserver(() => {
+        updateDimensions();
+      });
+      observer.observe(canvas);
+    }
+
     return () => {
       clearLongPressTimer();
       askManager.current.abort();
       unbindBack();
       window.removeEventListener('resize', handleResize);
+      observer?.disconnect();
+      if (rafId.current !== null && typeof cancelAnimationFrame !== 'undefined') {
+        cancelAnimationFrame(rafId.current);
+        rafId.current = null;
+      }
       // Lift on unmount
       const { effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
       runEffects(effects, drivers);
@@ -313,7 +385,9 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
   };
 
   const handlePointerDown = (e: PointerEvent<HTMLCanvasElement>): void => {
+    if (leaving.current) return;
     e.currentTarget.setPointerCapture(e.pointerId);
+    updateDimensions();
     const coords = getCanvasCoords(e);
     const now = performance.now();
     const view = viewportRef.current;
@@ -341,8 +415,20 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
       clearLongPressTimer();
     }
 
+    // Only the first active pointer drives the engine (finding 11)
+    if (primaryPointerId.current !== null) {
+      return;
+    }
+    primaryPointerId.current = e.pointerId;
+
     // Re-centre on each new hold (Requirement 13)
     engineState.current = initialState();
+    // Re-arm centre tick state on every new hold (finding 2)
+    centreTickState.current = rearmCentreTick(centreTickState.current);
+
+    // Reset axis tracking on every pointerdown and seed side without speaking (finding 7)
+    const norm = toNorm(coords, view);
+    axisState.current = seedAxisState(norm, scene.axes);
 
     // Check centre reference tick
     const cx = view.canvasWidth / 2;
@@ -392,10 +478,11 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
       drivers.speech.speak(axisSpoken);
     }
     runEffects(moveResult.effects, drivers);
-    draw(view, coords);
+    scheduleDraw(view, coords);
   };
 
   const handlePointerMove = (e: PointerEvent<HTMLCanvasElement>): void => {
+    if (leaving.current) return;
     const coords = getCanvasCoords(e);
     const now = performance.now();
     const view = viewportRef.current;
@@ -412,8 +499,7 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
       const p2 = entries[1];
       if (p1 && p2) {
         if (checkTwoFingerSwipeDown(p1, p2)) {
-          clearLongPressTimer();
-          onBack();
+          handleExit();
           return;
         }
         const d1 = Math.hypot(p1.current.x - p1.start.x, p1.current.y - p1.start.y);
@@ -422,6 +508,11 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
           clearLongPressTimer();
         }
       }
+    }
+
+    // Only primary pointer drives the engine (finding 11)
+    if (e.pointerId !== primaryPointerId.current) {
+      return;
     }
 
     // Per-move pipeline
@@ -445,22 +536,30 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
       drivers.speech.speak(axisSpoken);
     }
     runEffects(moveResult.effects, drivers);
-    draw(view, coords);
+    scheduleDraw(view, coords);
   };
 
   const handlePointerLift = (e: PointerEvent<HTMLCanvasElement>): void => {
     clearLongPressTimer();
     activePointers.current.delete(e.pointerId);
-    if (activePointers.current.size === 0) {
+    if (e.pointerId === primaryPointerId.current) {
+      primaryPointerId.current = null;
       const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
       engineState.current = state;
       runEffects(effects, drivers);
-      draw(viewportRef.current, null);
+      scheduleDraw(viewportRef.current, null);
+    }
+    if (activePointers.current.size === 0) {
+      primaryPointerId.current = null;
     }
   };
 
   const setDebugOffset = (dx: number, dy: number): void => {
-    setDebugText(`First hold: dx=${dx.toFixed(1)}px, dy=${dy.toFixed(1)}px from centre`);
+    setDebugText(
+      t('explore.debugOffset')
+        .replace('{dx}', dx.toFixed(1))
+        .replace('{dy}', dy.toFixed(1)),
+    );
   };
 
   return (
@@ -537,7 +636,7 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
           <AccessibleButton
             ref={backButtonRef}
             className="gt-control gt-explore__back"
-            onClick={onBack}
+            onClick={handleExit}
           >
             {t('common.back')}
           </AccessibleButton>

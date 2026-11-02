@@ -21,7 +21,6 @@ const en: Record<string, string> = {
   'capture.chooseImage': 'Choose image',
   'capture.samples': 'Sample diagrams',
   'capture.reading': 'Reading your diagram',
-  'explore.exitHint': 'Two-finger swipe down to exit.',
   'ask.placeholder': 'Type a question about the diagram…',
   'ask.button': 'Ask',
   'ask.send': 'Send',
@@ -56,15 +55,17 @@ const en: Record<string, string> = {
   'capture.errorPdfPassword': 'That PDF is password protected.',
   'capture.errorPdfInvalid': "I couldn't open that PDF. Try a screenshot of the page.",
   'capture.errorPdfEmpty': 'That PDF has no pages. Please choose another diagram.',
+  'capture.errorPdfTimeout': 'That PDF took too long to read. Try a screenshot of the page.',
   'capture.errorPdf':
     'PDF files are not supported yet. Please upload a screenshot or photo of the page.',
-  'explore.stubHint': 'Exploring by touch comes next. Press Back to return.',
   'explore.gestureHint':
     'Double-tap and hold, then drag to feel the diagram. You start at the centre.',
   'explore.backHint': 'Press Back to leave.',
   'explore.centre': 'Centre.',
   'explore.xAxis': 'x-axis',
   'explore.yAxis': 'y-axis',
+  'explore.debugWaiting': 'Relative cursor: waiting for touch',
+  'explore.debugOffset': 'First hold: dx={dx}px, dy={dy}px from centre',
   'common.back': 'Back',
   // Hidden #/debug page (English only).
   'debug.title': 'Ghost Touch debug',
