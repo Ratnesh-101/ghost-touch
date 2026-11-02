@@ -94,26 +94,64 @@ export function Capture({ drivers, initialStatus, onScene }: CaptureProps): JSX.
 
   return (
     <main className="gt-capture" aria-busy={busy}>
-      <h1 className="gt-capture__title">{t('app.name')}</h1>
-      <StatusText className="gt-capture__status" spoken={drivers.speech.canSpeak}>
-        {status}
-      </StatusText>
-      <AccessibleButton
-        ref={takeButton}
-        className="gt-capture__button"
-        onClick={() => openPicker(photoInput)}
-      >
-        {t('capture.takePhoto')}
-      </AccessibleButton>
-      <AccessibleButton className="gt-capture__button" onClick={() => openPicker(fileInput)}>
-        {t('capture.chooseImage')}
-      </AccessibleButton>
-      <h2 className="gt-capture__subtitle">{t('capture.samples')}</h2>
-      {SAMPLES.map(({ id, labelKey }) => (
-        <AccessibleButton key={id} className="gt-capture__button" onClick={() => void handleSample(id)}>
-          {t(labelKey)}
+      <header className="gt-capture__header">
+        <div className="gt-capture__brand">
+          <span className="gt-capture__brand-dot" />
+          <h1 className="gt-capture__title">{t('app.name')}</h1>
+        </div>
+        <p className="gt-capture__tagline">{t('app.tagline')}</p>
+      </header>
+
+      {/* Progress & Status Card */}
+      <div className="gt-capture__status-card">
+        <div className="gt-capture__status-row">
+          <span className="gt-capture__status-indicator" />
+          <StatusText className="gt-capture__status" spoken={drivers.speech.canSpeak}>
+            {status}
+          </StatusText>
+        </div>
+        {busy && (
+          <div className="gt-capture__progress-track">
+            <div className="gt-capture__progress-bar" />
+          </div>
+        )}
+      </div>
+
+      {/* Primary & Secondary Capture Actions */}
+      <div className="gt-capture__actions">
+        <AccessibleButton
+          ref={takeButton}
+          className="gt-capture__button gt-capture__button--primary"
+          onClick={() => openPicker(photoInput)}
+        >
+          {t('capture.takePhoto')}
         </AccessibleButton>
-      ))}
+
+        <AccessibleButton
+          className="gt-capture__button gt-capture__button--secondary"
+          onClick={() => openPicker(fileInput)}
+        >
+          {t('capture.chooseImage')}
+        </AccessibleButton>
+      </div>
+
+      {/* Sample Diagrams Section & Grid */}
+      <section className="gt-capture__samples-section">
+        <h2 className="gt-capture__subtitle">{t('capture.samples')}</h2>
+        <div className="gt-capture__samples-grid">
+          {SAMPLES.map(({ id, labelKey }) => (
+            <AccessibleButton
+              key={id}
+              className={`gt-capture__button gt-capture__sample-btn gt-capture__sample-btn--${id}`}
+              onClick={() => void handleSample(id)}
+            >
+              <span className={`gt-capture__sample-icon gt-capture__sample-icon--${id}`} />
+              <span>{t(labelKey)}</span>
+            </AccessibleButton>
+          ))}
+        </div>
+      </section>
+
       <input
         ref={photoInput}
         type="file"
