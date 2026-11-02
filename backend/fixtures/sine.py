@@ -2,9 +2,8 @@
 
 A ``function_graph`` scene used both as a backend test fixture and as an
 in-app sample (Requirement 2.4). The curve ``y = sin(x)`` is sampled as a
-single polyline spanning two full periods, so a student can trace it and
-count the two peaks (design.md device checklist: "follow a sine curve and
-count peaks").
+single polyline of about 100 points spanning one full period (x from 0 to 2*pi),
+so a student can trace it with smooth pitch transitions.
 
 Coordinate mapping (origin top-left, y grows downward):
     * screen x runs from 0.10 to 0.90 across the plot area;
@@ -21,10 +20,10 @@ import math
 
 from app.schema import Axes, DiagramScene, Polyline
 
-# Number of polyline samples: within the 20-30 range requested by the task.
-_NUM_SAMPLES = 25
-# Two full periods (4*pi) give two distinct peaks to count.
-_ANGLE_SPAN = 4.0 * math.pi
+# Number of polyline samples: about 100 points requested by the spec.
+_NUM_SAMPLES = 100
+# One full period (2*pi).
+_ANGLE_SPAN = 2.0 * math.pi
 # Plot-area bounds in normalized coordinates.
 _X_START = 0.10
 _X_END = 0.90
@@ -49,5 +48,5 @@ def sine_scene() -> DiagramScene:
         title="y = sin(x)",
         polylines=[Polyline(id="sine_curve", points=points, label="sin(x)")],
         axes=Axes(x_axis_y=_X_AXIS_Y, y_axis_x=_Y_AXIS_X),
-        facts=["amplitude = 1", "period = 2 pi", "two full periods are shown"],
+        facts=["amplitude = 1", "period = 2 pi", "one full period is shown"],
     )
