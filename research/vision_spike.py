@@ -372,6 +372,90 @@ def is_transient(error: Exception) -> bool:
     return any(marker in text for marker in TRANSIENT_MARKERS)
 
 
+NEBIUS_DEFAULT_MODEL = "openbmb/MiniCPM-V-4_5"
+NEBIUS_DEFAULT_BASE = "https://api.tokenfactory.nebius.com/v1"
+NEBIUS_INLINE_LIMIT = 1_500_000
+
+
+class NebiusProvider:
+    """Nebius Token Factory (OpenAI-compatible). The key to use for bulk test runs."""
+
+    name = "nebius"
+
+    def __init__(self, model: str | None, env_file: Path) -> None:
+        self._key = _require_env("NEBIUS_API_KEY", env_file)
+        self.model = model or os.environ.get("NEBIUS_MODEL") or NEBIUS_DEFAULT_MODEL
+        self._base = os.environ.get("NEBIUS_BASE_URL", NEBIUS_DEFAULT_BASE).rstrip("/")
+
+    def extract(self, image: bytes, mime: str, prompt: str) -> str:
+        import httpx
+
+        image, mime = fit_for_inline(image, mime, NEBIUS_INLINE_LIMIT)
+        data_url = f"data:{mime};base64,{base64.b64encode(image).decode()}"
+        body = {
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": data_url}},
+                    ],
+                }
+            ],
+            "temperature": 0,
+            "max_tokens": 4096,
+            "stream": False,
+        }
+        response = httpx.post(
+            f"{self._base}/chat/completions",
+            headers={"Authorization": f"Bearer {self._key}"},
+            json=body,
+            timeout=120,
+        )
+        response.raise_for_status()
+        choices = response.json().get("choices") or []
+        text = choices[0].get("message", {}).get("content") if choices else None
+        if not text:
+            raise SpikeError("empty response from nebius")
+        return text
+
+
+def list_nebius_models(env_file: Path) -> list[str]:
+    """Return the model ids the Nebius key can see (ids only; the key is never printed)."""
+    import httpx
+
+    key = _require_env("NEBIUS_API_KEY", env_file)
+    base = os.environ.get("NEBIUS_BASE_URL", NEBIUS_DEFAULT_BASE).rstrip("/")
+    response = httpx.get(f"{base}/models", headers={"Authorization": f"Bearer {key}"}, timeout=30)
+    response.raise_for_status()
+    return sorted(str(m.get("id", "")) for m in response.json().get("data", []))
+
+
+class GraphRouteProvider:
+    """Wrap a provider so it runs the production equation route (the model reads the spec, the
+    backend samples the curve) and returns the resulting scene JSON for scoring."""
+
+    def __init__(self, inner: Any) -> None:
+        if getattr(inner, "accepts_path", False):
+            raise SpikeError("--graph-route needs an API provider (gemini, nvidia or nebius)")
+        self._inner = inner
+        self.name = inner.name
+        self.model = inner.model
+
+    def extract(self, image: bytes, mime: str, prompt: str) -> str:
+        sys.path.insert(0, str(REPO / "backend"))
+        from app.graphs.route import build_graph_prompt
+        from app.graphs.sample import GraphSpecError, build_graph_scene, parse_graph_spec
+
+        raw = self._inner.extract(image, mime, build_graph_prompt())
+        fenced = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw.strip(), flags=re.IGNORECASE)
+        try:
+            return json.dumps(build_graph_scene(parse_graph_spec(fenced)))
+        except GraphSpecError as exc:
+            raise SpikeError(f"no usable graph spec: {exc}") from exc
+
+
 def live_predictor(provider: Any, prompt: str, waits: tuple[float, ...] = RETRY_WAITS_S) -> Predictor:
     """Call the provider, retrying transient errors; remember the last attempt's own duration."""
 
@@ -557,10 +641,12 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument(
         "--provider",
-        choices=["gemini", "nvidia", "agy"],
+        choices=["gemini", "nvidia", "nebius", "agy"],
         help="vision provider: gemini and nvidia use API keys; agy uses the Antigravity CLI "
         "quota (offline spike only, e.g. --model gemini-3.8-flash-high)",
     )
+    p.add_argument("--list-models", action="store_true", help="print the Nebius model ids and exit")
+    p.add_argument("--graph-route", action="store_true", help="run the production equation route (model reads equation + axes, backend samples the curve); use with --only 05,06,07 for the graph samples")
     p.add_argument("--model", help="model id (default: GEMINI_MODEL / NVIDIA_MODEL)")
     p.add_argument("--variants", default="clean,photo,real", help="comma list of clean,photo,real")
     p.add_argument("--only", default="", help="comma list of sample number prefixes, e.g. 01,05")
@@ -591,13 +677,17 @@ def _build_predictor(args: argparse.Namespace) -> tuple[Predictor | None, str, P
             raise SpikeError(f"no predictions folder in {args.rescore}")
         return None, "rescore", args.rescore
     if not args.provider:
-        raise SpikeError("choose --provider gemini|nvidia, or --oracle, or --rescore DIR")
+        raise SpikeError("choose --provider gemini|nvidia|nebius, or --oracle, or --rescore DIR")
     if args.provider == "agy":
         provider: Any = AgyProvider(args.model)
     else:
-        provider = (GeminiProvider if args.provider == "gemini" else NvidiaProvider)(
+        provider = {"gemini": GeminiProvider, "nvidia": NvidiaProvider, "nebius": NebiusProvider}[
+            args.provider
+        ](
             args.model, args.env_file
         )
+    if args.graph_route:
+        provider = GraphRouteProvider(provider)
     return live_predictor(provider, build_prompt()), provider.model, _run_dir(args, provider.model)
 
 
@@ -605,6 +695,16 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     args = parse_args(argv)
+    if args.list_models:
+        try:
+            print("\n".join(list_nebius_models(args.env_file)))
+        except SpikeError as exc:  # messages list variable NAMES only, never values
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        except Exception as exc:  # report the failure kind only; never echo request details
+            print(f"error: could not list Nebius models: {type(exc).__name__}", file=sys.stderr)
+            return 2
+        return 0
     try:
         predict, model, run_dir = _build_predictor(args)
         samples = discover(
