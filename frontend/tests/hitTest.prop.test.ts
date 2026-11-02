@@ -1,7 +1,7 @@
-﻿import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { hitTest, DEFAULT_RADII } from '../src/core/hitTest';
-import { makeViewport, toScreen } from '../src/core/geometry';
+import { makeViewport, toScreen, type ScreenPoint } from '../src/core/geometry';
 import type { DiagramScene, Point, Segment } from '../src/core/scene';
 
 describe('P1 — Every point is reachable', () => {
@@ -159,5 +159,60 @@ describe('P1 — Tie rule (regression from flake)', () => {
     // hitTest at that shared position returns the first point
     const result = hitTest(scene, s0, view, DEFAULT_RADII);
     expect(result).toEqual({ kind: 'vertex', id: 'p0' });
+  });
+});
+
+describe('P2 — Vertex beats line', () => {
+  /**
+   * P2: Any finger position within the vertex radius of a point is never
+   * classified as a line. The vertex check short-circuits before the line
+   * check, so even when a segment passes through the point, the finger
+   * within the vertex radius always returns a vertex.
+   *
+   * Validates: Requirement 4.6
+   */
+  it('finger within vertex radius of a point is never classified as line', () => {
+    const dimensionsArb = fc.record({
+      w: fc.double({ min: 200, max: 2000, noNaN: true }),
+      h: fc.double({ min: 200, max: 2000, noNaN: true }),
+    });
+
+    const scenarioArb = dimensionsArb.chain(({ w, h }) => {
+      const view = makeViewport(w, h);
+      return fc
+        .record({
+          px: fc.double({ min: 0.1, max: 0.9, noNaN: true }),
+          py: fc.double({ min: 0.1, max: 0.9, noNaN: true }),
+          qx: fc.double({ min: 0, max: 1, noNaN: true }),
+          qy: fc.double({ min: 0, max: 1, noNaN: true }),
+          angle: fc.double({ min: 0, max: 2 * Math.PI, noNaN: true }),
+          dist: fc.double({ min: 0, max: DEFAULT_RADII.vertex - 0.1, noNaN: true }),
+        })
+        .map(({ px, py, qx, qy, angle, dist }) => {
+          const screenP = toScreen({ x: px, y: py }, view);
+          const finger: ScreenPoint = {
+            x: screenP.x + dist * Math.cos(angle),
+            y: screenP.y + dist * Math.sin(angle),
+          };
+          const scene: DiagramScene = {
+            kind: 'geometry',
+            points: [
+              { id: 'P', x: px, y: py, label: 'P' },
+              { id: 'Q', x: qx, y: qy },
+            ],
+            segments: [{ id: 'PQ', a: 'P', b: 'Q' }],
+          };
+          return { scene, finger, view };
+        });
+    });
+
+    fc.assert(
+      fc.property(scenarioArb, ({ scene, finger, view }) => {
+        const result = hitTest(scene, finger, view, DEFAULT_RADII);
+        // Within vertex radius of P: must be a vertex, never a line.
+        return result.kind === 'vertex';
+      }),
+      { numRuns: 200 },
+    );
   });
 });
