@@ -27,9 +27,10 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 
 #### Acceptance Criteria
 1. WHEN the user activates "Take photo" THEN the system SHALL open the rear camera.
-2. WHEN the user selects "Choose image" THEN the system SHALL accept JPEG, PNG, or WebP up to 10 MB.
+2. WHEN the user selects "Choose image" THEN the system SHALL accept JPEG, PNG, WebP, or PDF (first page only, rendered to an image in the browser before upload).
 3. WHEN an image is submitted THEN the system SHALL announce "Reading your diagram" and play a soft repeating progress tone until a result arrives.
 4. THE system SHALL offer at least three bundled sample diagrams (triangle, sine graph, bar chart) usable without a camera or network.
+5. WHEN a file exceeds 50 MB raw THEN the system SHALL refuse it and SHALL speak the reason. Camera photos SHALL be shrunk to 1600 px longest side before the size limit is applied.
 
 ### Requirement 3: Convert image to DiagramScene
 **User Story:** As a student, I want the app to understand what the diagram contains, so that I feel shapes and hear meaningful labels instead of noise.
@@ -40,6 +41,7 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 3. WHEN the vision LLM returns output that fails schema validation THEN the backend SHALL retry once, and IF the retry also fails THEN it SHALL return a Raw Mode scene.
 4. THE backend SHALL respond within 15 seconds, or return a Raw Mode scene with a `timeout` reason.
 5. THE system SHALL give every element in a `DiagramScene` a unique id, and every segment endpoint SHALL refer to an existing point.
+6. THE system SHALL reject a scene whose point, segment, or polyline labels consist only of colour or generic shape words (for example "blue polygon"). The backend SHALL retry once, and IF the retry also fails THEN it SHALL fall back to Raw Mode.
 
 ### Requirement 4: Explore by touch
 **User Story:** As a blind student, I want to drag my finger over the diagram and feel its lines and corners, so that I can build a mental picture of its shape.
@@ -116,3 +118,15 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 1. THE system SHALL give every control an accessible name and a touch target of at least 48×48 CSS px.
 2. THE system SHALL use a dark theme with glowing green lines and a contrast ratio of at least 7:1 for text.
 3. WHILE the Explore canvas is active THEN the system SHALL capture touches directly, and SHALL provide a clearly announced exit gesture (for example, a two-finger swipe down).
+
+### Requirement 13: Works with TalkBack
+**User Story:** As a blind student who keeps TalkBack on, I want to explore a diagram by touch without turning TalkBack off, so that I can use my phone the way I always do.
+
+#### Acceptance Criteria
+1. WHEN the Explore screen opens THEN the system SHALL speak the explore gesture: "Double-tap and hold, then drag to feel the diagram. You start at the centre.", and SHALL move focus to the explore canvas.
+2. WHEN TalkBack is active AND the user double-taps and holds on the canvas and then drags THEN the system SHALL treat the pointer position as a cursor and SHALL apply the line, corner, bar and tone rules of Requirements 4, 5 and 6 to that cursor.
+3. WHEN a new hold starts THEN the system SHALL start the cursor at the centre of the diagram and SHALL play a single centre reference tick (a short pulse distinct from the line and corner patterns).
+4. THE system SHALL give the same behaviour when TalkBack is off, where a direct touch or the same gesture moves the cursor.
+5. WHEN the user presses the Android Back button or performs the system or TalkBack Back gesture, OR activates the labelled Back button THEN the system SHALL leave Explore and speak the Capture prompt. WHEN TalkBack is off, a two-finger swipe down SHALL also leave Explore.
+6. THE system SHALL NOT rely on a two-finger gesture as the only way to leave Explore.
+7. WHEN the spoken text of a screen is also shown on screen THEN the system SHALL NOT make the screen reader read it a second time.

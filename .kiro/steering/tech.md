@@ -25,6 +25,7 @@
 | Vertex / corner | `vibrate([50, 90, 50])`, then 450 ms quiet window with no line buzz | felt as "bzzzz-tap" on the test device |
 | Label / point of interest | corner pattern + spoken label | speech is cancelled and replaced on each new target |
 | Graph curve | line buzz + theremin tone, 200–1000 Hz, higher on screen = higher pitch | |
+| Centre reference tick (proposed, pending approval) | `vibrate(25)` | one 25 ms pulse, distinct from line and corner patterns; fires on hold start at centre |
 
 Hit radii: vertex 22 CSS px, line 14 CSS px. Vertex hits take priority over line hits.
 
