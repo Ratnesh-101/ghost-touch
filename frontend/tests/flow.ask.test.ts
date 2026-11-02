@@ -109,12 +109,14 @@ describe('AskManager happy path', () => {
     expect(calls).toEqual([
       `beep(${LISTENING_BEEP_HZ},${LISTENING_BEEP_MS})`,
       'listen(en-IN)',
+      `say(${t('ask.thinking')})`,
       'request()',
       'say(The length of AC is 5 cm.)',
     ]);
 
     expect(statusChanges).toEqual([t('ask.listening'), t('ask.thinking')]);
-    expect(spoken).toEqual(['The length of AC is 5 cm.']);
+    // One spoken "thinking" cue while the request runs, then the answer.
+    expect(spoken).toEqual([t('ask.thinking'), 'The length of AC is 5 cm.']);
     expect(manager.isBusy()).toBe(false);
   });
 });
@@ -220,7 +222,7 @@ describe('AskManager failures and text fallback offer', () => {
     });
 
     expect(outcome.kind).toBe('failed');
-    expect(spoken).toEqual([t('ask.errorServer')]);
+    expect(spoken).toEqual([t('ask.thinking'), t('ask.errorServer')]);
     expect(fallbackOffered).toBe(true);
     expect(manager.isBusy()).toBe(false);
   });
@@ -247,7 +249,7 @@ describe('AskManager failures and text fallback offer', () => {
     });
 
     expect(outcome.kind).toBe('failed');
-    expect(spoken).toEqual([t('ask.errorOffline')]);
+    expect(spoken).toEqual([t('ask.thinking'), t('ask.errorOffline')]);
     expect(fallbackOffered).toBe(true);
     expect(manager.isBusy()).toBe(false);
   });
@@ -384,7 +386,8 @@ describe('AskManager concurrency and cleanup', () => {
     const outcome = await promise;
     expect(outcome).toEqual({ kind: 'cancelled' });
     expect(aborted).toBe(true);
-    expect(spoken).toHaveLength(0); // Nothing spoken after unmount
+    // Only the "thinking" cue was spoken before the unmount; no answer or error follows it.
+    expect(spoken).toEqual([t('ask.thinking')]);
     expect(manager.isBusy()).toBe(false);
   });
 });
@@ -414,7 +417,7 @@ describe('AskManager text fallback (submitTextAsk)', () => {
       answer: 'Answer for: What is AC?',
       source: 'facts',
     });
-    expect(spoken).toEqual(['Answer for: What is AC?']);
+    expect(spoken).toEqual([t('ask.thinking'), 'Answer for: What is AC?']);
     expect(statusChanges).toEqual([t('ask.thinking')]);
   });
 
