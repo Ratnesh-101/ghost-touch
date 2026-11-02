@@ -585,11 +585,14 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
     <main className="gt-explore">
       <header className="gt-explore__header">
         <h1 className="gt-explore__title">{sceneName(scene)}</h1>
+        <span className="gt-explore__badge" aria-hidden="true">Diagram</span>
       </header>
 
-      <StatusText className="gt-explore__status" spoken={drivers.speech.canSpeak}>
-        {statusMessage}
-      </StatusText>
+      <div className="gt-explore__status-card">
+        <StatusText className="gt-explore__status" spoken={drivers.speech.canSpeak}>
+          {statusMessage}
+        </StatusText>
+      </div>
 
       <div className="gt-explore__canvas-container">
         <canvas
