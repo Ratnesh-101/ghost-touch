@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 import { makeViewport } from '../src/core/geometry';
 import type { DiagramScene } from '../src/core/scene';
 import {
@@ -25,8 +25,8 @@ import {
   type PointerHistory,
 } from '../src/flow/explore';
 import { exploreAnnouncement } from '../src/flow/navigation';
-import { DEFAULT_HAPTICS } from '../src/_temp/hapticTypes.stub';
-import { pitchForValue } from '../src/_temp/pitch.stub';
+import { DEFAULT_HAPTICS } from '../src/core/hapticEngine';
+import { pitchForValue } from '../src/core/pitch';
 import {
   _resetNavigationState,
   leaveExploreEntry,

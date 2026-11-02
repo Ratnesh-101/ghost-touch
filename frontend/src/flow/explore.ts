@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Decision logic for the Explore screen:
  * - Centre reference tick & re-arm logic
  * - Axis crossings
@@ -18,8 +18,8 @@ import {
   type EngineState,
   type Effect,
   type HapticConfig,
-} from '../_temp/hapticEngine.stub';
-import { pitchForY } from '../_temp/pitch.stub';
+} from '../core/hapticEngine';
+import { pitchForY } from '../core/pitch';
 import { t } from '../i18n';
 
 export { step, initialState, DEFAULT_HAPTICS, pitchForY };

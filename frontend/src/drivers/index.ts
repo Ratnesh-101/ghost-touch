@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Drivers entry point: the only module screens import browser capabilities from.
  *
  * `runEffects` is pure dispatch: it turns the haptic engine's plain-data
@@ -6,7 +6,7 @@
  */
 
 // TEMP-STUB import: when Kiro's core/hapticEngine.ts exists, change this one line.
-import type { Effect } from '../_temp/hapticTypes.stub';
+import type { Effect } from '../core/hapticEngine';
 import { WebAudioDriver, type AudioDriver } from './audio';
 import { WebHapticDriver, type HapticDriver } from './haptics';
 import { WebSpeechDriver, type SpeechDriver } from './speech';

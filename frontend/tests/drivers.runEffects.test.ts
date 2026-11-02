@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { Effect } from '../src/_temp/hapticTypes.stub';
+import type { Effect } from '../src/core/hapticEngine';
 import { runEffects, type Drivers } from '../src/drivers';
 import { Debug } from '../src/screens/Debug';
 
