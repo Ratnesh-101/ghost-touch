@@ -24,7 +24,7 @@ This guide describes how to deploy the Ghost Touch backend on **Render** and the
                          | Vision Providers      |
                          | - Gemini 3.8 Flash    |
                          | - OpenAI (fallback 1) |
-                         | - NVIDIA (fallback 2) |
+                         | - Nebius (fallback 2) |
                          | - OpenCV (Raw Mode)   |
                          +-----------------------+
 ```
@@ -42,7 +42,7 @@ This guide describes how to deploy the Ghost Touch backend on **Render** and the
 3. A [Vercel](https://vercel.com) account connected to GitHub.
 4. Google Gemini API key from [Google AI Studio](https://aistudio.google.com/).
 5. (Optional) OpenAI API key from the [OpenAI platform](https://platform.openai.com/) for the first fallback after Gemini.
-6. (Optional) NVIDIA API key from [NVIDIA Build](https://build.nvidia.com/) for the second fallback. A real key starts with `nvapi-`.
+6. (Optional) Nebius API key from [Nebius Token Factory](https://tokenfactory.nebius.com) for the last fallback (`NEBIUS_API_KEY`). Optional `NEBIUS_MODEL` and `NEBIUS_BASE_URL` default to `openbmb/MiniCPM-V-4_5` and `https://api.tokenfactory.nebius.com/v1`. NVIDIA is no longer in the default chain.
 
 ---
 
@@ -57,15 +57,21 @@ The repository root includes a `render.yaml` Blueprint file specifying the servi
 5. In the environment variables section, fill in the values marked `sync: false`:
    - `GEMINI_API_KEY`: Paste your Google Gemini API key.
    - `OPENAI_API_KEY`: (Optional) Paste your OpenAI API key. It is used only when Gemini fails.
-   - `NVIDIA_API_KEY`: (Optional) Paste NVIDIA API key, or leave blank. Providers without a key are skipped; with none working the app falls back to OpenCV Raw Mode.
+   - `NEBIUS_API_KEY`: (Optional) Paste your Nebius API key from https://tokenfactory.nebius.com for the last fallback.
+   - `NVIDIA_API_KEY`: (Optional) Leave blank; NVIDIA is no longer in the default chain. Providers without a key are skipped; with none working the app falls back to OpenCV Raw Mode.
 6. Leave other environment variables at their Blueprint defaults:
    - `PYTHON_VERSION`: `3.11.10`
    - `GEMINI_MODEL`: `gemini-3.8-flash`
    - `GEMINI_THINKING`: `minimal`
    - `OPENAI_MODEL`: `gpt-4.1-mini`
-   - `VISION_PROVIDERS`: `gemini,openai,nvidia` (the order of fallback)
+   - `NEBIUS_MODEL`: `openbmb/MiniCPM-V-4_5` (optional `NEBIUS_BASE_URL` defaults to `https://api.tokenfactory.nebius.com/v1`)
+   - `VISION_PROVIDERS`: `gemini,openai,nebius` (the order of fallback: Gemini, then OpenAI, then Nebius as last fallback; NVIDIA is no longer in the default chain)
    - `PROVIDER_TIMEOUT_SECONDS`: `8.0`
    - `SCENE_TIMEOUT_SECONDS`: `15.0`
+   - `SCENE_CACHE_SIZE`: `64` (default 64, 0 disables)
+   - `SCENE_CACHE_TTL_SECONDS`: `21600` (default 21600)
+   - `RATE_LIMIT_ASK_PER_MIN`: `40` (default 40)
+   - `RATE_LIMIT_SCENE_PER_MIN`: `20` (default 20)
    - `ALLOWED_ORIGINS`: temporary placeholder (you will update this in Step 3).
 7. Click **Apply**.
 8. Wait for Render to complete the build (`pip install .`) and start Uvicorn (`uvicorn app.main:app --host 0.0.0.0 --port $PORT`).
