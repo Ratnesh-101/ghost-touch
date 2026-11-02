@@ -6,8 +6,7 @@
  * with the other browser-facing code (tech.md: browser APIs only in drivers/).
  *
  * Screenshots and photos both arrive here as ordinary images. PDFs are
- * recognised and rejected with a clear reason: turning a PDF page into an
- * image needs a PDF renderer (a new dependency that needs the owner's OK).
+ * validated here (up to 10 MB) and rendered via `drivers/pdf.ts`.
  */
 
 export const ACCEPTED_IMAGE_TYPES: readonly string[] = ['image/jpeg', 'image/png', 'image/webp'];
@@ -27,6 +26,17 @@ export type FileRejection = 'empty' | 'pdf' | 'type' | 'size';
 export interface FileInfo {
   type: string;
   size: number;
+  name?: string;
+}
+
+/** Check if a file is a PDF (by MIME type or .pdf extension with empty MIME). */
+export function isPdfFile(file: FileInfo): boolean {
+  const type = file.type.toLowerCase();
+  if (type === 'application/pdf') return true;
+  if (type === '' && typeof file.name === 'string' && file.name.toLowerCase().endsWith('.pdf')) {
+    return true;
+  }
+  return false;
 }
 
 /** Returns why the file cannot be used, or null when it is fine. */
@@ -37,7 +47,7 @@ export function validateImageFile(
 ): FileRejection | null {
   if (file.size <= 0) return 'empty';
   const type = file.type.toLowerCase();
-  if (type === 'application/pdf') {
+  if (isPdfFile(file)) {
     if (!allowPdf) return 'pdf';
     return file.size > maxBytes ? 'size' : null;
   }

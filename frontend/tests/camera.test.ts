@@ -71,6 +71,12 @@ describe('validateImageFile', () => {
     expect(validateImageFile({ type: 'application/pdf', size: 1000 }, MAX_CAMERA_BYTES, false)).toBe('pdf');
   });
 
+  it('accepts empty MIME type when filename ends in .pdf', () => {
+    expect(validateImageFile({ type: '', name: 'diagram.pdf', size: 1000 })).toBeNull();
+    expect(validateImageFile({ type: '', name: 'DIAGRAM.PDF', size: 1000 })).toBeNull();
+    expect(validateImageFile({ type: '', name: 'diagram.txt', size: 1000 })).toBe('type');
+  });
+
   it('rejects an empty file', () => {
     expect(validateImageFile({ type: 'image/png', size: 0 })).toBe('empty');
   });

@@ -7,7 +7,9 @@
  */
 import { requestScene, type SceneResponse } from '../api/scene';
 import {
+  isPdfFile,
   MAX_CAMERA_BYTES,
+  MAX_IMAGE_SIDE,
   MAX_UPLOAD_BYTES,
   prepareImage,
   validateImageFile,
@@ -15,6 +17,7 @@ import {
   type FileRejection,
 } from '../drivers/camera';
 import {
+  defaultPdfLoader,
   PdfError,
   renderFirstPage,
   type PdfErrorReason,
@@ -38,6 +41,7 @@ const PDF_ERROR_KEYS: Record<PdfErrorReason, string> = {
   password: 'capture.errorPdfPassword',
   invalid: 'capture.errorPdfInvalid',
   empty: 'capture.errorPdfEmpty',
+  timeout: 'capture.errorPdfTimeout',
 };
 
 export function pdfErrorMessage(reason: PdfErrorReason): string {
@@ -65,8 +69,8 @@ export interface CaptureDeps {
   audio: AudioDriver;
   /** Say it aloud and show it in the status line. */
   say: (text: string) => void;
-  prepare?: (file: Blob) => Promise<Blob>;
-  renderPdf?: (file: Blob) => Promise<Blob>;
+  prepare?: (file: Blob, signal?: AbortSignal) => Promise<Blob>;
+  renderPdf?: (file: Blob, signal?: AbortSignal) => Promise<Blob>;
   request?: (image: Blob, signal: AbortSignal) => Promise<SceneResponse>;
   signal: AbortSignal;
   /** Defaults to 'file' (10 MB limit). */
@@ -88,15 +92,19 @@ export async function processImageFile(
   deps: CaptureDeps,
 ): Promise<CaptureOutcome> {
   const source = deps.source ?? 'file';
-  const isPdf = file.type.toLowerCase() === 'application/pdf';
+  const isPdf = isPdfFile(file);
   const rejection = validateImageFile(file, maxBytesFor(source), source === 'file');
   if (rejection !== null) {
     deps.say(rejectionMessage(rejection, source));
     return { kind: 'rejected' };
   }
   const prepare = isPdf
-    ? (deps.renderPdf ?? deps.prepare ?? renderFirstPage)
-    : (deps.prepare ?? prepareImage);
+    ? (deps.renderPdf
+      ? (f: Blob) => deps.renderPdf!(f, deps.signal)
+      : (f: Blob) => renderFirstPage(f, MAX_IMAGE_SIDE, defaultPdfLoader, deps.signal))
+    : (deps.prepare
+      ? (f: Blob) => deps.prepare!(f, deps.signal)
+      : (f: Blob) => prepareImage(f));
   const request = deps.request ?? ((image, signal) => requestScene(image, { signal }));
 
   const announcement = isPdf

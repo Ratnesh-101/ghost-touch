@@ -68,8 +68,31 @@ describe('processImageFile', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it('handles PDF errors (password, invalid, empty) with distinct spoken messages', async () => {
-    for (const reason of ['password', 'invalid', 'empty'] as const) {
+  it('accepts a file with empty MIME type and .pdf extension, routes to PDF renderer', async () => {
+    const { audio, say, said, controller } = setup();
+    const renderedImage = jpeg(500, 'image/jpeg');
+    const renderPdf = vi.fn().mockResolvedValue(renderedImage);
+    const request = vi.fn().mockResolvedValue(response);
+
+    const pdfFile = new File([new Uint8Array(1000)], 'test-diagram.pdf', { type: '' });
+
+    const outcome = await processImageFile(pdfFile, {
+      audio,
+      say,
+      renderPdf,
+      request,
+      signal: controller.signal,
+      source: 'file',
+    });
+
+    expect(outcome).toEqual({ kind: 'scene', response });
+    expect(said).toEqual([`${t('capture.firstPagePdf')} ${t('capture.reading')}`]);
+    expect(renderPdf).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(renderedImage, controller.signal);
+  });
+
+  it('handles PDF errors (password, invalid, empty, timeout) with distinct spoken messages', async () => {
+    for (const reason of ['password', 'invalid', 'empty', 'timeout'] as const) {
       const { audio, say, said, controller } = setup();
       const renderPdf = vi.fn().mockRejectedValue(new PdfError(reason));
       const request = vi.fn();
