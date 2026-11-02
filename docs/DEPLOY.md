@@ -23,7 +23,8 @@ This guide describes how to deploy the Ghost Touch backend on **Render** and the
                          +-----------+-----------+
                          | Vision Providers      |
                          | - Gemini 3.8 Flash    |
-                         | - NVIDIA (fallback)   |
+                         | - OpenAI (fallback 1) |
+                         | - NVIDIA (fallback 2) |
                          | - OpenCV (Raw Mode)   |
                          +-----------------------+
 ```
@@ -40,7 +41,8 @@ This guide describes how to deploy the Ghost Touch backend on **Render** and the
 2. A [Render](https://render.com) account connected to GitHub.
 3. A [Vercel](https://vercel.com) account connected to GitHub.
 4. Google Gemini API key from [Google AI Studio](https://aistudio.google.com/).
-5. (Optional) NVIDIA API key from [NVIDIA Build](https://build.nvidia.com/) for secondary fallback.
+5. (Optional) OpenAI API key from the [OpenAI platform](https://platform.openai.com/) for the first fallback after Gemini.
+6. (Optional) NVIDIA API key from [NVIDIA Build](https://build.nvidia.com/) for the second fallback. A real key starts with `nvapi-`.
 
 ---
 
@@ -54,12 +56,14 @@ The repository root includes a `render.yaml` Blueprint file specifying the servi
 4. Render detects `render.yaml` and displays the `ghost-touch-backend` service.
 5. In the environment variables section, fill in the values marked `sync: false`:
    - `GEMINI_API_KEY`: Paste your Google Gemini API key.
-   - `NVIDIA_API_KEY`: (Optional) Paste NVIDIA API key, or leave blank if using Gemini primary and OpenCV fallback only.
+   - `OPENAI_API_KEY`: (Optional) Paste your OpenAI API key. It is used only when Gemini fails.
+   - `NVIDIA_API_KEY`: (Optional) Paste NVIDIA API key, or leave blank. Providers without a key are skipped; with none working the app falls back to OpenCV Raw Mode.
 6. Leave other environment variables at their Blueprint defaults:
    - `PYTHON_VERSION`: `3.11.10`
    - `GEMINI_MODEL`: `gemini-3.8-flash`
-   - `GEMINI_THINKING_BUDGET`: `0`
-   - `VISION_PROVIDERS`: `gemini,nvidia`
+   - `GEMINI_THINKING`: `minimal`
+   - `OPENAI_MODEL`: `gpt-4.1-mini`
+   - `VISION_PROVIDERS`: `gemini,openai,nvidia` (the order of fallback)
    - `PROVIDER_TIMEOUT_SECONDS`: `8.0`
    - `SCENE_TIMEOUT_SECONDS`: `15.0`
    - `ALLOWED_ORIGINS`: temporary placeholder (you will update this in Step 3).

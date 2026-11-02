@@ -16,15 +16,22 @@ services:
       # Secrets entered in Render dashboard (not committed in git)
       - key: GEMINI_API_KEY
         sync: false
+      - key: OPENAI_API_KEY
+        sync: false
       - key: NVIDIA_API_KEY
         sync: false
       # Non-secret service configuration with defaults
       - key: GEMINI_MODEL
         value: gemini-3.8-flash
-      - key: GEMINI_THINKING_BUDGET
-        value: "0"
+      # off | minimal | low | medium | high | default. "off" (thinking_budget=0) is rejected by
+      # some models; the backend retries without it, but "minimal" avoids the wasted call.
+      - key: GEMINI_THINKING
+        value: minimal
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
+      # Order of fallback: Gemini first, then OpenAI, then NVIDIA. Providers without a key are skipped.
       - key: VISION_PROVIDERS
-        value: gemini,nvidia
+        value: gemini,openai,nvidia
       - key: PROVIDER_TIMEOUT_SECONDS
         value: "8.0"
       - key: SCENE_TIMEOUT_SECONDS
