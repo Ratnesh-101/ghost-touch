@@ -65,3 +65,29 @@ Both changes make the scorer more favourable, so treat v3 with care: they are ju
 2. Run the 2 missing photos and your 10 real photos plus 3 digital ones.
 3. Run the same set through NVIDIA (`--provider nvidia --model <id>`) for the fallback comparison.
 4. Build the overlay renderer for the real-photo run.
+
+## Update, 2026-11-01 (later): the quota explained, the thinking probe, and a fast model
+
+**Why the first run stopped at 18 calls.** The API key in `backend/.env` is on the Gemini API **free tier**: the error says "Generate content requests per day limit exceeded on Free Tier", with a limit of **20 requests per day per project per model** (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`), and it resets about 9 hours later. The credits shown in Antigravity are a separate account and do not apply to this key. To lift the limit, enable billing on the key's Google project. The limit is per model, so other models still had quota the same day, which made the probes below possible. This also means **a demo on the free tier allows about 20 scene requests per model per day**: use billing, or spread over models and the NVIDIA fallback, and cache validated scenes.
+
+**Thinking settings (one image, `clean/01_right_triangle`, same prompt).** Run on the models that still had quota; `gemini-3.8-flash` itself could not be tested.
+| Model | Default | `thinking_budget=0` | `thinking_level=MINIMAL` | `thinking_level=LOW` |
+|---|---|---|---|---|
+| `gemini-3.5-flash` | 13.3 s (616 thought tokens) | 7.1 s | 9.3 s | 10.1 s |
+| `gemini-3.5-flash-lite` | 1.8 s | **rejected, HTTP 400 INVALID_ARGUMENT** | 3.6 s | 1.9 s |
+Conclusions: (1) `thinking_budget=0` is **not safe on every model**, so the T08 reviewer's concern was right and the backend must fall back to "no thinking setting" on an invalid-argument error (specified in `docs/briefs/F2-backend-review-fixes.md`); `thinking_level` MINIMAL or LOW was accepted by both. (2) The 29 to 169 s latency seen with `gemini-3.8-flash` is **not** inherent to the task: with thinking trimmed, `3.5-flash` takes 7 to 10 s and `3.5-flash-lite` 2 to 4 s, both inside the 15 s budget. Whether `3.8-flash` can be made fast is still untested.
+
+**Accuracy of the fast model** (`gemini-3.5-flash-lite`, default thinking, scorer v3, first 16 of the 20 synthetic samples: 10 clean and 6 photo; the remaining four photo samples hit today's limit for this model's quota budget and were not run):
+| Group | n | Mean score | Usable (≥ 0.7) | Median time |
+|---|---|---|---|---|
+| All | 16 | 0.80 | 11 of 16 | **2.6 s** |
+| Clean | 10 | 0.82 | 7 of 10 | 2.4 s |
+| Photo (simulated) | 6 | 0.78 | 4 of 6 | 3.0 s |
+| Geometry | 8 | **0.94** | 8 of 8 | 2.5 s |
+| Bar charts | 3 | **0.96** | 3 of 3 | 2.4 s |
+| **Function graphs** | 5 | **0.49** | **0 of 5** | 2.8 s |
+Kind was right 16 of 16; one scene (`clean/05_sine_graph`) failed the strict schema; appearance-only labels 0. Compared with `gemini-3.8-flash` (graphs 0.77, 4 of 6 usable, but about 60 s per call), the lite model is about 20 times faster and as good on geometry and bar charts, and clearly worse on curves.
+
+**What this suggests (a recommendation, not a decision).** Use a fast model by default for geometry and bar charts. For graphs, either accept a slower, stronger model (`3.5-flash` with `thinking_level=MINIMAL`, about 9 s, not yet measured on graphs) or route by kind: ask the fast model first, and if it reports `function_graph`, re-ask a stronger model within the remaining time budget. Measure `3.5-flash` on the graph samples tomorrow (quota resets) before choosing. The NVIDIA fallback has not been run at all.
+
+Run outputs: `research/results/gemini-3.5-flash-lite-run1/`.

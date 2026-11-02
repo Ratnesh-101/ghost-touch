@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "kind": "bar_chart",
+  "title": "Rainfall (mm)",
+  "points": [],
+  "segments": [],
+  "polylines": [],
+  "bars": [
+    {
+      "id": "bar_jun",
+      "x0": 0.207,
+      "x1": 0.291,
+      "y_top": 0.476,
+      "y_base": 0.844,
+      "label": "Jun",
+      "value": 120
+    },
+    {
+      "id": "bar_jul",
+      "x0": 0.354,
+      "x1": 0.438,
+      "y_top": 0.23,
+      "y_base": 0.844,
+      "label": "Jul",
+      "value": 280
+    },
+    {
+      "id": "bar_aug",
+      "x0": 0.501,
+      "x1": 0.585,
+      "y_top": 0.293,
+      "y_base": 0.844,
+      "label": "Aug",
+      "value": 240
+    },
+    {
+      "id": "bar_sep",
+      "x0": 0.648,
+      "x1": 0.732,
+      "y_top": 0.551,
+      "y_base": 0.844,
+      "label": "Sep",
+      "value": 150
+    },
+    {
+      "id": "bar_oct",
+      "x0": 0.795,
+      "x1": 0.879,
+      "y_top": 0.792,
+      "y_base": 0.844,
+      "label": "Oct",
+      "value": 40
+    }
+  ],
+  "axes": {
+    "x_axis_y": 0.844,
+    "y_axis_x": 0.177
+  },
+  "facts": [
+    "The chart displays rainfall in millimeters for the months Jun, Jul, Aug, Sep, and Oct.",
+    "Rainfall in June is 120 mm.",
+    "Rainfall in July is 280 mm.",
+    "Rainfall in August is 240 mm.",
+    "Rainfall in September is 150 mm.",
+    "Rainfall in October is 40 mm."
+  ]
+}

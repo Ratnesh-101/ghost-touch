@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "geometry",
+  "title": "Triangle ABC with altitude AD",
+  "points": [
+    {
+      "id": "A",
+      "x": 0.526,
+      "y": 0.276,
+      "label": "vertex A"
+    },
+    {
+      "id": "B",
+      "x": 0.281,
+      "y": 0.572,
+      "label": "vertex B"
+    },
+    {
+      "id": "C",
+      "x": 0.749,
+      "y": 0.592,
+      "label": "vertex C"
+    },
+    {
+      "id": "D",
+      "x": 0.513,
+      "y": 0.578,
+      "label": "point D"
+    }
+  ],
+  "segments": [
+    {
+      "id": "AB",
+      "a": "A",
+      "b": "B",
+      "label": "side AB"
+    },
+    {
+      "id": "AC",
+      "a": "A",
+      "b": "C",
+      "label": "side AC"
+    },
+    {
+      "id": "BC",
+      "a": "B",
+      "b": "C",
+      "label": "side BC"
+    },
+    {
+      "id": "AD",
+      "a": "A",
+      "b": "D",
+      "label": "altitude AD"
+    }
+  ],
+  "polylines": [],
+  "bars": [],
+  "axes": null,
+  "facts": [
+    "Triangle ABC has altitude AD perpendicular to BC.",
+    "Angle ADB is a right angle.",
+    "Angle ADC is a right angle."
+  ]
+}

@@ -1,0 +1,331 @@
+{
+  "provider": "gemini",
+  "model": "gemini-3.5-flash-lite",
+  "samples": [
+    {
+      "sample_id": "clean/01_right_triangle",
+      "variant": "clean",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.95,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 1.0,
+        "corner_error": 0.06491943145409741,
+        "corner_accuracy_abs": 0.5672037903060172,
+        "corner_accuracy": 1.0,
+        "facts_recall": 0.5,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 2.3462718999944627,
+      "error": null
+    },
+    {
+      "sample_id": "clean/02_rectangle",
+      "variant": "clean",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.975,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 1.0,
+        "corner_error": 0.05830951894845303,
+        "corner_accuracy_abs": 0.6112698736769797,
+        "corner_accuracy": 1.0,
+        "facts_recall": 0.75,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 2.751770899994881,
+      "error": null
+    },
+    {
+      "sample_id": "clean/03_altitude",
+      "variant": "clean",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.9323002754820937,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 1.0,
+        "corner_error": 0.0605070831543569,
+        "corner_accuracy_abs": 0.5966194456376207,
+        "corner_accuracy": 0.9931129476584023,
+        "facts_recall": 0.3333333333333333,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 2.2810702999995556,
+      "error": null
+    },
+    {
+      "sample_id": "clean/04_triangle_angles",
+      "variant": "clean",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.9953328325739412,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 1.0,
+        "corner_error": 0.06097709308365654,
+        "corner_accuracy_abs": 0.5934860461089563,
+        "corner_accuracy": 0.9688855504929416,
+        "facts_recall": 1.0,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 2.1660542999889003,
+      "error": null
+    },
+    {
+      "sample_id": "clean/05_sine_graph",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.35,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 0.0,
+        "curve_score": 0.0,
+        "curve_score_abs": 0.0,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 1.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.0,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 3.8523967000073753,
+      "error": null
+    },
+    {
+      "sample_id": "clean/06_parabola",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.48333333333333334,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.0,
+        "curve_score_abs": 0.0,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 1.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.3333333333333333,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 2.3346537000034004,
+      "error": null
+    },
+    {
+      "sample_id": "clean/07_line_graph",
+      "variant": "clean",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.6341449131126636,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.5203220291392525,
+        "curve_score_abs": 0.0,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 0.0,
+        "axes_accuracy": 1.0,
+        "facts_recall": 0.0,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 1.6917122000013478,
+      "error": null
+    },
+    {
+      "sample_id": "clean/08_bar_subjects",
+      "variant": "clean",
+      "kind_truth": "bar_chart",
+      "kind_pred": "bar_chart",
+      "composite": 1.0,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "bar_label_f1": 1.0,
+        "bar_count_match": 1.0,
+        "value_accuracy": 1.0,
+        "height_concordance": 1.0,
+        "facts_recall": 1.0,
+        "appearance_labels": null
+      },
+      "latency_s": 2.4443487000098685,
+      "error": null
+    },
+    {
+      "sample_id": "clean/09_bar_rainfall",
+      "variant": "clean",
+      "kind_truth": "bar_chart",
+      "kind_pred": "bar_chart",
+      "composite": 0.89,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "bar_label_f1": 1.0,
+        "bar_count_match": 1.0,
+        "value_accuracy": 1.0,
+        "height_concordance": 0.9,
+        "facts_recall": 0.0,
+        "appearance_labels": null
+      },
+      "latency_s": 2.403076400005375,
+      "error": null
+    },
+    {
+      "sample_id": "clean/10_bar_trees",
+      "variant": "clean",
+      "kind_truth": "bar_chart",
+      "kind_pred": "bar_chart",
+      "composite": 1.0,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "bar_label_f1": 1.0,
+        "bar_count_match": 1.0,
+        "value_accuracy": 1.0,
+        "height_concordance": 1.0,
+        "facts_recall": 1.0,
+        "appearance_labels": null
+      },
+      "latency_s": 2.963003099997877,
+      "error": null
+    },
+    {
+      "sample_id": "photo/01_right_triangle",
+      "variant": "photo",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.9235829707437847,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 1.0,
+        "corner_error": 0.2776526113389443,
+        "corner_accuracy_abs": 0.0,
+        "corner_accuracy": 0.8238864716252312,
+        "facts_recall": 0.5,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 3.477310700007365,
+      "error": null
+    },
+    {
+      "sample_id": "photo/02_rectangle",
+      "variant": "photo",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.898671497584541,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 1.0,
+        "corner_error": 0.2442014347975521,
+        "corner_accuracy_abs": 0.0,
+        "corner_accuracy": 0.4911433172302732,
+        "facts_recall": 0.75,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 3.163028700000723,
+      "error": null
+    },
+    {
+      "sample_id": "photo/03_altitude",
+      "variant": "photo",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.9005071227876487,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 1.0,
+        "corner_error": 0.27075965307610106,
+        "corner_accuracy_abs": 0.0,
+        "corner_accuracy": 0.7811585963621019,
+        "facts_recall": 0.3333333333333333,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 2.1384007999877213,
+      "error": null
+    },
+    {
+      "sample_id": "photo/04_triangle_angles",
+      "variant": "photo",
+      "kind_truth": "geometry",
+      "kind_pred": "geometry",
+      "composite": 0.9681746254141461,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "point_f1": 1.0,
+        "point_count_match": 1.0,
+        "segment_f1": 1.0,
+        "corner_error": 0.24078132020152868,
+        "corner_accuracy_abs": 0.0,
+        "corner_accuracy": 0.7878308360943075,
+        "facts_recall": 1.0,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 2.7208238000021083,
+      "error": null
+    },
+    {
+      "sample_id": "photo/05_sine_graph",
+      "variant": "photo",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.40862253979125807,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.037679718054647586,
+        "curve_score_abs": 0.0,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 0.0,
+        "axes_accuracy": 0.5,
+        "facts_recall": 0.6666666666666666,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 2.7665333000040846,
+      "error": null
+    },
+    {
+      "sample_id": "photo/06_parabola",
+      "variant": "photo",
+      "kind_truth": "function_graph",
+      "kind_pred": "function_graph",
+      "composite": 0.5632011110887705,
+      "metrics": {
+        "kind": 1.0,
+        "schema_valid": 1.0,
+        "curve_score": 0.2700765431602306,
+        "curve_score_abs": 0.0,
+        "polyline_count_match": 1.0,
+        "point_range_ok": 1.0,
+        "axes_accuracy": 0.5,
+        "facts_recall": 0.6666666666666666,
+        "appearance_labels": 0.0
+      },
+      "latency_s": 3.460579799997504,
+      "error": null
+    }
+  ]
+}

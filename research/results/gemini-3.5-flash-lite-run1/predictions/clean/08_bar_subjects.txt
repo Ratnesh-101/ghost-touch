@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "kind": "bar_chart",
+  "title": "Favourite subjects of Class 8",
+  "axes": {
+    "x_axis_y": 0.844,
+    "y_axis_x": 0.176
+  },
+  "bars": [
+    {
+      "id": "bar_maths",
+      "x0": 0.224,
+      "x1": 0.324,
+      "y_top": 0.352,
+      "y_base": 0.844,
+      "label": "Maths",
+      "value": 12
+    },
+    {
+      "id": "bar_science",
+      "x0": 0.392,
+      "x1": 0.492,
+      "y_top": 0.203,
+      "y_base": 0.844,
+      "label": "Science",
+      "value": 18
+    },
+    {
+      "id": "bar_english",
+      "x0": 0.560,
+      "x1": 0.660,
+      "y_top": 0.551,
+      "y_base": 0.844,
+      "label": "English",
+      "value": 8
+    },
+    {
+      "id": "bar_hindi",
+      "x0": 0.728,
+      "x1": 0.828,
+      "y_top": 0.453,
+      "y_base": 0.844,
+      "label": "Hindi",
+      "value": 10
+    }
+  ],
+  "facts": [
+    "The bar chart shows the favourite subjects of Class 8.",
+    "The subjects are Maths, Science, English, and Hindi.",
+    "The number of students ranges from 0 to 20.",
+    "Maths has a value of 12.",
+    "Science has a value of 18.",
+    "English has a value of 8.",
+    "Hindi has a value of 10."
+  ]
+}

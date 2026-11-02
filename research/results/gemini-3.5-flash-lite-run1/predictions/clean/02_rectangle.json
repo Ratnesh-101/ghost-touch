@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "kind": "geometry",
+  "title": "Rectangle PQRS with diagonal PR",
+  "points": [
+    {
+      "id": "P",
+      "x": 0.15,
+      "y": 0.28,
+      "label": "vertex P"
+    },
+    {
+      "id": "Q",
+      "x": 0.85,
+      "y": 0.28,
+      "label": "vertex Q"
+    },
+    {
+      "id": "R",
+      "x": 0.85,
+      "y": 0.72,
+      "label": "vertex R"
+    },
+    {
+      "id": "S",
+      "x": 0.15,
+      "y": 0.72,
+      "label": "vertex S"
+    }
+  ],
+  "segments": [
+    {
+      "id": "PQ",
+      "a": "P",
+      "b": "Q",
+      "label": "8 cm"
+    },
+    {
+      "id": "QR",
+      "a": "Q",
+      "b": "R",
+      "label": "5 cm"
+    },
+    {
+      "id": "RS",
+      "a": "R",
+      "b": "S",
+      "label": null
+    },
+    {
+      "id": "SP",
+      "a": "S",
+      "b": "P",
+      "label": null
+    },
+    {
+      "id": "PR",
+      "a": "P",
+      "b": "R",
+      "label": "diagonal"
+    }
+  ],
+  "polylines": [],
+  "bars": [],
+  "axes": null,
+  "facts": [
+    "PQRS is a rectangle.",
+    "Side PQ has a length of 8 cm.",
+    "Side QR has a length of 5 cm.",
+    "PR is a diagonal dividing the rectangle into two right-angled triangles.",
+    "Angle PQR is a right angle.",
+    "Angle QRS is a right angle.",
+    "Angle RSP is a right angle.",
+    "Angle SPQ is a right angle."
+  ]
+}

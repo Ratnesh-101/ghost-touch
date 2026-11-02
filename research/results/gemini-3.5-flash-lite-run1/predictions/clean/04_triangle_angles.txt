@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "kind": "geometry",
+  "title": "Triangle XYZ",
+  "points": [
+    {
+      "id": "X",
+      "x": 0.237,
+      "y": 0.24,
+      "label": "X"
+    },
+    {
+      "id": "Y",
+      "x": 0.177,
+      "y": 0.776,
+      "label": "Y"
+    },
+    {
+      "id": "Z",
+      "x": 0.831,
+      "y": 0.672,
+      "label": "Z"
+    }
+  ],
+  "segments": [
+    {
+      "id": "XY",
+      "a": "X",
+      "b": "Y",
+      "label": "XY"
+    },
+    {
+      "id": "YZ",
+      "a": "Y",
+      "b": "Z",
+      "label": "YZ"
+    },
+    {
+      "id": "XZ",
+      "a": "X",
+      "b": "Z",
+      "label": "XZ"
+    }
+  ],
+  "polylines": [],
+  "bars": [],
+  "axes": null,
+  "facts": [
+    "Angle at vertex X is 70°",
+    "Angle at vertex Y is 60°",
+    "Angle at vertex Z is 50°",
+    "Triangle XYZ has interior angles 70°, 60°, and 50°"
+  ]
+}

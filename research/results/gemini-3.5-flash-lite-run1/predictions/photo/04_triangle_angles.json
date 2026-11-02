@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "kind": "geometry",
+  "title": "Triangle XYZ with angles",
+  "points": [
+    {
+      "id": "X",
+      "x": 0.315,
+      "y": 0.325,
+      "label": "X"
+    },
+    {
+      "id": "Y",
+      "x": 0.301,
+      "y": 0.573,
+      "label": "Y"
+    },
+    {
+      "id": "Z",
+      "x": 0.713,
+      "y": 0.519,
+      "label": "Z"
+    }
+  ],
+  "segments": [
+    {
+      "id": "XY",
+      "a": "X",
+      "b": "Y",
+      "label": "XY"
+    },
+    {
+      "id": "YZ",
+      "a": "Y",
+      "b": "Z",
+      "label": "YZ"
+    },
+    {
+      "id": "XZ",
+      "a": "X",
+      "b": "Z",
+      "label": "XZ"
+    }
+  ],
+  "facts": [
+    "Angle at vertex X is 70 degrees",
+    "Angle at vertex Y is 60 degrees",
+    "Angle at vertex Z is 50 degrees",
+    "Triangle XYZ has angles 70 degrees, 60 degrees, and 50 degrees"
+  ]
+}

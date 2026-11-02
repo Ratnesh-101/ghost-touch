@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "kind": "geometry",
+  "title": "Rectangle PQRS with diagonal PR",
+  "points": [
+    {
+      "id": "P",
+      "x": 0.28,
+      "y": 0.3,
+      "label": "P"
+    },
+    {
+      "id": "Q",
+      "x": 0.72,
+      "y": 0.33,
+      "label": "Q"
+    },
+    {
+      "id": "R",
+      "x": 0.71,
+      "y": 0.53,
+      "label": "R"
+    },
+    {
+      "id": "S",
+      "x": 0.27,
+      "y": 0.5,
+      "label": "S"
+    }
+  ],
+  "segments": [
+    {
+      "id": "PQ",
+      "a": "P",
+      "b": "Q",
+      "label": "8 cm"
+    },
+    {
+      "id": "QR",
+      "a": "Q",
+      "b": "R",
+      "label": "5 cm"
+    },
+    {
+      "id": "RS",
+      "a": "R",
+      "b": "S",
+      "label": null
+    },
+    {
+      "id": "SP",
+      "a": "S",
+      "b": "P",
+      "label": null
+    },
+    {
+      "id": "PR",
+      "a": "P",
+      "b": "R",
+      "label": "diagonal PR"
+    }
+  ],
+  "facts": [
+    "PQRS is a rectangle",
+    "Side PQ has length 8 cm",
+    "Side QR has length 5 cm",
+    "PR is a diagonal of the rectangle"
+  ]
+}

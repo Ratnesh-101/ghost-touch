@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "kind": "bar_chart",
+  "title": "Trees planted by houses",
+  "points": [],
+  "segments": [],
+  "polylines": [],
+  "bars": [
+    {
+      "id": "bar_red",
+      "x0": 0.207,
+      "x1": 0.368,
+      "y_top": 0.252,
+      "y_base": 0.846,
+      "label": "Red",
+      "value": 35.0
+    },
+    {
+      "id": "bar_blue",
+      "x0": 0.463,
+      "x1": 0.613,
+      "y_top": 0.153,
+      "y_base": 0.846,
+      "label": "Blue",
+      "value": 50.0
+    },
+    {
+      "id": "bar_green",
+      "x0": 0.709,
+      "x1": 0.859,
+      "y_top": 0.351,
+      "y_base": 0.846,
+      "label": "Green",
+      "value": 25.0
+    }
+  ],
+  "axes": {
+    "x_axis_y": 0.846,
+    "y_axis_x": 0.153
+  },
+  "facts": [
+    "The bar chart shows the number of trees planted by houses named Red, Blue, and Green.",
+    "House Red planted 35 trees.",
+    "House Blue planted 50 trees.",
+    "House Green planted 25 trees."
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "kind": "geometry",
+  "title": "Right triangle ABC",
+  "points": [
+    {
+      "id": "A",
+      "x": 0.322,
+      "y": 0.291,
+      "label": "A"
+    },
+    {
+      "id": "B",
+      "x": 0.301,
+      "y": 0.589,
+      "label": "B"
+    },
+    {
+      "id": "C",
+      "x": 0.674,
+      "y": 0.596,
+      "label": "C"
+    }
+  ],
+  "segments": [
+    {
+      "id": "AB",
+      "a": "A",
+      "b": "B",
+      "label": "3 cm"
+    },
+    {
+      "id": "BC",
+      "a": "B",
+      "b": "C",
+      "label": "4 cm"
+    },
+    {
+      "id": "AC",
+      "a": "A",
+      "b": "C",
+      "label": "5 cm"
+    }
+  ],
+  "polylines": [],
+  "bars": [],
+  "axes": null,
+  "facts": [
+    "Triangle ABC is a right triangle with a right angle at vertex B.",
+    "Side AB has a length of 3 cm.",
+    "Side BC has a length of 4 cm.",
+    "Hypotenuse AC has a length of 5 cm."
+  ]
+}
