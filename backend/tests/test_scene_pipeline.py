@@ -206,7 +206,8 @@ def test_pipeline_invalid_twice_falls_back_to_raw(client: TestClient) -> None:
     data = response.json()
     assert data["mode"] == "raw"
     assert data["reason"] == "invalid"
-    assert provider.call_count == 2
+    # first extraction, the validation retry, then one equation-route rescue before Raw Mode
+    assert provider.call_count == 3
 
 
 def test_pipeline_garbage_non_json_falls_back_to_raw(client: TestClient) -> None:

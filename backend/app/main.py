@@ -21,9 +21,11 @@ from fastapi.middleware.cors import CORSMiddleware
 # Single import of validate_scene from the TEMP stub (Kiro replaces with app/validate.py in 8.3)
 from app._temp.validate_stub import ValidationResult, validate_scene
 from app.ask import AskRequest, AskResponse, answer_question
+from app.graphs.route import graph_scene_from_chain
 from app.image_utils import validate_image_bytes
 from app.limits import MULTIPART_OVERHEAD, RequestGuardMiddleware, default_rate_limits
 from app.raw_mode import RawModeError, build_raw_scene
+from app.scene_cache import image_key, scene_cache
 from app.vision import ProviderChain, VisionError, build_chain_from_env
 from app.vision.prompts import build_prompt
 
@@ -129,7 +131,7 @@ app.add_middleware(
     allow_origins=_origins,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Vision-Provider"],
+    expose_headers=["X-Vision-Provider", "X-Scene-Cache"],
 )
 
 
@@ -212,6 +214,17 @@ async def process_scene(
 
     # Step 3: Validate magic bytes, header integrity, and resolution cap (Finding 3)
     validate_image_bytes(image_bytes, content_type)
+
+    # A repeated image (a demo, a retry) is served from the cache of validated AI scenes, so it
+    # costs no provider quota. Failures and Raw Mode results are never cached.
+    cache_key = image_key(image_bytes, build_prompt())
+    cached = scene_cache.get(cache_key)
+    if cached is not None:
+        cached_payload, cached_provider = cached
+        response.headers["X-Vision-Provider"] = cached_provider
+        response.headers["X-Scene-Cache"] = "HIT"
+        logger.info("scene served from cache: provider=%s", cached_provider)
+        return cached_payload
 
     try:
         total_deadline = float(os.environ.get("SCENE_TIMEOUT_SECONDS", "15.0"))
@@ -316,6 +329,11 @@ async def process_scene(
         used = provider_state["name"]
         result = validator(raw_text)
         if result.scene is not None:
+            if result.scene.kind == "function_graph":
+                # A traced curve is imprecise: read the equation and sample it ourselves.
+                sampled = await sampled_graph_scene()
+                if sampled is not None:
+                    return ai_payload(sampled, used, " (equation route)"), ""
             return ai_payload(result.scene, used), ""
 
         # One validation retry on the same provider that answered
@@ -335,7 +353,19 @@ async def process_scene(
         retry_result = validator(retry_raw)
         if retry_result.scene is not None:
             return ai_payload(retry_result.scene, used, " (after retry)"), ""
+
+        # Last attempt before Raw Mode: it may be a function graph the tracer could not draw.
+        rescued = await sampled_graph_scene()
+        if rescued is not None:
+            return ai_payload(rescued, used, " (equation rescue)"), ""
         return None, "invalid"
+
+    async def sampled_graph_scene() -> Any | None:
+        """A validated function_graph scene sampled from the model's equation, or None."""
+        spec_scene = await graph_scene_from_chain(chain, image_bytes, content_type, ai_deadline)
+        if spec_scene is None:
+            return None
+        return validator(spec_scene).scene
 
     payload: dict[str, Any] | None = None
     fallback_reason = "error"
@@ -354,6 +384,8 @@ async def process_scene(
         fallback_reason = "error"
 
     if payload is not None:
+        scene_cache.put(cache_key, payload, provider_state["name"])
+        response.headers["X-Scene-Cache"] = "MISS"
         return payload
     return await run_raw_mode(fallback_reason, provider_state["name"])
 
