@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "allow": [
+      "command(npm --prefix frontend test)",
+      "command(npm --prefix frontend run build)",
+      "command(npm --prefix frontend exec -- tsc -p frontend --noEmit)",
+      "command(backend/.venv/Scripts/python -m pytest backend)",
+      "command(backend/.venv/Scripts/python -m ruff check backend)",
+      "command(backend/.venv/Scripts/python -m ruff format --check backend)",
+      "command(git status)",
+      "command(git status --short)",
+      "command(git diff)",
+      "command(git diff --stat)",
+      "command(git log)",
+      "command(git log --oneline)",
+      "command(git log --oneline -5)",
+      "command(git log --oneline -10)"
+    ],
+    "deny": [
+      "command(git add)",
+      "command(git commit)",
+      "command(git push)",
+      "command(git -C)",
+      "command(git reset)",
+      "command(git checkout)",
+      "command(git restore)",
+      "command(git stash)",
+      "command(git rebase)",
+      "command(git clean)",
+      "command(git branch)",
+      "command(git tag)",
+      "command(gh)",
+      "command(rm)",
+      "command(del)",
+      "command(Remove-Item)",
+      "command(npm install)",
+      "command(npm i)",
+      "command(npm ci)",
+      "command(pip install)",
+      "command(curl)",
+      "command(Invoke-WebRequest)"
+    ]
+  }
+}

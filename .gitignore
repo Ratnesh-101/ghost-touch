@@ -36,3 +36,6 @@ Thumbs.db
 
 .env
 .claude/settings.local.json
+
+# agy run logs (scripts/agy-run.sh)
+logs/
