@@ -14,6 +14,17 @@ export interface NavigationDriver {
 
 let explorePushed = false;
 let suppressNextPop = false;
+let suppressTimer: ReturnType<typeof setTimeout> | null = null;
+/** If history.back() never yields a popstate, stop swallowing real Back presses. */
+const SUPPRESS_POP_TIMEOUT_MS = 500;
+
+function clearSuppression(): void {
+  suppressNextPop = false;
+  if (suppressTimer !== null) {
+    clearTimeout(suppressTimer);
+    suppressTimer = null;
+  }
+}
 
 /**
  * Pushes a history entry marked with `{ screen: 'explore' }`.
@@ -41,6 +52,7 @@ export function leaveExploreEntry(): void {
     if (explorePushed) {
       explorePushed = false;
       suppressNextPop = true;
+      suppressTimer = setTimeout(clearSuppression, SUPPRESS_POP_TIMEOUT_MS);
       window.history.back();
     }
   }
@@ -56,7 +68,7 @@ export function onBack(handler: () => void): () => void {
   }
   const listener = (event: PopStateEvent): void => {
     if (suppressNextPop) {
-      suppressNextPop = false;
+      clearSuppression();
       return;
     }
     // Ignore forward navigation into Explore or internal state where screen is still explore
@@ -77,7 +89,7 @@ export function onBack(handler: () => void): () => void {
  */
 export function _resetNavigationState(): void {
   explorePushed = false;
-  suppressNextPop = false;
+  clearSuppression();
 }
 
 export function createBrowserNavigation(): NavigationDriver {

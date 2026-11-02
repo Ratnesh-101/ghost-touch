@@ -125,7 +125,7 @@ export function Capture({ drivers, initialStatus, onScene }: CaptureProps): JSX.
       <input
         ref={fileInput}
         type="file"
-        accept={`${ACCEPTED_IMAGE_TYPES.join(',')},application/pdf`}
+        accept={`${ACCEPTED_IMAGE_TYPES.join(',')},application/pdf,.pdf`}
         hidden
         onChange={(e) => void handleFile(e, 'file')}
       />

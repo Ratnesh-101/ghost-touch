@@ -36,7 +36,7 @@ describe('screen markup (server render)', () => {
     expect(html).not.toContain('aria-hidden');
     expect(html).toContain('Take a photo.');
     expect(html).toContain('capture="environment"');
-    expect(html).toContain('accept="image/jpeg,image/png,image/webp,application/pdf"');
+    expect(html).toContain('accept="image/jpeg,image/png,image/webp,application/pdf,.pdf"');
   });
 
   it('Capture turns the status into a live region only when the app cannot speak', () => {

@@ -69,6 +69,11 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
   const rafId = useRef<number | null>(null);
   const pendingCursor = useRef<ScreenPoint | null>(null);
 
+  const sceneRef = useRef(scene);
+  sceneRef.current = scene;
+  const onBackRef = useRef(onBack);
+  onBackRef.current = onBack;
+
   const askManager = useRef<AskManager>(new AskManager());
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -83,6 +88,11 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
+  };
+
+  /** Controls are disabled while busy; focus only works once React re-enables them. */
+  const focusAfterRender = (ref: { current: HTMLElement | null }): void => {
+    setTimeout(() => ref.current?.focus(), 0);
   };
 
   const handleExit = (): void => {
@@ -113,10 +123,10 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
         setShowTextFallback(true);
       },
     });
+    // 'busy' means another Ask is still running: leave its UI state and focus alone.
+    if (outcome.kind === 'busy' || outcome.kind === 'cancelled') return;
     setIsBusy(false);
-    if (outcome.kind !== 'cancelled') {
-      askButtonRef.current?.focus();
-    }
+    focusAfterRender(askButtonRef);
   };
 
   const handleTextSubmit = async (): Promise<void> => {
@@ -128,7 +138,6 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
     }
     setIsBusy(true);
     const q = questionText;
-    setQuestionText('');
     const outcome = await askManager.current.submitTextAsk(q, {
       audio: drivers.audio,
       speech: drivers.speech,
@@ -141,13 +150,19 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
         setStatusMessage(status);
       },
     });
+    if (outcome.kind === 'busy' || outcome.kind === 'cancelled') return;
     setIsBusy(false);
-    if (outcome.kind !== 'cancelled') {
-      askButtonRef.current?.focus();
+    if (outcome.kind === 'success') {
+      setQuestionText('');
+      focusAfterRender(askButtonRef);
+    } else {
+      // Keep the typed question so it can be retried; return focus to the input.
+      focusAfterRender(textInputRef);
     }
   };
 
   const renderStaticScene = (view: Viewport, dpr: number): void => {
+    const scene = sceneRef.current;
     const { canvasWidth: w, canvasHeight: h } = view;
     if (typeof document === 'undefined') return;
     let offscreen = offscreenCanvasRef.current;
@@ -340,7 +355,7 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
       clearLongPressTimer();
       activePointers.current.clear();
       primaryPointerId.current = null;
-      onBack();
+      onBackRef.current();
     });
 
     canvasRef.current?.focus();
@@ -401,6 +416,10 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
     // Check two-finger long-press timer setup
     if (activePointers.current.size === 2) {
       clearLongPressTimer();
+      // Re-baseline both fingers so earlier exploring movement does not veto the long-press.
+      for (const pointer of activePointers.current.values()) {
+        pointer.start = { x: pointer.current.x, y: pointer.current.y, t: now };
+      }
       longPressTimer.current = setTimeout(() => {
         if (activePointers.current.size === 2) {
           const entries = Array.from(activePointers.current.values());
