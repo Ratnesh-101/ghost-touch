@@ -88,8 +88,8 @@ export function initialState(): EngineState {
  * Step the haptic engine forward by one input.
  *
  * Rules (design.md):
- * 1. Enter a new vertex -> vibrate(cornerPattern), speak(label), tone(null);
- *    set quietUntil = t + quietMs.
+ * 1. Enter a new vertex -> vibrate(cornerPattern), speak(label or "Point " + id),
+ *    tone(null); set quietUntil = t + quietMs.
  * 2. Same vertex as last step -> no effects.
  * 3. On a line, t >= quietUntil and t - lastBuzz > retriggerMs -> vibrate(lineMs).
  * 4. On a curve (polyline line) -> also tone(pitchForY(yNorm)).
@@ -121,13 +121,16 @@ export function step(
     next.onLine = false;
     next.lastBarId = null;
     if (state.lastVertexId !== target.id) {
-      // Rule 1: New vertex -> corner pulse, speak label, stop tone.
+      // Rule 1: New vertex -> corner pulse, speak label (or "Point " + id),
+      // stop tone.
       next.lastVertexId = target.id;
       next.quietUntil = t + cfg.quietMs;
       effects.push({ kind: 'vibrate', pattern: cfg.cornerPattern });
-      if (target.label !== undefined && target.label.trim() !== '') {
-        effects.push({ kind: 'speak', text: target.label });
-      }
+      const labelText =
+        target.label !== undefined && target.label.trim() !== ''
+          ? target.label
+          : 'Point ' + target.id;
+      effects.push({ kind: 'speak', text: labelText });
       effects.push({ kind: 'tone', hz: null });
     }
     // Rule 2: Same vertex -> no effects (effects stays empty).
@@ -169,8 +172,8 @@ export function step(
       next.lastBarId = target.id;
       effects.push({ kind: 'speak', text: target.label + ', ' + target.value });
     }
-    // Emit a tone based on the bar value.
-    effects.push({ kind: 'tone', hz: pitchForValue(target.value, 100) });
+    // Emit a tone based on the bar value relative to the scene max.
+    effects.push({ kind: 'tone', hz: pitchForValue(target.value, target.maxValue) });
     return { state: next, effects };
   }
 

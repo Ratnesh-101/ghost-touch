@@ -15,9 +15,9 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from app._temp.validate_stub import ValidationResult
 from app.main import app, get_provider_chain, get_validator
 from app.schema import DiagramScene
+from app.validate import ValidationResult
 from app.vision.base import VisionError
 from app.vision.chain import ProviderChain
 

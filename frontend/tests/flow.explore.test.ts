@@ -1,4 +1,4 @@
-﻿import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { makeViewport } from '../src/core/geometry';
 import type { DiagramScene } from '../src/core/scene';
 import {
@@ -408,7 +408,7 @@ describe('Haptic engine step & lift (step)', () => {
     const { state: s1, effects: eff1 } = step(s0, {
       kind: 'move',
       t: 100,
-      target: { kind: 'bar', id: 'bar1', label: 'Apples', value: 50 },
+      target: { kind: 'bar', id: 'bar1', label: 'Apples', value: 50, maxValue: 100 },
       yNorm: 0.5,
     });
     expect(s1.lastBarId).toBe('bar1');
@@ -419,7 +419,7 @@ describe('Haptic engine step & lift (step)', () => {
     const { effects: eff2 } = step(s1, {
       kind: 'move',
       t: 150,
-      target: { kind: 'bar', id: 'bar1', label: 'Apples', value: 50 },
+      target: { kind: 'bar', id: 'bar1', label: 'Apples', value: 50, maxValue: 100 },
       yNorm: 0.5,
     });
     expect(eff2.filter((e: Effect) => e.kind === 'speak')).toHaveLength(0);
@@ -431,7 +431,7 @@ describe('Haptic engine step & lift (step)', () => {
     const { state: s1, effects: eff1 } = step(s0, {
       kind: 'move',
       t: 100,
-      target: { kind: 'bar', id: 'b1', label: 'Score', value: 75 },
+      target: { kind: 'bar', id: 'b1', label: 'Score', value: 75, maxValue: 100 },
       yNorm: 0.3,
     });
     expect(s1.lastBarId).toBe('b1');

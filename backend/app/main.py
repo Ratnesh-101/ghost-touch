@@ -18,14 +18,13 @@ from typing import Annotated, Any
 from fastapi import Depends, FastAPI, File, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-# Single import of validate_scene from the TEMP stub (Kiro replaces with app/validate.py in 8.3)
-from app._temp.validate_stub import ValidationResult, validate_scene
 from app.ask import AskRequest, AskResponse, answer_question
 from app.graphs.route import graph_scene_from_chain
 from app.image_utils import validate_image_bytes
 from app.limits import MULTIPART_OVERHEAD, RequestGuardMiddleware, default_rate_limits
 from app.raw_mode import RawModeError, build_raw_scene
 from app.scene_cache import image_key, scene_cache
+from app.validate import ValidationResult, validate_scene
 from app.vision import ProviderChain, VisionError, build_chain_from_env
 from app.vision.prompts import build_prompt
 

@@ -197,6 +197,7 @@ describe('hitTest — bar', () => {
       id: 'q1',
       label: 'Q1',
       value: 10,
+      maxValue: 10,
     });
   });
 
@@ -212,6 +213,61 @@ describe('hitTest — bar', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Bar edges (Req 6.3)
+// ---------------------------------------------------------------------------
+
+describe('hitTest — bar edges', () => {
+  const barScene: DiagramScene = {
+    kind: 'bar_chart',
+    bars: [
+      { id: 'q1', x0: 0.12, x1: 0.27, y_top: 0.69, y_base: 0.85, label: 'Q1', value: 10 },
+    ],
+  };
+  // In a 400x400 viewport: top=(48,276)-(108,276), bottom=(48,340)-(108,340),
+  // left=(48,276)-(48,340), right=(108,276)-(108,340)
+
+  it('returns a bar-edge line when the finger is near the top edge', () => {
+    // 5 px above the top edge midpoint (78, 276) -> finger (78, 271)
+    expect(hitTest(barScene, { x: 78, y: 271 }, view)).toEqual({
+      kind: 'line',
+      id: 'q1',
+      elementKind: 'bar-edge',
+    });
+  });
+
+  it('returns a bar-edge line when the finger is near the bottom edge', () => {
+    // 5 px below the bottom edge midpoint (78, 340) -> finger (78, 345)
+    expect(hitTest(barScene, { x: 78, y: 345 }, view)).toEqual({
+      kind: 'line',
+      id: 'q1',
+      elementKind: 'bar-edge',
+    });
+  });
+
+  it('returns a bar-edge line when the finger is near the left edge', () => {
+    // 5 px left of the left edge midpoint (48, 308) -> finger (43, 308)
+    expect(hitTest(barScene, { x: 43, y: 308 }, view)).toEqual({
+      kind: 'line',
+      id: 'q1',
+      elementKind: 'bar-edge',
+    });
+  });
+
+  it('returns a bar-edge line when the finger is near the right edge', () => {
+    // 5 px right of the right edge midpoint (108, 308) -> finger (113, 308)
+    expect(hitTest(barScene, { x: 113, y: 308 }, view)).toEqual({
+      kind: 'line',
+      id: 'q1',
+      elementKind: 'bar-edge',
+    });
+  });
+
+  it('returns none when the finger is far from all bar edges', () => {
+    // 20 px above the top edge, outside the line radius (14 px)
+    expect(hitTest(barScene, { x: 78, y: 256 }, view)).toEqual({ kind: 'none' });
+  });
+});
 // ---------------------------------------------------------------------------
 // Priority: line beats bar
 // ---------------------------------------------------------------------------

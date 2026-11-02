@@ -89,9 +89,13 @@ def test_default_version_is_one() -> None:
 
 @pytest.mark.parametrize("bad", [-0.0001, -1.0, 1.0001, 2.0])
 def test_point_out_of_range_rejected(bad: float) -> None:
-    with pytest.raises(ValidationError, match="out of range"):
+    with pytest.raises(
+        ValidationError, match=r"greater than or equal to 0|less than or equal to 1"
+    ):
         Point(id="A", x=bad, y=0.5)
-    with pytest.raises(ValidationError, match="out of range"):
+    with pytest.raises(
+        ValidationError, match=r"greater than or equal to 0|less than or equal to 1"
+    ):
         Point(id="A", x=0.5, y=bad)
 
 
@@ -102,17 +106,23 @@ def test_point_boundary_coordinates_accepted() -> None:
 
 
 def test_polyline_point_out_of_range_rejected() -> None:
-    with pytest.raises(ValidationError, match="out of range"):
+    with pytest.raises(
+        ValidationError, match=r"greater than or equal to 0|less than or equal to 1"
+    ):
         Polyline(id="l", points=[(0.5, 1.5)])
 
 
 def test_bar_coordinate_out_of_range_rejected() -> None:
-    with pytest.raises(ValidationError, match="out of range"):
+    with pytest.raises(
+        ValidationError, match=r"greater than or equal to 0|less than or equal to 1"
+    ):
         Bar(id="b", x0=0.0, x1=1.2, y_top=0.2, y_base=0.9, label="x", value=1)
 
 
 def test_axes_out_of_range_rejected() -> None:
-    with pytest.raises(ValidationError, match="out of range"):
+    with pytest.raises(
+        ValidationError, match=r"greater than or equal to 0|less than or equal to 1"
+    ):
         Axes(x_axis_y=1.5, y_axis_x=0.5)
 
 

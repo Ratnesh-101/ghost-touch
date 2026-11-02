@@ -9,11 +9,13 @@
 /**
  * Maps normalized y coordinate (0 = top, 1 = bottom) to frequency in Hz.
  * Higher on screen = higher pitch: 0 -> 1000 Hz, 1 -> 200 Hz.
- * Values outside [0, 1] are clamped to the range.
+ * Values outside [0, 1] are clamped to the range. Non-finite input
+ * (NaN, Infinity) returns 200 Hz (bottom of range).
  *
  * Requirement 5.1: graph curve tone, 200-1000 Hz, higher on screen = higher pitch.
  */
 export function pitchForY(yNorm: number): number {
+  if (!Number.isFinite(yNorm)) return 200;
   return Math.min(1000, Math.max(200, 1000 - yNorm * 800));
 }
 
