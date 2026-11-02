@@ -28,7 +28,13 @@ def test_build_raw_scene_produces_valid_diagram_scene() -> None:
     assert scene.kind == "unknown"
     assert len(scene.segments) > 0
     assert len(scene.segments) <= 300
-    assert len(scene.points) == 2 * len(scene.segments)
+    assert len(scene.points) <= 2 * len(scene.segments)
+    # Finding 10: Endpoints are merged so vertices are shared for corner haptics
+    point_usage = {pt.id: 0 for pt in scene.points}
+    for seg in scene.segments:
+        point_usage[seg.a] += 1
+        point_usage[seg.b] += 1
+    assert any(count > 1 for count in point_usage.values())
 
     # Invariants: every point in [0, 1]
     for pt in scene.points:

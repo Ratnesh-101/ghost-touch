@@ -1,8 +1,8 @@
-"""Raw Mode — OpenCV edge detection fallback (Task 8.4).
+"""Raw Mode — OpenCV edge detection fallback (Task 8.4, F2).
 
 Grayscale -> GaussianBlur(5) -> Canny(50, 150) -> findContours -> approxPolyDP
-simplification, capped at <= 300 normalized segments. Used when the vision LLM
-fails validation twice, times out, or throws.
+simplification, capped at <= 300 normalized segments with segment deduplication,
+nearby endpoint merging, and resolution safety capping.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import math
 import cv2
 import numpy as np
 
+from app.image_utils import MAX_IMAGE_PIXELS, sniff_image_dimensions
 from app.schema import DiagramScene, Point, Segment
 
 
@@ -19,14 +20,45 @@ class RawModeError(Exception):
     """Raised when Raw Mode cannot process or decode image bytes."""
 
 
+def _dedupe_segments(
+    segments: list[tuple[float, float, float, float]], tol: float = 4.0
+) -> list[tuple[float, float, float, float]]:
+    """Remove near-identical duplicate segments (e.g., dual contour traces of thin lines)."""
+    deduped: list[tuple[float, float, float, float]] = []
+    for s in segments:
+        x1, y1, x2, y2 = s
+        is_dup = False
+        for d in deduped:
+            dx1, dy1, dx2, dy2 = d
+            # Check forward orientation
+            if math.hypot(x1 - dx1, y1 - dy1) <= tol and math.hypot(x2 - dx2, y2 - dy2) <= tol:
+                is_dup = True
+                break
+            # Check reverse orientation
+            if math.hypot(x1 - dx2, y1 - dy2) <= tol and math.hypot(x2 - dx1, y2 - dy1) <= tol:
+                is_dup = True
+                break
+        if not is_dup:
+            deduped.append(s)
+    return deduped
+
+
 def build_raw_scene(image: bytes) -> DiagramScene:
     """Detect edges in an image with OpenCV and return a normalized DiagramScene.
 
     Grayscale -> GaussianBlur(5) -> Canny(50, 150) -> findContours -> approxPolyDP.
-    Keeps the longest segments up to 300.
+    Dedupes twin contours, merges nearby vertices, and keeps the longest segments up to 300.
     Coordinates are normalized to [0, 1] relative to image dimensions.
-    Raises RawModeError if image bytes cannot be decoded.
+    Raises RawModeError if image bytes cannot be decoded or exceed pixel cap.
     """
+    # Header check before full decode
+    dims = sniff_image_dimensions(image)
+    if dims is not None and dims[0] * dims[1] > MAX_IMAGE_PIXELS:
+        raise RawModeError(
+            f"Image resolution ({dims[0]}x{dims[1]}) exceeds "
+            f"{MAX_IMAGE_PIXELS // 1_000_000} MP limit"
+        )
+
     decoded = cv2.imdecode(np.frombuffer(image, np.uint8), cv2.IMREAD_COLOR)
     if decoded is None:
         raise RawModeError("Could not decode image bytes")
@@ -35,12 +67,17 @@ def build_raw_scene(image: bytes) -> DiagramScene:
     if height <= 0 or width <= 0:
         raise RawModeError("Invalid image dimensions")
 
+    if height * width > MAX_IMAGE_PIXELS:
+        raise RawModeError(
+            f"Image resolution ({width}x{height}) exceeds {MAX_IMAGE_PIXELS // 1_000_000} MP limit"
+        )
+
     gray = cv2.cvtColor(decoded, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     edges = cv2.Canny(blurred, 50, 150)
     contours, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
-    extracted_segments: list[tuple[float, float, float, float, float]] = []
+    extracted_segments: list[tuple[float, float, float, float]] = []
 
     for contour in contours:
         perimeter = cv2.arcLength(contour, True)
@@ -56,39 +93,46 @@ def build_raw_scene(image: bytes) -> DiagramScene:
             pt2 = approx[1][0]
             x1, y1 = float(pt1[0]), float(pt1[1])
             x2, y2 = float(pt2[0]), float(pt2[1])
-            length = math.hypot(x2 - x1, y2 - y1)
-            if length > 0.0:
-                extracted_segments.append((length, x1, y1, x2, y2))
+            if math.hypot(x2 - x1, y2 - y1) > 0.0:
+                extracted_segments.append((x1, y1, x2, y2))
         else:
             for i in range(num_points):
                 pt1 = approx[i][0]
                 pt2 = approx[(i + 1) % num_points][0]
                 x1, y1 = float(pt1[0]), float(pt1[1])
                 x2, y2 = float(pt2[0]), float(pt2[1])
-                length = math.hypot(x2 - x1, y2 - y1)
-                if length > 0.0:
-                    extracted_segments.append((length, x1, y1, x2, y2))
+                if math.hypot(x2 - x1, y2 - y1) > 0.0:
+                    extracted_segments.append((x1, y1, x2, y2))
 
-    # Keep longest segments up to 300
-    extracted_segments.sort(key=lambda s: s[0], reverse=True)
-    top_segments = extracted_segments[:300]
+    # Deduplicate near-identical segments (Finding 10)
+    merge_tol = max(3.0, 0.01 * min(width, height))
+    deduped_segments = _dedupe_segments(extracted_segments, tol=merge_tol)
 
-    points: list[Point] = []
+    # Sort by length descending and keep up to 300
+    deduped_segments.sort(key=lambda s: math.hypot(s[2] - s[0], s[3] - s[1]), reverse=True)
+    top_segments = deduped_segments[:300]
+
+    # Merge nearby endpoints to create shared vertices for corner haptics
+    point_registry: list[tuple[float, float, float, float, str]] = []  # (nx, ny, rx, ry, pid)
+
+    def get_or_create_point(rx: float, ry: float) -> str:
+        for _nx, _ny, px, py, pid in point_registry:
+            if math.hypot(rx - px, ry - py) <= merge_tol:
+                return pid
+        pid = f"raw_p{len(point_registry)}"
+        nx = max(0.0, min(1.0, rx / width))
+        ny = max(0.0, min(1.0, ry / height))
+        point_registry.append((nx, ny, rx, ry, pid))
+        return pid
+
     segments: list[Segment] = []
+    for idx, (x1, y1, x2, y2) in enumerate(top_segments):
+        p_a = get_or_create_point(x1, y1)
+        p_b = get_or_create_point(x2, y2)
+        if p_a != p_b:
+            segments.append(Segment(id=f"raw_s{idx}", a=p_a, b=p_b))
 
-    for idx, (_, x1, y1, x2, y2) in enumerate(top_segments):
-        # Normalize to [0, 1] clamped to unit interval
-        norm_x1 = max(0.0, min(1.0, x1 / width))
-        norm_y1 = max(0.0, min(1.0, y1 / height))
-        norm_x2 = max(0.0, min(1.0, x2 / width))
-        norm_y2 = max(0.0, min(1.0, y2 / height))
-
-        p_a = Point(id=f"raw_p{idx}_a", x=norm_x1, y=norm_y1)
-        p_b = Point(id=f"raw_p{idx}_b", x=norm_x2, y=norm_y2)
-        seg = Segment(id=f"raw_s{idx}", a=p_a.id, b=p_b.id)
-
-        points.extend([p_a, p_b])
-        segments.append(seg)
+    points = [Point(id=pid, x=nx, y=ny) for nx, ny, _, _, pid in point_registry]
 
     return DiagramScene(
         version=1,

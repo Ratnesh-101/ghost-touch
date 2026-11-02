@@ -1,11 +1,13 @@
-"""NVIDIA hosted API vision provider (Task 8.1).
+"""NVIDIA hosted API vision provider (Task 8.1, F2).
 
 Fallback vision provider using NVIDIA's OpenAI-compatible API.
 Includes fit_image_for_inline to satisfy the inline image size limit.
+Protects against decompression bombs, off-thread blocking, and malformed payload shapes.
 """
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import os
 import re
@@ -15,6 +17,7 @@ import cv2
 import httpx
 import numpy as np
 
+from app.image_utils import MAX_IMAGE_PIXELS, sniff_image_dimensions
 from app.vision.base import VisionError
 
 DEFAULT_INLINE_LIMIT = 180_000  # bytes; hosted NVIDIA endpoints cap inline images
@@ -25,15 +28,30 @@ def fit_image_for_inline(image: bytes, max_bytes: int = DEFAULT_INLINE_LIMIT) ->
 
     Only applied to NVIDIA inline requests. Returns original bytes if already <= max_bytes
     or if the image cannot be decoded.
+    Raises VisionError if image exceeds resolution cap.
     """
     if len(image) <= max_bytes:
         return image
+
+    dims = sniff_image_dimensions(image)
+    if dims is not None and dims[0] * dims[1] > MAX_IMAGE_PIXELS:
+        raise VisionError(
+            "nvidia",
+            f"Image resolution ({dims[0]}x{dims[1]}) exceeds "
+            f"{MAX_IMAGE_PIXELS // 1_000_000} MP limit",
+        )
 
     decoded = cv2.imdecode(np.frombuffer(image, np.uint8), cv2.IMREAD_COLOR)
     if decoded is None:
         return image
 
     h, w = decoded.shape[:2]
+    if h * w > MAX_IMAGE_PIXELS:
+        raise VisionError(
+            "nvidia",
+            f"Image resolution ({w}x{h}) exceeds {MAX_IMAGE_PIXELS // 1_000_000} MP limit",
+        )
+
     side = min(1024, max(h, w))
     last_buffer: bytes = image
 
@@ -92,8 +110,8 @@ class NvidiaProvider:
         if not self.api_key:
             raise VisionError(self.name, "API key not configured")
 
-        # Downscale and fit if image exceeds inline limit
-        fitted_image = fit_image_for_inline(image, self.inline_limit)
+        # Downscale and fit in worker thread if image exceeds inline limit
+        fitted_image = await asyncio.to_thread(fit_image_for_inline, image, self.inline_limit)
         fitted_mime = "image/jpeg" if fitted_image != image else mime
 
         b64 = base64.b64encode(fitted_image).decode("ascii")
@@ -155,12 +173,25 @@ class NvidiaProvider:
         except Exception as exc:
             raise VisionError(self.name, f"invalid response JSON: {exc}") from exc
 
-        choices = data.get("choices") or []
-        if not choices:
+        if not isinstance(data, dict):
+            raise VisionError(
+                self.name, f"invalid response JSON: expected dict, got {type(data).__name__}"
+            )
+
+        choices = data.get("choices")
+        if not choices or not isinstance(choices, list):
             raise VisionError(self.name, "empty choices in response")
 
-        content = choices[0].get("message", {}).get("content")
-        if not content or not content.strip():
+        first_choice = choices[0]
+        if not isinstance(first_choice, dict):
+            raise VisionError(self.name, "first choice in response is not an object")
+
+        message = first_choice.get("message")
+        if not isinstance(message, dict):
+            raise VisionError(self.name, "message in response is not an object")
+
+        content = message.get("content")
+        if not content or not isinstance(content, str) or not content.strip():
             raise VisionError(self.name, "empty content in response")
 
         # Unwrap markdown fences (```json ... ```)
@@ -230,12 +261,25 @@ class NvidiaProvider:
         except Exception as exc:
             raise VisionError(self.name, f"invalid response JSON: {exc}") from exc
 
-        choices = data.get("choices") or []
-        if not choices:
+        if not isinstance(data, dict):
+            raise VisionError(
+                self.name, f"invalid response JSON: expected dict, got {type(data).__name__}"
+            )
+
+        choices = data.get("choices")
+        if not choices or not isinstance(choices, list):
             raise VisionError(self.name, "empty choices in response")
 
-        content = choices[0].get("message", {}).get("content")
-        if not content or not content.strip():
+        first_choice = choices[0]
+        if not isinstance(first_choice, dict):
+            raise VisionError(self.name, "first choice in response is not an object")
+
+        message = first_choice.get("message")
+        if not isinstance(message, dict):
+            raise VisionError(self.name, "message in response is not an object")
+
+        content = message.get("content")
+        if not content or not isinstance(content, str) or not content.strip():
             raise VisionError(self.name, "empty content in response")
 
         return content.strip()
