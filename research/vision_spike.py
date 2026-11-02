@@ -30,6 +30,8 @@ import json
 import mimetypes
 import os
 import re
+import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -245,6 +247,62 @@ def fit_for_inline(image: bytes, mime: str, max_bytes: int = NVIDIA_INLINE_LIMIT
     return image, mime
 
 
+class AgyProvider:
+    """Antigravity's CLI (`agy --print`) as a vision provider, for the OFFLINE spike only.
+
+    It spends the owner's Antigravity quota instead of a Gemini API key, and only works on this
+    machine: the deployed backend cannot use it. The agent is told to look at one image file and
+    answer with JSON. No shell command is needed, so the exact-match permissions in
+    scripts/agy-settings.json (no dangerous flag) are enough.
+    """
+
+    name = "agy"
+    accepts_path = True
+    TIMEOUT_S = 420
+
+    def __init__(self, model: str | None) -> None:
+        if shutil.which("agy") is None:
+            raise SpikeError("the agy command is not on PATH")
+        self.model = model or "gemini-3.8-flash-high"
+
+    def extract(self, image: bytes, mime: str, prompt: str) -> str:
+        raise SpikeError("agy needs an image file path, not bytes")
+
+    def extract_path(self, image: Path, mime: str, prompt: str) -> str:
+        full_prompt = (
+            f"{prompt}\n\nThe diagram to convert is the image file at this absolute path: "
+            f"{image.resolve()}\nView that image file with your file-viewing tool. Do NOT run any "
+            "command, do NOT edit or create any file, do NOT read any other file. Reply with ONLY "
+            "the JSON object, no commentary, no code fence."
+        )
+        # Same safety as scripts/agy-run.sh: exact-match permissions from scripts/agy-settings.json
+        # (viewing an image needs no shell command), no dangerous flag, and the API-key variables
+        # removed for the child process only so it can only use the signed-in Antigravity account.
+        command = [
+            "agy", "--print", full_prompt, "--model", self.model, "--output-format", "text",
+            "--mode", "accept-edits", "--settings", str(REPO / "scripts" / "agy-settings.json"),
+        ]  # fmt: skip
+        child_env = {
+            k: v for k, v in os.environ.items()
+            if k not in {"GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENAI_API_KEY",
+                         "GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_CLOUD_PROJECT"}
+        }  # fmt: skip
+        try:
+            done = subprocess.run(
+                command, capture_output=True, text=True, encoding="utf-8",
+                timeout=self.TIMEOUT_S, cwd=str(REPO), env=child_env,
+            )  # fmt: skip
+        except subprocess.TimeoutExpired:
+            raise SpikeError("agy timed out") from None
+        if done.returncode != 0:
+            raise SpikeError(f"agy exit {done.returncode}: {done.stderr.strip()[:200]}")
+        out = done.stdout
+        start, end = out.find("{"), out.rfind("}")
+        if start < 0 or end <= start:
+            raise SpikeError("agy reply had no JSON object")
+        return out[start : end + 1]
+
+
 def parse_scene_json(text: str) -> Scene:
     """Parse model output as a JSON object, tolerating ```json fences."""
     cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.IGNORECASE)
@@ -323,7 +381,10 @@ def live_predictor(provider: Any, prompt: str, waits: tuple[float, ...] = RETRY_
         for attempt in range(len(waits) + 1):
             started = time.perf_counter()
             try:
-                text = provider.extract(image, mime, prompt)
+                if getattr(provider, "accepts_path", False):
+                    text = provider.extract_path(sample.image, mime, prompt)
+                else:
+                    text = provider.extract(image, mime, prompt)
             except Exception as exc:  # provider errors vary by SDK
                 if attempt < len(waits) and is_transient(exc):
                     time.sleep(waits[attempt])
@@ -494,7 +555,12 @@ def load_latencies(run_dir: Path) -> dict[str, float | None]:
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--provider", choices=["gemini", "nvidia"], help="vision provider to call")
+    p.add_argument(
+        "--provider",
+        choices=["gemini", "nvidia", "agy"],
+        help="vision provider: gemini and nvidia use API keys; agy uses the Antigravity CLI "
+        "quota (offline spike only, e.g. --model gemini-3.8-flash-high)",
+    )
     p.add_argument("--model", help="model id (default: GEMINI_MODEL / NVIDIA_MODEL)")
     p.add_argument("--variants", default="clean,photo,real", help="comma list of clean,photo,real")
     p.add_argument("--only", default="", help="comma list of sample number prefixes, e.g. 01,05")
@@ -526,7 +592,12 @@ def _build_predictor(args: argparse.Namespace) -> tuple[Predictor | None, str, P
         return None, "rescore", args.rescore
     if not args.provider:
         raise SpikeError("choose --provider gemini|nvidia, or --oracle, or --rescore DIR")
-    provider = (GeminiProvider if args.provider == "gemini" else NvidiaProvider)(args.model, args.env_file)
+    if args.provider == "agy":
+        provider: Any = AgyProvider(args.model)
+    else:
+        provider = (GeminiProvider if args.provider == "gemini" else NvidiaProvider)(
+            args.model, args.env_file
+        )
     return live_predictor(provider, build_prompt()), provider.model, _run_dir(args, provider.model)
 
 
