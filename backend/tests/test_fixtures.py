@@ -84,7 +84,7 @@ def test_sine_fixture() -> None:
     assert scene.polylines, "sine must have a polyline"
 
     curve = scene.polylines[0]
-    assert 20 <= len(curve.points) <= 30, "task asks for 20-30 sample points"
+    assert 80 <= len(curve.points) <= 120, "spec asks for about 100 sample points"
     assert scene.axes is not None, "function_graph must carry axes"
     assert curve.label == "sin(x)"
 
