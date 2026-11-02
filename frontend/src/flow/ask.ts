@@ -53,7 +53,7 @@ export function askErrorMessage(error: unknown): string {
       case 'denied':
         return t('ask.errorDenied');
       case 'timeout':
-        return t('ask.errorTimeout');
+        return t('ask.errorListenTimeout');
       case 'unsupported':
         return t('ask.errorUnsupported');
       case 'failed':
@@ -85,6 +85,7 @@ export function askErrorMessage(error: unknown): string {
 export class AskManager {
   private busy = false;
   private activeController: AbortController | null = null;
+  private activeSpeech: SpeechDriver | null = null;
 
   isBusy(): boolean {
     return this.busy;
@@ -113,8 +114,11 @@ export class AskManager {
     this.busy = true;
     const controller = new AbortController();
     this.activeController = controller;
+    this.activeSpeech = deps.speech;
 
     try {
+      // Stop any TTS first so the microphone does not transcribe it as the question.
+      deps.speech.stopSpeaking?.();
       deps.audio.beep(LISTENING_BEEP_HZ, LISTENING_BEEP_MS);
       deps.onStatusChange?.(t('ask.listening'));
 
@@ -148,9 +152,11 @@ export class AskManager {
       deps.onFallbackNeeded?.();
       return { kind: 'failed', message, error: err };
     } finally {
-      this.busy = false;
+      // Only the active call may clear state; an aborted call must not clobber a newer ask.
       if (this.activeController === controller) {
+        this.busy = false;
         this.activeController = null;
+        this.activeSpeech = null;
       }
     }
   }
@@ -199,9 +205,11 @@ export class AskManager {
       deps.say(message);
       return { kind: 'failed', message, error: err };
     } finally {
-      this.busy = false;
+      // Only the active call may clear state; an aborted call must not clobber a newer ask.
       if (this.activeController === controller) {
+        this.busy = false;
         this.activeController = null;
+        this.activeSpeech = null;
       }
     }
   }
@@ -214,6 +222,8 @@ export class AskManager {
       this.activeController.abort();
       this.activeController = null;
     }
+    this.activeSpeech?.cancelListen?.();
+    this.activeSpeech = null;
     this.busy = false;
   }
 }

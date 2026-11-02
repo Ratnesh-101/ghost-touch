@@ -48,7 +48,7 @@ describe('askErrorMessage', () => {
   it('maps ListenError reasons to translated failure lines offering text box', () => {
     expect(askErrorMessage(new ListenError('no-speech'))).toBe(t('ask.errorNoSpeech'));
     expect(askErrorMessage(new ListenError('denied'))).toBe(t('ask.errorDenied'));
-    expect(askErrorMessage(new ListenError('timeout'))).toBe(t('ask.errorTimeout'));
+    expect(askErrorMessage(new ListenError('timeout'))).toBe(t('ask.errorListenTimeout'));
     expect(askErrorMessage(new ListenError('unsupported'))).toBe(t('ask.errorUnsupported'));
     expect(askErrorMessage(new ListenError('failed'))).toBe(t('ask.errorFailed'));
   });
@@ -193,7 +193,7 @@ describe('AskManager failures and text fallback offer', () => {
     });
 
     expect(outcome.kind).toBe('failed');
-    expect(spoken).toEqual([t('ask.errorTimeout')]);
+    expect(spoken).toEqual([t('ask.errorListenTimeout')]);
     expect(fallbackOffered).toBe(true);
     expect(manager.isBusy()).toBe(false);
   });

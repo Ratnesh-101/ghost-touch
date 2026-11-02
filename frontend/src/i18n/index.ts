@@ -30,6 +30,7 @@ const en: Record<string, string> = {
   'ask.errorNoSpeech': 'No speech heard. You can type your question instead.',
   'ask.errorDenied': 'Microphone permission denied. You can type your question instead.',
   'ask.errorTimeout': 'Request timed out. You can type your question instead.',
+  'ask.errorListenTimeout': "I didn't hear anything. You can type your question instead.",
   'ask.errorServer': 'Server error. You can type your question instead.',
   'ask.errorOffline': 'Network error. Check your connection or type your question.',
   'ask.errorFailed': 'Could not hear your question. You can type your question instead.',

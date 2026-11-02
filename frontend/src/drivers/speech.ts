@@ -22,6 +22,10 @@ export interface SpeechDriver {
   speak(text: string, lang?: string): void;
   /** Listen for one phrase. Rejects with a `ListenError`. */
   listen(lang?: string): Promise<string>;
+  /** Cancel anything being spoken without starting new speech. */
+  stopSpeaking?(): void;
+  /** Abort a listen in progress (it rejects); no-op when idle. */
+  cancelListen?(): void;
   readonly canSpeak: boolean;
   readonly canListen: boolean;
 }
@@ -107,6 +111,14 @@ export class WebSpeechDriver implements SpeechDriver {
     utterance.rate = SPEECH_RATE;
     utterance.lang = lang;
     synth.speak(utterance as never);
+  }
+
+  stopSpeaking(): void {
+    this.host.synth?.cancel();
+  }
+
+  cancelListen(): void {
+    this.endActive?.();
   }
 
   listen(lang: string = DEFAULT_SPEECH_LANG): Promise<string> {
