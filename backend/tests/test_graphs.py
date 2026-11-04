@@ -105,6 +105,72 @@ def test_huge_exponents_cannot_hang_or_blow_up() -> None:
     assert math.isnan(value("9^9^9", 0.0))
 
 
+@pytest.mark.parametrize(
+    "text",
+    ["y", "z", "foo", "bar", "ans", "theta", "a", "b", "val"],
+)
+def test_names_not_x_or_known_constants_are_rejected(text: str) -> None:
+    with pytest.raises(ExpressionError):
+        parse_expression(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["x.foo", "x.__class__", "math.sin(x)", "x.bar", "a.b", "(x).real"],
+)
+def test_attribute_access_is_rejected(text: str) -> None:
+    with pytest.raises(ExpressionError):
+        parse_expression(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "eval(x)",
+        "exec(x)",
+        "print(x)",
+        "open('f')",
+        "system('ls')",
+        "pow(x, 2)",
+        "round(x)",
+        "floor(x)",
+        "ceil(x)",
+        "min(x, 1)",
+        "max(x, 1)",
+        "sin(eval(x))",
+    ],
+)
+def test_function_calls_outside_whitelist_are_rejected(text: str) -> None:
+    with pytest.raises(ExpressionError):
+        parse_expression(text)
+
+
+def test_very_long_input_is_rejected() -> None:
+    with pytest.raises(ExpressionError):
+        parse_expression("x" * 201)
+    with pytest.raises(ExpressionError):
+        parse_expression("1 + " * 70 + "x")
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["nan", "inf", "-inf", "+inf", "Infinity", "-Infinity", "NaN", "-nan"],
+)
+def test_nan_and_inf_are_rejected(text: str) -> None:
+    with pytest.raises(ExpressionError):
+        parse_expression(text)
+
+
+def test_division_by_zero_and_huge_exponents_evaluate_to_nan() -> None:
+    assert math.isnan(value("x/0", 1.0))
+    assert math.isnan(value("1/0", 0.0))
+    assert math.isnan(value("0/0", 0.0))
+    assert math.isnan(value("x^100", 2.0))
+    assert math.isnan(value("2^50", 0.0))
+    assert math.isnan(value("2^13", 0.0))
+    assert math.isnan(value("2^-13", 0.0))
+
+
 @settings(max_examples=300, deadline=None)
 @given(st.text(max_size=300))
 def test_any_text_either_parses_or_raises_expression_error(text: str) -> None:
@@ -310,6 +376,34 @@ def test_hostile_equation_from_the_model_falls_back_safely() -> None:
     data = _post(TestClient(app)).json()
 
     assert data["mode"] == "ai"  # the traced polyline is kept
+    assert len(data["scene"]["polylines"][0]["points"]) == len(sine_scene().polylines[0].points)
+
+
+@pytest.mark.parametrize(
+    "bad_equation",
+    [
+        None,
+        "",
+        "eval(x)",
+        "x.__class__",
+        "foo(x)",
+        "1/0",
+        "nan",
+        "inf",
+        "x" * 201,
+    ],
+)
+def test_pipeline_falls_back_to_traced_polyline_when_equation_fails(
+    bad_equation: str | None,
+) -> None:
+    traced = sine_scene()
+    spec = dict(GOOD_SPEC, equation=bad_equation)
+    provider = FakeProvider("gemini", [traced.model_dump_json(), json.dumps(spec)])
+    app.dependency_overrides[get_provider_chain] = lambda: ProviderChain([provider])
+
+    data = _post(TestClient(app)).json()
+
+    assert data["mode"] == "ai"
     assert len(data["scene"]["polylines"][0]["points"]) == len(sine_scene().polylines[0].points)
 
 

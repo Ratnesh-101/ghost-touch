@@ -15,7 +15,16 @@ from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
-from fastapi import Depends, FastAPI, File, HTTPException, Request, Response, UploadFile
+from fastapi import (
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    File,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+)
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.ask import AskRequest, AskResponse, answer_question
@@ -25,7 +34,13 @@ from app.limits import MULTIPART_OVERHEAD, RequestGuardMiddleware, default_rate_
 from app.raw_mode import RawModeError, build_raw_scene
 from app.scene_cache import image_key, scene_cache
 from app.validate import ValidationResult, validate_scene
-from app.vision import ProviderChain, VisionError, build_chain_from_env
+from app.vision import (
+    GeminiProvider,
+    ProviderChain,
+    VisionError,
+    VisionProvider,
+    build_chain_from_env,
+)
 from app.vision.prompts import build_prompt
 
 logger = logging.getLogger(__name__)
@@ -63,6 +78,68 @@ def get_provider_chain() -> ProviderChain:
     if _cached_chain is None:
         _cached_chain = build_chain_from_env()
     return _cached_chain
+
+
+def get_improve_provider() -> VisionProvider | None:
+    """Dependency provider for the asynchronous improve-pass vision provider (Lane B).
+
+    Returns a GeminiProvider configured with GEMINI_IMPROVE_MODEL (opt-in: unset means off,
+    because each scan would otherwise spend a second Gemini request on the free tier)
+    if GEMINI_API_KEY is present and the model is not disabled ('none', 'off', 'false', '0').
+    Can be overridden in tests via app.dependency_overrides[get_improve_provider].
+    """
+    model = os.environ.get("GEMINI_IMPROVE_MODEL", "").strip()
+    if not model or model.lower() in ("none", "off", "false", "0"):
+        return None
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        return None
+    return GeminiProvider(api_key=api_key, model=model)
+
+
+async def run_improve_pass(
+    improve_provider: VisionProvider,
+    image_bytes: bytes,
+    content_type: str,
+    cache_key: str,
+    validator: Callable[[str | dict[str, Any]], ValidationResult],
+) -> None:
+    """Run stronger model in a non-blocking background task (Lane B).
+
+    If it returns a valid scene, stores it in the cache under the same image hash so
+    subsequent requests get the improved scene. Never fails or delays the primary response,
+    and never caches failures.
+    """
+    try:
+        timeout = float(os.environ.get("IMPROVE_TIMEOUT_SECONDS", "30.0"))
+        if timeout <= 0:
+            timeout = 30.0
+    except ValueError:
+        timeout = 30.0
+
+    try:
+        logger.info("Starting background improve pass using provider '%s'", improve_provider.name)
+        raw_text = await improve_provider.extract(
+            image_bytes,
+            content_type,
+            build_prompt(),
+            timeout=timeout,
+        )
+        val_result = validator(raw_text)
+        if val_result.scene is not None:
+            improved_payload = {
+                "scene": val_result.scene.model_dump(),
+                "mode": "ai",
+            }
+            scene_cache.put(cache_key, improved_payload, improve_provider.name)
+            logger.info("Background improve pass succeeded; updated cache for %s", cache_key)
+        else:
+            logger.info(
+                "Background improve pass returned invalid scene; discarded (%s)",
+                val_result.errors,
+            )
+    except Exception as exc:
+        logger.warning("Background improve pass failed: %s", exc)
 
 
 def validate_env_settings() -> None:
@@ -144,11 +221,13 @@ async def health() -> dict[str, bool]:
 async def process_scene(
     request: Request,
     response: Response,
+    background_tasks: BackgroundTasks,
     image: Annotated[UploadFile, File(...)],
     chain: Annotated[ProviderChain, Depends(get_provider_chain)],
     validator: Annotated[
         Callable[[str | dict[str, Any]], ValidationResult], Depends(get_validator)
     ],
+    improve_provider: Annotated[VisionProvider | None, Depends(get_improve_provider)] = None,
 ) -> dict[str, Any]:
     """Convert an uploaded diagram image into a validated DiagramScene.
 
@@ -385,6 +464,15 @@ async def process_scene(
     if payload is not None:
         scene_cache.put(cache_key, payload, provider_state["name"])
         response.headers["X-Scene-Cache"] = "MISS"
+        if improve_provider is not None:
+            background_tasks.add_task(
+                run_improve_pass,
+                improve_provider=improve_provider,
+                image_bytes=image_bytes,
+                content_type=content_type,
+                cache_key=cache_key,
+                validator=validator,
+            )
         return payload
     return await run_raw_mode(fallback_reason, provider_state["name"])
 
