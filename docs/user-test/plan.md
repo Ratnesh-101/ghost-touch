@@ -11,8 +11,15 @@ Find out whether a blind or low-vision student can understand a diagram with Gho
 - Tell everyone the app is an unfinished prototype and they can stop at any time. Keep notes anonymous (P1, P2, ...). No personal data in the repo; do not store phone numbers or contact details in files.
 - If a participant is uncomfortable with vibration or sound, stop immediately.
 
-## Kit
+## Kit & Testing Documents
 2 charged Android phones (Nord CE6 and a cheap one), printed sample diagrams, offline samples in the app, a Bluetooth speaker if the room is noisy. A short written card for the facilitator with the explore gesture (below).
+
+### Ready-to-Use Kit Documents
+- **Consent & Assent:** `docs/user-test/consent-script.md` (spoken consent script for participants and guardians; no faces, voluntary).
+- **Task Protocol:** `docs/user-test/task-sheet.md` (verbatim facilitator wording, tasks 1–5, time boxes, and fail-safes).
+- **Results & Write-up Sheet:** `docs/user-test/results-template.md` (per-participant recording table, spoken 5-point survey, and STEMergent aggregate summary).
+- **School Outreach:** `docs/user-test/outreach-email-draft.md` (polite draft for school administration with 30-second prototype video attachment).
+- **Facilitator Checklist:** `docs/user-test/facilitator-checklist.md` (phone setup, TalkBack testing, offline samples, and teardown).
 
 ## Teaching the gesture (first 2 minutes)
 With TalkBack on, Explore uses: **double-tap and hold, then drag** (the app says so on entry; the virtual finger starts at the centre). Show it once on the facilitator's hand, then let the student try on the triangle. Note whether the student needed more than one explanation. With TalkBack off, the same gesture works, and a direct touch anywhere also works.
