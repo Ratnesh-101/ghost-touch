@@ -22,7 +22,7 @@ services:
         sync: false
       # Non-secret service configuration with defaults
       - key: GEMINI_MODEL
-        value: gemini-3.8-flash
+        value: gemini-3.5-flash-lite
       # off | minimal | low | medium | high | default. "off" (thinking_budget=0) is rejected by
       # some models; the backend retries without it, but "minimal" avoids the wasted call.
       - key: GEMINI_THINKING

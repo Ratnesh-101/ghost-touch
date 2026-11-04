@@ -185,7 +185,7 @@ On **2026-11-02**, Kiro reached its free usage credit allocation while performin
 
 All claims in this document are supported by automated test suites in the repository:
 - **Frontend:** 249 unit and property tests passing across 25 test files (`npm --prefix frontend test`).
-- **Backend:** 280 tests passing (`backend/.venv/Scripts/python -m pytest backend`, run 2026-11-03 after lanes A and C merged).
+- **Backend:** 337 tests passing (`backend/.venv/Scripts/python -m pytest backend`, run 2026-11-04 after lanes A, B, C and F merged).
 - **Formatting & Linting:** Strict TypeScript checking (`tsc -p frontend --noEmit`) and Ruff verification (`ruff check backend`, `ruff format --check backend`) run clean with 0 errors.
 
 Ghost Touch demonstrates that combining spec-driven architecture, property-based testing, and disciplined multi-agent orchestration yields robust, accessible software engineered for real-world impact.
