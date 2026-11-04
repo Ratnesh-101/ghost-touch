@@ -108,8 +108,13 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 **User Story:** As a student, I want my diagrams saved on my phone, so that I can revisit them offline.
 
 #### Acceptance Criteria
-1. WHEN a scene is loaded successfully THEN the system SHALL save it locally with its thumbnail and a spoken title.
-2. WHILE offline THEN the system SHALL allow exploring saved diagrams.
+1. WHEN a scene is loaded successfully THEN the system SHALL save it locally with its thumbnail and a spoken title derived from the scene (the scene's title if present, otherwise the scene kind followed by the first labelled point names in the active language).
+2. WHILE offline THEN the system SHALL allow exploring saved diagrams without making any network call.
+3. WHEN the user opens the Saved Diagrams list THEN the system SHALL read out each entry's title in the list order, and SHALL let the user open or delete any entry by touch or by voice.
+4. WHEN a saved diagram is opened THEN the system SHALL go to the Explore screen without contacting the backend.
+5. THE system SHALL keep at most 20 saved diagrams; WHEN a new diagram would exceed that cap THEN the system SHALL evict the oldest unpinned entry before saving. IF all existing entries are pinned THEN the new diagram SHALL NOT be saved and the system SHALL say so.
+6. WHEN the user pins a saved diagram THEN the system SHALL mark it as protected from automatic eviction.
+7. WHEN local storage is unavailable or full THEN the system SHALL continue to work, SHALL NOT crash, and SHALL speak a brief explanation.
 
 ### Requirement 12: Accessibility and theme
 **User Story:** As a blind or low-vision user, I want the whole app to work with TalkBack and high contrast, so that I can use it independently.
