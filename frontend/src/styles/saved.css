@@ -1,0 +1,167 @@
+/**
+ * Styles for Saved Diagrams screen (Task 13, Requirement 11).
+ *
+ * Implements accessible, high-contrast dark theme list view.
+ * Every interactive target meets or exceeds 48×48 CSS px (Requirement 12.1).
+ */
+
+.gt-saved {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-lg, 16px);
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--gt-space-xl, 24px) var(--gt-space-md, 16px) var(--gt-space-3xl, 48px);
+  min-height: 100dvh;
+  box-sizing: border-box;
+}
+
+.gt-saved__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--gt-space-sm, 12px);
+}
+
+.gt-saved__heading {
+  margin: 0;
+  font-size: var(--gt-text-2xl, 1.75rem);
+  font-weight: 800;
+  color: var(--gt-line, #39ff88);
+  text-shadow: 0 0 14px var(--gt-green-glow, rgba(57, 255, 136, 0.4));
+  letter-spacing: -0.01em;
+}
+
+.gt-saved__back {
+  min-width: var(--gt-target, 48px);
+  min-height: var(--gt-target, 48px);
+  padding: 10px 16px;
+  font-size: var(--gt-text-base, 1rem);
+  font-weight: 600;
+  border-radius: var(--gt-radius-md, 8px);
+  border: 1px solid var(--gt-border-subtle, #30363d);
+  background: var(--gt-surface, #14141e);
+  color: var(--gt-text, #eafff5);
+  cursor: pointer;
+}
+
+.gt-saved__status-row {
+  background: var(--gt-surface, #14141e);
+  border: 1px solid var(--gt-border-subtle, #30363d);
+  border-radius: var(--gt-radius-md, 8px);
+  padding: 10px 14px;
+}
+
+.gt-saved__status {
+  font-size: var(--gt-text-base, 1rem);
+  line-height: 1.45;
+  color: var(--gt-text, #eafff5);
+  margin: 0;
+}
+
+.gt-saved__empty {
+  font-size: var(--gt-text-lg, 1.15rem);
+  color: var(--gt-text-muted, #a8c5b5);
+  text-align: center;
+  margin: 40px 0;
+}
+
+.gt-saved__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-md, 16px);
+}
+
+.gt-saved__item {
+  background: var(--gt-surface, #14141e);
+  border: 1px solid var(--gt-border-subtle, #30363d);
+  border-radius: var(--gt-radius-lg, 12px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--gt-shadow-card, 0 4px 12px rgba(0, 0, 0, 0.5));
+}
+
+.gt-saved__thumb {
+  width: 100%;
+  max-height: 140px;
+  object-fit: contain;
+  background: #0b0b10;
+  border-radius: var(--gt-radius-sm, 6px);
+  border: 1px solid #222;
+}
+
+.gt-saved__title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.gt-saved__title {
+  font-size: var(--gt-text-lg, 1.15rem);
+  font-weight: 700;
+  color: var(--gt-text, #eafff5);
+  word-break: break-word;
+}
+
+.gt-saved__pin-badge {
+  font-size: 1rem;
+  color: var(--gt-line, #39ff88);
+}
+
+.gt-saved__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.gt-saved__btn {
+  min-width: var(--gt-target, 48px);
+  min-height: var(--gt-target, 48px);
+  border-radius: var(--gt-radius-md, 8px);
+  font-size: var(--gt-text-base, 1rem);
+  font-weight: 600;
+  padding: 10px 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gt-saved__btn--open {
+  background: linear-gradient(180deg, #183324 0%, #12241b 100%);
+  border: 2px solid var(--gt-line, #39ff88);
+  color: var(--gt-text, #eafff5);
+  box-shadow: 0 0 10px var(--gt-green-glow, rgba(57, 255, 136, 0.3));
+}
+
+.gt-saved__btn--pin {
+  background: var(--gt-surface, #14141e);
+  border: 1px solid var(--gt-border-subtle, #30363d);
+  color: var(--gt-text, #eafff5);
+}
+
+.gt-saved__btn--delete {
+  background: #241418;
+  border: 1px solid #da3633;
+  color: #ff7b72;
+}
+
+.gt-saved__btn--confirm {
+  background: #3d1217;
+  border: 2px solid #f85149;
+  color: #ff7b72;
+  font-weight: 700;
+}
+
+.gt-saved__btn--cancel {
+  background: var(--gt-surface, #14141e);
+  border: 1px solid var(--gt-border-subtle, #30363d);
+  color: var(--gt-text, #eafff5);
+}
