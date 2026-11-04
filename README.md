@@ -79,15 +79,15 @@ uvicorn app.main:app --app-dir backend --reload --port 8000
 
 ## Tests
 
-As of 2026-11-04, 313 frontend tests and 337 backend tests pass.
+As of 2026-11-04, 473 frontend tests and 347 backend tests pass.
 
 ```bash
-# Frontend: unit and fast-check property tests (313 tests)
+# Frontend: unit and fast-check property tests (473 tests)
 npm --prefix frontend test
 npm --prefix frontend exec -- tsc -p frontend --noEmit
 npm --prefix frontend run build
 
-# Backend: pytest and Hypothesis property tests (337 tests)
+# Backend: pytest and Hypothesis property tests (347 tests)
 backend/.venv/Scripts/python -m pytest backend
 backend/.venv/Scripts/python -m ruff check backend
 backend/.venv/Scripts/python -m ruff format --check backend

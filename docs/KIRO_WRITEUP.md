@@ -145,15 +145,15 @@ A core judging pillar of Kiroween is technological rigor. Ghost Touch uses **fas
 | **P11** | Bar pitch order | `frontend/src/core/pitch.ts` | Req 6.2 | In a bar chart, bars with larger values are never assigned a lower frequency than bars with smaller values. |
 | **P12** | Explore gesture pipeline | `frontend/tests/explore.p12.test.ts` | Req 13.2 | End-to-end integration: synthetic pointer streams through `hitTest` → `step` → `runEffects` produce correct multi-modal effects. |
 | **P13** | Rejection of non-STEM labels | `backend/app/validate.py` | Req 3.6 | Labels consisting purely of visual descriptions ("blue polygon") are rejected; STEM terminology ("hypotenuse", "vertex A") is accepted. |
-| **P14** | Serialise round-trip | `frontend/src/core/savedDiagrams.ts` (spec) | Req 11.1 | `deserialise(serialise(entry))` returns an identical `DiagramScene` for any valid scene (coordinates preserved, kind preserved, no data loss). |
-| **P15** | Eviction invariants | `frontend/src/core/savedDiagrams.ts` (spec) | Req 11.5, 11.6 | Saves at cap (20 entries) never exceed cap; pinned entries are immune to eviction; removed entry is always the oldest unpinned one. |
+| **P14** | Serialise round-trip | `frontend/src/core/savedDiagrams.ts` (spec by Kiro; tests by Antigravity) | Req 11.1 | `deserialise(serialise(entry))` returns an identical `DiagramScene` for any valid scene (coordinates preserved, kind preserved, no data loss). |
+| **P15** | Eviction invariants | `frontend/src/core/savedDiagrams.ts` (spec by Kiro; tests by Antigravity) | Req 11.5, 11.6 | Saves at cap (20 entries) never exceed cap; pinned entries are immune to eviction; removed entry is always the oldest unpinned one. |
 | **P16** | Correct edit invariants | `frontend/src/core/correct.ts` | Req 9.2, 9.3 | Any sequence of valid edits on a valid scene yields a scene that preserves invariants (unique IDs, no dangling segment references, coords in [0, 1]) or is rejected. |
 | **P17** | Undo/Redo round-trip | `frontend/src/core/correct.ts` | Req 9.2 | Undo after any edit restores the previous scene exactly; redo re-applies it without drift. |
 
 ### 5.1 Authorship and Attribution Disclosure
 We state plainly:
 - **Properties P1 through P13** were designed and primarily implemented by **Kiro** (with follow-up tests P10 and P12 completed by Antigravity under Kiro pause rules).
-- **Properties P14 and P15** were specified and drafted by **Kiro** in `design.md` as part of Task 13 (Saved Diagrams); Task 13 implementation is currently in progress by autonomous agents (no final review filed yet in `docs/reviews/`).
+- **Properties P14 and P15** were specified and drafted by **Kiro** in `design.md` as part of Task 13 (Saved Diagrams); Task 13 was completed by Antigravity agents after Kiro's credits ran out (reviews: `docs/reviews/agy-savedcore.md` and `docs/reviews/agy-savedui.md`). The agents wrote the final `core/savedDiagrams.ts`, the P14 and P15 property tests, the IndexedDB driver, the Saved screen and the wiring. While finishing Kiro's draft their tests found four real defects in it: `applyAdd` evicted an entry when merely updating an existing id at the cap, `deserialise` rejected JSON strings, `IDBDiagramStore` leaked its database connection on transaction errors, and a `NaN` timestamp was accepted.
 - **Properties P16 and P17**, the pure module `frontend/src/core/correct.ts`, the frontend screen `screens/Correct.tsx`, `flow/correct.ts`, and the backend endpoint `POST /api/v1/validate` were written by **Antigravity** at the owner's explicit direction after Kiro's credits ran out, **NOT by Kiro** (verified in `docs/reviews/agy-correct.md` and `docs/reviews/agy-validate.md`).
 
 ---
@@ -234,7 +234,7 @@ On **2026-11-02**, Kiro reached its free usage credit allocation while performin
 3. **Review Role Delegation:** Because the automated Kiro review hook could not trigger in the desktop environment without credits, Claude Code conducted independent code reviews using the protocol in `.kiro/steering/review.md`.
 4. **Explicit Owner Delegation for Subsequent Tasks:**
    - **Teacher Correct Mode (Task 11):** At the owner's explicit direction (2026-11-04), Antigravity built `core/correct.ts`, property tests P16/P17, `screens/Correct.tsx`, and backend `POST /api/v1/validate`. This work is transparently attributed to Antigravity, not Kiro.
-   - **Saved Diagrams (Task 13):** Kiro authored the specification, data model (`SavedDiagram`), and properties P14/P15 in `design.md`. Implementation of the pure core functions, IndexedDB driver, and SavedDiagrams screen is currently in progress by autonomous agents.
+   - **Saved Diagrams (Task 13):** Kiro authored the specification, data model (`SavedDiagram`), and properties P14/P15 in `design.md`. The pure core functions, IndexedDB driver, SavedDiagrams screen and wiring were completed by Antigravity agents (not Kiro) after its credits ran out, and their tests caught four real bugs in Kiro's first draft (see section 5).
    - **Voice & Accessibility (Tasks 12 & 14):** Localization (Hindi/Gujarati) and accessibility polish (creature mascot, WCAG AAA tokens) were built in parallel agent lanes (lanes D and G).
 
 ---
@@ -242,8 +242,8 @@ On **2026-11-02**, Kiro reached its free usage credit allocation while performin
 ## 9. Verification & Proof
 
 All claims in this document are supported by automated test suites in the repository:
-- **Frontend:** 418 unit and property tests passing across 38 test files (`npm --prefix frontend test`).
-- **Backend:** 346 tests passing, 1 skipped (`backend/.venv/Scripts/python -m pytest backend`).
+- **Frontend:** 473 unit and property tests passing across 42 test files (`npm --prefix frontend test`), on TypeScript 7, React 19, Vite 8 and Vitest 5.
+- **Backend:** 347 tests passing (`backend/.venv/Scripts/python -m pytest backend`).
 - **Formatting & Type-Checking:** Strict TypeScript checking (`npm --prefix frontend exec -- tsc -p frontend --noEmit`) and Ruff verification (`ruff check backend`, `ruff format --check backend`) run clean with 0 errors.
 - **Submission Day Verification:** `[FILL: run counts on submission day]`
 

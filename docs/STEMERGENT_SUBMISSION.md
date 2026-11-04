@@ -53,7 +53,7 @@ Each tool's work is logged in `docs/BUILD_LOG.md`. Reviews are in `docs/reviews/
 | **Complete Screen Flow:** Accessible Start screen, Capture screen (camera photo, file chooser, PDF first-page rendering up to 1600 px), Explore screen (relative cursor, glowing creature theme, centre reference tick, axis crossing announcements, 48px+ touch targets), and Ask screen (voice input + text fallback). | |
 | **Robust Multi-Provider Backend:** Pipeline with Google Gemini primary, OpenAI and Nebius fallbacks, OpenCV Canny edge detection (Raw Mode floor), ASGI rate limiting and payload validation, and facts lookup fallback for Q&A. | |
 | **Deploy Checklist:** Render blueprint and Vercel deployment configurations with CORS parsing and step-by-step checklist in `docs/DEPLOY.md`. | |
-| **Automated Verification:** 418 frontend tests passing across 38 files; 346 backend tests passing (1 skipped); `tsc --noEmit`, `ruff check`, and `ruff format --check` all clean. | |
+| **Automated Verification:** 473 frontend tests passing across 42 files; 347 backend tests passing; `tsc --noEmit`, `ruff check`, and `ruff format --check` all clean. | |
 | **TalkBack Compatibility:** Pass-through gesture (double-tap-and-hold then drag) verified working on hardware (OnePlus Nord CE6). | |
 
 ## 8. What is next
