@@ -1,8 +1,9 @@
-"""FastAPI application and routes for Ghost Touch (Task 8, F2).
+"""FastAPI application and routes for Ghost Touch (Task 8, F2, Lane T11b).
 
 Wires CORS, liveness probe (/api/v1/health), the scene pipeline
 (POST /api/v1/scene) with Gemini primary, OpenAI and Nebius fallbacks, and OpenCV Raw Mode,
-and the question answering endpoint (POST /api/v1/ask).
+the question answering endpoint (POST /api/v1/ask),
+and diagram scene validation (POST /api/v1/validate).
 """
 
 from __future__ import annotations
@@ -26,6 +27,7 @@ from fastapi import (
     UploadFile,
 )
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 from app.ask import AskRequest, AskResponse, answer_question
 from app.graphs.route import graph_scene_from_chain
@@ -33,6 +35,7 @@ from app.image_utils import validate_image_bytes
 from app.limits import MULTIPART_OVERHEAD, RequestGuardMiddleware, default_rate_limits
 from app.raw_mode import RawModeError, build_raw_scene
 from app.scene_cache import image_key, scene_cache
+from app.schema import DiagramScene
 from app.validate import ValidationResult, validate_scene
 from app.vision import (
     GeminiProvider,
@@ -52,6 +55,7 @@ ALLOWED_MIME_TYPES = {
 }
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
 MAX_ASK_BODY_SIZE = 512 * 1024  # a scene plus a 500-character question is far smaller
+MAX_VALIDATE_BODY_SIZE = 512 * 1024  # scene JSON for teacher correct validation
 RAW_MODE_RESERVE_SECONDS = 2.5  # Reserve inside 15s total budget for Raw Mode fallback
 
 _cached_chain: ProviderChain | None = None
@@ -218,6 +222,7 @@ app.add_middleware(
     body_limits={
         "/api/v1/scene": MAX_UPLOAD_SIZE + MULTIPART_OVERHEAD,
         "/api/v1/ask": MAX_ASK_BODY_SIZE,
+        "/api/v1/validate": MAX_VALIDATE_BODY_SIZE,
     },
     rate_limits=default_rate_limits(),
 )
@@ -507,3 +512,35 @@ async def ask_question_route(
     Uses vision/language provider completion with fallback to deterministic facts lookup.
     """
     return await answer_question(request, chain)
+
+
+class ValidateRequest(BaseModel):
+    """Request model for POST /api/v1/validate (Teacher Correct mode)."""
+
+    scene: dict[str, Any]
+
+
+class ValidateResponse(BaseModel):
+    """Response model for POST /api/v1/validate."""
+
+    ok: bool
+    scene: DiagramScene | None = None
+    errors: list[str] = Field(default_factory=list)
+
+
+@app.post("/api/v1/validate", response_model=ValidateResponse)
+async def validate_scene_route(
+    request: ValidateRequest,
+    validator: Annotated[
+        Callable[[str | dict[str, Any]], ValidationResult], Depends(get_validator)
+    ],
+) -> ValidateResponse:
+    """Validate and normalize a diagram scene for Teacher Correct mode (Req 9.3)."""
+    val_result = validator(request.scene)
+    if val_result.scene is not None:
+        return ValidateResponse(ok=True, scene=val_result.scene, errors=[])
+    return ValidateResponse(
+        ok=False,
+        scene=None,
+        errors=val_result.errors if val_result.errors else ["Invalid scene"],
+    )
