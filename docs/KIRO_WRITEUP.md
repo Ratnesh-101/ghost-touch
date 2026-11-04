@@ -184,7 +184,7 @@ On **2026-11-02**, Kiro reached its free usage credit allocation while performin
 ## 9. Verification & Proof
 
 All claims in this document are supported by automated test suites in the repository:
-- **Frontend:** 249 unit and property tests passing across 25 test files (`npm --prefix frontend test`).
+- **Frontend:** 313 unit and property tests passing across 30 test files (`npm --prefix frontend test`).
 - **Backend:** 337 tests passing (`backend/.venv/Scripts/python -m pytest backend`, run 2026-11-04 after lanes A, B, C and F merged).
 - **Formatting & Linting:** Strict TypeScript checking (`tsc -p frontend --noEmit`) and Ruff verification (`ruff check backend`, `ruff format --check backend`) run clean with 0 errors.
 
