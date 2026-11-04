@@ -115,3 +115,9 @@ scripts/agy-run.sh path/to/prompt.txt my-run-name
 ```
 Read #tech.md and #review. Apply docs/kiro-evidence/spec-change-req13.md to the spec, then fix the P1 flake described in docs/kiro-evidence/pbt-p1-flake.md (make the generator produce points that are distinct after projection), then replace the TEMP stubs listed in docs/handoffs/KIRO-PAUSE.md with real core modules and continue with the remaining Kiro-owned tasks in tasks.md.
 ```
+
+**Status update 2026-11-04 (Claude Code)**
+- Node 24 and Python 3.11 reinstalled; `scripts/setup-dev.ps1` restores the environment; NVIDIA provider removed (chain is Gemini, OpenAI, Nebius, Raw Mode).
+- Merged and pushed to `origin/main`: repo bots (C), deploy prep (A), graph hardening (B), voice and languages (D), submission docs (F), user-test kit (K). Suites: 313 frontend, 337 backend, all clean. See `docs/BUILD_LOG.md` and `docs/reviews/agy-*.md`.
+- Still needs the owner: phone test of everything (TalkBack on/off), Render and Vercel dashboard steps (`docs/DEPLOY.md`, "You must do these yourself"), `backend/.env` keys, the first GitHub Actions results for the new workflows, Hindi/Gujarati native review, BPA session, `[FILL]` markers in `docs/STEMERGENT_SUBMISSION.md`.
+- For Kiro: `docs/handoffs/for-kiro.md` (tick tasks 7/10/13/16, remove the CI retry, record the P1 outcome, confirm hooks fire).
