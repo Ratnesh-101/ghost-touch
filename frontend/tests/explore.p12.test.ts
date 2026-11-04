@@ -27,7 +27,7 @@ import {
   type EngineState,
   type PointerHistory,
 } from '../src/flow/explore';
-import { runEffects, type Drivers } from '../src/drivers';
+import { MemoryDiagramStore, runEffects, type Drivers } from '../src/drivers';
 import { pitchForValue } from '../src/core/pitch';
 import { t } from '../src/i18n';
 
@@ -52,6 +52,7 @@ function createMockDrivers(): Drivers {
       canSpeak: true,
       canListen: true,
     },
+    diagramStore: new MemoryDiagramStore(),
   };
 }
 

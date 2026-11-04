@@ -34,7 +34,7 @@ import {
   pushExploreEntry,
 } from '../src/drivers/navigation';
 import { t } from '../src/i18n';
-import { runEffects } from '../src/drivers';
+import { MemoryDiagramStore, runEffects } from '../src/drivers';
 
 describe('Centre reference tick (checkCentreTick)', () => {
   it('fires on a hold at the centre (isNewHold=true, dist <= 24)', () => {
@@ -628,6 +628,7 @@ describe('processPointerMove pipeline', () => {
       haptics: { supported: true, lastResult: null, vibrate: vi.fn(), stop: vi.fn() },
       audio: { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), playEarcon: vi.fn(), state: 'running' as const },
       speech: { speak: vi.fn(), listen: vi.fn(), canSpeak: true, canListen: true },
+      diagramStore: new MemoryDiagramStore(),
     };
     runEffects(result.effects, mockDrivers);
     expect(mockDrivers.haptics.vibrate).toHaveBeenCalledWith([50, 90, 50]);
@@ -779,6 +780,7 @@ describe('Pointer cancellation and lift handling (finding 8)', () => {
       haptics: { supported: true, lastResult: null, vibrate: vi.fn(), stop: vi.fn() },
       audio: { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), playEarcon: vi.fn(), state: 'running' as const },
       speech: { speak: vi.fn(), listen: vi.fn(), canSpeak: true, canListen: true },
+      diagramStore: new MemoryDiagramStore(),
     };
     runEffects(effects, mockDrivers);
     expect(mockDrivers.haptics.vibrate).toHaveBeenCalledWith(0);

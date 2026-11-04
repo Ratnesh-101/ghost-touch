@@ -16,7 +16,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import mascotSvg from '../public/mascot/frankenstein-phone.svg?raw';
 import { Mascot } from '../src/components/Mascot';
-import type { Drivers } from '../src/drivers';
+import { MemoryDiagramStore, type Drivers } from '../src/drivers';
 import captureSource from '../src/screens/Capture.tsx?raw';
 import exploreSource from '../src/screens/Explore.tsx?raw';
 import { Start } from '../src/screens/Start';
@@ -26,6 +26,7 @@ const dummyDrivers: Drivers = {
   haptics: { supported: true, lastResult: null, vibrate: vi.fn(), stop: vi.fn() },
   audio: { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), playEarcon: vi.fn(), state: 'locked' },
   speech: { speak: vi.fn(), listen: vi.fn(), canSpeak: true, canListen: true },
+  diagramStore: new MemoryDiagramStore(),
 };
 
 describe('creature mascot component (Mascot.tsx & Task 4)', () => {

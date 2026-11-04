@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Drivers } from '../src/drivers';
+import { MemoryDiagramStore, type Drivers } from '../src/drivers';
 import {
   CONFIRM_VIBRATION_MS,
   capturePrompt,
@@ -25,6 +25,7 @@ function fakeDrivers(vibrationSupported: boolean): { drivers: Drivers; calls: st
       canSpeak: true,
       canListen: true,
     },
+    diagramStore: new MemoryDiagramStore(),
   };
   return { drivers, calls, spoken };
 }

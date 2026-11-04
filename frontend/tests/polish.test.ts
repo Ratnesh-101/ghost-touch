@@ -7,7 +7,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import type { Drivers } from '../src/drivers';
+import { MemoryDiagramStore, type Drivers } from '../src/drivers';
 import { Capture } from '../src/screens/Capture';
 import { Explore } from '../src/screens/Explore';
 import { Start } from '../src/screens/Start';
@@ -16,6 +16,7 @@ const drivers: Drivers = {
   haptics: { supported: true, lastResult: null, vibrate: vi.fn(), stop: vi.fn() },
   audio: { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), playEarcon: vi.fn(), state: 'locked' },
   speech: { speak: vi.fn(), listen: vi.fn(), canSpeak: true, canListen: true },
+  diagramStore: new MemoryDiagramStore(),
 };
 
 describe('Start screen polish', () => {
@@ -32,10 +33,16 @@ describe('Start screen polish', () => {
 describe('Capture screen polish', () => {
   it('renders primary, secondary, and sample grid without any aria-hidden attributes', () => {
     const html = renderToStaticMarkup(
-      createElement(Capture, { drivers, initialStatus: 'Take a photo.', onScene: vi.fn() }),
+      createElement(Capture, {
+        drivers,
+        initialStatus: 'Take a photo.',
+        onScene: vi.fn(),
+        onSavedDiagrams: vi.fn(),
+      }),
     );
     expect(html).toContain('gt-capture__button--primary');
     expect(html).toContain('gt-capture__button--secondary');
+    expect(html).toContain('gt-capture__button--saved');
     expect(html).toContain('gt-capture__samples-grid');
     expect(html).toContain('gt-capture__status-card');
     // Critical: Screen reader compatibility requires no aria-hidden on capture elements

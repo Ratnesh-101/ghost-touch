@@ -6,12 +6,16 @@
  */
 
 import type { Effect } from '../core/hapticEngine';
+import type { DiagramScene } from '../core/scene';
 import { WebAudioDriver, type AudioDriver } from './audio';
+import { IDBDiagramStore, type DiagramStore } from './diagramStore';
 import { WebHapticDriver, type HapticDriver } from './haptics';
 import { WebSpeechDriver, type SpeechDriver } from './speech';
 
 export type { AudioDriver, EarconKind } from './audio';
 export { getEarconSteps, WebAudioDriver } from './audio';
+export type { DiagramStore, StoreResult } from './diagramStore';
+export { IDBDiagramStore, MemoryDiagramStore } from './diagramStore';
 export type { HapticDriver } from './haptics';
 export { WebHapticDriver } from './haptics';
 export {
@@ -39,6 +43,7 @@ export interface Drivers {
   haptics: HapticDriver;
   audio: AudioDriver;
   speech: SpeechDriver;
+  diagramStore: DiagramStore;
 }
 
 export function createBrowserDrivers(): Drivers {
@@ -46,7 +51,106 @@ export function createBrowserDrivers(): Drivers {
     haptics: new WebHapticDriver(),
     audio: new WebAudioDriver(),
     speech: new WebSpeechDriver(),
+    diagramStore: new IDBDiagramStore(),
   };
+}
+
+/**
+ * Generate a compact JPEG data-URL thumbnail of a DiagramScene using HTMLCanvasElement.
+ * Pure rendering in the browser layer; returns empty string if canvas is unavailable or throws.
+ */
+export function renderSceneThumbnail(scene: DiagramScene, size = 120): string {
+  if (typeof document === 'undefined') return '';
+  try {
+    const canvas = document.createElement('canvas');
+    if (!canvas || typeof canvas.getContext !== 'function') return '';
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+
+    // Dark background matching creature theme (#0b0b10)
+    ctx.fillStyle = '#0b0b10';
+    ctx.fillRect(0, 0, size, size);
+
+    // Glowing green lines (#39ff88)
+    ctx.strokeStyle = '#39ff88';
+    ctx.lineWidth = Math.max(1, Math.round(size / 60));
+
+    // Axes
+    if (scene.axes?.x_axis_y != null) {
+      const y = scene.axes.x_axis_y * size;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(size, y);
+      ctx.stroke();
+    }
+    if (scene.axes?.y_axis_x != null) {
+      const x = scene.axes.y_axis_x * size;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, size);
+      ctx.stroke();
+    }
+
+    // Segments
+    const pointMap = new Map<string, { x: number; y: number }>();
+    if (scene.points) {
+      for (const p of scene.points) {
+        pointMap.set(p.id, p);
+      }
+    }
+    if (scene.segments) {
+      for (const s of scene.segments) {
+        const a = pointMap.get(s.a);
+        const b = pointMap.get(s.b);
+        if (a && b) {
+          ctx.beginPath();
+          ctx.moveTo(a.x * size, a.y * size);
+          ctx.lineTo(b.x * size, b.y * size);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Polylines
+    if (scene.polylines) {
+      for (const poly of scene.polylines) {
+        if (poly.points && poly.points.length > 1) {
+          const first = poly.points[0];
+          if (first) {
+            ctx.beginPath();
+            ctx.moveTo(Number(first[0]) * size, Number(first[1]) * size);
+            for (let i = 1; i < poly.points.length; i++) {
+              const pt = poly.points[i];
+              if (pt) {
+                ctx.lineTo(Number(pt[0]) * size, Number(pt[1]) * size);
+              }
+            }
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    // Bars
+    if (scene.bars) {
+      for (const b of scene.bars) {
+        const x = Math.min(b.x0, b.x1) * size;
+        const y = Math.min(b.y_top, b.y_base) * size;
+        const w = Math.abs(b.x1 - b.x0) * size;
+        const h = Math.abs(b.y_base - b.y_top) * size;
+        ctx.strokeRect(x, y, w, h);
+      }
+    }
+
+    if (typeof canvas.toDataURL === 'function') {
+      return canvas.toDataURL('image/jpeg', 0.7);
+    }
+    return '';
+  } catch {
+    return '';
+  }
 }
 
 function assertUnreachable(_effect: never): void {
