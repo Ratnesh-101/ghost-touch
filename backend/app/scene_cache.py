@@ -30,12 +30,14 @@ def _int_env(name: str, default: int) -> int:
     return value if value >= 0 else default
 
 
-def image_key(image: bytes, prompt: str) -> str:
-    """Hash of the image bytes and the extraction prompt (a prompt edit invalidates entries)."""
+def image_key(image: bytes, prompt: str, version: int | str = 1) -> str:
+    """Hash of the image bytes, extraction prompt, and version (invalidation on edit)."""
     digest = hashlib.sha256()
     digest.update(image)
     digest.update(b"\x00")
     digest.update(prompt.encode("utf-8"))
+    digest.update(b"\x00")
+    digest.update(str(version).encode("utf-8"))
     return digest.hexdigest()
 
 

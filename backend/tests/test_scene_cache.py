@@ -88,6 +88,20 @@ def test_key_changes_with_image_or_prompt() -> None:
     assert image_key(b"a", "p") != image_key(b"b", "p")
     assert image_key(b"a", "p") != image_key(b"a", "q")
     assert image_key(b"a", "p") == image_key(b"a", "p")
+    assert image_key(b"a", "p", version=1) != image_key(b"a", "p", version=2)
+    assert image_key(b"a", "p", version="v1") != image_key(b"a", "p", version="v2")
+
+
+def test_cache_bounded_size_evicts_oldest() -> None:
+    cache = SceneCache(max_entries=3, ttl_seconds=60)
+    for i in range(5):
+        cache.put(f"key{i}", AI_PAYLOAD, f"provider{i}")
+    assert len(cache) == 3
+    assert cache.get("key0") is None
+    assert cache.get("key1") is None
+    assert cache.get("key2") is not None
+    assert cache.get("key3") is not None
+    assert cache.get("key4") is not None
 
 
 # --- through the endpoint -----------------------------------------------------------------
@@ -136,3 +150,16 @@ def test_failures_are_not_cached_and_the_retry_can_succeed() -> None:
     assert "X-Scene-Cache" in second.headers
     assert second.headers["X-Scene-Cache"] == "MISS"
     assert provider.call_count == 2
+
+
+def test_no_cache_on_invalid_json_failure() -> None:
+    shared_cache.clear()
+    client = TestClient(app)
+    bad_json = "not json at all"
+    provider = FakeProvider("gemini", [bad_json, bad_json])
+    app.dependency_overrides[get_provider_chain] = lambda: ProviderChain([provider])
+    image = make_test_image_bytes()
+
+    res = _post(client, image)
+    assert res.json()["mode"] == "raw"
+    assert len(shared_cache) == 0

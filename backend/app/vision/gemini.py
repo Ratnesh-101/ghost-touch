@@ -1,6 +1,6 @@
 """Gemini vision provider (Task 8.1, F2).
 
-Primary vision provider using Google GenAI SDK (gemini-3.8-flash default).
+Primary vision provider using Google GenAI SDK (gemini-3.5-flash-lite default).
 Robust thinking configuration supporting GEMINI_THINKING (off, minimal, low, medium,
 high, default), deprecated GEMINI_THINKING_BUDGET alias, and automatic single retry
 with process-level remembering if the model rejects thinking config.
@@ -64,7 +64,7 @@ class GeminiProvider:
         client: Any | None = None,
     ) -> None:
         self.api_key = api_key if api_key is not None else os.environ.get("GEMINI_API_KEY", "")
-        self.model = model or os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+        self.model = model or os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
         self._raw_thinking = thinking
         self._raw_thinking_budget = thinking_budget
         self._client = client or (genai.Client(api_key=self.api_key) if self.api_key else None)
