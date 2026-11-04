@@ -87,7 +87,7 @@
 
 - [~] 11. Teacher Correct mode (overlay, drag points, edit labels, validate on save)
   - _Requirements: 9.1–9.3_
-- [~] 12. Hindi and Gujarati (i18n strings, speech language, ask language)
+- [x] 12. Hindi and Gujarati (i18n strings, speech language, ask language)
   - _Requirements: 10.1, 10.2_
 - [ ] 13. Saved diagrams and offline exploring (IndexedDB)
   - _Requirements: 11.1, 11.2_

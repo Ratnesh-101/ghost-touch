@@ -55,3 +55,20 @@ hitTest at p1 -> {"kind":"vertex","id":"p0"}
 ## For the write-up (honest framing)
 - A property-based test **did** catch something real, but about its own assumption, not about product behaviour: the generator treated "distinct normalised points" as "distinct screen points". fast-check found and shrank it to a 1e-45 difference automatically; it took 6 of 30 runs to show up, which is also a lesson about running properties more than once and logging seeds.
 - Do not present this as a defect in `hitTest`. No product code changed because of it.
+
+
+## Outcome (2026-11-04)
+
+### Generator fix and regression test
+The root cause in the property test generator has been resolved in `frontend/tests/hitTest.prop.test.ts`:
+- **Screen-space separation filter**: The generator now enforces a minimum screen separation `minSep = DEFAULT_RADII.vertex` (22 CSS px). Generated coordinates are projected through `toScreen({ x, y }, view)` and filtered so that every pair of points satisfies `Math.hypot(si.x - sj.x, si.y - sj.y) > minSep`. This prevents two points from sharing the same pixel or falling within each other's vertex hit radius, ensuring that every point is uniquely reachable at its own screen position.
+- **Realistic viewport and double precision**: Viewport dimensions now generate realistic canvas sizes `fc.double({ min: 200, max: 2000, noNaN: true })`, and point coordinates use `fc.double({ min: 0, max: 1, noNaN: true })` instead of 32-bit `fc.float`, avoiding subnormal float precision collisions.
+- **Tie-rule regression unit test**: A dedicated regression test block (`describe('P1 — Tie rule (regression from flake)')`) was added with `it('two points on the same pixel: the first one wins')`. It replays the exact minimal counterexample from run 2 (seed `-732699702`, viewport `1 × 1.0000001192092896`, `p0` at `(0.9999992847442627, 0)` and `p1` at `(0.9999992847442627, 1.401298464324817e-45)`). Both points project to the identical screen position, and `hitTest` deterministically returns `{ kind: 'vertex', id: 'p0' }`, codifying and asserting the first-candidate tie-breaking rule.
+
+### Verification
+- **Prior observation**: Claude Code observed 25 of 25 isolated passes of the P1 test file on 2026-11-03.
+- **Three-run verification (2026-11-04 by Antigravity)**: The full frontend test suite (`npm --prefix frontend test`) was executed three consecutive times with all tests passing:
+  - Run 1: 30 test files passed, 313 tests passed (duration 1.29 s; `tests/hitTest.prop.test.ts` passed 3 tests in 96 ms).
+  - Run 2: 30 test files passed, 313 tests passed (duration 1.15 s; `tests/hitTest.prop.test.ts` passed 3 tests in 77 ms).
+  - Run 3: 30 test files passed, 313 tests passed (duration 1.21 s; `tests/hitTest.prop.test.ts` passed 3 tests in 78 ms).
+- **CI clean-up**: With 0 flakes observed across repeated runs, the single-retry workaround (`|| (echo ... && npm test)`) in `.github/workflows/ci.yml` has been removed.
