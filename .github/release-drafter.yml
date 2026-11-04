@@ -1,0 +1,49 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+categories:
+  - title: '🚀 Features'
+    labels:
+      - 'feature'
+      - 'enhancement'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'fix'
+      - 'bug'
+  - title: '♿ Accessibility'
+    labels:
+      - 'a11y'
+      - 'accessibility'
+  - title: '🧰 Maintenance & CI'
+    labels:
+      - 'chore'
+      - 'ci'
+      - 'dependencies'
+  - title: '📝 Documentation'
+    labels:
+      - 'documentation'
+      - 'docs'
+
+version-resolver:
+  major:
+    labels:
+      - 'major'
+      - 'breaking'
+  minor:
+    labels:
+      - 'minor'
+      - 'feature'
+      - 'enhancement'
+  patch:
+    labels:
+      - 'patch'
+      - 'fix'
+      - 'bug'
+  default: patch
+
+template: |
+  ## What's Changed
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/Ratnesh-101/ghost-touch/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION

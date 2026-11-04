@@ -1,0 +1,89 @@
+name: Property Tests Soak (Nightly)
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: 'Number of repetitions for test suites'
+        required: false
+        default: '10'
+      hypothesis_profile:
+        description: 'Hypothesis profile name (if configured in pytest)'
+        required: false
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-pbt-soak:
+    name: Frontend PBT Soak (Node LTS)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run property test suite repeatedly
+        run: |
+          ITERS="${{ github.event.inputs.iterations || '10' }}"
+          echo "Starting frontend soak test with $ITERS iterations..."
+          for i in $(seq 1 "$ITERS"); do
+            echo "--- Frontend Soak Iteration $i / $ITERS ---"
+            npm test
+          done
+
+  backend-pbt-soak:
+    name: Backend PBT Soak (Python 3.11)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run backend tests with Hypothesis soak
+        env:
+          HYPOTHESIS_PROFILE: ${{ github.event.inputs.hypothesis_profile || env.HYPOTHESIS_PROFILE }}
+        run: |
+          ITERS="${{ github.event.inputs.iterations || '5' }}"
+          echo "Starting backend soak test with $ITERS iterations..."
+          for i in $(seq 1 "$ITERS"); do
+            echo "--- Backend Soak Iteration $i / $ITERS ---"
+            if [ -n "$HYPOTHESIS_PROFILE" ]; then
+              pytest --hypothesis-profile="$HYPOTHESIS_PROFILE"
+            else
+              pytest
+            fi
+          done

@@ -1,0 +1,56 @@
+name: Submission Guard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  kiroween-guard:
+    name: Verify Kiroween Requirements
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify .kiro directory exists in the tree
+        run: |
+          if [ ! -d ".kiro" ]; then
+            echo "::error::Kiroween requirement violated: .kiro/ directory is missing from the repository tree!"
+            exit 1
+          fi
+          if [ -z "$(ls -A .kiro 2>/dev/null)" ]; then
+            echo "::error::Kiroween requirement violated: .kiro/ directory exists but is empty!"
+            exit 1
+          fi
+          echo "Pass: .kiro directory exists and is populated."
+
+      - name: Verify .gitignore does not ignore .kiro
+        run: |
+          if [ -f ".gitignore" ]; then
+            if git check-ignore -q .kiro; then
+              echo "::error::Kiroween requirement violated: git check-ignore reports .kiro is ignored!"
+              exit 1
+            fi
+            if grep -Eq '^\s*(\*\*/)?\.kiro(/|\s*$)' .gitignore; then
+              echo "::error::Kiroween requirement violated: .gitignore contains an active rule ignoring .kiro!"
+              exit 1
+            fi
+          fi
+          echo "Pass: .kiro is not ignored by .gitignore."
+
+      - name: Verify LICENSE exists
+        run: |
+          if [ ! -f "LICENSE" ] && [ ! -f "LICENSE.md" ] && [ ! -f "LICENSE.txt" ]; then
+            echo "::error::Kiroween requirement violated: LICENSE file is missing from repository root!"
+            exit 1
+          fi
+          echo "Pass: LICENSE file exists."
