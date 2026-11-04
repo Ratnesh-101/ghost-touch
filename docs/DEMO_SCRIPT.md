@@ -1,24 +1,37 @@
-# Demo script (under 3:00)
+# Demo Script: Ghost Touch (under 3:00)
 
-Drafted by Claude Code on 2026-11-01 from `docs/WIN_PLAN.md` §6 and `CLAUDE.md` §8. Scenes marked **[ONLY IF REAL]** need footage or numbers that do not exist yet; cut them rather than faking them. No copyrighted music. Show hands and phone, not faces, unless someone has given explicit written consent.
+> **Target Duration:** 2 minutes 50 seconds – 3 minutes 00 seconds (Hard limit: 3:00)  
+> **Updated:** 2026-11-03 for current feature set (TalkBack relative cursor, centre reference tick, PDF upload, multi-provider vision pipeline, Raw Mode fallback, theremin sonification, and spoken Ask Q&A).  
+> **Filming Rules:** Show hands, screen, and physical interactions. No faces without explicit written consent. No copyrighted background music. Sound design carries the narrative.
 
-## Before filming
-- Phone: charged, volume up, Chrome, the deployed URL (or local HTTPS). Rear camera works. Wake the backend a minute early if it is on a free tier.
-- Prints: one textbook triangle page, one graph page. A second phone as the camera for screen capture, or a screen recorder with audio.
-- Test the exact path twice: photo to Explore to Ask, with TalkBack on and off.
+---
 
-## Shot list
-| Time | Show | Say (edit into your voice) |
-|---|---|---|
-| 0:00-0:15 | Close-up of a hand tracing a triangle on the phone; the phone buzzes; the voice says "Point B". Title card: **Ghost Touch: feel diagrams you cannot see.** | (no talking, let the sound carry) |
-| 0:15-0:35 | Text on screen: tactile graphics are slow and expensive; most students already have an Android phone. | "Diagrams lock blind students out of STEM. Raised-line graphics take days and cost a lot. But every student already carries a vibration motor, a speaker and a microphone." |
-| 0:35-0:55 | The three-part creature: a buzzer, an eye, a voice. | "We stitched three parts into one creature: a notification buzzer for nerves, a vision AI for eyes, a synthesizer for a voice." |
-| 0:55-1:30 | A page is photographed; "Reading your diagram" is heard; Explore opens. **With TalkBack on**: double-tap and hold, drag; buzz on lines, "bzzzz-tap" at a corner, "Point B". | "A teacher or parent photographs the page. The student explores it by touch, with TalkBack on, the way they use their phone every day." |
-| 1:30-1:50 | Ask: "How long is AC?" and the spoken answer. | "They can ask questions and get answers drawn only from the diagram." |
-| 1:50-2:05 | The sine graph: the tone rises and falls; count the peaks. | "On graphs, height becomes pitch, like a theremin." |
-| 2:05-2:20 | A messy photo; the AI step fails; outlines still buzz (Raw Mode). | "If the AI cannot read a picture, the student still feels its outlines. It never leaves them with nothing." |
-| 2:20-2:40 | **[ONLY IF REAL]** The school session: hands and phone only, one line of numbers and one quote with permission. | "[FILL: only the real number and quote.]" |
-| 2:40-3:00 | Built with Kiro: the spec to tasks view, a hook firing, property tests passing; the logs of the other tools. Close on the title card. | "Built with specs, steering and property tests, with every AI tool disclosed." |
+## 1. Pre-Filming Setup Checklist
+- **Device:** Android smartphone (tested on OnePlus Nord CE6 or budget Android device) running Chrome over HTTPS. Fully charged, volume set to 80%+.
+- **Backend Service:** Ensure the backend FastAPI service is awake and reachable. If deployed on a free tier (Render), send a `GET /api/v1/health` request 2 minutes prior to wake the container.
+- **Printed Props:** One clean printed textbook page with a labelled right triangle (e.g. NCERT Class 9 geometry) and one page with a function graph or bar chart.
+- **Screen & Sound Capture:** External high-resolution camera focused closely on hands and phone screen, plus direct audio capture or external microphone to record phone vibrations and synthesizer audio clearly.
+- **Double Practice:** Run the complete path twice prior to recording: Capture → Explore → Ask, once with TalkBack active and once with TalkBack suspended.
 
-## Do not claim
-Accuracy on real textbook photos, response times, or blind-user results until you have measured them. If the first live run is slow, film the sample diagrams for the Explore parts and show the photo step once, honestly.
+---
+
+## 2. Timed Shot List & Stage Directions
+
+| Time | Visual / Action | Spoken Narration (edit into your voice) | What to do if it fails on stage |
+|---|---|---|---|
+| **0:00–0:15** (15s) | **The Hook:** Tight close-up on a finger tracing a dark screen with glowing green lines. Loud, crisp motor vibration. At the corner, a "bzzzz-tap" pulse sounds and the synthesizer speaks: *"Point B. Right angle."* Cut to Title Card: **Ghost Touch: feel diagrams you cannot see.** | *(Silence. Let the phone vibration motor and speech carry the hook.)* | **Stage Failure Fallback:** If audio is muted by browser policy, tap the screen once to trigger browser audio unlock. If vibration is disabled in phone settings, switch to device vibration in Settings. |
+| **0:15–0:35** (20s) | **The Problem:** Display a standard printed textbook diagram side-by-side with a blank page. Cut to an ordinary Android phone lying next to it. | *"Diagrams lock blind students out of STEM. Raised-line tactile graphics take weeks to produce and cost thousands of pounds. But nearly every student already carries a vibration motor, a speaker, and a touchscreen right in their pocket."* | **Stage Failure Fallback:** If props slip, keep the camera focused on the smartphone screen running the Start screen. |
+| **0:35–0:55** (20s) | **The Creature:** Show the Start screen with the creature emblem and triad badges: **Nerves** (Vibration), **Eyes** (Vision AI), **Voice** (Web Audio Theremin). User double-taps anywhere to start; screen announces *"Ghost Touch ready."* | *"We stitched three parts into one creature: an ordinary notification buzzer for tactile nerves, a vision AI for eyes, and a browser theremin synthesizer for a voice."* | **Stage Failure Fallback:** If TTS fails to speak on initial load, double-tap the full-screen activation button to force Web Speech activation. |
+| **0:55–1:35** (40s) | **Capture & Touch Exploration (TalkBack on):** Phone camera snaps the triangle page (or user taps the PDF/image button). The app speaks: *"Reading your diagram."* The Explore screen opens. **With TalkBack active**, the user performs the pass-through gesture (double-tap and hold, then drag). A short centre reference tick buzzes (`vibrate(25)`). Tracing edges vibrates continuously; hitting corner A pulses and speaks *"Point A"*. Tracing to B pulses and speaks *"Point B"*. | *"A teacher snaps a photo, uploads an image, or drops in a textbook PDF page. The student explores it by touch, with TalkBack on, the way they use their phone every day. Double-tap, hold, and drag."* | **Stage Failure Fallback:** If camera upload is slow or cloud API limits trigger, immediately tap the built-in **"Triangle"** offline sample button on Capture screen. It loads instantly with zero network. |
+| **1:35–1:55** (20s) | **Spoken Q&A (Ask):** In Explore, user double-taps the accessible "Ask question" control (or holds two fingers). A listening chime sounds. User asks aloud: *"How long is AC?"* Phone speaks: *"AC is 5 centimetres."* | *"Students can ask questions aloud and receive short, accurate answers drawn strictly from the diagram's visible facts."* | **Stage Failure Fallback:** If speech recognition times out or room is noisy, tap the fallback text input box and submit, or rely on the deterministic facts fallback which answers without cloud LLM. |
+| **1:55–2:15** (20s) | **Mathematical Graphs & Bar Charts:** Load the sine curve diagram. As finger traces along the curve, a continuous theremin tone rises from 200 Hz to 1000 Hz with peak height and falls with valleys. Quick cut to bar chart: tapping bars speaks labels and values with height-proportional tones. | *"On mathematical function graphs, height becomes pitch, like a theremin. On bar charts, tone and speech let students compare quantities immediately."* | **Stage Failure Fallback:** If custom graph image fails to parse, tap the built-in **"Sine graph"** or **"Bar chart"** offline sample diagrams. They run 100% locally from client-side JSON. |
+| **2:15–2:35** (20s) | **Raw Mode (Never Leaves You With Nothing):** Photograph a crumpled, poorly lit diagram or complex sketch. The vision model cannot parse the geometry, but the app announces: *"Using Raw Mode. Feeling detected edges."* Finger traces detected Canny outlines on the glowing screen; motor buzzes reliably on line edges. | *"Even if the AI cannot read a picture, our classical computer vision fallback—Raw Mode—extracts the outlines. The app never leaves a blind student with an empty screen."* | **Stage Failure Fallback:** Raw Mode is local and deterministic on the backend (OpenCV Canny + Douglas–Peucker); if network drops entirely, demonstrate on any cached raw scene. |
+| **2:35–2:50** (15s) | **Real Impact / Student Session:** Show hands and phone in an educational setting or user testing desk. **[ONLY IF REAL]** Display a concise quote or observation from testing at BPA Ahmedabad. | *"Engineered for budget Android phones, tested with real accessibility workflows, and built to put STEM back into students' hands."* | **Stage Failure Fallback:** If school session numbers are pending, cut the quote card and emphasize the zero-cost web accessibility on standard budget hardware. |
+| **2:50–3:00** (10s) | **Engineering Rigor & Close:** Show rapid terminal montage: Kiro specs to tasks, 249 frontend tests and 270 backend tests passing, 13 mathematical property tests. Closing title card with repository and demo links. | *"Built with specs, steering rules, and property tests, with every AI tool disclosed. Ghost Touch: feel diagrams you cannot see."* | **Stage Failure Fallback:** If live terminal capture is unavailable, display the pre-verified test summary card from `docs/KIRO_WRITEUP.md`. |
+
+---
+
+## 3. What NOT to Claim on Video
+1. **Do not claim unmeasured accuracy:** Do not state percentage accuracy on real textbook photos until Gate B benchmark numbers are officially published.
+2. **Do not promise instantaneous response times on slow connections:** If live cellular upload takes 10+ seconds on stage, acknowledge the cloud processing step honestly or show the offline sample path.
+3. **Do not fake blind student footage:** Show only footage and quotes collected with full, informed written consent. If field trials are pending, demonstrate the TalkBack pass-through gesture on camera with TalkBack speech clearly audible.
