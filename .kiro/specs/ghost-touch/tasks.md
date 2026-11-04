@@ -79,7 +79,7 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - _Requirements: 9.1–9.3_
 - [x] 12. Hindi and Gujarati (i18n strings, speech language, ask language)
   - _Requirements: 10.1, 10.2_
-- [ ] 13. Saved diagrams and offline exploring (IndexedDB)
+- [x] 13. Saved diagrams and offline exploring (IndexedDB)
   - _Requirements: 11.1–11.7_
   - [x] 13.1 P11 bar pitch order
   - [x] 13.2 `core/savedDiagrams.ts`: `SavedDiagram` type, `savedTitle`, `makeId`, `chooseEviction`, `capExceeded`, `orderForDisplay` — pure, no browser APIs
