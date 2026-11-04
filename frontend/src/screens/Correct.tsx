@@ -10,7 +10,7 @@
  * - Save validates against backend POST /api/v1/validate; refuses invalid scenes
  * - Accessible controls (≥48×48 px targets, spoken state changes, keyboard operable)
  */
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type JSX, type KeyboardEvent, type PointerEvent } from 'react';
 import { requestValidate } from '../api/validate';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { StatusText } from '../components/StatusText';

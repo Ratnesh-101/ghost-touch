@@ -9,7 +9,7 @@
  * When the app cannot speak (no speech synthesis), it becomes a polite live
  * region so the screen reader announces the message instead.
  */
-import type { ReactNode } from 'react';
+import type { JSX, ReactNode } from 'react';
 
 interface StatusTextProps {
   children: ReactNode;

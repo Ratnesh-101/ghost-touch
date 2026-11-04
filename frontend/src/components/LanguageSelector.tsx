@@ -6,7 +6,7 @@
  * Checks for system voice availability and speaks a notice if no voice exists.
  */
 
-import { useState, useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore, type JSX } from 'react';
 import { AccessibleButton } from './AccessibleButton';
 import type { Drivers } from '../drivers';
 import {

@@ -10,6 +10,8 @@
  * Used on screens/Start.tsx only (Requirement 12 / Lane G).
  */
 
+import type { JSX } from 'react';
+
 export interface MascotProps {
   className?: string;
   size?: number;

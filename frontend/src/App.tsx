@@ -7,7 +7,7 @@
  * text is shown on the next screen. The hidden `#/debug` page (Task 5) shows
  * driver support on a phone.
  */
-import { useState, useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore, type JSX } from 'react';
 import type { SceneMode } from './api/scene';
 import type { DiagramScene } from './core/scene';
 import { createBrowserDrivers, type Drivers } from './drivers';
