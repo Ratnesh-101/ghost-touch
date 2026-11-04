@@ -121,3 +121,5 @@ Read #tech.md and #review. Apply docs/kiro-evidence/spec-change-req13.md to the 
 - Merged and pushed to `origin/main`: repo bots (C), deploy prep (A), graph hardening (B), voice and languages (D), submission docs (F), user-test kit (K). Suites: 313 frontend, 337 backend, all clean. See `docs/BUILD_LOG.md` and `docs/reviews/agy-*.md`.
 - Still needs the owner: phone test of everything (TalkBack on/off), Render and Vercel dashboard steps (`docs/DEPLOY.md`, "You must do these yourself"), `backend/.env` keys, the first GitHub Actions results for the new workflows, Hindi/Gujarati native review, BPA session, `[FILL]` markers in `docs/STEMERGENT_SUBMISSION.md`.
 - For Kiro: `docs/handoffs/for-kiro.md` (tick tasks 7/10/13/16, remove the CI retry, record the P1 outcome, confirm hooks fire).
+
+**Status update 2026-11-04 (late, Claude Code):** see `docs/handoffs/SESSION-2026-11-04.md` for the full state, working method, gotchas and the owner's to-do list. Tests: 473 frontend, 347 backend.

@@ -246,3 +246,10 @@ Format for each entry:
 - **K user-test kit (agy):** consent script, task sheet, results template, outreach draft, checklist. Claude Code replaced one over-promise with a placeholder.
 - Kiro-owned files were not touched by any lane. Claude Code also wrote `docs/handoffs/for-kiro.md`.
 - Gates after the last merge: 313 frontend tests, 337 backend tests, tsc, build, ruff clean. P1 passed 25 of 25 isolated runs.
+
+## 2026-11-04 - Antigravity lanes round 2, Dependabot, Kiro merge (reviewed by Claude Code)
+- **Kiro's clone merged:** `C:\Users\Admin\Documents\ghost-touch` was a separate clone. Its four commits (P1 generator fix, two hooks, evidence notes, Task 13 spec with P14/P15) were merged with authorship intact.
+- **Agent lanes (Antigravity), reviewed in `docs/reviews/agy-*.md`:** a11y and mascot (T14), README and svara driver fix, housekeeping (task ticks, CI retry removal, P1 and hooks evidence), Teacher Correct mode T11a with P16/P17, `POST /api/v1/validate` T11b, saved diagrams core T13a (P14/P15 tests; found four real defects in Kiro's draft), saved diagrams UI T13b, submission docs T16, toolchain bump, React 19 migration. These were done by agents at the owner's request because Kiro's credits ran out; they are not Kiro's work.
+- **Dependabot:** all PRs merged by merging their branches. Coupled packages were combined (vitest 5 + coverage-v8 5 + vite 8 + plugin-react 6; react 19 + react-dom 19), TypeScript 7, fast-check 4, json-schema-to-typescript 16, vite-plugin-pwa 2 and the Actions bumps. CI moved to Node 22.
+- **Remote `master` deleted** (single old squashed commit, local backup tag `backup/old-remote-master`).
+- Gates after the last merge: 473 frontend tests, 347 backend tests, tsc, build and ruff clean. Handoff for a fresh session: `docs/handoffs/SESSION-2026-11-04.md`.
