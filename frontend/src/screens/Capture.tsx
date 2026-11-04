@@ -23,7 +23,14 @@ interface CaptureProps {
   drivers: Drivers;
   /** The line already spoken on arrival, shown in the status area. */
   initialStatus: string;
-  onScene: (scene: DiagramScene, mode: SceneMode, photoUrl?: string) => void;
+  onScene: (
+    scene: DiagramScene,
+    mode: SceneMode,
+    photoUrl?: string,
+    source?: 'camera' | 'file' | 'sample',
+  ) => void;
+  /** Opens the saved-diagrams list. */
+  onSavedDiagrams?: () => void;
 }
 
 const SAMPLES: ReadonlyArray<{ id: SampleId; labelKey: string }> = [
@@ -32,7 +39,12 @@ const SAMPLES: ReadonlyArray<{ id: SampleId; labelKey: string }> = [
   { id: 'barchart', labelKey: 'capture.sampleBarchart' },
 ];
 
-export function Capture({ drivers, initialStatus, onScene }: CaptureProps): JSX.Element {
+export function Capture({
+  drivers,
+  initialStatus,
+  onScene,
+  onSavedDiagrams,
+}: CaptureProps): JSX.Element {
   const [status, setStatus] = useState(initialStatus);
   const [busy, setBusy] = useState(false);
   const takeButton = useRef<HTMLButtonElement>(null);
@@ -86,7 +98,7 @@ export function Capture({ drivers, initialStatus, onScene }: CaptureProps): JSX.
       } catch {
         photoUrl = undefined;
       }
-      onScene(outcome.response.scene, outcome.response.mode, photoUrl);
+      onScene(outcome.response.scene, outcome.response.mode, photoUrl, source);
     } else if (outcome.kind !== 'cancelled') {
       drivers.audio.playEarcon?.('error');
       takeButton.current?.focus();
@@ -107,7 +119,7 @@ export function Capture({ drivers, initialStatus, onScene }: CaptureProps): JSX.
       say(t('capture.errorSample'));
       return;
     }
-    onScene(scene, 'ai');
+    onScene(scene, 'ai', undefined, 'sample');
   };
 
   return (
@@ -154,6 +166,14 @@ export function Capture({ drivers, initialStatus, onScene }: CaptureProps): JSX.
           onClick={() => openPicker(fileInput)}
         >
           {t('capture.chooseImage')}
+        </AccessibleButton>
+
+        <AccessibleButton
+          className="gt-capture__button gt-capture__button--saved"
+          aria-label={t('capture.savedDiagrams')}
+          onClick={onSavedDiagrams}
+        >
+          {t('capture.savedDiagrams')}
         </AccessibleButton>
       </div>
 
