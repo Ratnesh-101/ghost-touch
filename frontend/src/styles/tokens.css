@@ -36,8 +36,8 @@
   --gt-text-primary: #f5fff8;
   /* #c2d6cc on #0b0b10 has a contrast ratio > 10:1 */
   --gt-text-secondary: #c2d6cc;
-  /* #9fb3a8 on #0b0b10 has a contrast ratio > 6.5:1 (exceeds AA 4.5:1) */
-  --gt-text-muted: #9fb3a8;
+  /* #a8c5b5 on #0b0b10 has a contrast ratio > 10:1 (exceeds AAA 7:1 across all surfaces) */
+  --gt-text-muted: #a8c5b5;
   /* Dark text on glowing green background has a contrast ratio > 15:1 */
   --gt-text-dark: #051309;
 

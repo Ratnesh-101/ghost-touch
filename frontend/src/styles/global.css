@@ -15,7 +15,7 @@
   --gt-surface: #14141e;
   --gt-line: #39ff88;
   --gt-text: #eafff5;
-  --gt-text-muted: #9fb3a8;
+  --gt-text-muted: #a8c5b5;
   --gt-focus: #39ff88;
 }
 
@@ -91,6 +91,8 @@ body {
 
 .gt-control:focus-visible {
   border-color: var(--gt-focus);
+  outline: 3px solid var(--gt-focus);
+  outline-offset: 2px;
   box-shadow: 0 0 0 3px var(--gt-bg), 0 0 0 6px var(--gt-focus);
 }
 
@@ -119,6 +121,8 @@ body {
 
 .gt-start-surface {
   position: fixed;
+  min-width: var(--gt-target);
+  min-height: var(--gt-target);
   inset: 0;
   display: flex;
   flex-direction: column;
@@ -419,6 +423,7 @@ body {
 .gt-capture__button {
   width: 100%;
   min-height: 56px;
+  min-width: var(--gt-target);
   font-size: var(--gt-text-lg);
   border-radius: var(--gt-radius-lg);
   border: 2px solid var(--gt-border-subtle);
@@ -496,6 +501,7 @@ body {
   justify-content: center;
   gap: var(--gt-space-2xs);
   min-height: 72px;
+  min-width: var(--gt-target);
   padding: var(--gt-space-xs) var(--gt-space-2xs);
   font-size: var(--gt-text-xs);
   font-weight: 600;
@@ -687,6 +693,7 @@ body {
 .gt-explore__ask-input {
   flex: 1;
   min-height: 48px;
+  min-width: var(--gt-target);
   padding: 10px var(--gt-space-md);
   font-size: var(--gt-text-base);
   border: 2px solid var(--gt-border-subtle);
@@ -699,12 +706,15 @@ body {
 
 .gt-explore__ask-input:focus-visible {
   border-color: var(--gt-focus);
+  outline: 3px solid var(--gt-focus);
+  outline-offset: 2px;
   box-shadow: 0 0 0 3px var(--gt-bg), 0 0 0 5px var(--gt-focus);
 }
 
 /* Test regex requirement: .gt-explore__send { min-height: (\d+)px */
 .gt-explore__send {
   min-height: 52px;
+  min-width: var(--gt-target);
   min-width: 84px;
   font-size: var(--gt-text-base);
   font-weight: 700;
@@ -734,6 +744,7 @@ body {
 .gt-explore__ask {
   flex: 1;
   min-height: 52px;
+  min-width: var(--gt-target);
   font-size: var(--gt-text-lg);
   font-weight: 700;
   border-radius: var(--gt-radius-lg);
@@ -753,6 +764,7 @@ body {
 .gt-explore__back {
   flex: 1;
   min-height: 52px;
+  min-width: var(--gt-target);
   font-size: var(--gt-text-lg);
   font-weight: 600;
   border-radius: var(--gt-radius-lg);
@@ -840,6 +852,7 @@ body {
 .gt-rate-selector__btn {
   min-width: 48px;
   min-height: 48px;
+  min-width: var(--gt-target);
   padding: 6px 12px;
   border-radius: var(--gt-radius-md);
   border: 2px solid var(--gt-border-subtle);
@@ -895,15 +908,20 @@ body {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    animation-play-state: paused !important;
   }
 
   .gt-start__pulse-dot,
   .gt-capture__status-indicator,
-  .gt-capture__progress-bar {
+  .gt-capture__progress-bar,
+  .gt-mascot,
+  .gt-mascot * {
     animation: none !important;
   }
 
-  .gt-start__creature-emblem svg {
+  .gt-start__creature-emblem svg,
+  .gt-mascot,
+  .gt-mascot svg {
     filter: none !important;
     transform: none !important;
   }
@@ -926,6 +944,7 @@ body {
   .gt-explore__canvas:focus-visible,
   .gt-explore__ask-input:focus-visible {
     outline: 3px solid Highlight !important;
+    outline-offset: 2px !important;
     box-shadow: none !important;
   }
 
