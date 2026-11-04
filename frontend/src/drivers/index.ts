@@ -26,6 +26,14 @@ export {
   WebSpeechDriver,
 } from './speech';
 export { safeGet, safeSet, safeRemove } from './storage';
+export {
+  type AudioElementLike,
+  type AudioElementFactory,
+  type AudioHostDriver,
+  createAudioElement,
+  defaultAudioHost,
+  isAudioSupported,
+} from './audioElement';
 
 export interface Drivers {
   haptics: HapticDriver;

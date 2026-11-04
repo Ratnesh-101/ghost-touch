@@ -39,6 +39,10 @@ describe('Svara Creature-Line Slot', () => {
 
   describe('SvaraPlayer playback & error handling', () => {
     it('silently skips missing files and never throws or blocks', async () => {
+      // Default host with no audio API returns missing cleanly
+      const defaultPlayer = new SvaraPlayer();
+      expect(await defaultPlayer.play('intro')).toBe('missing');
+
       let createdSrc = '';
       const host: SvaraHost = {
         createAudio: (src) => {
