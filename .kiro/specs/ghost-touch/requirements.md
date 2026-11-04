@@ -96,6 +96,12 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 1. WHEN a sighted user opens Correct mode THEN the system SHALL overlay the detected scene on the photo.
 2. THE system SHALL allow dragging points, editing labels, and deleting elements.
 3. WHEN corrections are saved THEN the system SHALL validate the scene against the schema before using it.
+4. WHEN a point is moved THEN the system SHALL clamp coordinates to [0, 1].
+5. WHEN a point is deleted THEN the system SHALL remove every segment and polyline reference to that point, ensuring no dangling references remain.
+6. WHEN a label is edited THEN the system SHALL trim whitespace and reject empty labels.
+7. THE system SHALL provide undo and redo operations that cleanly restore or re-apply scene states.
+8. WHEN saving corrections THEN the system SHALL send the scene to the validation endpoint; IF validation fails THEN the system SHALL speak and display the validation errors and remain in Correct mode; IF validation succeeds THEN the system SHALL apply the scene and return to Explore.
+9. THE system SHALL provide accessible controls with minimum 48×48 CSS px touch targets, accessible names, and spoken feedback for all state changes.
 
 ### Requirement 10: Multilingual voice (Kiroween)
 **User Story:** As a Hindi- or Gujarati-speaking student, I want labels and answers in my language.

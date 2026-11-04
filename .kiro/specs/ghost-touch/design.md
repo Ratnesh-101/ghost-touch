@@ -66,6 +66,13 @@ type Effect =
   | { kind: 'speak'; text: string }
   | { kind: 'tone'; hz: number | null };
 step(state: EngineState, input: Input, cfg: HapticConfig): { state: EngineState; effects: Effect[] }
+
+// correct.ts
+movePoint(scene: DiagramScene, pointId: string, x: number, y: number): DiagramScene
+renameLabel(scene: DiagramScene, elementId: string, newLabel: string): DiagramScene
+deletePoint(scene: DiagramScene, pointId: string): DiagramScene
+deleteSegment(scene: DiagramScene, segmentId: string): DiagramScene
+historyReducer(state: HistoryState, action: HistoryAction): HistoryState
 ```
 
 **Engine rules** (mirrors the tuned prototype):
@@ -124,6 +131,8 @@ Each property maps to requirements and runs with fast-check (frontend) or Hypoth
 | P11 | **Bar pitch order:** bars with larger values never get a lower pitch. | 6.2 |
 | P12 | **Explore gesture events reach the engine:** an integration test with synthetic pointer events through hitTest, step and runEffects, including a lift, produces the expected effects at each stage. | 13.2 |
 | P13 | **Validator rejects colour- or shape-only labels:** labels made only of words from the colour/shape list are rejected; labels with any other word are accepted. | 3.6 |
+| P16 | **Correct edit invariants:** any sequence of valid edits on a valid scene yields a scene that either satisfies the invariants (unique ids, no dangling segment references, all coordinates in [0, 1]) or is explicitly rejected. | 9.2, 9.3 |
+| P17 | **Undo/Redo round-trip:** undo after any edit restores the previous scene exactly; redo re-applies it. | 9.2 |
 
 ## Error Handling
 | Failure | Behavior |

@@ -1,0 +1,176 @@
+/**
+ * Styles for Teacher Correct mode.
+ *
+ * Implements accessible, high-contrast dark theme controls.
+ * Every interactive target meets or exceeds 48×48 CSS px (Requirement 12.1).
+ */
+
+.gt-correct {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: #0d1117;
+  color: #f0f6fc;
+  box-sizing: border-box;
+  padding: 12px;
+  gap: 12px;
+}
+
+.gt-correct__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.gt-correct__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  color: #3fb950;
+}
+
+.gt-correct__status-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.gt-correct__status {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #e6edf3;
+  margin: 0;
+}
+
+.gt-correct__status--error {
+  color: #f85149;
+  font-weight: 600;
+}
+
+.gt-correct__canvas-container {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 280px;
+  max-height: 55vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #010409;
+  border: 2px solid #30363d;
+  border-radius: 8px;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.gt-correct__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  cursor: crosshair;
+}
+
+.gt-correct__canvas:focus {
+  outline: 3px solid #58a6ff;
+  outline-offset: -3px;
+}
+
+.gt-correct__edit-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.gt-correct__label-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.gt-correct__label-input {
+  flex: 1;
+  min-height: 48px;
+  padding: 8px 12px;
+  font-size: 1rem;
+  background: #0d1117;
+  color: #f0f6fc;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.gt-correct__label-input:focus {
+  outline: 3px solid #58a6ff;
+  border-color: #58a6ff;
+}
+
+.gt-correct__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.gt-correct__toolbar-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Base button styling ensuring 48x48 px minimum */
+.gt-correct__btn {
+  min-width: 48px;
+  min-height: 48px;
+  padding: 10px 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  background: #21262d;
+  color: #f0f6fc;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  touch-action: manipulation;
+}
+
+.gt-correct__btn:focus-visible {
+  outline: 3px solid #58a6ff;
+  outline-offset: 2px;
+}
+
+.gt-correct__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: #21262d;
+}
+
+.gt-correct__btn--primary {
+  background: #238636;
+  border-color: #2ea043;
+  color: #ffffff;
+}
+
+.gt-correct__btn--primary:hover:not(:disabled) {
+  background: #2ea043;
+}
+
+.gt-correct__btn--danger {
+  background: #b62324;
+  border-color: #da3633;
+  color: #ffffff;
+}
+
+.gt-correct__btn--danger:hover:not(:disabled) {
+  background: #da3633;
+}
