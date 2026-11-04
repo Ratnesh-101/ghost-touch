@@ -626,7 +626,7 @@ describe('processPointerMove pipeline', () => {
     // Pipeline results fed into runEffects
     const mockDrivers = {
       haptics: { supported: true, lastResult: null, vibrate: vi.fn(), stop: vi.fn() },
-      audio: { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), state: 'running' as const },
+      audio: { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), playEarcon: vi.fn(), state: 'running' as const },
       speech: { speak: vi.fn(), listen: vi.fn(), canSpeak: true, canListen: true },
     };
     runEffects(result.effects, mockDrivers);
@@ -777,7 +777,7 @@ describe('Pointer cancellation and lift handling (finding 8)', () => {
 
     const mockDrivers = {
       haptics: { supported: true, lastResult: null, vibrate: vi.fn(), stop: vi.fn() },
-      audio: { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), state: 'running' as const },
+      audio: { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), playEarcon: vi.fn(), state: 'running' as const },
       speech: { speak: vi.fn(), listen: vi.fn(), canSpeak: true, canListen: true },
     };
     runEffects(effects, mockDrivers);

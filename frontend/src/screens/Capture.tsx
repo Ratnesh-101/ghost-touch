@@ -2,6 +2,7 @@
  * Capture — take a photo, choose an image (photo or screenshot), or open a
  * bundled sample. Samples never touch the network (Requirement 2.4).
  *
+ * Includes accessible language and speech-rate selectors reachable eyes-closed.
  * Behaviour lives in `flow/capture.ts`; this component wires controls to it,
  * mirrors every spoken line into a visible `aria-live` status, and moves
  * focus back to "Take photo" after a failure.
@@ -9,6 +10,8 @@
 import { useEffect, useRef, useState, type ChangeEvent, type RefObject } from 'react';
 import { loadSample, type SampleId, type SceneMode } from '../api/scene';
 import { AccessibleButton } from '../components/AccessibleButton';
+import { LanguageSelector } from '../components/LanguageSelector';
+import { RateSelector } from '../components/RateSelector';
 import { StatusText } from '../components/StatusText';
 import type { DiagramScene } from '../core/scene';
 import type { Drivers } from '../drivers';
@@ -73,8 +76,13 @@ export function Capture({ drivers, initialStatus, onScene }: CaptureProps): JSX.
     const outcome = await processImageFile(file, { audio: drivers.audio, say, signal, source });
     if (signal.aborted) return;
     setBusy(false);
-    if (outcome.kind === 'scene') onScene(outcome.response.scene, outcome.response.mode);
-    else if (outcome.kind !== 'cancelled') takeButton.current?.focus();
+    if (outcome.kind === 'scene') {
+      drivers.audio.playEarcon?.('success');
+      onScene(outcome.response.scene, outcome.response.mode);
+    } else if (outcome.kind !== 'cancelled') {
+      drivers.audio.playEarcon?.('error');
+      takeButton.current?.focus();
+    }
   };
 
   const handleSample = async (id: SampleId): Promise<void> => {
@@ -85,7 +93,9 @@ export function Capture({ drivers, initialStatus, onScene }: CaptureProps): JSX.
     let scene: DiagramScene;
     try {
       scene = await loadSample(id);
+      drivers.audio.playEarcon?.('success');
     } catch {
+      drivers.audio.playEarcon?.('error');
       say(t('capture.errorSample'));
       return;
     }
@@ -95,6 +105,10 @@ export function Capture({ drivers, initialStatus, onScene }: CaptureProps): JSX.
   return (
     <main className="gt-capture" aria-busy={busy}>
       <header className="gt-capture__header">
+        <div className="gt-toolbar">
+          <LanguageSelector drivers={drivers} />
+          <RateSelector drivers={drivers} />
+        </div>
         <div className="gt-capture__brand">
           <span className="gt-capture__brand-dot" />
           <h1 className="gt-capture__title">{t('app.name')}</h1>

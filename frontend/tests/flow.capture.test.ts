@@ -20,7 +20,7 @@ function jpeg(size = 1000, type = 'image/jpeg'): Blob & { type: string; size: nu
 }
 
 function setup() {
-  const audio = { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), state: 'running' };
+  const audio = { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), playEarcon: vi.fn(), state: 'running' };
   const said: string[] = [];
   const controller = new AbortController();
   return { audio, said, controller, say: (text: string) => void said.push(text) };

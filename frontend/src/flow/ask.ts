@@ -1,6 +1,6 @@
 /**
  * Decision logic for the Ask flow (Requirement 7):
- * - Sequence: listening cue (`audio.beep`) -> `speech.listen` -> `requestAsk` -> `say(answer)`
+ * - Sequence: listening cue (`audio.beep` / `audio.playEarcon('listening')`) -> `speech.listen` -> `requestAsk` -> `say(answer)`
  * - Errors: speaks short line and offers text fallback; never silence
  * - Concurrency: one Ask at a time; ignore second trigger while busy and say so
  * - Cleanup: timers and abort controllers cleared on every exit path
@@ -11,7 +11,7 @@
 import { requestAsk, AskRequestError, type AskResponse, type AskSource } from '../api/ask';
 import type { DiagramScene } from '../core/scene';
 import { ListenError, type AudioDriver, type SpeechDriver } from '../drivers';
-import { t } from '../i18n';
+import { getLang, LANG_BCP47, t } from '../i18n';
 
 /** Listening cue tone (Task 9.2). */
 export const LISTENING_BEEP_HZ = 660;
@@ -93,7 +93,7 @@ export class AskManager {
 
   /**
    * Run the voice ask flow:
-   * 1. Cue beep
+   * 1. Cue beep / listening earcon
    * 2. Listen
    * 3. Send request
    * 4. Speak answer
@@ -122,8 +122,8 @@ export class AskManager {
       deps.audio.beep(LISTENING_BEEP_HZ, LISTENING_BEEP_MS);
       deps.onStatusChange?.(t('ask.listening'));
 
-      const lang = deps.lang ?? 'en-IN';
-      const question = await deps.speech.listen(lang);
+      const activeLang = deps.lang ?? LANG_BCP47[getLang()] ?? 'en-IN';
+      const question = await deps.speech.listen(activeLang);
 
       if (controller.signal.aborted) {
         return { kind: 'cancelled' };
@@ -135,12 +135,13 @@ export class AskManager {
       deps.say(t('ask.thinking'));
       const doRequest =
         deps.request ?? ((sc, q, l, sig) => requestAsk(sc, q, l, { signal: sig }));
-      const response = await doRequest(deps.scene, question, lang, controller.signal);
+      const response = await doRequest(deps.scene, question, activeLang, controller.signal);
 
       if (controller.signal.aborted) {
         return { kind: 'cancelled' };
       }
 
+      deps.audio.playEarcon?.('success');
       deps.say(response.answer);
       return { kind: 'success', answer: response.answer, source: response.source };
     } catch (err: unknown) {
@@ -150,6 +151,7 @@ export class AskManager {
       ) {
         return { kind: 'cancelled' };
       }
+      deps.audio.playEarcon?.('error');
       const message = askErrorMessage(err);
       deps.say(message);
       deps.onFallbackNeeded?.();
@@ -187,15 +189,16 @@ export class AskManager {
     try {
       deps.onStatusChange?.(t('ask.thinking'));
       deps.say(t('ask.thinking'));
-      const lang = deps.lang ?? 'en-IN';
+      const activeLang = deps.lang ?? LANG_BCP47[getLang()] ?? 'en-IN';
       const doRequest =
         deps.request ?? ((sc, q, l, sig) => requestAsk(sc, q, l, { signal: sig }));
-      const response = await doRequest(deps.scene, trimmed, lang, controller.signal);
+      const response = await doRequest(deps.scene, trimmed, activeLang, controller.signal);
 
       if (controller.signal.aborted) {
         return { kind: 'cancelled' };
       }
 
+      deps.audio.playEarcon?.('success');
       deps.say(response.answer);
       return { kind: 'success', answer: response.answer, source: response.source };
     } catch (err: unknown) {
@@ -205,6 +208,7 @@ export class AskManager {
       ) {
         return { kind: 'cancelled' };
       }
+      deps.audio.playEarcon?.('error');
       const message = askErrorMessage(err);
       deps.say(message);
       return { kind: 'failed', message, error: err };

@@ -43,6 +43,7 @@ function createMockDrivers(): Drivers {
       unlock: vi.fn(),
       setTone: vi.fn(),
       beep: vi.fn(),
+      playEarcon: vi.fn(),
       state: 'running' as const,
     },
     speech: {

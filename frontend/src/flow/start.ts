@@ -21,13 +21,14 @@ export function speakIntro(drivers: Drivers): void {
 }
 
 /**
- * The tap: unlock audio and speech, buzz once, and speak the next prompt.
+ * The tap: unlock audio and speech, play start earcon, buzz once, and speak the next prompt.
  * Speaking here (not in the next screen) keeps the first utterance inside the
  * gesture and gives one clean utterance per transition. Never blocks progress,
  * even when vibration is unsupported (Requirement 1.3).
  */
 export function handleStartTap(drivers: Drivers): void {
   drivers.audio.unlock();
+  drivers.audio.playEarcon?.('start');
   drivers.haptics.vibrate(CONFIRM_VIBRATION_MS);
   drivers.speech.speak(capturePrompt(drivers.haptics.supported));
 }

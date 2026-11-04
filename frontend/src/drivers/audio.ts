@@ -1,10 +1,58 @@
 /**
- * AudioDriver — the theremin tone and short cue beeps (Web Audio API).
+ * AudioDriver — the theremin tone and short cue beeps / earcons (Web Audio API).
  *
  * One sine oscillator is created on `unlock()` (which must run inside a user
  * gesture) and never recreated; `setTone` only moves its frequency and gain.
  * Ported from prototypes/haptics-test.html, whose values were tuned by hand.
+ *
+ * Earcons provide short WebAudio cues (start, success, error, listening, back)
+ * that never overlap the theremin tone unexpectedly.
  */
+
+export type EarconKind = 'start' | 'success' | 'error' | 'listening' | 'back';
+
+export interface EarconToneStep {
+  readonly hz: number;
+  readonly durationMs: number;
+  readonly delayMs: number;
+  readonly gain?: number;
+}
+
+/** Pure definitions of earcon frequencies, durations and timings. */
+export function getEarconSteps(kind: EarconKind): readonly EarconToneStep[] {
+  switch (kind) {
+    case 'start':
+      // Ascending two-tone greeting: 440 Hz (A4) -> 660 Hz (E5)
+      return [
+        { hz: 440, durationMs: 120, delayMs: 0, gain: 0.08 },
+        { hz: 660, durationMs: 160, delayMs: 130, gain: 0.09 },
+      ];
+    case 'success':
+      // Bright major triad chime: 523 Hz (C5) -> 659 Hz (E5) -> 784 Hz (G5)
+      return [
+        { hz: 523, durationMs: 80, delayMs: 0, gain: 0.07 },
+        { hz: 659, durationMs: 80, delayMs: 90, gain: 0.07 },
+        { hz: 784, durationMs: 140, delayMs: 180, gain: 0.08 },
+      ];
+    case 'error':
+      // Descending low alert: 320 Hz -> 220 Hz
+      return [
+        { hz: 320, durationMs: 140, delayMs: 0, gain: 0.09 },
+        { hz: 220, durationMs: 180, delayMs: 150, gain: 0.09 },
+      ];
+    case 'listening':
+      // Clean prompt tone: 660 Hz beep
+      return [
+        { hz: 660, durationMs: 150, delayMs: 0, gain: 0.08 },
+      ];
+    case 'back':
+      // Gentle descending two-step: 660 Hz -> 440 Hz
+      return [
+        { hz: 660, durationMs: 100, delayMs: 0, gain: 0.07 },
+        { hz: 440, durationMs: 140, delayMs: 110, gain: 0.07 },
+      ];
+  }
+}
 
 export interface AudioDriver {
   /** Create/resume the AudioContext and the single oscillator. Call from a user gesture. */
@@ -13,6 +61,8 @@ export interface AudioDriver {
   setTone(hz: number | null): void;
   /** Short one-shot cue (progress / listening tones). Never disturbs the main tone. */
   beep(hz: number, ms: number): void;
+  /** Play an earcon cue. Temporarily ducks the theremin tone so they never overlap. */
+  playEarcon(kind: EarconKind): void;
   /** 'unavailable' (no Web Audio), 'locked' (not unlocked yet), or the context state. */
   readonly state: string;
 }
@@ -72,6 +122,7 @@ export class WebAudioDriver implements AudioDriver {
   private osc: OscillatorLike | undefined;
   private gain: GainLike | undefined;
   private unavailable = false;
+  private activeToneHz: number | null = null;
 
   constructor(private readonly factory: AudioContextFactory = defaultFactory) {}
 
@@ -111,11 +162,12 @@ export class WebAudioDriver implements AudioDriver {
   }
 
   setTone(hz: number | null): void {
+    this.activeToneHz = hz !== null && Number.isFinite(hz) ? hz : null;
     const { ctx, osc, gain } = this;
     if (ctx === undefined || osc === undefined || gain === undefined) return;
     const now = ctx.currentTime;
-    if (hz !== null && Number.isFinite(hz)) {
-      osc.frequency.setTargetAtTime(hz, now, FREQ_TIME_CONSTANT);
+    if (this.activeToneHz !== null) {
+      osc.frequency.setTargetAtTime(this.activeToneHz, now, FREQ_TIME_CONSTANT);
       gain.gain.setTargetAtTime(TONE_GAIN, now, GAIN_ON_TIME_CONSTANT);
     } else {
       gain.gain.setTargetAtTime(0, now, GAIN_OFF_TIME_CONSTANT);
@@ -137,6 +189,46 @@ export class WebAudioDriver implements AudioDriver {
     gain.connect(ctx.destination);
     osc.start(now);
     osc.stop(end + BEEP_STOP_PADDING_S);
+  }
+
+  playEarcon(kind: EarconKind): void {
+    const ctx = this.ctx;
+    if (ctx === undefined) return;
+    const steps = getEarconSteps(kind);
+    if (steps.length === 0) return;
+
+    const now = ctx.currentTime;
+    let maxEnd = now;
+
+    // Duck the continuous theremin tone while an earcon plays so they never clash
+    if (this.activeToneHz !== null && this.gain !== undefined) {
+      this.gain.gain.setTargetAtTime(0, now, GAIN_OFF_TIME_CONSTANT);
+    }
+
+    for (const step of steps) {
+      if (!Number.isFinite(step.hz) || !(step.durationMs > 0)) continue;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startAt = now + step.delayMs / 1000;
+      const endAt = startAt + step.durationMs / 1000;
+      if (endAt > maxEnd) maxEnd = endAt;
+
+      osc.type = 'sine';
+      osc.frequency.value = step.hz;
+      gain.gain.value = step.gain ?? BEEP_GAIN;
+      gain.gain.setTargetAtTime(0, endAt, BEEP_FADE_TIME_CONSTANT);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(startAt);
+      osc.stop(endAt + BEEP_STOP_PADDING_S);
+    }
+
+    // Restore theremin tone after earcon completes if tone is still active
+    if (this.activeToneHz !== null && this.gain !== undefined && this.osc !== undefined) {
+      const restoreAt = maxEnd + 0.05;
+      this.osc.frequency.setTargetAtTime(this.activeToneHz, restoreAt, FREQ_TIME_CONSTANT);
+      this.gain.gain.setTargetAtTime(TONE_GAIN, restoreAt, GAIN_ON_TIME_CONSTANT);
+    }
   }
 
   private resumeIfSuspended(ctx: AudioContextLike): void {

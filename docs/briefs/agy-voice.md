@@ -1,0 +1,16 @@
+# Lane D: Voice, languages, earcons, Explore voice commands
+## Goal
+Make the app friendlier by ear. Frontend only.
+## Allowed files
+frontend/src/drivers/speech.ts, frontend/src/drivers/audio.ts (earcons only; do not change the theremin tone or fade), frontend/src/drivers/index.ts, frontend/src/i18n/**, frontend/src/flow/**, frontend/src/screens/**, frontend/src/components/**, frontend/src/styles/**, frontend/public/voice/** (placeholders), new example-based tests in frontend/tests/ (NOT *.prop.test.ts), docs/reports/agy-voice-report.md
+## Forbidden
+frontend/src/core/** (the haptic engine and hit-testing are Kiro's: call their public exports only, never edit), property tests, scene.gen.ts, backend/**, .kiro/**. Do not change any tuned haptic value.
+## Do
+1. Speech-rate setting: slow / normal / fast (0.8 / 1.0 / 1.25 x the current rate), persisted in localStorage (wrapped in try/catch), changeable from a labelled control and by voice, spoken confirmation.
+2. Languages: English, Hindi, Gujarati. i18n table gets hi and gu strings for every key (machine-translated is fine, mark with a TODO-REVIEW comment). Pick system voices by lang (en-IN, hi-IN, gu-IN) with fallback to any matching prefix, then default; speak a notice when no voice for the chosen language exists. A language selector reachable eyes-closed (spoken options, 48x48 targets).
+3. Earcons: short WebAudio cues in drivers/audio.ts (start, success, error, listening, back) that never overlap the theremin tone unexpectedly. Pure functions where possible, tested with the existing fake-AudioContext style.
+4. Svara creature-line slot: a small module that can play up to 8 optional, skippable MP3s from /voice/ (e.g. intro, success, error, listening). Ship NO audio files, only a manifest and 1-second silent placeholder handling; missing files must be silently skipped and must never block speech. Every line has a tap-to-skip.
+5. Explore voice commands (use the existing listen() driver): "where am I" (nearest labelled vertex/line + coarse position), "repeat" (last spoken line), "next corner" (move to / announce the next vertex by index), "describe" (read scene name + facts), "help" (list commands). Pure command parser in frontend/src/flow with example tests for English, Hindi and Gujarati phrases. Commands use scene data and hitTest/engine public APIs only.
+## Done
+npm --prefix frontend exec -- tsc -p frontend --noEmit, npm --prefix frontend test, npm --prefix frontend run build all pass (real counts; the Kiro P1 flake may need one rerun, say so). Report lists files touched and anything for docs/handoffs/for-kiro.md.
+Shared rules: read AGENTS.md first. Never edit Kiro-owned files: frontend/src/core/**, any *.prop.test.ts or test_*_props.py, backend/app/schema.py, backend/app/validate.py, frontend/src/types/scene.gen.ts, .kiro/**. Do NOT change the tuned haptic values or the haptic engine (public interface only). No git state changes, no installs, no .env access, no new dependencies. Example-based tests only (property tests belong to Kiro). Every user-facing string through t(). Browser APIs only in frontend/src/drivers/. Run the DoD commands from the allowed list and record real results, including failures. Write your report last.

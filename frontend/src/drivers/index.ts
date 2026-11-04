@@ -1,22 +1,31 @@
-﻿/**
+/**
  * Drivers entry point: the only module screens import browser capabilities from.
  *
  * `runEffects` is pure dispatch: it turns the haptic engine's plain-data
  * effects into driver calls. All decisions live in the engine (core/).
  */
 
-// TEMP-STUB import: when Kiro's core/hapticEngine.ts exists, change this one line.
 import type { Effect } from '../core/hapticEngine';
 import { WebAudioDriver, type AudioDriver } from './audio';
 import { WebHapticDriver, type HapticDriver } from './haptics';
 import { WebSpeechDriver, type SpeechDriver } from './speech';
 
-export type { AudioDriver } from './audio';
+export type { AudioDriver, EarconKind } from './audio';
+export { getEarconSteps, WebAudioDriver } from './audio';
 export type { HapticDriver } from './haptics';
-export { ListenError, type ListenFailure, type SpeechDriver } from './speech';
-export { WebAudioDriver } from './audio';
 export { WebHapticDriver } from './haptics';
-export { WebSpeechDriver } from './speech';
+export {
+  ListenError,
+  type ListenFailure,
+  type SpeechDriver,
+  type SpeechRateSetting,
+  BASE_SPEECH_RATE,
+  SPEECH_RATE_MULTIPLIERS,
+  DEFAULT_SPEECH_LANG,
+  findVoiceForLang,
+  WebSpeechDriver,
+} from './speech';
+export { safeGet, safeSet, safeRemove } from './storage';
 
 export interface Drivers {
   haptics: HapticDriver;

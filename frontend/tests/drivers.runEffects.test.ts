@@ -1,4 +1,4 @@
-﻿import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { Effect } from '../src/core/hapticEngine';
@@ -11,7 +11,7 @@ function fakeDrivers(): { drivers: Drivers; vibrate: ReturnType<typeof vi.fn>; s
   const setTone = vi.fn();
   const drivers: Drivers = {
     haptics: { supported: true, lastResult: null, vibrate, stop: vi.fn() },
-    audio: { unlock: vi.fn(), setTone, beep: vi.fn(), state: 'running' },
+    audio: { unlock: vi.fn(), setTone, beep: vi.fn(), playEarcon: vi.fn(), state: 'running' },
     speech: { speak, listen: vi.fn(), canSpeak: true, canListen: true },
   };
   return { drivers, vibrate, speak, setTone };

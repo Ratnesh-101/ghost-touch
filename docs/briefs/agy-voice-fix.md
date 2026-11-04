@@ -1,0 +1,12 @@
+# Lane D fix pass (reviewer: Claude Code). Same scope and forbidden files as docs/briefs/agy-voice.md.
+The first pass did not compile. Fix ONLY the following, then re-run the checks. node and npm are now on your PATH, so run them for real and paste the real results.
+
+1. `npm --prefix frontend exec -- tsc -p frontend --noEmit` must be clean. Known errors:
+   - drivers/index.ts: unused imports (EarconKind, getEarconSteps, SpeechRateSetting, BASE_SPEECH_RATE, SPEECH_RATE_MULTIPLIERS, DEFAULT_SPEECH_LANG, findVoiceForLang). Remove them, or re-export them if other modules need them.
+   - flow/svara.ts line ~90: the audio factory type is incompatible with SvaraAudioElementLike (onended handler type). Widen the interface so a real HTMLAudioElement is assignable.
+   - Many tests build an AudioDriver mock without the new `playEarcon` member (drivers.runEffects, explore.p12, flow.ask.abort, flow.ask, flow.capture, flow.explore, flow.start, polish, screens.render tests). Add `playEarcon: vi.fn()` to each mock (or make a shared test helper). Do not change what those tests assert.
+   - Unused imports/vars in tests (beforeEach in flow.svara, getLang/STORAGE_KEY_LANG in i18n.languages, vi in speech.voice); `pause` on type never in flow.svara.test.ts:99; drivers.audio.earcons.test.ts:128 uses a non-existent matcher on `expect` (use expect(x).toBeGreaterThan(y) properly).
+2. `npm --prefix frontend test` must pass. 4 tests fail: i18n "persists language selection in localStorage", speech "persists and retrieves speech rate" and "defaults to normal when stored value is invalid", earcons "ducks the theremin tone". Vitest runs in a node environment without localStorage: tests must install a small in-memory fake on globalThis.localStorage (and remove it afterwards), not rely on jsdom. For the ducking test, make the assertion match the real behaviour or fix the real bug if the tone is not restored.
+3. Architecture rule: browser APIs only in frontend/src/drivers/. Move the localStorage reads/writes out of frontend/src/i18n/index.ts (and any in components/RateSelector.tsx or flow/) into a new frontend/src/drivers/storage.ts (safeGet/safeSet, try/catch, no-op when unavailable). i18n and the selectors import it. Keep behaviour identical.
+4. `npm --prefix frontend run build` must succeed.
+5. Do not touch frontend/src/core, property tests, scene.gen.ts, backend, .kiro. Update docs/reports/agy-voice-report.md with the real results at the end.
