@@ -8,6 +8,12 @@
  * Every line supports tap-to-skip.
  */
 
+import {
+  defaultAudioHost,
+  type AudioElementLike,
+  type AudioHostDriver,
+} from '../drivers/audioElement';
+
 export type SvaraSlot =
   | 'intro'
   | 'explore_start'
@@ -69,29 +75,9 @@ export const SVARA_SLOTS: Record<SvaraSlot, SvaraSlotConfig> = {
 
 export const SVARA_SLOT_COUNT = Object.keys(SVARA_SLOTS).length; // Exactly 8 slots
 
-export interface SvaraAudioElementLike {
-  src: string;
-  currentTime: number;
-  play(): Promise<void>;
-  pause(): void;
-  onended: ((ev: Event) => unknown) | null;
-  onerror: ((ev: Event | string, source?: string, lineno?: number, colno?: number, error?: Error) => unknown) | null;
-}
-
-export interface SvaraHost {
-  createAudio?: (src: string) => SvaraAudioElementLike;
-  setTimeout?: (fn: () => void, ms: number) => unknown;
-  clearTimeout?: (id: unknown) => void;
-}
-
-function defaultSvaraHost(): SvaraHost {
-  if (typeof window === 'undefined') return {};
-  return {
-    createAudio: typeof Audio !== 'undefined' ? (src: string) => new Audio(src) : undefined,
-    setTimeout: (fn, ms) => setTimeout(fn, ms),
-    clearTimeout: (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
-  };
-}
+export type SvaraAudioElementLike = AudioElementLike;
+export type SvaraHost = AudioHostDriver;
+export const defaultSvaraHost = defaultAudioHost;
 
 export type PlayOutcome = 'played' | 'skipped' | 'missing' | 'placeholder_done';
 
@@ -101,7 +87,7 @@ export class SvaraPlayer {
   private cancelCurrent: ((outcome: PlayOutcome) => void) | null = null;
   private isPlayingSlot: SvaraSlot | null = null;
 
-  constructor(private readonly host: SvaraHost = defaultSvaraHost()) {}
+  constructor(private readonly host: SvaraHost = defaultAudioHost()) {}
 
   get isPlaying(): boolean {
     return this.isPlayingSlot !== null;
