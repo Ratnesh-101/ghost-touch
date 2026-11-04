@@ -27,6 +27,7 @@ MULTIPART_OVERHEAD = 256 * 1024  # form fields and boundaries around the 10 MB i
 RATE_WINDOW_SECONDS = 60.0
 DEFAULT_ASK_PER_MINUTE = 40
 DEFAULT_SCENE_PER_MINUTE = 20
+DEFAULT_VALIDATE_PER_MINUTE = 40
 
 
 _HITS: dict[tuple[str, str], deque[float]] = defaultdict(deque)
@@ -153,4 +154,5 @@ def default_rate_limits() -> dict[str, int]:
     return {
         "/api/v1/ask": _int_env("RATE_LIMIT_ASK_PER_MIN", DEFAULT_ASK_PER_MINUTE),
         "/api/v1/scene": _int_env("RATE_LIMIT_SCENE_PER_MIN", DEFAULT_SCENE_PER_MINUTE),
+        "/api/v1/validate": _int_env("RATE_LIMIT_VALIDATE_PER_MIN", DEFAULT_VALIDATE_PER_MINUTE),
     }
