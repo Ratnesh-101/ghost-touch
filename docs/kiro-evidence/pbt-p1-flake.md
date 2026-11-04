@@ -55,3 +55,14 @@ hitTest at p1 -> {"kind":"vertex","id":"p0"}
 ## For the write-up (honest framing)
 - A property-based test **did** catch something real, but about its own assumption, not about product behaviour: the generator treated "distinct normalised points" as "distinct screen points". fast-check found and shrank it to a 1e-45 difference automatically; it took 6 of 30 runs to show up, which is also a lesson about running properties more than once and logging seeds.
 - Do not present this as a defect in `hitTest`. No product code changed because of it.
+
+## Fix applied (Kiro, 2026-11-03)
+
+All four suggested fixes were implemented in `frontend/tests/hitTest.prop.test.ts`:
+
+1. **Screen-space separation filter** — the `pointsArb` generator now projects each candidate set through `toScreen` with the actual viewport and rejects any pair whose screen distance is `≤ DEFAULT_RADII.vertex` (22 px). Two points that land on the same pixel are impossible to generate.
+2. **`fc.double` instead of `fc.float`** — eliminates 32-bit denormals (1e-45) that were the source of the collisions.
+3. **Realistic canvas range (200–2000 px)** — a 1 px viewport can no longer be generated, removing the other contributing factor.
+4. **Regression test** — "P1 — Tie rule (regression from flake)" pinned the seed -732699702 counterexample as a unit test documenting the tie rule ("two points on the same pixel: the first one wins").
+
+Verified: 10 consecutive runs with seeds 12345, 98765, -732699702, 42, 999999, -1, 2147483647, 314159, -100000, 77777 — all passed (3 tests × 10 runs = 30/30 green). The P2 "Vertex beats line" property test (200 runs) was also added in the same commit.
