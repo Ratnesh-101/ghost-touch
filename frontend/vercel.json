@@ -9,7 +9,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-cache"
+          "value": "no-cache, no-store, must-revalidate"
         }
       ]
     },
@@ -30,11 +30,20 @@
           "value": "no-cache"
         }
       ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     }
   ],
   "rewrites": [
     {
-      "source": "/((?!assets/|samples/).*)",
+      "source": "/((?!assets/|samples/|icons/|sw\\.js|manifest\\.webmanifest).*)",
       "destination": "/index.html"
     }
   ]

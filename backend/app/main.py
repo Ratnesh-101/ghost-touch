@@ -95,10 +95,30 @@ def validate_env_settings() -> None:
         logger.warning("Invalid ASK_TIMEOUT_SECONDS '%s'; using default 10.0s", ask_timeout_raw)
 
 
+def parse_allowed_origins(raw: str | None) -> list[str]:
+    """Parse ALLOWED_ORIGINS string into a list of normalized origin URLs.
+
+    Handles comma-separated lists, trailing slashes, and surrounding whitespace.
+    """
+    if not raw:
+        return []
+    origins: list[str] = []
+    for item in raw.split(","):
+        cleaned = item.strip()
+        if not cleaned:
+            continue
+        while len(cleaned) > 1 and cleaned.endswith("/"):
+            cleaned = cleaned.rstrip("/")
+        if cleaned and cleaned not in origins:
+            origins.append(cleaned)
+    return origins
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Validate settings and initialize provider chain at startup."""
     validate_env_settings()
+    logger.info("allowed CORS origins: %s", _origins)
     get_provider_chain()
     yield
 
@@ -113,7 +133,7 @@ app = FastAPI(
 # CORS: allow frontend origins. expose_headers allows browser to read
 # X-Vision-Provider (Finding 12).
 _allowed = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173")
-_origins = [o.strip() for o in _allowed.split(",") if o.strip()]
+_origins = parse_allowed_origins(_allowed)
 
 # Added first so CORS (added next) wraps it and 413/429 replies still carry CORS headers.
 app.add_middleware(
