@@ -29,8 +29,12 @@ services:
         value: minimal
       - key: OPENAI_MODEL
         value: gpt-4.1-mini
+      - key: OPENAI_BASE_URL
+        value: https://api.openai.com/v1
       - key: NEBIUS_MODEL
         value: openbmb/MiniCPM-V-4_5
+      - key: NEBIUS_BASE_URL
+        value: https://api.tokenfactory.nebius.com/v1
       # Order of fallback: Gemini first, then OpenAI, then Nebius (last). Providers without a key are skipped.
       - key: VISION_PROVIDERS
         value: gemini,openai,nebius
@@ -38,6 +42,16 @@ services:
         value: "8.0"
       - key: SCENE_TIMEOUT_SECONDS
         value: "15.0"
+      - key: ASK_TIMEOUT_SECONDS
+        value: "10.0"
+      - key: SCENE_CACHE_SIZE
+        value: "64"
+      - key: SCENE_CACHE_TTL_SECONDS
+        value: "21600"
+      - key: RATE_LIMIT_ASK_PER_MIN
+        value: "40"
+      - key: RATE_LIMIT_SCENE_PER_MIN
+        value: "20"
       # Replace this with the deployed Vercel frontend URL (no trailing slash)
       - key: ALLOWED_ORIGINS
         value: https://your-frontend-app.vercel.app
