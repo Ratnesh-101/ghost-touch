@@ -9,7 +9,7 @@
  * Pure decisions (ordering, eviction) live in `core/savedDiagrams.ts`.
  * Storage access lives in the injected `DiagramStore` driver.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type JSX } from 'react';
 import type { DiagramScene } from '../core/scene';
 import { orderForDisplay, type SavedDiagram } from '../core/savedDiagrams';
 import type { DiagramStore } from '../drivers/diagramStore';
