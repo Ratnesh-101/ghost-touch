@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, type Mock } from 'vitest';
 import {
   getEarconSteps,
   WebAudioDriver,
@@ -9,14 +9,14 @@ import {
   type ParamLike,
 } from '../src/drivers/audio';
 
-function fakeParam(): ParamLike & { setTargetAtTime: ReturnType<typeof vi.fn> } {
-  return { value: 0, setTargetAtTime: vi.fn() };
+function fakeParam(): ParamLike & { setTargetAtTime: Mock<ParamLike['setTargetAtTime']> } {
+  return { value: 0, setTargetAtTime: vi.fn<ParamLike['setTargetAtTime']>() };
 }
 
 interface FakeContext extends AudioContextLike {
-  oscillators: Array<OscillatorLike & { start: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn> }>;
+  oscillators: Array<OscillatorLike & { start: Mock<OscillatorLike['start']>; stop: Mock<OscillatorLike['stop']> }>;
   gains: Array<GainLike & { gain: ReturnType<typeof fakeParam> }>;
-  resume: ReturnType<typeof vi.fn>;
+  resume: Mock<AudioContextLike['resume']>;
   state: string;
 }
 
@@ -27,14 +27,14 @@ function fakeContext(state = 'running'): FakeContext {
     destination: {},
     oscillators: [],
     gains: [],
-    resume: vi.fn().mockResolvedValue(undefined),
+    resume: vi.fn<AudioContextLike['resume']>().mockResolvedValue(undefined),
     createOscillator() {
       const osc = {
         type: '',
         frequency: fakeParam(),
         connect: vi.fn(),
-        start: vi.fn(),
-        stop: vi.fn(),
+        start: vi.fn<OscillatorLike['start']>(),
+        stop: vi.fn<OscillatorLike['stop']>(),
       };
       ctx.oscillators.push(osc);
       return osc;
