@@ -1,0 +1,31 @@
+# Configuration for actions/labeler v5
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: 'frontend/**'
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file: 'backend/**'
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**'
+          - '*.md'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: '.github/**'
+
+specs:
+  - changed-files:
+      - any-glob-to-any-file: '.kiro/**'
+
+scripts:
+  - changed-files:
+      - any-glob-to-any-file: 'scripts/**'
+
+prototypes:
+  - changed-files:
+      - any-glob-to-any-file: 'prototypes/**'

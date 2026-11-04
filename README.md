@@ -1,5 +1,9 @@
 # Ghost Touch 👻
 
+[![CI](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/ci.yml/badge.svg)](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/codeql.yml/badge.svg)](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/codeql.yml)
+[![Gitleaks](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/gitleaks.yml/badge.svg)](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/gitleaks.yml)
+
 Feel diagrams you can't see. Ghost Touch turns a photo of a STEM diagram into something blind and low-vision students can explore by touch on an ordinary Android phone: lines vibrate, corners pulse, labels speak, and graphs sing through a theremin.
 
 Built for **Kiroween 2026 (Frankenstein)** and **STEMergent Hacks 2026**.

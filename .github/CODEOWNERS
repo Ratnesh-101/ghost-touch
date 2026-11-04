@@ -1,0 +1,19 @@
+# Repository-wide default owner
+* @Ratnesh-101
+
+# Kiro-owned core algorithms and haptics
+/frontend/src/core/ @Ratnesh-101
+
+# Property-based tests
+*.prop.test.ts @Ratnesh-101
+/frontend/tests/*.prop.test.ts @Ratnesh-101
+test_*_props.py @Ratnesh-101
+/backend/tests/test_*_props.py @Ratnesh-101
+
+# Schema definitions and validators
+/backend/app/schema.py @Ratnesh-101
+/backend/app/validate.py @Ratnesh-101
+/frontend/src/types/scene.gen.ts @Ratnesh-101
+
+# Kiroween spec, steering, and agent definitions
+/.kiro/ @Ratnesh-101
