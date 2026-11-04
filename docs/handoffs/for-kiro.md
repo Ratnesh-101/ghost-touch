@@ -1,24 +1,15 @@
-# For Kiro: items that need a Kiro-owned change
+# For Kiro: items that need a Kiro-owned change or review
 
-Written by Claude Code, 2026-11-03. Kiro owns `frontend/src/core/**`, all property tests (`*.prop.test.ts`, `test_*_props.py`), `backend/app/schema.py`, `backend/app/validate.py`, `frontend/src/types/scene.gen.ts` and `.kiro/**`. Agents and Claude Code do not edit these. Anything they find goes here.
+Updated by Claude Code, 2026-11-04. Kiro owns `frontend/src/core/**` (haptic engine, hit-testing, pitch, geometry), the original property tests P1-P13, `backend/app/schema.py`, `backend/app/validate.py`, `frontend/src/types/scene.gen.ts` and `.kiro/**`. Because Kiro's credits ran out, agents (Antigravity) were authorised by the owner to write some code in those areas; it is logged as agent work in `docs/BUILD_LOG.md` and `docs/reviews/`.
 
-## Checked today (state of `main`)
-| Item | State | Evidence |
-|---|---|---|
-| TEMP stubs (`frontend/src/_temp`, `backend/app/_temp`) | **Gone.** `flow/explore.ts` imports `../core/hapticEngine` and `../core/pitch`. | `ls` shows no `_temp` dirs |
-| Requirement 13 (TalkBack) in the spec | **Present** in `requirements.md`. | grep |
-| P1 flake | **Looks fixed.** The generator now requires minimum screen separation. 25 of 25 isolated runs passed (it used to fail about 1 in 5). | `frontend/tests/hitTest.prop.test.ts:31-59` |
-| Full suites | 313 frontend, 337 backend, tsc, build and ruff clean. | run 2026-11-04 |
+## State of main
+- 473 frontend and 347 backend tests pass; tsc clean (TypeScript 7), build OK, ruff clean.
+- Kiro's own commits are merged with their authorship: the P1 generator fix (2026-11-03), hooks `prop-tests-on-save` and `review-on-stop`, `docs/kiro-evidence/step*.md`, and the Task 13 spec (P14, P15).
+- Agent-written, not Kiro: `core/correct.ts` with P16 and P17 (Teacher Correct mode), `POST /api/v1/validate`, the Task 13 completion (`core/savedDiagrams.ts` with P14 and P15 tests, IndexedDB driver, Saved screen and wiring), accessibility, voice and Hindi/Gujarati, deploy prep, repo bots. Tests on Kiro's T13 draft found four real defects in it (details in `docs/KIRO_WRITEUP.md`).
 
-## Asks for Kiro
-1. **Tick task checkboxes.** In `.kiro/specs/ghost-touch/tasks.md`, parent tasks 7, 10, 13 and 16 are unticked. Confirm whether 7 is complete (its listed sub-tasks 7.1-7.4 are ticked) and tick it.
-2. **Remove the CI retry** for the old P1 flake: `.github/workflows/ci.yml` step "Run frontend tests" (`npm test || ... npm test`). It is no longer needed if you agree P1 is fixed. Claude Code left it in place because the P1 test is yours to sign off.
-3. **Record the P1 finding as evidence.** `docs/kiro-evidence/pbt-p1-flake.md` explains the flake (a generator bug, not a `hitTest` bug). Add the final outcome (fixed, with the commit) for the write-up in `docs/KIRO_WRITEUP.md`.
-4. **Hooks:** confirm the three hooks in `.kiro/hooks/` appear in Kiro's hooks panel and fire (screenshot or log for the write-up).
-5. **Agent-lane notes (fill in as lanes land):**
-   - Lane D (voice) is merged. It imports only `toScreen` and the scene types from `core` and never touches the engine; nothing is needed from Kiro. Follow-up for agents: `flow/svara.ts:90` default `new Audio()` should move to `drivers/`.
-   - Nothing else from lanes A, B, C needs a Kiro change.
-
-## Context
-- Kiro's credits ran out on 2026-11-02 during spec hygiene; see `docs/BUILD_LOG.md` for which follow-ups an Antigravity agent finished instead. That work is logged as agent work, not as Kiro's.
-- Do not change the tuned haptic values in `.kiro/steering/tech.md` without the owner's approval.
+## Asks for Kiro (when it has credits)
+1. **Review the agent-written core modules** (`core/correct.ts`, `core/savedDiagrams.ts`) against your spec and steering; adopt, rewrite or reject them. This is the best way to restore Kiro's ownership of the core.
+2. **Tick parent tasks** that are truly done (7, 10, 14, 15, 16 depend on the owner's phone test and deployment; 13 is ticked).
+3. **Confirm the five hooks** appear in the hooks panel and fire; add a screenshot to `docs/kiro-evidence/`.
+4. If you take new spec-first work, the natural next feature is anything the phone test reveals; keep the tuned haptic values in `.kiro/steering/tech.md` unchanged unless the owner approves.
+5. Known follow-up from review: the centre reference tick (25 ms) is still "proposed, pending owner approval" in `tech.md`.
