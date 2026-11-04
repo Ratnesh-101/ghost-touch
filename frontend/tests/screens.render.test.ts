@@ -2,9 +2,10 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from '../src/App';
-import type { Drivers } from '../src/drivers';
+import { MemoryDiagramStore, type Drivers } from '../src/drivers';
 import { Capture } from '../src/screens/Capture';
 import { Explore } from '../src/screens/Explore';
+import { SavedDiagrams } from '../src/screens/SavedDiagrams';
 import { Start } from '../src/screens/Start';
 import css from '../src/styles/global.css?raw';
 
@@ -12,6 +13,7 @@ const drivers: Drivers = {
   haptics: { supported: true, lastResult: null, vibrate: vi.fn(), stop: vi.fn() },
   audio: { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), playEarcon: vi.fn(), state: 'locked' },
   speech: { speak: vi.fn(), listen: vi.fn(), canSpeak: true, canListen: true },
+  diagramStore: new MemoryDiagramStore(),
 };
 
 describe('screen markup (server render)', () => {
@@ -24,9 +26,21 @@ describe('screen markup (server render)', () => {
 
   it('Capture has every control, a live status, and the rear-camera input', () => {
     const html = renderToStaticMarkup(
-      createElement(Capture, { drivers, initialStatus: 'Take a photo.', onScene: vi.fn() }),
+      createElement(Capture, {
+        drivers,
+        initialStatus: 'Take a photo.',
+        onScene: vi.fn(),
+        onSavedDiagrams: vi.fn(),
+      }),
     );
-    for (const label of ['Take photo', 'Choose image', 'Sample: triangle', 'Sample: sine graph', 'Sample: bar chart']) {
+    for (const label of [
+      'Take photo',
+      'Choose image',
+      'Saved diagrams',
+      'Sample: triangle',
+      'Sample: sine graph',
+      'Sample: bar chart',
+    ]) {
       expect(html).toContain(label);
     }
     // The app speaks the status itself: no live region (that is what makes a screen
@@ -42,7 +56,12 @@ describe('screen markup (server render)', () => {
   it('Capture turns the status into a live region only when the app cannot speak', () => {
     const silent: Drivers = { ...drivers, speech: { ...drivers.speech, canSpeak: false } };
     const html = renderToStaticMarkup(
-      createElement(Capture, { drivers: silent, initialStatus: 'Take a photo.', onScene: vi.fn() }),
+      createElement(Capture, {
+        drivers: silent,
+        initialStatus: 'Take a photo.',
+        onScene: vi.fn(),
+        onSavedDiagrams: vi.fn(),
+      }),
     );
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-live="polite"');
@@ -60,7 +79,11 @@ describe('screen markup (server render)', () => {
     );
     expect(html).toContain('<canvas');
     expect(html).toContain('role="img"');
-    expect(html).toContain('aria-label="Triangle. Double-tap and hold, then drag to feel the diagram. You start at the centre."');
+    expect(
+      html,
+    ).toContain(
+      'aria-label="Triangle. Double-tap and hold, then drag to feel the diagram. You start at the centre."',
+    );
     expect(html).toContain('Back');
     expect(html).toContain('gt-explore__back');
     expect(html).toContain('Ask');
@@ -97,6 +120,21 @@ describe('screen markup (server render)', () => {
     );
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-live="polite"');
+  });
+
+  it('SavedDiagrams markup renders heading, back button, and status text', () => {
+    const html = renderToStaticMarkup(
+      createElement(SavedDiagrams, {
+        diagramStore: drivers.diagramStore,
+        speech: drivers.speech,
+        onOpen: vi.fn(),
+        onBack: vi.fn(),
+      }),
+    );
+    expect(html).toContain('gt-saved');
+    expect(html).toContain('Saved diagrams');
+    expect(html).toContain('Back to Capture');
+    expect(html).toContain('gt-saved__back');
   });
 
   it('App opens on the Start screen', () => {

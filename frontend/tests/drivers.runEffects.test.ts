@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { Effect } from '../src/core/hapticEngine';
-import { runEffects, type Drivers } from '../src/drivers';
+import { MemoryDiagramStore, runEffects, type Drivers } from '../src/drivers';
 import { Debug } from '../src/screens/Debug';
 
 function fakeDrivers(): { drivers: Drivers; vibrate: ReturnType<typeof vi.fn>; speak: ReturnType<typeof vi.fn>; setTone: ReturnType<typeof vi.fn> } {
@@ -13,6 +13,7 @@ function fakeDrivers(): { drivers: Drivers; vibrate: ReturnType<typeof vi.fn>; s
     haptics: { supported: true, lastResult: null, vibrate, stop: vi.fn() },
     audio: { unlock: vi.fn(), setTone, beep: vi.fn(), playEarcon: vi.fn(), state: 'running' },
     speech: { speak, listen: vi.fn(), canSpeak: true, canListen: true },
+    diagramStore: new MemoryDiagramStore(),
   };
   return { drivers, vibrate, speak, setTone };
 }
