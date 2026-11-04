@@ -52,9 +52,10 @@ interface ExploreProps {
   announced: string;
   drivers: Drivers;
   onBack: () => void;
+  onCorrect?: () => void;
 }
 
-export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JSX.Element {
+export function Explore({ scene, announced, drivers, onBack, onCorrect }: ExploreProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const askButtonRef = useRef<HTMLButtonElement>(null);
   const backButtonRef = useRef<HTMLButtonElement>(null);
@@ -748,6 +749,15 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
           >
             {t('ask.button')}
           </AccessibleButton>
+          {onCorrect && (
+            <AccessibleButton
+              className="gt-control gt-explore__correct"
+              onClick={onCorrect}
+              disabled={isBusy}
+            >
+              {t('explore.correct')}
+            </AccessibleButton>
+          )}
           <AccessibleButton
             ref={backButtonRef}
             className="gt-control gt-explore__back"

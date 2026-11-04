@@ -23,7 +23,7 @@ interface CaptureProps {
   drivers: Drivers;
   /** The line already spoken on arrival, shown in the status area. */
   initialStatus: string;
-  onScene: (scene: DiagramScene, mode: SceneMode) => void;
+  onScene: (scene: DiagramScene, mode: SceneMode, photoUrl?: string) => void;
 }
 
 const SAMPLES: ReadonlyArray<{ id: SampleId; labelKey: string }> = [
@@ -78,7 +78,15 @@ export function Capture({ drivers, initialStatus, onScene }: CaptureProps): JSX.
     setBusy(false);
     if (outcome.kind === 'scene') {
       drivers.audio.playEarcon?.('success');
-      onScene(outcome.response.scene, outcome.response.mode);
+      let photoUrl: string | undefined;
+      try {
+        photoUrl = typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function'
+          ? URL.createObjectURL(file)
+          : undefined;
+      } catch {
+        photoUrl = undefined;
+      }
+      onScene(outcome.response.scene, outcome.response.mode, photoUrl);
     } else if (outcome.kind !== 'cancelled') {
       drivers.audio.playEarcon?.('error');
       takeButton.current?.focus();
