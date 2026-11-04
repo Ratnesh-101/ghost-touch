@@ -1,0 +1,13 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Post-session review",
+      "trigger": "Stop",
+      "action": {
+        "type": "agent",
+        "prompt": "You are the Kiro reviewer for Ghost Touch. A build session just ended.\n\nCheck all files edited in this session. For each Kiro-owned file changed (frontend/src/core/**, *.prop.test.ts, backend/app/validate.py, backend/app/schema.py, .kiro/**), apply the review protocol from .kiro/steering/review.md:\n1. Architecture rules respected (pure core, thin shell, no browser APIs in core/).\n2. Haptic vocabulary values unchanged from tech.md (lineMs 80, retriggerMs 70, cornerPattern [50,90,50], quietMs 450, vertexRadius 22, lineRadius 14, pitch 200–1000 Hz).\n3. Every property test (P1–P13) is present and runs (≥200 cases each).\n4. No TEMP stubs remain in production paths.\n5. tasks.md checkboxes match implementation.\n\nWrite a brief review note to docs/reviews/session-review-latest.md with the verdict (SHIP / FIX FIRST) and any findings. Keep it concise."
+      }
+    }
+  ]
+}

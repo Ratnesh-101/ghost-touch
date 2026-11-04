@@ -89,9 +89,10 @@ historyReducer(state: HistoryState, action: HistoryAction): HistoryState
 - `HapticDriver { vibrate(pattern): boolean; stop(): void }` — `WebHapticDriver` now, `CapacitorHapticDriver` later.
 - `AudioDriver { setTone(hz | null) }` — one sine oscillator with smoothed frequency and gain.
 - `SpeechDriver { speak(text, lang); listen(lang): Promise<string> }` — every `speak` cancels the previous utterance.
+- `DiagramStore { list(): Promise<SavedDiagram[]>; get(id): Promise<SavedDiagram|undefined>; put(entry): Promise<void>; delete(id): Promise<void> }` — `IDBDiagramStore` backed by IndexedDB; `MemoryDiagramStore` in-memory fake for tests. Every call wrapped in try/catch; errors surfaced via return value, never thrown.
 
 ### Screens
-`Start` → `Capture` → (`Explore` ⇄ `Ask`) ; `Correct` (Kiroween, sighted mode).
+`Start` → `Capture` → (`Explore` ⇄ `Ask`) ; `SavedDiagrams` ← Capture ; `Correct` (Kiroween, sighted mode).
 
 ## Data Models
 ```python
@@ -113,7 +114,30 @@ class DiagramScene(BaseModel):
 ```
 All `x`, `y` values are in [0, 1], origin top-left. Aspect ratio is kept in `Viewport` (letterboxed), never stretched.
 
-## Correctness Properties (property-based tests)
+### Saved diagram entry (TypeScript, frontend only)
+```ts
+// core/savedDiagrams.ts
+interface SavedDiagram {
+  id: string;                 // generated from clock + rng, injected for testability
+  createdAt: number;          // Date.now() ms, used for eviction ordering
+  title: string;              // spoken title: scene.title ?? kind + first labelled points
+  thumbnailDataUrl: string;   // canvas.toDataURL('image/jpeg', 0.7) after first render
+  scene: DiagramScene;        // full scene; offline exploration works without the network
+  pinned: boolean;            // if true, immune to automatic eviction
+}
+
+// Pure core — no browser APIs
+savedTitle(scene: DiagramScene, lang: string): string
+makeId(nowMs: number, rng: () => number): string
+chooseEviction(entries: SavedDiagram[]): SavedDiagram | undefined  // oldest unpinned, or undefined
+capExceeded(count: number, cap: number): boolean
+orderForDisplay(entries: SavedDiagram[]): SavedDiagram[]  // newest-first
+```
+
+Cap: 20 entries. Eviction target: oldest by `createdAt` among unpinned entries.
+Storage unavailability is handled gracefully: the app keeps working and speaks a short explanation.
+
+## Error Handling
 Each property maps to requirements and runs with fast-check (frontend) or Hypothesis (backend), ≥200 cases.
 
 | # | Property | Validates |
@@ -131,6 +155,8 @@ Each property maps to requirements and runs with fast-check (frontend) or Hypoth
 | P11 | **Bar pitch order:** bars with larger values never get a lower pitch. | 6.2 |
 | P12 | **Explore gesture events reach the engine:** an integration test with synthetic pointer events through hitTest, step and runEffects, including a lift, produces the expected effects at each stage. | 13.2 |
 | P13 | **Validator rejects colour- or shape-only labels:** labels made only of words from the colour/shape list are rejected; labels with any other word are accepted. | 3.6 |
+| P14 | **Serialise round-trip:** `deserialise(serialise(entry))` returns an identical `DiagramScene` for any valid scene (all coordinate values preserved, kind preserved, no data loss). | 11.1 |
+| P15 | **Eviction invariants:** after any sequence of saves on a store that was at the cap, the count never exceeds the cap, no pinned entry is ever evicted, and the entry removed is always the oldest unpinned one. | 11.5, 11.6 |
 | P16 | **Correct edit invariants:** any sequence of valid edits on a valid scene yields a scene that either satisfies the invariants (unique ids, no dangling segment references, all coordinates in [0, 1]) or is explicitly rejected. | 9.2, 9.3 |
 | P17 | **Undo/Redo round-trip:** undo after any edit restores the previous scene exactly; redo re-applies it. | 9.2 |
 
@@ -142,9 +168,11 @@ Each property maps to requirements and runs with fast-check (frontend) or Hypoth
 | Network offline | Offer samples and saved diagrams |
 | Speech recognition unavailable | Text input (Req 7.4) |
 | Image too large | Downscale client-side to 1600 px longest side before upload |
+| IndexedDB unavailable | Speak "Saving is unavailable on this device"; app continues without saving (Req 11.7) |
+| Storage full / all entries pinned | Speak "Could not save: all slots are pinned"; app continues (Req 11.5, 11.7) |
 
 ## Testing Strategy
-- **Property tests:** P1–P13 as above; these are the headline of the Kiro write-up.
+- **Property tests:** P1–P15 as above; these are the headline of the Kiro write-up.
 - **Unit tests:** fixtures for the three sample diagrams; provider mocked with recorded responses.
 - **Device test checklist (manual, on Nord CE6 + one budget phone):** distinguish line vs. corner with eyes closed; trace a triangle and name it; identify the highest bar; follow a sine curve and count peaks.
 - **User test (Kiroween):** at least one session with a blind student or a school for the blind, recorded with consent for the demo.

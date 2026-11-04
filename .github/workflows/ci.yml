@@ -35,6 +35,9 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Run frontend tests
+        # P1 generator flake fixed (2026-11-03): screen-space separation filter prevents
+        # two points from colliding on the same pixel. Retry workaround removed.
+        # See docs/kiro-evidence/pbt-p1-flake.md for full history.
         run: npm test
 
       - name: Build production bundle
