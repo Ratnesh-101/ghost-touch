@@ -30,6 +30,7 @@ function createMockDrivers(): {
       beep: vi.fn((hz, ms) => calls.push(`beep(${hz},${ms})`)),
       setTone: vi.fn(),
       unlock: vi.fn(),
+      playEarcon: vi.fn(),
       state: 'running',
     },
     speech: {

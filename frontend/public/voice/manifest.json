@@ -1,0 +1,38 @@
+{
+  "name": "Svara Creature Voice Manifest",
+  "version": 1,
+  "slots": {
+    "intro": {
+      "file": "/voice/intro.mp3",
+      "description": "Creature intro welcome cue"
+    },
+    "explore_start": {
+      "file": "/voice/explore_start.mp3",
+      "description": "Explore screen entry cue"
+    },
+    "success": {
+      "file": "/voice/success.mp3",
+      "description": "Success confirmation sound"
+    },
+    "error": {
+      "file": "/voice/error.mp3",
+      "description": "Error alert creature cue"
+    },
+    "listening": {
+      "file": "/voice/listening.mp3",
+      "description": "Listening prompt creature cue"
+    },
+    "back": {
+      "file": "/voice/back.mp3",
+      "description": "Back navigation cue"
+    },
+    "help": {
+      "file": "/voice/help.mp3",
+      "description": "Help menu cue"
+    },
+    "rate_change": {
+      "file": "/voice/rate_change.mp3",
+      "description": "Speech rate change cue"
+    }
+  }
+}

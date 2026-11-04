@@ -18,7 +18,7 @@ function fakeDrivers(vibrationSupported: boolean): { drivers: Drivers; calls: st
       vibrate: (pattern) => (calls.push(`vibrate:${String(pattern)}`), vibrationSupported),
       stop: vi.fn(),
     },
-    audio: { unlock: () => void calls.push('unlock'), setTone: vi.fn(), beep: vi.fn(), state: 'running' },
+    audio: { unlock: () => void calls.push('unlock'), setTone: vi.fn(), beep: vi.fn(), playEarcon: vi.fn(), state: 'running' },
     speech: {
       speak: (text) => void (calls.push('speak'), spoken.push(text)),
       listen: vi.fn(),

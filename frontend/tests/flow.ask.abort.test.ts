@@ -8,7 +8,7 @@ import { AskManager, askErrorMessage, type AskDeps } from '../src/flow/ask';
 import { t } from '../src/i18n';
 
 const scene: DiagramScene = { kind: 'geometry', title: 'T', facts: [] };
-const audio: AudioDriver = { beep: vi.fn(), setTone: vi.fn(), unlock: vi.fn(), state: 'running' };
+const audio: AudioDriver = { beep: vi.fn(), setTone: vi.fn(), unlock: vi.fn(), playEarcon: vi.fn(), state: 'running' };
 
 function deferred<T>(): { promise: Promise<T>; resolve: (v: T) => void; reject: (e: unknown) => void } {
   let resolve!: (v: T) => void;

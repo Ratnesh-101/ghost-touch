@@ -10,7 +10,7 @@ import css from '../src/styles/global.css?raw';
 
 const drivers: Drivers = {
   haptics: { supported: true, lastResult: null, vibrate: vi.fn(), stop: vi.fn() },
-  audio: { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), state: 'locked' },
+  audio: { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), playEarcon: vi.fn(), state: 'locked' },
   speech: { speak: vi.fn(), listen: vi.fn(), canSpeak: true, canListen: true },
 };
 

@@ -4,11 +4,13 @@
  * Works with TalkBack on (pass-through gesture: double-tap, hold and drag)
  * and TalkBack off (direct touch or same gesture).
  *
- * Pure decisions live in `flow/explore.ts` and `flow/ask.ts`; browser APIs live
- * in `drivers/` (history in `drivers/navigation.ts`, canvas context & DOM events here).
+ * Pure decisions live in `flow/explore.ts`, `flow/ask.ts`, and `flow/commands.ts`;
+ * browser APIs live in `drivers/` (navigation history, canvas context & DOM events here).
  */
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { AccessibleButton } from '../components/AccessibleButton';
+import { LanguageSelector } from '../components/LanguageSelector';
+import { RateSelector } from '../components/RateSelector';
 import { StatusText } from '../components/StatusText';
 import {
   makeViewport,
@@ -20,7 +22,8 @@ import {
 import type { DiagramScene } from '../core/scene';
 import { runEffects, type Drivers } from '../drivers';
 import { leaveExploreEntry, onBack as subscribeBack, pushExploreEntry } from '../drivers/navigation';
-import { AskManager } from '../flow/ask';
+import { askErrorMessage, AskManager, LISTENING_BEEP_HZ, LISTENING_BEEP_MS } from '../flow/ask';
+import { executeExploreCommand, parseExploreCommand } from '../flow/commands';
 import {
   CENTRE_TICK_MS,
   checkCentreTick,
@@ -41,7 +44,7 @@ import {
   type PointerHistory,
 } from '../flow/explore';
 import { canvasAriaLabel, sceneName } from '../flow/navigation';
-import { t } from '../i18n';
+import { getLang, LANG_BCP47, t } from '../i18n';
 
 interface ExploreProps {
   scene: DiagramScene;
@@ -68,6 +71,8 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafId = useRef<number | null>(null);
   const pendingCursor = useRef<ScreenPoint | null>(null);
+  const lastSpokenRef = useRef<string>(announced);
+  const cornerIndexRef = useRef<number>(-1);
 
   const sceneRef = useRef(scene);
   sceneRef.current = scene;
@@ -98,6 +103,7 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
   const handleExit = (): void => {
     if (leaving.current) return;
     leaving.current = true;
+    drivers.audio.playEarcon?.('back');
     clearLongPressTimer();
     activePointers.current.clear();
     primaryPointerId.current = null;
@@ -108,13 +114,83 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
   const handleVoiceAsk = async (): Promise<void> => {
     clearLongPressTimer();
     setIsBusy(true);
-    const outcome = await askManager.current.startVoiceAsk({
+
+    const lang = LANG_BCP47[getLang()] ?? 'en-IN';
+
+    // Stop TTS and play listening earcon / beep
+    drivers.speech.stopSpeaking?.();
+    if (drivers.audio.playEarcon) {
+      drivers.audio.playEarcon('listening');
+    } else {
+      drivers.audio.beep(LISTENING_BEEP_HZ, LISTENING_BEEP_MS);
+    }
+    setStatusMessage(t('ask.listening'));
+
+    let transcript = '';
+    try {
+      transcript = await drivers.speech.listen(lang);
+    } catch (err: unknown) {
+      drivers.audio.playEarcon?.('error');
+      const msg = askErrorMessage(err);
+      setStatusMessage(msg);
+      drivers.speech.speak(msg, lang);
+      lastSpokenRef.current = msg;
+      setIsBusy(false);
+      focusAfterRender(askButtonRef);
+      return;
+    }
+
+    // Check if recognized phrase is an Explore voice command
+    const cmd = parseExploreCommand(transcript);
+    if (cmd.type !== 'unknown') {
+      const currentNorm = pendingCursor.current
+        ? toNorm(pendingCursor.current, viewportRef.current)
+        : null;
+      const currentRate = drivers.speech.getRate ? drivers.speech.getRate() : 'normal';
+      const result = executeExploreCommand(cmd, {
+        scene,
+        view: viewportRef.current,
+        cursorNorm: currentNorm,
+        lastSpoken: lastSpokenRef.current,
+        currentCornerIndex: cornerIndexRef.current,
+        currentRate,
+      });
+
+      if (result.nextCornerIndex !== undefined) {
+        cornerIndexRef.current = result.nextCornerIndex;
+      }
+      if (result.nextCursor) {
+        pendingCursor.current = result.nextCursor;
+        scheduleDraw(viewportRef.current, result.nextCursor);
+      }
+      if (result.nextRate) {
+        drivers.speech.setRate?.(result.nextRate);
+      }
+      if (result.earcon) {
+        drivers.audio.playEarcon?.(result.earcon);
+      }
+
+      setStatusMessage(result.speech);
+      drivers.speech.speak(result.speech, lang);
+      lastSpokenRef.current = result.speech;
+      setIsBusy(false);
+      focusAfterRender(askButtonRef);
+      return;
+    }
+
+    // If not a local command, submit to Ask backend
+    setStatusMessage(t('ask.thinking'));
+    drivers.speech.speak(t('ask.thinking'), lang);
+
+    const outcome = await askManager.current.submitTextAsk(transcript, {
       audio: drivers.audio,
       speech: drivers.speech,
       scene,
+      lang,
       say: (text: string) => {
         setStatusMessage(text);
-        drivers.speech.speak(text);
+        drivers.speech.speak(text, lang);
+        lastSpokenRef.current = text;
       },
       onStatusChange: (status: string) => {
         setStatusMessage(status);
@@ -123,7 +199,7 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
         setShowTextFallback(true);
       },
     });
-    // 'busy' means another Ask is still running: leave its UI state and focus alone.
+
     if (outcome.kind === 'busy' || outcome.kind === 'cancelled') return;
     setIsBusy(false);
     focusAfterRender(askButtonRef);
@@ -133,18 +209,22 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
     if (!questionText.trim()) {
       const msg = t('ask.errorEmpty');
       setStatusMessage(msg);
-      drivers.speech.speak(msg);
+      drivers.speech.speak(msg, LANG_BCP47[getLang()]);
+      lastSpokenRef.current = msg;
       return;
     }
     setIsBusy(true);
     const q = questionText;
+    const lang = LANG_BCP47[getLang()] ?? 'en-IN';
     const outcome = await askManager.current.submitTextAsk(q, {
       audio: drivers.audio,
       speech: drivers.speech,
       scene,
+      lang,
       say: (text: string) => {
         setStatusMessage(text);
-        drivers.speech.speak(text);
+        drivers.speech.speak(text, lang);
+        lastSpokenRef.current = text;
       },
       onStatusChange: (status: string) => {
         setStatusMessage(status);
@@ -352,6 +432,7 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
     const unbindBack = subscribeBack(() => {
       if (leaving.current) return;
       leaving.current = true;
+      drivers.audio.playEarcon?.('back');
       clearLongPressTimer();
       activePointers.current.clear();
       primaryPointerId.current = null;
@@ -406,6 +487,7 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
     const coords = getCanvasCoords(e);
     const now = performance.now();
     const view = viewportRef.current;
+    const lang = LANG_BCP47[getLang()] ?? 'en-IN';
 
     // Track active pointer for gesture detection
     activePointers.current.set(e.pointerId, {
@@ -473,7 +555,9 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
       drivers.haptics.vibrate(CENTRE_TICK_MS);
     }
     if (centreResult.speakCentre) {
-      drivers.speech.speak(t('explore.centre'));
+      const msg = t('explore.centre');
+      drivers.speech.speak(msg, lang);
+      lastSpokenRef.current = msg;
     }
 
     // Process move pipeline at the touch point
@@ -494,9 +578,10 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
       drivers.haptics.vibrate(CENTRE_TICK_MS);
     }
     for (const axisSpoken of moveResult.axisCrossings) {
-      drivers.speech.speak(axisSpoken);
+      drivers.speech.speak(axisSpoken, lang);
+      lastSpokenRef.current = axisSpoken;
     }
-    runEffects(moveResult.effects, drivers);
+    runEffects(moveResult.effects, drivers, lang);
     scheduleDraw(view, coords);
   };
 
@@ -505,6 +590,7 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
     const coords = getCanvasCoords(e);
     const now = performance.now();
     const view = viewportRef.current;
+    const lang = LANG_BCP47[getLang()] ?? 'en-IN';
 
     const pointer = activePointers.current.get(e.pointerId);
     if (pointer) {
@@ -552,9 +638,10 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
       drivers.haptics.vibrate(CENTRE_TICK_MS);
     }
     for (const axisSpoken of moveResult.axisCrossings) {
-      drivers.speech.speak(axisSpoken);
+      drivers.speech.speak(axisSpoken, lang);
+      lastSpokenRef.current = axisSpoken;
     }
-    runEffects(moveResult.effects, drivers);
+    runEffects(moveResult.effects, drivers, lang);
     scheduleDraw(view, coords);
   };
 
@@ -584,8 +671,14 @@ export function Explore({ scene, announced, drivers, onBack }: ExploreProps): JS
   return (
     <main className="gt-explore">
       <header className="gt-explore__header">
-        <h1 className="gt-explore__title">{sceneName(scene)}</h1>
-        <span className="gt-explore__badge" aria-hidden="true">Diagram</span>
+        <div className="gt-toolbar">
+          <LanguageSelector drivers={drivers} />
+          <RateSelector drivers={drivers} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <h1 className="gt-explore__title">{sceneName(scene)}</h1>
+          <span className="gt-explore__badge" aria-hidden="true">Diagram</span>
+        </div>
       </header>
 
       <div className="gt-explore__status-card">
