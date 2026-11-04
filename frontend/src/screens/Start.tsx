@@ -7,6 +7,7 @@
  * user-gesture rule for audio, speech and vibration (Requirement 1.2).
  */
 import { useEffect, useRef } from 'react';
+import { Mascot } from '../components/Mascot';
 import type { Drivers } from '../drivers';
 import { handleStartTap, speakIntro } from '../flow/start';
 import { t } from '../i18n';
@@ -39,30 +40,9 @@ export function Start({ drivers, onBegin }: StartProps): JSX.Element {
       onClick={begin}
     >
       <span className="gt-start__hero" aria-hidden="true">
-        {/* Creature emblem: stitched Frankenstein beast with neural pulse and eye sensor */}
+        {/* Creature emblem: Frankenstein phone mascot with buzzer, eye, and theremin */}
         <span className="gt-start__creature-emblem">
-          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50" cy="50" r="44" stroke="#39ff88" strokeWidth="2.5" strokeDasharray="4 3" opacity="0.4" />
-            <path
-              d="M30 50 C36 32, 64 32, 70 50 C64 68, 36 68, 30 50 Z"
-              stroke="#39ff88"
-              strokeWidth="2.5"
-              fill="rgba(57, 255, 136, 0.06)"
-            />
-            {/* Center aperture / iris */}
-            <circle cx="50" cy="50" r="8" fill="#39ff88" />
-            <circle cx="50" cy="50" r="16" stroke="#39ff88" strokeWidth="1.5" opacity="0.6" />
-            {/* Theremin sound wave / neural vibration stitch */}
-            <path
-              d="M16 50 H28 L36 34 L44 66 L52 42 L60 58 L68 46 L76 50 H84"
-              stroke="#39ff88"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            {/* Frankenstein circuit stitches */}
-            <path d="M40 18 V26 M60 18 V26 M50 74 V82" stroke="#39ff88" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
-          </svg>
+          <Mascot />
         </span>
 
         <span className="gt-start__title">{t('app.name')}</span>
