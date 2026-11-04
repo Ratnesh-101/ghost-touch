@@ -6,7 +6,7 @@
  * the raw pointer events. The click handler also satisfies the browser's
  * user-gesture rule for audio, speech and vibration (Requirement 1.2).
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type JSX } from 'react';
 import { Mascot } from '../components/Mascot';
 import type { Drivers } from '../drivers';
 import { handleStartTap, speakIntro } from '../flow/start';

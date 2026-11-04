@@ -7,7 +7,7 @@
  * mirrors every spoken line into a visible `aria-live` status, and moves
  * focus back to "Take photo" after a failure.
  */
-import { useEffect, useRef, useState, type ChangeEvent, type RefObject } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type JSX, type RefObject } from 'react';
 import { loadSample, type SampleId, type SceneMode } from '../api/scene';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { LanguageSelector } from '../components/LanguageSelector';
@@ -54,7 +54,7 @@ export function Capture({ drivers, initialStatus, onScene }: CaptureProps): JSX.
   };
 
   // Do not open a picker while an upload is running; say why instead of ignoring the tap.
-  const openPicker = (picker: RefObject<HTMLInputElement>): void => {
+  const openPicker = (picker: RefObject<HTMLInputElement | null>): void => {
     if (busy) say(t('capture.busy'));
     else picker.current?.click();
   };

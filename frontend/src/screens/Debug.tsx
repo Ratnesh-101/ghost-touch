@@ -5,7 +5,7 @@
  * speech output by hand, ported from prototypes/haptics-test.html. It is not
  * linked from anywhere; open the site with `#/debug` appended.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type JSX } from 'react';
 import { DEFAULT_HAPTICS } from '../core/hapticEngine';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { createBrowserDrivers, ListenError, type Drivers } from '../drivers';

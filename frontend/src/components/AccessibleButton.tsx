@@ -12,12 +12,13 @@
  * It forwards its ref so screens can move focus to it (for example back to
  * "Take photo" after an error), which screen-reader users rely on.
  */
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode, type Ref } from 'react';
 
 export interface AccessibleButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Accessible name. If omitted, `children` must provide visible text. */
   'aria-label'?: string;
   children?: ReactNode;
+  ref?: Ref<HTMLButtonElement>;
 }
 
 export const AccessibleButton = forwardRef<HTMLButtonElement, AccessibleButtonProps>(

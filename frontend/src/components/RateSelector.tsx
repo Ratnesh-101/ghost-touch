@@ -6,7 +6,7 @@
  * Touch targets >= 48x48 CSS px.
  */
 
-import { useState } from 'react';
+import { useState, type JSX } from 'react';
 import { AccessibleButton } from './AccessibleButton';
 import type { Drivers, SpeechRateSetting } from '../drivers';
 import { getLang, LANG_BCP47, t } from '../i18n';

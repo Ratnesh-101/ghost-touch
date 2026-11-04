@@ -7,7 +7,7 @@
  * Pure decisions live in `flow/explore.ts`, `flow/ask.ts`, and `flow/commands.ts`;
  * browser APIs live in `drivers/` (navigation history, canvas context & DOM events here).
  */
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type JSX, type PointerEvent } from 'react';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { RateSelector } from '../components/RateSelector';
