@@ -1,11 +1,11 @@
-"""Tests for fit_image_for_inline helper (Task 8.1 / NVIDIA)."""
+"""Tests for fit_image_for_inline helper (Task 8.1)."""
 
 from __future__ import annotations
 
 import cv2
 import numpy as np
 
-from app.vision.nvidia import fit_image_for_inline
+from app.vision._openai_compat import fit_image_for_inline
 
 
 def test_fit_image_small_input_returned_unchanged() -> None:

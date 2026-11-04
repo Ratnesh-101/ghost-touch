@@ -20,9 +20,6 @@ services:
         sync: false
       - key: NEBIUS_API_KEY
         sync: false
-      # Optional: NVIDIA is no longer in the default fallback chain
-      - key: NVIDIA_API_KEY
-        sync: false
       # Non-secret service configuration with defaults
       - key: GEMINI_MODEL
         value: gemini-3.8-flash

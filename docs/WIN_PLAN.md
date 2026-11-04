@@ -85,7 +85,7 @@ Build order and owners (task numbers = `.kiro/specs/ghost-touch/tasks.md`). Writ
 | Nov 1–2 | T1 finish, T2 | — | Gates A + B; T05/T06 briefs |
 | Nov 3–4 | T3 (+P1, P2, P8) | T5 drivers, T6 Start/Capture | Verify; spec change request (§2 below) |
 | Nov 5–6 | T4 haptic engine (+P3–P7) | T7 Explore (with the explore gesture from Gate A) | Verify; **user phone test with TalkBack on** |
-| Nov 7–8 | T8.3 validator (+P9, P10) | T8 pipeline (Gemini primary, NVIDIA fallback, Raw Mode) | Verify; BPA session prep (§4) |
+| Nov 7–8 | T8.3 validator (+P9, P10) | T8 pipeline (Gemini primary, OpenAI + Nebius fallbacks, Raw Mode) | Verify; BPA session prep (§4) |
 | Nov 9–10 | Review hooks | T9 Ask; Capacitor if Gate A required it | **BPA session window opens** |
 | Nov 11–12 | Fix-ups from reviews | T10 deploy | STEMergent description + demo |
 | Nov 13–14 | — | Bug fixes only (feature freeze Nov 13) | Record demo; submit STEMergent on **Nov 14** (1-day buffer) |
@@ -207,7 +207,7 @@ Feature freeze **Nov 30**. Dec 1–4 = demo, write-up, submission only.
 | Vision LLM inaccurate on photos | Untested | Gate B; digital-first input; teacher correction |
 | Kiro credits run out (50 free) | Active | User requests 4,000 now; Kiro used for core + reviews only |
 | BPA can't schedule before Nov 15 | Possible | VIT Bhopal alternative; online follow-up |
-| Free-tier rate limits on demo day | Possible | NVIDIA fallback provider; cache by image hash; offline samples |
+| Free-tier rate limits on demo day | Possible | Nebius fallback provider; cache by image hash; offline samples |
 | Exams / travel on Nov 15 | Certain | Submit STEMergent Nov 14; feature freeze Nov 13 |
 | "Insufficient use of Kiro" | Managed | Ownership split; evidence plan §3; honest BUILD_LOG |
 | Frankenstein fit judged weak | Possible | Lead with the creature framing + strongest demo; impact carries it |

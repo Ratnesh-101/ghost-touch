@@ -1,7 +1,7 @@
 """FastAPI application and routes for Ghost Touch (Task 8, F2).
 
 Wires CORS, liveness probe (/api/v1/health), the scene pipeline
-(POST /api/v1/scene) with Gemini primary, NVIDIA fallback, and OpenCV Raw Mode,
+(POST /api/v1/scene) with Gemini primary, OpenAI and Nebius fallbacks, and OpenCV Raw Mode,
 and the question answering endpoint (POST /api/v1/ask).
 """
 
@@ -161,7 +161,7 @@ async def process_scene(
       6. If invalid: retry once on the same provider with validation errors appended.
       7. If still invalid, provider fails, or deadline (15 s) exceeded -> OpenCV Raw Mode.
       8. Raw Mode scenes also pass through validate_scene before return.
-      9. Response header X-Vision-Provider exposes provider name (gemini|nvidia|none).
+      9. Response header X-Vision-Provider exposes provider name (gemini|openai|nebius|none).
     """
     start_time = time.monotonic()
 

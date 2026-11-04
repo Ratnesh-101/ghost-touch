@@ -34,7 +34,7 @@ class MockProvider:
 def test_chain_first_provider_succeeds_second_never_called() -> None:
     async def _run() -> None:
         p1 = MockProvider("gemini", '{"kind": "geometry"}')
-        p2 = MockProvider("nvidia", '{"kind": "bar_chart"}')
+        p2 = MockProvider("openai", '{"kind": "bar_chart"}')
         chain = ProviderChain([p1, p2])
 
         raw, used = await chain.extract(b"img", "image/png", "prompt")
@@ -49,12 +49,12 @@ def test_chain_first_provider_succeeds_second_never_called() -> None:
 def test_chain_first_fails_second_succeeds() -> None:
     async def _run() -> None:
         p1 = MockProvider("gemini", fail=True)
-        p2 = MockProvider("nvidia", '{"kind": "bar_chart"}')
+        p2 = MockProvider("openai", '{"kind": "bar_chart"}')
         chain = ProviderChain([p1, p2])
 
         raw, used = await chain.extract(b"img", "image/png", "prompt")
         assert raw == '{"kind": "bar_chart"}'
-        assert used == "nvidia"
+        assert used == "openai"
         assert p1.call_count == 1
         assert p2.call_count == 1
 
@@ -64,7 +64,7 @@ def test_chain_first_fails_second_succeeds() -> None:
 def test_chain_all_fail_raises_vision_error() -> None:
     async def _run() -> None:
         p1 = MockProvider("gemini", fail=True)
-        p2 = MockProvider("nvidia", fail=True)
+        p2 = MockProvider("openai", fail=True)
         chain = ProviderChain([p1, p2])
 
         with pytest.raises(VisionError) as exc_info:
@@ -78,9 +78,9 @@ def test_chain_all_fail_raises_vision_error() -> None:
 
 
 def test_build_chain_from_env_missing_keys_skipped(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("VISION_PROVIDERS", "gemini,nvidia")
+    monkeypatch.setenv("VISION_PROVIDERS", "gemini,openai")
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-    monkeypatch.delenv("NVIDIA_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
     chain = build_chain_from_env()
     assert len(chain.providers) == 0
@@ -89,12 +89,12 @@ def test_build_chain_from_env_missing_keys_skipped(monkeypatch: pytest.MonkeyPat
 def test_chain_complete_fallback() -> None:
     async def _run() -> None:
         p1 = MockProvider("gemini", fail=True)
-        p2 = MockProvider("nvidia", "AB is 5 cm")
+        p2 = MockProvider("openai", "AB is 5 cm")
         chain = ProviderChain([p1, p2])
 
         ans, used = await chain.complete("prompt")
         assert ans == "AB is 5 cm"
-        assert used == "nvidia"
+        assert used == "openai"
         assert p1.call_count == 1
         assert p2.call_count == 1
 

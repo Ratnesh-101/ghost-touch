@@ -12,13 +12,13 @@ latency and appearance-only labels. They are also scored if you add
 
 Run it with the backend virtualenv (it has google-genai, httpx, opencv)::
 
-    backend/.venv/Scripts/python research/vision_spike.py --provider gemini
-    backend/.venv/Scripts/python research/vision_spike.py --provider nvidia --model <id>
+    backend/.venv/Scripts/python research/vision_spike.py --provider nebius   # default for all test runs
+    backend/.venv/Scripts/python research/vision_spike.py --provider gemini   # real quota: use sparingly
     backend/.venv/Scripts/python research/vision_spike.py --rescore research/results/<run>
     backend/.venv/Scripts/python research/vision_spike.py --oracle    # no API: truth vs truth
 
-Keys come from the environment (``GEMINI_API_KEY``, ``NVIDIA_API_KEY``,
-``NVIDIA_MODEL``). If a key is missing the script loads ``backend/.env`` once
+Keys come from the environment (``NEBIUS_API_KEY``, ``NEBIUS_MODEL``,
+``GEMINI_API_KEY``). If a key is missing the script loads ``backend/.env`` once
 (never printed). ``--oracle`` and ``--rescore`` never touch keys or the network.
 """
 
@@ -51,7 +51,7 @@ SAMPLES = HERE / "samples"
 RESULTS = HERE / "results"
 DEFAULT_ENV_FILE = REPO / "backend" / ".env"
 USABLE_THRESHOLD = 0.7
-NVIDIA_INLINE_LIMIT = 180_000  # bytes; hosted NVIDIA vision endpoints cap inline images (verify)
+DEFAULT_INLINE_LIMIT = 180_000  # bytes; default inline image cap for fit_for_inline
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
 SYNTHETIC_VARIANTS = {"clean": "png", "photo": "jpg"}
 
@@ -179,51 +179,7 @@ class GeminiProvider:
         return response.text
 
 
-class NvidiaProvider:
-    name = "nvidia"
-
-    def __init__(self, model: str | None, env_file: Path) -> None:
-        self._key = _require_env("NVIDIA_API_KEY", env_file)
-        self.model = model or os.environ.get("NVIDIA_MODEL") or ""
-        if not self.model:
-            raise SpikeError("set NVIDIA_MODEL or pass --model <nvidia vision model id>")
-        self._base = os.environ.get("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
-
-    def extract(self, image: bytes, mime: str, prompt: str) -> str:
-        import httpx
-
-        image, mime = fit_for_inline(image, mime)
-        data_url = f"data:{mime};base64,{base64.b64encode(image).decode()}"
-        body = {
-            "model": self.model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": {"url": data_url}},
-                    ],
-                }
-            ],
-            "temperature": 0,
-            "max_tokens": 4096,
-            "stream": False,
-        }
-        response = httpx.post(
-            f"{self._base}/chat/completions",
-            headers={"Authorization": f"Bearer {self._key}"},
-            json=body,
-            timeout=90,
-        )
-        response.raise_for_status()
-        choices = response.json().get("choices") or []
-        text = choices[0].get("message", {}).get("content") if choices else None
-        if not text:
-            raise SpikeError("empty response from nvidia")
-        return text
-
-
-def fit_for_inline(image: bytes, mime: str, max_bytes: int = NVIDIA_INLINE_LIMIT) -> tuple[bytes, str]:
+def fit_for_inline(image: bytes, mime: str, max_bytes: int = DEFAULT_INLINE_LIMIT) -> tuple[bytes, str]:
     """Shrink an image until its bytes fit the inline limit (needs opencv; else unchanged)."""
     if len(image) <= max_bytes:
         return image, mime
@@ -438,7 +394,7 @@ class GraphRouteProvider:
 
     def __init__(self, inner: Any) -> None:
         if getattr(inner, "accepts_path", False):
-            raise SpikeError("--graph-route needs an API provider (gemini, nvidia or nebius)")
+            raise SpikeError("--graph-route needs an API provider (gemini or nebius)")
         self._inner = inner
         self.name = inner.name
         self.model = inner.model
@@ -641,13 +597,13 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument(
         "--provider",
-        choices=["gemini", "nvidia", "nebius", "agy"],
-        help="vision provider: gemini and nvidia use API keys; agy uses the Antigravity CLI "
+        choices=["gemini", "nebius", "agy"],
+        help="vision provider: gemini and nebius use API keys; agy uses the Antigravity CLI "
         "quota (offline spike only, e.g. --model gemini-3.8-flash-high)",
     )
     p.add_argument("--list-models", action="store_true", help="print the Nebius model ids and exit")
     p.add_argument("--graph-route", action="store_true", help="run the production equation route (model reads equation + axes, backend samples the curve); use with --only 05,06,07 for the graph samples")
-    p.add_argument("--model", help="model id (default: GEMINI_MODEL / NVIDIA_MODEL)")
+    p.add_argument("--model", help="model id (default: GEMINI_MODEL / NEBIUS_MODEL)")
     p.add_argument("--variants", default="clean,photo,real", help="comma list of clean,photo,real")
     p.add_argument("--only", default="", help="comma list of sample number prefixes, e.g. 01,05")
     p.add_argument("--limit", type=int, help="run at most N samples")
@@ -677,11 +633,11 @@ def _build_predictor(args: argparse.Namespace) -> tuple[Predictor | None, str, P
             raise SpikeError(f"no predictions folder in {args.rescore}")
         return None, "rescore", args.rescore
     if not args.provider:
-        raise SpikeError("choose --provider gemini|nvidia|nebius, or --oracle, or --rescore DIR")
+        raise SpikeError("choose --provider gemini|nebius, or --oracle, or --rescore DIR")
     if args.provider == "agy":
         provider: Any = AgyProvider(args.model)
     else:
-        provider = {"gemini": GeminiProvider, "nvidia": NvidiaProvider, "nebius": NebiusProvider}[
+        provider = {"gemini": GeminiProvider, "nebius": NebiusProvider}[
             args.provider
         ](
             args.model, args.env_file

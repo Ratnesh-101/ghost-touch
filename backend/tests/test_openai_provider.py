@@ -175,7 +175,6 @@ def _clear_provider_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "GEMINI_API_KEY",
         "OPENAI_API_KEY",
         "NEBIUS_API_KEY",
-        "NVIDIA_API_KEY",
         "VISION_PROVIDERS",
     ):
         monkeypatch.delenv(name, raising=False)
@@ -198,7 +197,7 @@ def test_providers_without_keys_are_skipped(monkeypatch: pytest.MonkeyPatch) -> 
 
 def test_explicit_order_is_respected(monkeypatch: pytest.MonkeyPatch) -> None:
     _clear_provider_env(monkeypatch)
-    for name in ("GEMINI_API_KEY", "OPENAI_API_KEY", "NVIDIA_API_KEY"):
+    for name in ("GEMINI_API_KEY", "OPENAI_API_KEY", "NEBIUS_API_KEY"):
         monkeypatch.setenv(name, "fake-key-for-test")
-    monkeypatch.setenv("VISION_PROVIDERS", "nvidia,openai")
-    assert [p.name for p in build_chain_from_env().providers] == ["nvidia", "openai"]
+    monkeypatch.setenv("VISION_PROVIDERS", "nebius,openai")
+    assert [p.name for p in build_chain_from_env().providers] == ["nebius", "openai"]

@@ -100,13 +100,12 @@ def test_model_and_base_url_come_from_the_environment(monkeypatch: pytest.Monkey
     assert provider.base_url == "https://example.test/v1"
 
 
-def test_default_order_puts_nebius_last_and_drops_nvidia(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_default_order_is_gemini_openai_nebius(monkeypatch: pytest.MonkeyPatch) -> None:
     assert DEFAULT_PROVIDER_ORDER == "gemini,openai,nebius"
     monkeypatch.delenv("VISION_PROVIDERS", raising=False)
     monkeypatch.setenv("GEMINI_API_KEY", "g")
     monkeypatch.setenv("OPENAI_API_KEY", "o")
     monkeypatch.setenv("NEBIUS_API_KEY", "n")
-    monkeypatch.setenv("NVIDIA_API_KEY", "v")
 
     names = [p.name for p in build_chain_from_env().providers]
 
@@ -120,11 +119,3 @@ def test_providers_without_keys_are_skipped(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setenv("NEBIUS_API_KEY", "n")
 
     assert [p.name for p in build_chain_from_env().providers] == ["nebius"]
-
-
-def test_nvidia_still_works_when_listed_explicitly(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("VISION_PROVIDERS", "nebius,nvidia")
-    monkeypatch.setenv("NEBIUS_API_KEY", "n")
-    monkeypatch.setenv("NVIDIA_API_KEY", "v")
-
-    assert [p.name for p in build_chain_from_env().providers] == ["nebius", "nvidia"]

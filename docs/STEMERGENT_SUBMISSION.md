@@ -34,7 +34,7 @@ The app is built for the diagrams STEM actually uses: **geometry** (labelled poi
 The core decision logic is a pure state machine (no browser code), so it can be property-tested; browser APIs live in thin drivers.
 
 ## 6. AI tools used (disclosure)
-- **Google Gemini**: the vision model that reads the diagram, and the model that answers questions. (A second provider, NVIDIA, is wired as a fallback.)
+- **Google Gemini**: the vision model that reads the diagram, and the model that answers questions. (OpenAI and Nebius are wired as fallback providers.)
 - **Kiro**: spec-driven development: requirements, design and tasks; steering documents holding the tuned haptic values and architecture rules; hooks; and property-based tests for the core (geometry, hit testing). Kiro was also used to review builds. `[FILL: be specific about what Kiro built before its credits ran out and what it will build next.]`
 - **Antigravity (agy)**: a coding agent used to build parts of the app from written briefs (backend scene pipeline, Explore screen, PDF input).
 - **Claude Code**: planning, briefs, independent code reviews, research notes and documentation, and it built the first two frontend tasks (drivers, Start and Capture screens) when the builder agent could not run unattended.

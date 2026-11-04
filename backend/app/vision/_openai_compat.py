@@ -1,4 +1,4 @@
-"""Shared plumbing for OpenAI-compatible chat-completions providers (OpenAI, NVIDIA, Nebius).
+"""Shared plumbing for OpenAI-compatible chat-completions providers (OpenAI, Nebius).
 
 One place for the POST, the status-code to VisionError mapping, response parsing, fence
 stripping and secret redaction, so the providers cannot drift apart (review finding 5).
@@ -9,8 +9,11 @@ from __future__ import annotations
 import re
 from typing import Any
 
+import cv2
 import httpx
+import numpy as np
 
+from app.image_utils import MAX_IMAGE_PIXELS, sniff_image_dimensions
 from app.vision.base import VisionError
 
 _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.IGNORECASE)
@@ -92,3 +95,57 @@ async def post_chat_completion(
     except Exception as exc:
         raise VisionError(name, f"request failed: {redact_secrets(str(exc), api_key)}") from exc
     return parse_chat_response(name, response, api_key)
+
+
+DEFAULT_INLINE_LIMIT = 180_000  # bytes
+
+
+def fit_image_for_inline(
+    image: bytes, max_bytes: int = DEFAULT_INLINE_LIMIT, provider: str = "nebius"
+) -> bytes:
+    """Downscale and re-encode with OpenCV if the image exceeds max_bytes.
+
+    Returns the original bytes if already <= max_bytes or if the image cannot be decoded.
+    Raises VisionError if the image exceeds the resolution cap.
+    """
+    if len(image) <= max_bytes:
+        return image
+
+    dims = sniff_image_dimensions(image)
+    if dims is not None and dims[0] * dims[1] > MAX_IMAGE_PIXELS:
+        raise VisionError(
+            provider,
+            f"Image resolution ({dims[0]}x{dims[1]}) exceeds "
+            f"{MAX_IMAGE_PIXELS // 1_000_000} MP limit",
+        )
+
+    decoded = cv2.imdecode(np.frombuffer(image, np.uint8), cv2.IMREAD_COLOR)
+    if decoded is None:
+        return image
+
+    h, w = decoded.shape[:2]
+    if h * w > MAX_IMAGE_PIXELS:
+        raise VisionError(
+            provider,
+            f"Image resolution ({w}x{h}) exceeds {MAX_IMAGE_PIXELS // 1_000_000} MP limit",
+        )
+
+    side = min(1024, max(h, w))
+    last_buffer: bytes = image
+
+    while side >= 128:
+        scale = min(1.0, side / max(h, w))
+        if scale < 1.0:
+            small = cv2.resize(decoded, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+        else:
+            small = decoded
+
+        for quality in (85, 70, 55, 40, 25):
+            ok, buf = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, quality])
+            if ok:
+                last_buffer = buf.tobytes()
+                if len(last_buffer) <= max_bytes:
+                    return last_buffer
+        side = int(side * 0.75)
+
+    return last_buffer

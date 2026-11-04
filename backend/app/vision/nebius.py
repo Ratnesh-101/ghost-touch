@@ -18,8 +18,7 @@ from typing import Any
 
 import httpx
 
-from app.vision._openai_compat import post_chat_completion, strip_fences
-from app.vision.nvidia import fit_image_for_inline
+from app.vision._openai_compat import fit_image_for_inline, post_chat_completion, strip_fences
 
 DEFAULT_MODEL = "openbmb/MiniCPM-V-4_5"
 DEFAULT_BASE_URL = "https://api.tokenfactory.nebius.com/v1"

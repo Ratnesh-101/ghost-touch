@@ -19,6 +19,13 @@ ghost-touch/
 └── README.md
 ```
 
+## Local setup
+After a fresh clone or a Windows reinstall, install Node 20+ (LTS), Python 3.11 and Git, then run one command from the repo root:
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup-dev.ps1
+```
+It is idempotent: it runs `npm ci`, creates `backend\.venv` and installs `.[dev]`, copies `backend\.env.example` to `backend\.env` and creates `frontend\.env.local` (only if missing, never overwritten), regenerates the schema and TypeScript types, creates `.claude\settings.local.json` and `logs\agy\`, then runs tsc, tests, build, pytest and ruff. You fill in the API keys in `backend\.env` yourself.
+
 ## Development
 Frontend (Chrome on Android is the target runtime — vibration and camera need HTTPS on a phone):
 ```bash

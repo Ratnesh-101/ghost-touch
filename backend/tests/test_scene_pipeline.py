@@ -111,7 +111,7 @@ def test_pipeline_valid_json_returns_ai_mode(client: TestClient) -> None:
 
 def test_pipeline_fenced_json_is_accepted(client: TestClient) -> None:
     fenced = f"```json\n{VALID_SCENE_JSON}\n```"
-    provider = FakeProvider("nvidia", [fenced])
+    provider = FakeProvider("openai", [fenced])
     chain = ProviderChain([provider])
     app.dependency_overrides[get_provider_chain] = lambda: chain
 
@@ -121,16 +121,16 @@ def test_pipeline_fenced_json_is_accepted(client: TestClient) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["mode"] == "ai"
-    assert response.headers["X-Vision-Provider"] == "nvidia"
+    assert response.headers["X-Vision-Provider"] == "openai"
 
 
 # --- 2. Fallback Chain in Route ---
 
 
-def test_pipeline_first_fails_fallback_to_nvidia(client: TestClient) -> None:
+def test_pipeline_first_fails_fallback_to_openai(client: TestClient) -> None:
     gemini = FakeProvider("gemini", [VisionError("gemini", "503 high demand")])
-    nvidia = FakeProvider("nvidia", [VALID_SCENE_JSON])
-    chain = ProviderChain([gemini, nvidia])
+    openai = FakeProvider("openai", [VALID_SCENE_JSON])
+    chain = ProviderChain([gemini, openai])
     app.dependency_overrides[get_provider_chain] = lambda: chain
 
     files = {"image": ("test.png", make_test_image_bytes(), "image/png")}
@@ -139,15 +139,15 @@ def test_pipeline_first_fails_fallback_to_nvidia(client: TestClient) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["mode"] == "ai"
-    assert response.headers["X-Vision-Provider"] == "nvidia"
+    assert response.headers["X-Vision-Provider"] == "openai"
     assert gemini.call_count == 1
-    assert nvidia.call_count == 1
+    assert openai.call_count == 1
 
 
 def test_pipeline_all_providers_fail_returns_raw_mode(client: TestClient) -> None:
     gemini = FakeProvider("gemini", [VisionError("gemini", "429 quota")])
-    nvidia = FakeProvider("nvidia", [VisionError("nvidia", "timeout")])
-    chain = ProviderChain([gemini, nvidia])
+    openai = FakeProvider("openai", [VisionError("openai", "timeout")])
+    chain = ProviderChain([gemini, openai])
     app.dependency_overrides[get_provider_chain] = lambda: chain
 
     files = {"image": ("test.png", make_test_image_bytes(), "image/png")}
@@ -442,7 +442,7 @@ def test_pipeline_retry_stays_on_answering_provider(client: TestClient) -> None:
     # Provider A returns invalid JSON on attempt 1, valid on retry
     provider_a = FakeProvider("gemini", ["{invalid json", VALID_SCENE_JSON])
     # Provider B should never be called
-    provider_b = FakeProvider("nvidia", [VALID_SCENE_JSON])
+    provider_b = FakeProvider("openai", [VALID_SCENE_JSON])
 
     chain = ProviderChain([provider_a, provider_b])
     app.dependency_overrides[get_provider_chain] = lambda: chain

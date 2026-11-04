@@ -58,14 +58,13 @@ The repository root includes a `render.yaml` Blueprint file specifying the servi
    - `GEMINI_API_KEY`: Paste your Google Gemini API key.
    - `OPENAI_API_KEY`: (Optional) Paste your OpenAI API key. It is used only when Gemini fails.
    - `NEBIUS_API_KEY`: (Optional) Paste your Nebius API key from https://tokenfactory.nebius.com for the last fallback.
-   - `NVIDIA_API_KEY`: (Optional) Leave blank; NVIDIA is no longer in the default chain. Providers without a key are skipped; with none working the app falls back to OpenCV Raw Mode.
 6. Leave other environment variables at their Blueprint defaults:
    - `PYTHON_VERSION`: `3.11.10`
    - `GEMINI_MODEL`: `gemini-3.8-flash`
    - `GEMINI_THINKING`: `minimal`
    - `OPENAI_MODEL`: `gpt-4.1-mini`
    - `NEBIUS_MODEL`: `openbmb/MiniCPM-V-4_5` (optional `NEBIUS_BASE_URL` defaults to `https://api.tokenfactory.nebius.com/v1`)
-   - `VISION_PROVIDERS`: `gemini,openai,nebius` (the order of fallback: Gemini, then OpenAI, then Nebius as last fallback; NVIDIA is no longer in the default chain)
+   - `VISION_PROVIDERS`: `gemini,openai,nebius` (the order of fallback: Gemini, then OpenAI, then Nebius as last fallback)
    - `PROVIDER_TIMEOUT_SECONDS`: `8.0`
    - `SCENE_TIMEOUT_SECONDS`: `15.0`
    - `SCENE_CACHE_SIZE`: `64` (default 64, 0 disables)
