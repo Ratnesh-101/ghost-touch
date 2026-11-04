@@ -35,12 +35,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Run frontend tests
-        # Known flake: hitTest.prop.test.ts (P1, Kiro-owned) fails in roughly 1 run in 5
-        # because its generator can put two points on the same pixel (a generator bug, not a
-        # hitTest bug): docs/kiro-evidence/pbt-p1-flake.md. Until Kiro fixes the generator we
-        # rerun the suite ONCE; a real regression fails both runs, so nothing is hidden.
-        # Remove the retry when the P1 generator is fixed.
-        run: npm test || (echo "::warning::npm test failed once; retrying (known P1 flake)" && npm test)
+        run: npm test
 
       - name: Build production bundle
         run: npm run build
