@@ -253,3 +253,11 @@ Format for each entry:
 - **Dependabot:** all PRs merged by merging their branches. Coupled packages were combined (vitest 5 + coverage-v8 5 + vite 8 + plugin-react 6; react 19 + react-dom 19), TypeScript 7, fast-check 4, json-schema-to-typescript 16, vite-plugin-pwa 2 and the Actions bumps. CI moved to Node 22.
 - **Remote `master` deleted** (single old squashed commit, local backup tag `backup/old-remote-master`).
 - Gates after the last merge: 473 frontend tests, 347 backend tests, tsc, build and ruff clean. Handoff for a fresh session: `docs/handoffs/SESSION-2026-11-04.md`.
+
+## 2026-11-06 - Dependabot security alerts (Claude Code)
+- **Tool:** Claude Code (no Kiro, no agy: the fix is a dependency override plus install, which `scripts/agy-run.sh` forbids, and nothing broke afterwards, so there was nothing for an agent to repair).
+- **Finding:** `npm audit` reported 6 advisories, all build-time and all via `vite-plugin-pwa` -> `workbox-build`: `glob` (GHSA-3g3m-2fjr-6pw4), `minimatch` (GHSA-g3hv-75wg-m249), `deepmerge` (GHSA-gcqx-w48m-w2h4).
+- **Fix:** `overrides` in `frontend/package.json` pin `glob ^14.0.3` and `minimatch ^11.0.5`. `npm audit fix --force` was rejected: it downgrades vite-plugin-pwa 2 to 1.1.0.
+- **Not fixable:** `deepmerge` (low) has no patched release (4.3.1 is the latest). Build-time only, not shipped. Dismiss the alert as "no fix available / not used at runtime" on GitHub.
+- **Backend:** pip-audit found only the venv's bundled `setuptools 65.5.0` (not a project dependency); app packages clean.
+- **Gates (clean clone, fresh install):** tsc clean, 473 frontend tests pass, build OK, PWA still emits `sw.js` and `manifest.webmanifest`.
