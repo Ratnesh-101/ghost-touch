@@ -1,0 +1,279 @@
+/*
+ * Frankenstein Laboratory Theme — Explore Screen Specimen Table & HUD
+ * Part of the Kiroween lab aesthetic (docs/briefs/lab-spec.md and agy-lab-explore.md).
+ *
+ * Rules:
+ * - Canvas drawing area keeps maximum contrast: glowing green strokes on near-black (#0b0e0c),
+ *   NO decorative texture inside canvas, NO gradient overlay on top of it.
+ * - The frame around the canvas is the "specimen table" with stitched border,
+ *   subtle copper edge, four corner rivets, and charcoal surface.
+ * - All frame decorative elements are aria-hidden="true" and pointer-events: none.
+ * - Restyled HUD/status chip with at least 7:1 text contrast and 48x48 touch targets.
+ * - Colors come from CSS variables with fallbacks for lab tokens (--gt-copper, --gt-cyan, --gt-bone).
+ * - Reduced motion: no animations in the frame.
+ */
+
+/* ==========================================================================
+   SPECIMEN TABLE FRAME
+   ========================================================================== */
+
+.gt-lab-specimen-table {
+  position: relative;
+  background: var(--gt-lab-charcoal, #0b0e0c);
+  border: 2px solid var(--gt-copper, var(--gt-border, #39ff88));
+  border-radius: var(--gt-radius-lg, 16px);
+  padding: 10px;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.85),
+    inset 0 0 20px rgba(0, 0, 0, 0.7);
+  display: flex;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.gt-lab-specimen-table:focus-within {
+  border-color: var(--gt-cyan, var(--gt-line, #39ff88));
+  box-shadow:
+    0 0 0 2px var(--gt-bg, #0b0b10),
+    0 0 0 4px var(--gt-focus, #39ff88),
+    0 10px 30px rgba(0, 0, 0, 0.85);
+}
+
+.gt-lab-frame {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Stitched suture seam around the table perimeter (bone/parchment accent) */
+.gt-lab-suture-border {
+  position: absolute;
+  inset: 5px;
+  border: 1.5px dashed var(--gt-bone, var(--gt-text-muted, rgba(217, 212, 197, 0.45)));
+  border-radius: calc(var(--gt-radius-lg, 16px) - 4px);
+  pointer-events: none;
+}
+
+/* Four corner rivets holding the specimen table (aged copper/brass hardware) */
+.gt-lab-rivet {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #e0a370 0%, var(--gt-copper, #b87333) 50%, #4a2810 100%);
+  border: 1px solid var(--gt-copper, #8c4e20);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), inset 0 0 1px rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+
+.gt-lab-rivet--tl {
+  top: 6px;
+  left: 6px;
+}
+
+.gt-lab-rivet--tr {
+  top: 6px;
+  right: 6px;
+}
+
+.gt-lab-rivet--bl {
+  bottom: 6px;
+  left: 6px;
+}
+
+.gt-lab-rivet--br {
+  bottom: 6px;
+  right: 6px;
+}
+
+/* Canvas element: untouched drawing area, maximum contrast, glowing green on near-black */
+.gt-explore__canvas {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  background: #0b0e0c;
+  border-radius: var(--gt-radius-sm, 8px);
+  outline: none;
+  cursor: crosshair;
+}
+
+.gt-explore__canvas:focus-visible {
+  outline: 3px solid var(--gt-focus, #39ff88);
+  outline-offset: -3px;
+}
+
+/* ==========================================================================
+   HUD / STATUS CHIP & HEADER
+   ========================================================================== */
+
+.gt-lab-status-card {
+  background: var(--gt-surface-card, #12121b);
+  border: 1px solid var(--gt-copper, var(--gt-border-subtle, #222232));
+  border-radius: var(--gt-radius-md, 12px);
+  padding: 8px var(--gt-space-md, 16px);
+  margin-bottom: var(--gt-space-xs, 8px);
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.gt-explore__status {
+  margin: 0;
+  font-size: var(--gt-text-sm, 0.875rem);
+  line-height: 1.45;
+  color: var(--gt-text, #eafff5);
+  font-weight: 500;
+}
+
+/* Diagram specimen badge */
+.gt-lab-badge {
+  font-size: var(--gt-text-xs, 0.75rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gt-bone, var(--gt-text-muted, #a8c5b5));
+  padding: 2px 8px;
+  border-radius: var(--gt-radius-sm, 4px);
+  background: var(--gt-surface-card, #12121b);
+  border: 1px solid var(--gt-copper, var(--gt-border-subtle, #222232));
+}
+
+/* Raw mode notice chip */
+.gt-lab-raw-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--gt-space-xs, 8px);
+  padding: 8px var(--gt-space-md, 16px);
+  margin-bottom: var(--gt-space-xs, 8px);
+  background: rgba(184, 115, 51, 0.12);
+  border: 1px dashed var(--gt-copper, var(--gt-border, #c87d55));
+  border-radius: var(--gt-radius-md, 12px);
+  color: var(--gt-text, #eafff5);
+  font-size: var(--gt-text-xs, 0.75rem);
+  line-height: 1.4;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.gt-explore__raw-badge {
+  font-size: var(--gt-text-xs, 0.75rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: var(--gt-radius-sm, 4px);
+  background: var(--gt-copper, #c87d55);
+  color: #0b0e0c;
+  flex-shrink: 0;
+}
+
+.gt-explore__raw-text {
+  flex: 1;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   CONTROLS & ACTION BUTTONS AROUND THE CANVAS (at least 48x48 px touch targets)
+   ========================================================================== */
+
+.gt-explore__ask {
+  flex: 1;
+  min-height: 52px;
+  min-width: var(--gt-target, 48px);
+  font-size: var(--gt-text-lg, 1.125rem);
+  font-weight: 700;
+  border-radius: var(--gt-radius-lg, 16px);
+  border: 2px solid var(--gt-cyan, var(--gt-line, #39ff88));
+  background: linear-gradient(180deg, #13271f 0%, #0d1a15 100%);
+  color: var(--gt-text, #eafff5);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5), 0 0 14px rgba(57, 255, 136, 0.25);
+}
+
+.gt-explore__ask:hover:not(:disabled) {
+  background: var(--gt-cyan, var(--gt-line, #39ff88));
+  color: #051309;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.7), 0 0 22px rgba(57, 255, 136, 0.5);
+}
+
+.gt-explore__back {
+  flex: 1;
+  min-height: 52px;
+  min-width: var(--gt-target, 48px);
+  font-size: var(--gt-text-lg, 1.125rem);
+  font-weight: 600;
+  border-radius: var(--gt-radius-lg, 16px);
+  border: 2px solid var(--gt-copper, var(--gt-border-subtle, #222232));
+  background: var(--gt-surface, #14141e);
+  color: var(--gt-text, #eafff5);
+}
+
+.gt-explore__back:hover:not(:disabled) {
+  border-color: var(--gt-copper, var(--gt-line, #39ff88));
+  background: var(--gt-surface-hover, #1c1c2a);
+}
+
+.gt-explore__correct {
+  min-height: 52px;
+  min-width: var(--gt-target, 48px);
+  font-size: var(--gt-text-base, 1rem);
+  font-weight: 600;
+  border-radius: var(--gt-radius-lg, 16px);
+  border: 2px solid var(--gt-copper, var(--gt-border-subtle, #222232));
+  background: var(--gt-surface, #14141e);
+  color: var(--gt-text, #eafff5);
+}
+
+.gt-explore__correct:hover:not(:disabled) {
+  border-color: var(--gt-copper, var(--gt-line, #39ff88));
+  background: var(--gt-surface-hover, #1c1c2a);
+}
+
+.gt-explore__send {
+  min-height: 52px;
+  min-width: var(--gt-target, 48px);
+  font-size: var(--gt-text-base, 1rem);
+  font-weight: 700;
+  border-radius: var(--gt-radius-md, 12px);
+  border: 2px solid var(--gt-cyan, var(--gt-line, #39ff88));
+  background: linear-gradient(180deg, #13271f 0%, #0d1a15 100%);
+  color: var(--gt-text, #eafff5);
+}
+
+.gt-explore__send:hover:not(:disabled) {
+  background: var(--gt-cyan, var(--gt-line, #39ff88));
+  color: #051309;
+}
+
+.gt-explore__ask-input {
+  min-height: 48px;
+  min-width: var(--gt-target, 48px);
+  background: var(--gt-lab-charcoal, #080a09);
+  border: 2px solid var(--gt-copper, var(--gt-border-subtle, #222232));
+  color: var(--gt-text, #eafff5);
+}
+
+.gt-explore__ask-input:focus-visible {
+  border-color: var(--gt-focus, #39ff88);
+  outline: 3px solid var(--gt-focus, #39ff88);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px var(--gt-bg, #0b0b10), 0 0 0 5px var(--gt-focus, #39ff88);
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .gt-lab-specimen-table,
+  .gt-lab-frame,
+  .gt-lab-rivet,
+  .gt-lab-suture-border,
+  .gt-lab-raw-notice {
+    animation: none !important;
+    transition: none !important;
+  }
+}

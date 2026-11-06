@@ -334,3 +334,25 @@ Format for each entry:
   - `npm --prefix frontend test`: 43 test files passed, 484 tests passed.
   - `npm --prefix frontend run build`: clean (401.08 KiB precache, 20 entries).
 - Files touched: `frontend/src/components/Mascot.tsx`, `frontend/tests/mascot.test.ts`, `docs/design/LOGO.md`, `docs/reports/agy-lab-brand-report.md`, `docs/BUILD_LOG.md`.
+
+
+## 2026-11-06 — Antigravity — Lane lab-explore: Specimen Table frame & HUD around Explore canvas
+- Built the Frankenstein Laboratory "specimen table" frame around the Explore canvas in `frontend/src/styles/explore.css` and `frontend/src/screens/Explore.tsx`:
+  - Canvas element, its ref, role="img", tabIndex, touch-action: none, and pointer event handlers are 100% untouched; maximum contrast glowing green strokes on near-black (#0b0e0c) preserved with zero texture or overlays over the drawing area.
+  - Added specimen table frame container (`.gt-lab-specimen-table` with `data-lab-specimen-table="true"`) with subtle copper edge, charcoal surface, and padding around canvas.
+  - Added decorative frame (`.gt-lab-frame` with `data-lab-frame` and `aria-hidden="true"`) containing four corner rivets (`.gt-lab-rivet`) and dashed bone suture seam (`.gt-lab-suture-border`), with `pointer-events: none` and lower z-index than canvas.
+  - Restyled HUD / status card (`.gt-lab-status-card`) with >= 7:1 contrast text, specimen badge (`.gt-lab-badge`), and raw mode notice (`.gt-lab-raw-notice` with role="status", using `t('lab.raw.notice')` falling back to `t('raw.announce')`).
+  - Added optional `onSave` action in the footer alongside `onCorrect`, `onBack`, and `onAsk`; ensured every control declares touch target >= 48x48 CSS px.
+  - Added lab token CSS variable fallbacks (`var(--gt-copper, ...)`, `var(--gt-cyan, ...)`, `var(--gt-bone, ...)`) for forward compatibility with the foundation token lane.
+  - Enforced `prefers-reduced-motion: reduce` disabling animations and transitions on the specimen table and its frame decorations.
+  - Added single import line `@import './explore.css';` at the end of `frontend/src/styles/global.css`.
+  - Added comprehensive verification suite `frontend/tests/explore.lab.test.tsx` (16 assertions across 5 suites).
+- What broke / findings:
+  - In this isolated git worktree (`gt-lane-lab-explore`), `frontend/node_modules` was not cloned/linked during worktree creation (whereas `backend/.venv` was linked). Consequently, running `npm --prefix frontend test`, `tsc`, and `run build` in the worktree fails with "'vitest' / 'tsc' is not recognized", exactly as documented in prior lane handoffs (e.g. Lane D in `BUILD_LOG.md:244`). Per strict runner permissions, `npm install` and directory junctions are forbidden; the suites will be run and verified by the reviewer in the parent clone. Backend tests passed completely (346 passed, 1 skipped) and ruff check/format passed cleanly.
+- Files touched:
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/styles/global.css`
+  - `frontend/src/styles/explore.css` (new)
+  - `frontend/tests/explore.lab.test.tsx` (new)
+  - `docs/reports/agy-lab-explore-report.md` (new)
+  - `docs/BUILD_LOG.md`

@@ -53,9 +53,10 @@ interface ExploreProps {
   drivers: Drivers;
   onBack: () => void;
   onCorrect?: () => void;
+  isRaw?: boolean;
 }
 
-export function Explore({ scene, announced, drivers, onBack, onCorrect }: ExploreProps): JSX.Element {
+export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }: ExploreProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const askButtonRef = useRef<HTMLButtonElement>(null);
   const backButtonRef = useRef<HTMLButtonElement>(null);
@@ -88,6 +89,12 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect }: Explor
   const [showTextFallback, setShowTextFallback] = useState(!drivers.speech.canListen);
   const [questionText, setQuestionText] = useState('');
   const [debugText, setDebugText] = useState(() => t('explore.debugWaiting'));
+  const isRawScene = isRaw ?? (scene.kind === 'unknown' || announced.includes(t('raw.announce')));
+  const rawNoticeTranslation = t('lab.raw.notice');
+  const rawNoticeText =
+    rawNoticeTranslation !== 'lab.raw.notice'
+      ? rawNoticeTranslation
+      : t('raw.announce');
 
   const clearLongPressTimer = (): void => {
     if (longPressTimer.current !== null) {
@@ -670,25 +677,39 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect }: Explor
   };
 
   return (
-    <main className="gt-explore">
-      <header className="gt-explore__header">
+    <main className="gt-explore gt-lab-explore">
+      <header className="gt-explore__header gt-lab-header">
         <div className="gt-toolbar">
           <LanguageSelector drivers={drivers} />
           <RateSelector drivers={drivers} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           <h1 className="gt-explore__title">{sceneName(scene)}</h1>
-          <span className="gt-explore__badge" aria-hidden="true">Diagram</span>
+          <span className="gt-explore__badge gt-lab-badge" aria-hidden="true">Diagram</span>
         </div>
       </header>
 
-      <div className="gt-explore__status-card">
+      {isRawScene && (
+        <div className="gt-explore__raw-notice gt-lab-raw-notice" role="status">
+          <span className="gt-explore__raw-badge" aria-hidden="true">Raw</span>
+          <span className="gt-explore__raw-text">{rawNoticeText}</span>
+        </div>
+      )}
+
+      <div className="gt-explore__status-card gt-lab-status-card">
         <StatusText className="gt-explore__status" spoken={drivers.speech.canSpeak}>
           {statusMessage}
         </StatusText>
       </div>
 
-      <div className="gt-explore__canvas-container">
+      <div className="gt-explore__canvas-container gt-lab-specimen-table" data-lab-specimen-table="true">
+        <div className="gt-lab-frame" data-lab-frame aria-hidden="true">
+          <span className="gt-lab-rivet gt-lab-rivet--tl" aria-hidden="true" />
+          <span className="gt-lab-rivet gt-lab-rivet--tr" aria-hidden="true" />
+          <span className="gt-lab-rivet gt-lab-rivet--bl" aria-hidden="true" />
+          <span className="gt-lab-rivet gt-lab-rivet--br" aria-hidden="true" />
+          <span className="gt-lab-suture-border" aria-hidden="true" />
+        </div>
         <canvas
           ref={canvasRef}
           className="gt-explore__canvas"

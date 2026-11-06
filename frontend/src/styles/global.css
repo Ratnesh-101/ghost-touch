@@ -1189,3 +1189,7 @@ body {
    ========================================================================== */
 /* The presentational rules for Seam, Rivets, LabCard, and Spark
    are loaded via ./lab.css and encapsulated in frontend/src/components/lab/ */
+
+
+/* Lane lab-explore: specimen table frame and HUD around Explore canvas */
+@import './explore.css';
