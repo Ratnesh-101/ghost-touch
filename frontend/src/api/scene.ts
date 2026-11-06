@@ -19,8 +19,11 @@ export interface SceneResponse {
 export const SAMPLE_IDS = ['triangle', 'sine', 'barchart'] as const;
 export type SampleId = (typeof SAMPLE_IDS)[number];
 
-/** Server limit is 15 s (Requirement 3.4); allow a little network time on top. */
-export const SCENE_TIMEOUT_MS = 20_000;
+/**
+ * Cold backend start on Render can take ~32 s; allow 45 s so the first
+ * scene request succeeds without timing out.
+ */
+export const SCENE_TIMEOUT_MS = 45_000;
 
 export type SceneFailure = 'timeout' | 'network' | 'http' | 'bad-response' | 'aborted';
 
@@ -62,7 +65,7 @@ export function parseSceneResponse(data: unknown): SceneResponse {
   return typeof reason === 'string' ? { scene, mode, reason } : { scene, mode };
 }
 
-function defaultBaseUrl(): string {
+export function defaultBaseUrl(): string {
   const configured: unknown = import.meta.env['VITE_API_URL'];
   return typeof configured === 'string' ? configured.replace(/\/+$/, '') : '';
 }

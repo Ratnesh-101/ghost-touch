@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  SCENE_TIMEOUT_MS,
   SceneRequestError,
   loadSample,
   parseSceneResponse,
@@ -86,17 +87,21 @@ describe('requestScene', () => {
     ).toBe('bad-response');
   });
 
+  it('defines SCENE_TIMEOUT_MS as 45 seconds for cold backend start', () => {
+    expect(SCENE_TIMEOUT_MS).toBe(45_000);
+  });
+
   it('times out and aborts the request, leaving no timer behind', async () => {
     vi.useFakeTimers();
     try {
       const pending = failureOf(
         requestScene(new Blob(['x']), {
           baseUrl: '',
-          timeoutMs: 20_000,
+          timeoutMs: SCENE_TIMEOUT_MS,
           fetchImpl: hangingFetch(),
         }),
       );
-      await vi.advanceTimersByTimeAsync(20_000);
+      await vi.advanceTimersByTimeAsync(SCENE_TIMEOUT_MS);
       expect(await pending).toBe('timeout');
       expect(vi.getTimerCount()).toBe(0);
     } finally {
