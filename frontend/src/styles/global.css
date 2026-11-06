@@ -507,23 +507,49 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--gt-space-lg);
-  max-width: 480px;
+  max-width: 520px;
   width: 100%;
   margin: 0 auto;
-  padding: var(--gt-space-xl) var(--gt-space-md) var(--gt-space-3xl);
+  padding-top: max(var(--gt-space-xl), env(safe-area-inset-top, 0px));
+  padding-right: max(var(--gt-space-md), env(safe-area-inset-right, 0px));
+  padding-bottom: max(var(--gt-space-3xl), env(safe-area-inset-bottom, 0px));
+  padding-left: max(var(--gt-space-md), env(safe-area-inset-left, 0px));
+  min-height: 100vh;
   min-height: 100dvh;
+  box-sizing: border-box;
 }
 
 .gt-capture__header {
   display: flex;
   flex-direction: column;
-  gap: var(--gt-space-2xs);
+  gap: var(--gt-space-md);
+  width: 100%;
+}
+
+.gt-capture__top-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gt-space-sm);
+  width: 100%;
 }
 
 .gt-capture__brand {
   display: flex;
   align-items: center;
   gap: var(--gt-space-sm);
+  flex-wrap: wrap;
+}
+
+.gt-capture__brand-logo {
+  flex-shrink: 0;
+}
+
+.gt-capture__brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .gt-capture__brand-dot {
@@ -542,12 +568,40 @@ body {
   color: var(--gt-line);
   text-shadow: 0 0 14px var(--gt-green-glow);
   letter-spacing: -0.01em;
+  line-height: var(--gt-line-height-tight);
 }
 
 .gt-capture__tagline {
   margin: 0;
   font-size: var(--gt-text-sm);
   color: var(--gt-text-muted);
+  line-height: 1.4;
+}
+
+.gt-capture__button--settings {
+  width: auto;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 8px 16px;
+  font-size: var(--gt-text-sm);
+  font-weight: 600;
+  background: var(--gt-surface-card);
+  border: 1px solid var(--gt-border-copper, #c88a4b);
+  border-radius: var(--gt-radius-md);
+  color: var(--gt-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gt-space-xs);
+  cursor: pointer;
+  transition: all var(--gt-transition-fast);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.gt-capture__button--settings:hover {
+  border-color: var(--gt-copper-bright, #e0a96d);
+  background: var(--gt-surface-hover);
+  box-shadow: 0 0 12px var(--gt-shadow-copper);
 }
 
 /* Status / Progress Card */
@@ -624,6 +678,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--gt-space-md);
+  width: 100%;
 }
 
 /* Test regex requirement: .gt-capture__button { min-height: (\d+)px */
@@ -655,26 +710,58 @@ body {
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.8), 0 0 28px var(--gt-green-glow-strong);
 }
 
+.gt-capture__secondary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gt-space-sm);
+  width: 100%;
+}
+
 /* Secondary "Choose image" button */
 .gt-capture__button--secondary {
-  min-height: 54px;
+  flex: 1 1 140px;
+  min-height: 52px;
   font-size: var(--gt-text-base);
   font-weight: 600;
-  background: var(--gt-surface);
-  border-color: rgba(57, 255, 136, 0.3);
+  background: var(--gt-surface-card);
+  border: 2px solid var(--gt-border-copper, #c88a4b);
+  border-radius: var(--gt-radius-lg);
+  color: var(--gt-text);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
 .gt-capture__button--secondary:hover {
-  border-color: var(--gt-line);
+  border-color: var(--gt-copper-bright, #e0a96d);
   background: var(--gt-surface-hover);
+  box-shadow: 0 0 14px var(--gt-shadow-copper);
 }
 
-/* Sample Diagrams Grid */
+/* Saved diagrams button */
+.gt-capture__button--saved {
+  flex: 1 1 140px;
+  min-height: 52px;
+  font-size: var(--gt-text-base);
+  font-weight: 600;
+  background: var(--gt-surface-card);
+  border: 2px solid var(--gt-border-copper, #c88a4b);
+  border-radius: var(--gt-radius-lg);
+  color: var(--gt-text);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.gt-capture__button--saved:hover {
+  border-color: var(--gt-copper-bright, #e0a96d);
+  background: var(--gt-surface-hover);
+  box-shadow: 0 0 14px var(--gt-shadow-copper);
+}
+
+/* Sample Diagrams Grid ("Specimen Jars") */
 .gt-capture__samples-section {
   display: flex;
   flex-direction: column;
   gap: var(--gt-space-sm);
   margin-top: var(--gt-space-xs);
+  width: 100%;
 }
 
 .gt-capture__subtitle {
@@ -698,25 +785,28 @@ body {
 .gt-capture__samples-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--gt-space-xs);
+  gap: var(--gt-space-sm);
 }
 
+/* Test regex requirement: .gt-capture__sample-btn */
 .gt-capture__sample-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: var(--gt-space-2xs);
-  min-height: 72px;
+  justify-content: flex-start;
+  gap: var(--gt-space-xs);
+  min-height: 108px;
   min-width: var(--gt-target);
-  padding: var(--gt-space-xs) var(--gt-space-2xs);
+  padding: var(--gt-space-sm) var(--gt-space-xs);
   font-size: var(--gt-text-xs);
   font-weight: 600;
   text-align: center;
   background: var(--gt-surface-card);
   border: 1px solid var(--gt-border-subtle);
   border-radius: var(--gt-radius-md);
-  line-height: 1.25;
+  line-height: 1.35;
+  transition: all var(--gt-transition-fast);
+  box-shadow: var(--gt-shadow-card);
 }
 
 .gt-capture__sample-btn:hover {
@@ -725,7 +815,22 @@ body {
   box-shadow: 0 0 14px var(--gt-green-glow);
 }
 
-/* Sample icons drawn purely with CSS (no aria-hidden in HTML) */
+.gt-capture__sample-preview {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.gt-capture__sample-name {
+  display: block;
+  font-size: var(--gt-text-xs);
+  color: var(--gt-text-secondary);
+  word-break: normal;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+/* Sample icons drawn purely with CSS (retained for backward compatibility) */
 .gt-capture__sample-icon {
   display: inline-block;
   width: 20px;

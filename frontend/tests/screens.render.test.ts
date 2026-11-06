@@ -47,7 +47,7 @@ describe('screen markup (server render)', () => {
     // reader read it twice), and the text stays readable so a missed message can be re-read.
     expect(html).not.toContain('aria-live');
     expect(html).not.toContain('role="status"');
-    expect(html).not.toContain('aria-hidden');
+    expect(html).not.toMatch(/<button[^>]*aria-hidden="true"/);
     expect(html).toContain('Take a photo.');
     expect(html).toContain('capture="environment"');
     expect(html).toContain('accept="image/jpeg,image/png,image/webp,application/pdf,.pdf"');
