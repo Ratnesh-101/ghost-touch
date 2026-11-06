@@ -61,7 +61,7 @@ The repository root contains `render.yaml`, an infrastructure-as-code Blueprint 
    - `ENVIRONMENT`: `production` (when set to production, interactive /docs, /redoc, and /openapi.json are disabled)
    - `ALLOWED_ORIGINS`: `https://ghost-touch-iota.vercel.app`
 7. Click **Apply**.
-8. Wait for Render to complete the build (`pip install .`) and start the service (`uvicorn app.main:app --host 0.0.0.0 --port $PORT`).
+8. Wait for Render to complete the build (`pip install -r requirements.lock`, SEC-05) and start the service (`uvicorn app.main:app --host 0.0.0.0 --port $PORT`).
 9. Once live, copy your backend URL from the top of the Render service page:
    ```
    https://ghost-touch-backend-xxxx.onrender.com

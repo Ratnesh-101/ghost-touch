@@ -55,8 +55,8 @@ Each tool's work is logged in `docs/BUILD_LOG.md`. Reviews are in `docs/reviews/
 | **Complete Screen Flow:** Accessible Start screen, Capture screen (camera photo, file chooser, PDF first-page rendering up to 1600 px), Explore screen (relative cursor, glowing creature theme, centre reference tick, axis crossing announcements, 48px+ touch targets), and Ask screen (voice input + text fallback). | |
 | **Robust Multi-Provider Backend:** Pipeline with Google Gemini primary, OpenAI and Nebius fallbacks, OpenCV Canny edge detection (Raw Mode floor), ASGI rate limiting and payload validation, and facts lookup fallback for Q&A. | |
 | **Deploy Checklist:** Render blueprint and Vercel deployment configurations with CORS parsing and step-by-step checklist in `docs/DEPLOY.md`. | |
-| **Automated Verification:** 1109 frontend tests passing across 76 files; 407 backend tests passing; `tsc --noEmit`, `ruff check`, and `ruff format --check` all clean. | |
-| **TalkBack Compatibility:** Pass-through gesture (double-tap-and-hold then drag) verified working on hardware (OnePlus Nord CE6). | |
+| **Automated Verification:** 1203 frontend tests passing across 82 files; 422 backend tests passing; `tsc --noEmit`, `ruff check`, and `ruff format --check` all clean. | |
+| **TalkBack Compatibility:** Pass-through gesture (double-tap-and-hold then drag) implemented and covered by automated tests; hardware verification on the OnePlus Nord CE6 is pending (see `docs/PHONE_TEST.md`). [FILL: change to "verified" only after the phone test passes] | |
 
 ## 8. What is next
 Test with students at the Blind People's Association (BPA) in Ahmedabad and fix whatever confuses them first; conduct native-speaker review of Hindi and Gujarati translations; complete offline saved diagrams (Task 13); and evaluate an optional Capacitor native app wrapper if budget device motors benefit from native amplitude controls.

@@ -267,8 +267,8 @@ Git log history shows 303 commits authored under the repository owner's name, 24
 ## 10. Verification & Proof
 
 All claims in this document are supported by automated test suites in the repository:
-- **Frontend:** 1109 unit and property tests passing across 76 test files (`npm --prefix frontend test`), on TypeScript 7, React 19, Vite 8 and Vitest 5.
-- **Backend:** 407 tests collected and passing (`backend/.venv/Scripts/python -m pytest backend`; last full run 2026-11-06).
+- **Frontend:** 1203 unit and property tests passing across 82 test files (`npm --prefix frontend test`), on TypeScript 7, React 19, Vite 8 and Vitest 5.
+- **Backend:** 422 tests collected and passing (`backend/.venv/Scripts/python -m pytest backend`; last full run 2026-11-06).
 - **Formatting & Type-Checking:** Strict TypeScript checking (`npm --prefix frontend exec -- tsc -p frontend --noEmit`) and Ruff verification (`backend/.venv/Scripts/python -m ruff check backend`, `backend/.venv/Scripts/python -m ruff format --check backend`) run clean with 0 errors.
 - **Production Build:** Production bundle and PWA service worker compile cleanly (`npm --prefix frontend run build`).
 - **Submission Day Verification:** [FILL: re-run the counts and gates on submission day]
