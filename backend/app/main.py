@@ -17,7 +17,6 @@ from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
 from fastapi import (
-    APIRouter,
     BackgroundTasks,
     Depends,
     FastAPI,
@@ -28,13 +27,12 @@ from fastapi import (
     UploadFile,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
-from app.ask import AskRequest, AskResponse, _check_scene_size, answer_question
+from app.ask import AskRequest, AskResponse, answer_question
 from app.graphs.route import graph_scene_from_chain
 from app.image_utils import validate_image_bytes
 from app.limits import MULTIPART_OVERHEAD, RequestGuardMiddleware, default_rate_limits
-from app.middleware import SecurityHeadersMiddleware
 from app.raw_mode import RawModeError, build_raw_scene
 from app.scene_cache import image_key, scene_cache
 from app.schema import DiagramScene
@@ -59,72 +57,8 @@ MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
 MAX_ASK_BODY_SIZE = 512 * 1024  # a scene plus a 500-character question is far smaller
 MAX_VALIDATE_BODY_SIZE = 512 * 1024  # scene JSON for teacher correct validation
 RAW_MODE_RESERVE_SECONDS = 2.5  # Reserve inside 15s total budget for Raw Mode fallback
-DEFAULT_SCENE_MAX_CONCURRENCY = 2
-DEFAULT_SCENE_QUEUE_WAIT_SECONDS = 6.0
 
 _cached_chain: ProviderChain | None = None
-_scene_semaphore: asyncio.Semaphore | None = None
-
-
-def parse_scene_max_concurrency() -> int:
-    """Parse SCENE_MAX_CONCURRENCY env var (default 2, min 1 with warning)."""
-    raw = os.environ.get("SCENE_MAX_CONCURRENCY")
-    if raw is None or not raw.strip():
-        return DEFAULT_SCENE_MAX_CONCURRENCY
-    try:
-        val = int(raw)
-        if val < 1:
-            logger.warning(
-                "SCENE_MAX_CONCURRENCY must be at least 1; using default %d",
-                DEFAULT_SCENE_MAX_CONCURRENCY,
-            )
-            return DEFAULT_SCENE_MAX_CONCURRENCY
-        return val
-    except (ValueError, TypeError):
-        logger.warning(
-            "Invalid SCENE_MAX_CONCURRENCY '%s'; using default %d",
-            raw,
-            DEFAULT_SCENE_MAX_CONCURRENCY,
-        )
-        return DEFAULT_SCENE_MAX_CONCURRENCY
-
-
-def parse_scene_queue_wait_seconds() -> float:
-    """Parse SCENE_QUEUE_WAIT_SECONDS env var (default 6.0, non-negative with warning)."""
-    raw = os.environ.get("SCENE_QUEUE_WAIT_SECONDS")
-    if raw is None or not raw.strip():
-        return DEFAULT_SCENE_QUEUE_WAIT_SECONDS
-    try:
-        val = float(raw)
-        if val < 0:
-            logger.warning(
-                "SCENE_QUEUE_WAIT_SECONDS must be non-negative; using default %.1fs",
-                DEFAULT_SCENE_QUEUE_WAIT_SECONDS,
-            )
-            return DEFAULT_SCENE_QUEUE_WAIT_SECONDS
-        return val
-    except (ValueError, TypeError):
-        logger.warning(
-            "Invalid SCENE_QUEUE_WAIT_SECONDS '%s'; using default %.1fs",
-            raw,
-            DEFAULT_SCENE_QUEUE_WAIT_SECONDS,
-        )
-        return DEFAULT_SCENE_QUEUE_WAIT_SECONDS
-
-
-def get_scene_semaphore() -> asyncio.Semaphore:
-    """Get or create the process-wide scene processing semaphore."""
-    global _scene_semaphore
-    if _scene_semaphore is None:
-        cap = parse_scene_max_concurrency()
-        _scene_semaphore = asyncio.Semaphore(cap)
-    return _scene_semaphore
-
-
-def reset_scene_semaphore() -> None:
-    """Reset the scene semaphore (for testing)."""
-    global _scene_semaphore
-    _scene_semaphore = None
 
 
 def reset_provider_chain() -> None:
@@ -146,7 +80,22 @@ def get_provider_chain() -> ProviderChain:
     """
     global _cached_chain
     if _cached_chain is None:
-        _cached_chain = build_chain_from_env()
+        chain = build_chain_from_env()
+        retries_raw = os.environ.get("PROVIDER_RETRIES", "1")
+        try:
+            r = int(retries_raw)
+            if r >= 0:
+                chain.retries = r
+        except ValueError:
+            pass
+        backoff_raw = os.environ.get("PROVIDER_RETRY_BACKOFF_SECONDS", "0.8")
+        try:
+            b = float(backoff_raw)
+            if b >= 0:
+                chain.retry_backoff = b
+        except ValueError:
+            pass
+        _cached_chain = chain
     return _cached_chain
 
 
@@ -231,6 +180,27 @@ def validate_env_settings() -> None:
         logger.warning(
             "Invalid PROVIDER_TIMEOUT_SECONDS '%s'; using default 8.0s",
             provider_timeout_raw,
+        )
+
+    retries_raw = os.environ.get("PROVIDER_RETRIES", "1")
+    try:
+        val_retries = int(retries_raw)
+        if val_retries < 0:
+            logger.warning("PROVIDER_RETRIES must be non-negative; using default 1")
+    except ValueError:
+        logger.warning("Invalid PROVIDER_RETRIES '%s'; using default 1", retries_raw)
+
+    retry_backoff_raw = os.environ.get("PROVIDER_RETRY_BACKOFF_SECONDS", "0.8")
+    try:
+        val_backoff = float(retry_backoff_raw)
+        if val_backoff < 0:
+            logger.warning(
+                "PROVIDER_RETRY_BACKOFF_SECONDS must be non-negative; using default 0.8s"
+            )
+    except ValueError:
+        logger.warning(
+            "Invalid PROVIDER_RETRY_BACKOFF_SECONDS '%s'; using default 0.8s",
+            retry_backoff_raw,
         )
 
     ask_timeout_raw = os.environ.get("ASK_TIMEOUT_SECONDS", "10.0")

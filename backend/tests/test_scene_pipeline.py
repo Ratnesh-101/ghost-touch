@@ -384,7 +384,7 @@ def test_pipeline_huge_png_resolution_returns_422(client: TestClient) -> None:
     files = {"image": ("huge.png", huge_png_header, "image/png")}
     response = client.post("/api/v1/scene", files=files)
     assert response.status_code == 422
-    assert "exceeds maximum allowed 12 megapixels" in response.json()["detail"]
+    assert "exceeds maximum allowed 40 megapixels" in response.json()["detail"]
 
 
 def test_pipeline_blank_photo_returns_422(client: TestClient) -> None:
