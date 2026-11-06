@@ -12,6 +12,7 @@ import { AccessibleButton } from '../components/AccessibleButton';
 import { Spark } from '../components/lab/Spark';
 import { SettingsLauncher } from '../components/SettingsLauncher';
 import { StatusText } from '../components/StatusText';
+import { VerifiedBanner } from '../components/VerifiedBanner';
 import {
   makeViewport,
   toNorm,
@@ -126,6 +127,12 @@ interface ExploreProps {
   isRaw?: boolean;
   /** Optional override to suppress redundant canvas aria-label (Finding 5). */
   suppressAriaLabel?: boolean;
+  /** Optional teacher verification details from a shared diagram link. */
+  verified?: {
+    by: string;
+    note?: string;
+    at?: string;
+  };
 }
 
 export function Explore({
@@ -136,6 +143,7 @@ export function Explore({
   onCorrect,
   isRaw,
   suppressAriaLabel,
+  verified,
 }: ExploreProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const askButtonRef = useRef<HTMLButtonElement>(null);
@@ -1072,6 +1080,15 @@ export function Explore({
           <span className="gt-explore__badge gt-lab-badge" aria-hidden="true">Diagram</span>
         </div>
       </header>
+
+      {verified && (
+        <VerifiedBanner
+          by={verified.by}
+          note={verified.note}
+          at={verified.at}
+          onSpeak={(text) => drivers.speech.speak(text, LANG_BCP47[getLang()])}
+        />
+      )}
 
       {isRawScene && (
         <div className="gt-explore__raw-notice gt-lab-raw-notice" role="status">

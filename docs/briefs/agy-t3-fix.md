@@ -1,0 +1,5 @@
+# Follow-up lane t3-fix (agy), continue in this worktree
+Supervisor review found one real defect in `speakShareAnnouncements` (frontend/src/App.tsx): it calls `speech.speak(sceneAnnouncement)` and then `speech.speak(verifiedAnnouncement)` back to back, but the speech driver CANCELS the previous utterance on every `speak` (frontend/src/drivers/speech.ts line ~239-249; tech.md rule "speech is cancelled by the next"). So the student never hears the scene announcement.
+Fix: speak ONE utterance that joins both in order: scene announcement, then "Verified by <name>" (join with ". " and avoid a double full stop). Keep the two strings available separately for the on-screen banner. Do not change the speech driver.
+Add a test using a fake speech driver that behaves like the real one (each speak replaces the previous): assert exactly one `speak` call, the text contains the scene announcement AND the verified line in that order, in en, hi and gu. Update the existing tests that asserted two calls. Also add the new join to the report.
+Run `npm --prefix frontend test` and `npm --prefix frontend run build` and report real numbers. Edit only the T3 files you own.

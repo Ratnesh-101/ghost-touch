@@ -327,7 +327,27 @@ Thank you for helping review the translations for Ghost Touch!
 
 ---
 
-## 18. Suspicious Strings (Automated Analysis & Review Hints)
+## 18. Teacher Share & Student Open (`share.*`)
+
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `share.verified` | Verified | सत्यापित | પ્રમાણિત | | | | |
+| `share.verifiedBy (spoken)` | Verified by {name} | {name} द्वारा सत्यापित | {name} દ્વારા પ્રમાણિત | | | | keep {name} |
+| `share.readNote` | Read note | नोट पढ़ें | નોંધ વાંચો | | | | |
+| `share.hideNote` | Hide note | नोट छिपाएं | નોંધ છુપાવો | | | | |
+| `share.goToStart` | Go to start | शुरुआत पर जाएं | શરૂઆત પર જાઓ | | | | |
+| `share.honesty` | Verified means a person reviewed this diagram. It is not cryptographic proof. | सत्यापित का अर्थ है कि किसी व्यक्ति ने इस आरेख की समीक्षा की है। यह कोई क्रिप्टोग्राफ़िक प्रमाण नहीं है। | પ્રમાણિતનો અર્થ એ છે કે કોઈ વ્યક્તિએ આ આકૃતિની સમીક્ષા કરી છે. તે કોઈ ક્રિપ્ટોગ્રાફિક પુરાવો નથી. | | | | |
+| `share.error.title` | Could not open diagram | आरेख नहीं खोला जा सका | આકૃતિ ખોલી શકાઈ નથી | | | | |
+| `share.error.tooLarge (spoken)` | This shared link is too large to open. | यह साझा किया गया लिंक खोलने के लिए बहुत बड़ा है। | આ શેર કરેલી લિંક ખોલવા માટે ખૂબ મોટી છે. | | | | |
+| `share.error.badFormat (spoken)` | This shared link is corrupted or incomplete. | यह साझा किया गया लिंक दूषित या अधूरा है। | આ શેર કરેલી લિંક ખરાબ થયેલી અથવા અધૂરી છે. | | | | |
+| `share.error.badVersion (spoken)` | This shared link was created by an incompatible version. | यह साझा किया गया लिंक एक असंगत संस्करण द्वारा बनाया गया था। | આ શેર કરેલી લિંક અસંગત સંસ્કરણ દ્વારા બનાવવામાં આવી હતી. | | | | |
+| `share.error.badScene (spoken)` | This shared diagram could not be read. | यह साझा किया गया आरेख पढ़ा नहीं जा सका। | આ શેર કરેલી આકૃતિ વાંચી શકાઈ નથી. | | | | |
+| `share.error.empty (spoken)` | This shared link has no diagram. | इस साझा किए गए लिंक में कोई आरेख नहीं है। | આ શેર કરેલી લિંકમાં કોઈ આકૃતિ નથી. | | | | |
+| `share.error.generic (spoken)` | Something went wrong opening this shared link. | इस साझा किए गए लिंक को खोलने में कुछ गलत हो गया। | આ શેર કરેલી લિંક ખોલવામાં કંઈક ખોટું થયું. | | | | |
+
+---
+
+## 19. Suspicious Strings (Automated Analysis & Review Hints)
 
 The following items were identified during static codebase analysis as potentially problematic machine translations. These are provided as **hints only** for the native reviewer; the source code has **not** been modified.
 

@@ -1094,3 +1094,88 @@ Format for each entry:
   - `frontend/tests/guide.ui.commands.test.ts`
   - `frontend/tests/guide.ui.explore.test.tsx`
   - `frontend/tests/guide.ui.flow.test.ts`
+## 2026-11-06 — Antigravity (agy, reviewed by Claude Code) — Lane t3-student-open (Student Open & Teacher Verified Banner)
+- What was built:
+  - Extended hash route driver in `frontend/src/drivers/hashRoute.ts`:
+    - Defined constant `SHARE_HASH_PREFIX = '#s='`.
+    - Added `parseShareHash(hash: string): string | null` extracting payload string from `#s=`, `/#s=`, or complete URLs, returning `''` for `#s=` and `null` for non-share routes like `#/debug` or empty hashes while preserving whitespace in payloads.
+    - Added `clearHash(): void` clearing the URL hash via `history.replaceState` and dispatching a `hashchange` event.
+  - Built `frontend/src/components/VerifiedBanner.tsx`:
+    - Accessible banner component with `role="status"` and `aria-label="Verified by <name>"`.
+    - Displays checkmark icon badge, localized teacher verification announcement (`share.verifiedBy`), and toggleable "Read note" button (`share.readNote` / `share.hideNote`).
+    - Note text collapsed by default; clicking reveals the note text and speaks it aloud via `onSpeak`.
+    - Guarantees teacher name, note, and labels are rendered strictly as React text children (preventing XSS from malicious names like `<img onerror>`).
+    - Enforces 48×48 px minimum touch target via `.gt-control`.
+  - Built `frontend/src/screens/ShareError.tsx`:
+    - Friendly error screen with `role="alert"` for all five `ShareErrorCode`s (`too-large`, `bad-format`, `bad-version`, `bad-scene`, `empty`).
+    - Displays clean, friendly user-facing messages through `t()` without exposing raw payloads, exception traces, or stacks.
+    - Accessible "Go to start" button (`share.goToStart`) returning to Start screen and clearing hash via `clearHash()`.
+  - Updated `frontend/src/App.tsx`:
+    - Added pure helpers `resolveShareRoute` and `speakShareAnnouncements`.
+    - Feature gated via `isShareEnvOn()` (`VITE_FEATURE_SHARE === '1'`). When flag is OFF, `#s=` routes are ignored and the app stays on the Start screen.
+    - Synchronous state initialization in `useState<View>` eliminates visual flash of Start screen on direct link opening.
+    - Spoken order strictly enforced: announces diagram scene first (`exploreAnnouncement`), then announces "Verified by <name>".
+    - Changing hash while app is running dynamically re-routes to new diagram, ShareError, or Start.
+    - Back from Explore (when opened via share link) clears hash via `clearHash()` (`history.replaceState`) and navigates to Start screen, speaking `start.intro`.
+    - Guarded `warmBackend()` so that when opening a share route, no background health check fires, guaranteeing zero network requests (`fetch` is never called).
+  - Updated `frontend/src/screens/Explore.tsx`:
+    - Added optional `verified?: { by: string; note?: string; at?: string }` prop to `ExploreProps` and rendered `<VerifiedBanner>` below title header.
+  - Added token-compliant styles in `frontend/src/styles/explore.css` for `.gt-verified-banner` and `.gt-share-error` complying with Design Token Color Property P20.
+  - Added 13 new i18n keys across `en`, `hi`, and `gu` in `frontend/src/i18n/index.ts` with 100% key parity, and appended Section 18 to `docs/user-test/translation-review.md` and `docs/user-test/translation-review.csv`.
+  - Added 4 test suites (31 new tests, total 1317 tests across 95 files):
+    - `frontend/tests/share.open.hashRoute.test.ts`
+    - `frontend/tests/share.open.banner.test.tsx`
+    - `frontend/tests/share.open.errors.test.tsx`
+    - `frontend/tests/share.open.routing.test.tsx`
+- What broke / surprising findings:
+  - Property test P20 (`labTheme.prop.test.ts`) caught bare hex `#0b0e0c` without `var(--gt-*)` fallback; updated CSS to `var(--gt-charcoal, #0b0e0c)`.
+  - Property test for `parseShareHash` caught whitespace stripping on payloads like `" "`; adjusted regex parsing to preserve exact payload slice.
+  - `getAllElements` helper in `tests/helpers/a11yDom.ts` flattens without a filter predicate; updated test calls to chain `.filter(...)`.
+- Verification results:
+  - `npm --prefix frontend test`: 95 test files passed (was 91; +4 test files), 1317 tests passed (was 1285; +32 tests).
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+  - `npm --prefix frontend run build`: 0 errors (clean production build with PWA precache).
+- Files touched:
+  - `frontend/src/App.tsx`
+  - `frontend/src/drivers/hashRoute.ts`
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/components/VerifiedBanner.tsx`
+  - `frontend/src/screens/ShareError.tsx`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/styles/explore.css`
+  - `frontend/tests/share.open.hashRoute.test.ts`
+  - `frontend/tests/share.open.banner.test.tsx`
+  - `frontend/tests/share.open.errors.test.tsx`
+  - `frontend/tests/share.open.routing.test.tsx`
+  - `docs/user-test/translation-review.md`
+  - `docs/user-test/translation-review.csv`
+  - `docs/reports/agy-t3-student-open-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity (agy, reviewed by Claude Code) — Lane t3-fix (Single-Utterance Spoken Share Announcement)
+- What was built:
+  - Added pure helper `joinShareAnnouncements(sceneAnnouncement, verifiedAnnouncement)` to `frontend/src/App.tsx`:
+    - Combines scene announcement and verified banner text into a single spoken utterance in strict contract order.
+    - Joins with `". "` when the scene announcement lacks terminal punctuation.
+    - Avoids double full stops (`..` or `।.`) by detecting terminal punctuation (`.`, Devanagari danda `।`, `!`, `?`) and normalizing multiple trailing periods before appending the verified line with a single space.
+  - Updated `speakShareAnnouncements` in `frontend/src/App.tsx`:
+    - Speaks ONE combined utterance instead of calling `speech.speak` twice in immediate succession.
+    - Eliminates speech synthesis cancellation defect (`synth.cancel()` in `drivers/speech.ts` dropping the scene announcement).
+    - Preserves `sceneAnnouncement` and `verifiedAnnouncement` separately on `ShareRouteResolution` so the on-screen card and `<VerifiedBanner>` render their respective text without interference.
+  - Added tests in `frontend/tests/share.open.routing.test.tsx`:
+    - Fake speech driver test mimicking real cancellation behavior (`each speak replaces previous`), asserting exactly 1 `speak` call with both announcements in order across English, Hindi, and Gujarati.
+    - Unit tests for `joinShareAnnouncements` covering terminal punctuation edge cases (`.`, `..`, `।`, `!`, `?`, empty strings).
+    - Updated existing routing test that previously asserted 2 `speak` calls to verify the single joined utterance.
+- What broke / surprising findings:
+  - Previously, `speakShareAnnouncements` dispatched two consecutive `speech.speak` calls; because `drivers/speech.ts` calls `synth.cancel()` on each invocation, the first utterance (`sceneAnnouncement`) was cancelled before it could finish, leaving only `verifiedAnnouncement` audible to the student. Joining both into a single utterance resolved the bug completely without modifying the locked speech driver.
+- Verification results:
+  - `npm --prefix frontend test`: 95 test files passed (95), 1319 tests passed (1319).
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+  - `npm --prefix frontend run build`: 0 errors (clean production build with PWA precache, 114 modules transformed in 165ms).
+- Files touched:
+  - `frontend/src/App.tsx`
+  - `frontend/tests/share.open.routing.test.tsx`
+  - `docs/reports/agy-t3-student-open-report.md`
+  - `docs/BUILD_LOG.md`
+
+

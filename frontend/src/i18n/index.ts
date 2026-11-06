@@ -255,6 +255,20 @@ const en: Record<string, string> = {
   'lab.settings.guideOn': 'Finger guidance enabled.',
   'lab.settings.guideOff': 'Finger guidance disabled.',
   'lab.settings.guideHint': 'Tones and vibration guide your finger to targets.',
+  // Teacher Share & Student Open
+  'share.verified': 'Verified',
+  'share.verifiedBy': 'Verified by {name}',
+  'share.readNote': 'Read note',
+  'share.hideNote': 'Hide note',
+  'share.goToStart': 'Go to start',
+  'share.honesty': 'Verified means a person reviewed this diagram. It is not cryptographic proof.',
+  'share.error.title': 'Could not open diagram',
+  'share.error.tooLarge': 'This shared link is too large to open.',
+  'share.error.badFormat': 'This shared link is corrupted or incomplete.',
+  'share.error.badVersion': 'This shared link was created by an incompatible version.',
+  'share.error.badScene': 'This shared diagram could not be read.',
+  'share.error.empty': 'This shared link has no diagram.',
+  'share.error.generic': 'Something went wrong opening this shared link.',
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -476,6 +490,20 @@ const hi: Record<string, string> = {
   'lab.settings.guideOn': 'उंगली मार्गदर्शन सक्षम किया गया।',
   'lab.settings.guideOff': 'उंगली मार्गदर्शन अक्षम किया गया।',
   'lab.settings.guideHint': 'टोन और कंपन आपकी उंगली को लक्ष्य तक ले जाते हैं।',
+  // Teacher Share & Student Open
+  'share.verified': 'सत्यापित',
+  'share.verifiedBy': '{name} द्वारा सत्यापित',
+  'share.readNote': 'नोट पढ़ें',
+  'share.hideNote': 'नोट छिपाएं',
+  'share.goToStart': 'शुरुआत पर जाएं',
+  'share.honesty': 'सत्यापित का अर्थ है कि किसी व्यक्ति ने इस आरेख की समीक्षा की है। यह कोई क्रिप्टोग्राफ़िक प्रमाण नहीं है।',
+  'share.error.title': 'आरेख नहीं खोला जा सका',
+  'share.error.tooLarge': 'यह साझा किया गया लिंक खोलने के लिए बहुत बड़ा है।',
+  'share.error.badFormat': 'यह साझा किया गया लिंक दूषित या अधूरा है।',
+  'share.error.badVersion': 'यह साझा किया गया लिंक एक असंगत संस्करण द्वारा बनाया गया था।',
+  'share.error.badScene': 'यह साझा किया गया आरेख पढ़ा नहीं जा सका।',
+  'share.error.empty': 'इस साझा किए गए लिंक में कोई आरेख नहीं है।',
+  'share.error.generic': 'इस साझा किए गए लिंक को खोलने में कुछ गलत हो गया।',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -697,6 +725,20 @@ const gu: Record<string, string> = {
   'lab.settings.guideOn': 'આંગળી માર્ગદર્શન સક્ષમ કર્યું.',
   'lab.settings.guideOff': 'આંગળી માર્ગદર્શન અક્ષમ કર્યું.',
   'lab.settings.guideHint': 'ટોન અને વાઇબ્રેશન તમારી આંગળીને લક્ષ્ય સુધી લઈ જાય છે.',
+  // Teacher Share & Student Open
+  'share.verified': 'પ્રમાણિત',
+  'share.verifiedBy': '{name} દ્વારા પ્રમાણિત',
+  'share.readNote': 'નોંધ વાંચો',
+  'share.hideNote': 'નોંધ છુપાવો',
+  'share.goToStart': 'શરૂઆત પર જાઓ',
+  'share.honesty': 'પ્રમાણિતનો અર્થ એ છે કે કોઈ વ્યક્તિએ આ આકૃતિની સમીક્ષા કરી છે. તે કોઈ ક્રિપ્ટોગ્રાફિક પુરાવો નથી.',
+  'share.error.title': 'આકૃતિ ખોલી શકાઈ નથી',
+  'share.error.tooLarge': 'આ શેર કરેલી લિંક ખોલવા માટે ખૂબ મોટી છે.',
+  'share.error.badFormat': 'આ શેર કરેલી લિંક ખરાબ થયેલી અથવા અધૂરી છે.',
+  'share.error.badVersion': 'આ શેર કરેલી લિંક અસંગત સંસ્કરણ દ્વારા બનાવવામાં આવી હતી.',
+  'share.error.badScene': 'આ શેર કરેલી આકૃતિ વાંચી શકાઈ નથી.',
+  'share.error.empty': 'આ શેર કરેલી લિંકમાં કોઈ આકૃતિ નથી.',
+  'share.error.generic': 'આ શેર કરેલી લિંક ખોલવામાં કંઈક ખોટું થયું.',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };

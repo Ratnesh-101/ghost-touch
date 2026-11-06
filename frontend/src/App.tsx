@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type JSX } from 'react';
 import { warmBackend } from './api/health';
 import type { SceneMode } from './api/scene';
+import { isShareEnvOn } from './config/features';
 import type { DiagramScene } from './core/scene';
 import {
   applyAdd,
@@ -20,7 +21,7 @@ import {
   type SavedDiagram,
 } from './core/savedDiagrams';
 import { createBrowserDrivers, renderSceneThumbnail, type Drivers } from './drivers';
-import { DEBUG_HASH, readHash, subscribeHash } from './drivers/hashRoute';
+import { clearHash, DEBUG_HASH, parseShareHash, readHash, subscribeHash } from './drivers/hashRoute';
 import {
   leaveCorrectEntry,
   leaveSavedEntry,
@@ -39,22 +40,149 @@ import { Correct } from './screens/Correct';
 import { Debug } from './screens/Debug';
 import { Explore } from './screens/Explore';
 import { SavedDiagrams } from './screens/SavedDiagrams';
+import { ShareError as ShareErrorScreen, shareErrorMessage } from './screens/ShareError';
 import { Start } from './screens/Start';
+import { decodeShare, ShareError, type ShareErrorCode } from './share';
+
+export type ShareRouteResolution =
+  | {
+      kind: 'explore';
+      scene: DiagramScene;
+      verified: { by: string; note: string; at: string };
+      sceneAnnouncement: string;
+      verifiedAnnouncement: string;
+      spokenAnnouncement?: string;
+    }
+  | { kind: 'error'; code: ShareErrorCode; errorMessage: string }
+  | { kind: 'ignored' };
+
+/**
+ * Joins scene announcement and verified banner text into a single spoken utterance.
+ * Joins with a period and space (". ") while avoiding a double full stop if the scene
+ * announcement already ends with terminal punctuation (e.g. "." or Hindi "।").
+ */
+export function joinShareAnnouncements(
+  sceneAnnouncement: string,
+  verifiedAnnouncement: string,
+): string {
+  const scene = sceneAnnouncement.trim();
+  const verified = verifiedAnnouncement.trim();
+  if (!scene) return verified;
+  if (!verified) return scene;
+
+  if (scene.endsWith('.') || scene.endsWith('।') || scene.endsWith('!') || scene.endsWith('?')) {
+    const normalizedScene = scene.replace(/\.+$/, '.');
+    return `${normalizedScene} ${verified}`;
+  }
+  return `${scene}. ${verified}`;
+}
+
+/**
+ * Pure route resolver for shared diagram links.
+ * Returns the resolved screen state, announcements, or error code.
+ */
+export function resolveShareRoute(
+  hash: string,
+  isFeatureOn: boolean = isShareEnvOn(),
+): ShareRouteResolution {
+  if (!isFeatureOn) {
+    return { kind: 'ignored' };
+  }
+  const payload = parseShareHash(hash);
+  if (payload === null) {
+    return { kind: 'ignored' };
+  }
+  try {
+    const decoded = decodeShare(hash);
+    const sceneAnnouncement = exploreAnnouncement(decoded.scene, 'ai');
+    const verifiedName =
+      decoded.verifiedBy.trim() !== '' ? decoded.verifiedBy : t('share.verified');
+    const verifiedAnnouncement = t('share.verifiedBy').replace('{name}', verifiedName);
+    const spokenAnnouncement = joinShareAnnouncements(sceneAnnouncement, verifiedAnnouncement);
+    return {
+      kind: 'explore',
+      scene: decoded.scene,
+      verified: {
+        by: decoded.verifiedBy,
+        note: decoded.note,
+        at: decoded.verifiedAt,
+      },
+      sceneAnnouncement,
+      verifiedAnnouncement,
+      spokenAnnouncement,
+    };
+  } catch (err) {
+    const code: ShareErrorCode = err instanceof ShareError ? err.code : 'bad-format';
+    const errorMessage = shareErrorMessage(code);
+    return {
+      kind: 'error',
+      code,
+      errorMessage,
+    };
+  }
+}
+
+/**
+ * Dispatches spoken announcements in exact contract order:
+ * Speaks ONE utterance that joins the scene announcement and the verified line,
+ * avoiding speech driver cancellation of back-to-back utterances.
+ */
+export function speakShareAnnouncements(
+  speech: Drivers['speech'],
+  resolution: ShareRouteResolution,
+  langBcp47: string,
+): void {
+  if (resolution.kind === 'explore') {
+    const utterance =
+      resolution.spokenAnnouncement ??
+      joinShareAnnouncements(resolution.sceneAnnouncement, resolution.verifiedAnnouncement);
+    speech.speak(utterance, langBcp47);
+  } else if (resolution.kind === 'error') {
+    speech.speak(resolution.errorMessage, langBcp47);
+  }
+}
 
 type View =
   | { screen: 'start' }
   | { screen: 'capture'; announced: string }
-  | { screen: 'explore'; scene: DiagramScene; announced: string }
+  | {
+      screen: 'explore';
+      scene: DiagramScene;
+      announced: string;
+      verified?: { by: string; note?: string; at?: string };
+      fromShare?: boolean;
+    }
   | { screen: 'correct'; scene: DiagramScene }
-  | { screen: 'saved' };
+  | { screen: 'saved' }
+  | { screen: 'shareError'; code: ShareErrorCode; announced: string };
 
 export function App(): JSX.Element {
-  const hash = useSyncExternalStore(subscribeHash, readHash, () => '');
+  const hash = useSyncExternalStore(subscribeHash, readHash, readHash);
   const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
   const [drivers] = useState<Drivers>(() => createBrowserDrivers());
-  const [view, setView] = useState<View>({ screen: 'start' });
+  const [view, setView] = useState<View>(() => {
+    const resolution = resolveShareRoute(readHash());
+    if (resolution.kind === 'explore') {
+      return {
+        screen: 'explore',
+        scene: resolution.scene,
+        announced: resolution.sceneAnnouncement,
+        verified: resolution.verified,
+        fromShare: true,
+      };
+    }
+    if (resolution.kind === 'error') {
+      return {
+        screen: 'shareError',
+        code: resolution.code,
+        announced: resolution.errorMessage,
+      };
+    }
+    return { screen: 'start' };
+  });
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const photoTracker = useRef<PhotoUrlTracker>(createPhotoUrlTracker());
+  const lastProcessedHash = useRef<string | null>(null);
 
   const updatePhotoUrl = useCallback((newUrl: string | null): void => {
     photoTracker.current.update(newUrl);
@@ -66,6 +194,46 @@ export function App(): JSX.Element {
       photoTracker.current.dispose();
     };
   }, []);
+
+  useEffect(() => {
+    if (isShareEnvOn() && parseShareHash(readHash()) !== null) {
+      return;
+    }
+    void warmBackend();
+  }, []);
+
+  useEffect(() => {
+    if (hash === lastProcessedHash.current) {
+      return;
+    }
+    lastProcessedHash.current = hash;
+
+    const resolution = resolveShareRoute(hash, isShareEnvOn());
+    if (resolution.kind === 'explore') {
+      speakShareAnnouncements(drivers.speech, resolution, LANG_BCP47[currentLang]);
+      setView({
+        screen: 'explore',
+        scene: resolution.scene,
+        announced: resolution.sceneAnnouncement,
+        verified: resolution.verified,
+        fromShare: true,
+      });
+    } else if (resolution.kind === 'error') {
+      speakShareAnnouncements(drivers.speech, resolution, LANG_BCP47[currentLang]);
+      setView({
+        screen: 'shareError',
+        code: resolution.code,
+        announced: resolution.errorMessage,
+      });
+    } else if (hash === '' || hash === '#') {
+      setView((prev) => {
+        if (prev.screen === 'shareError' || (prev.screen === 'explore' && prev.fromShare)) {
+          return { screen: 'start' };
+        }
+        return prev;
+      });
+    }
+  }, [hash, drivers, currentLang]);
 
   useEffect(() => {
     if (view.screen === 'saved') {
@@ -157,11 +325,26 @@ export function App(): JSX.Element {
   };
 
   // Coming back from Explore: just the prompt, not the one-time vibration warning.
+  // When opened via share link, goes back to start and clears hash via history.replaceState.
   const handleBack = (): void => {
     updatePhotoUrl(null);
+    if (view.screen === 'explore' && view.fromShare) {
+      clearHash();
+      const announced = t('start.intro');
+      drivers.speech.speak(announced, LANG_BCP47[currentLang]);
+      setView({ screen: 'start' });
+      return;
+    }
     const announced = t('capture.prompt');
     drivers.speech.speak(announced, LANG_BCP47[currentLang]);
     setView({ screen: 'capture', announced });
+  };
+
+  const handleGoToStart = (): void => {
+    clearHash();
+    const announced = t('start.intro');
+    drivers.speech.speak(announced, LANG_BCP47[currentLang]);
+    setView({ screen: 'start' });
   };
 
   const handleCorrect = (): void => {
@@ -229,6 +412,14 @@ export function App(): JSX.Element {
           drivers={drivers}
           onBack={handleBack}
           onCorrect={handleCorrect}
+          verified={view.verified}
+        />
+      );
+    case 'shareError':
+      return (
+        <ShareErrorScreen
+          code={view.code}
+          onGoToStart={handleGoToStart}
         />
       );
     case 'correct':
