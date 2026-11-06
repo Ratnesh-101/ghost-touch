@@ -683,7 +683,7 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }:
           <LanguageSelector drivers={drivers} />
           <RateSelector drivers={drivers} />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+        <div className="gt-explore__title-row" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
           <h1 className="gt-explore__title">{sceneName(scene)}</h1>
           <span className="gt-explore__badge gt-lab-badge" aria-hidden="true">Diagram</span>
         </div>
