@@ -9,7 +9,7 @@
  * Pure decisions (ordering, eviction) live in `core/savedDiagrams.ts`.
  * Storage access lives in the injected `DiagramStore` driver.
  */
-import { useEffect, useState, type JSX } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
 import type { DiagramScene } from '../core/scene';
 import { orderForDisplay, type SavedDiagram } from '../core/savedDiagrams';
 import type { DiagramStore } from '../drivers/diagramStore';
@@ -37,6 +37,13 @@ export function SavedDiagrams({
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  // Focus screen heading on mount for TalkBack / keyboard focus placement (Finding 8)
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
 
   const say = (text: string): void => {
     speech.speak(text, LANG_BCP47[getLang()]);
@@ -118,7 +125,7 @@ export function SavedDiagrams({
   return (
     <main className="gt-saved">
       <header className="gt-saved__header">
-        <h1 className="gt-saved__heading">{t('saved.heading')}</h1>
+        <h1 className="gt-saved__heading" tabIndex={-1} ref={headingRef}>{t('saved.heading')}</h1>
         <AccessibleButton
           className="gt-saved__back gt-control"
           aria-label={t('saved.back')}
