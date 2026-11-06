@@ -55,6 +55,10 @@ The repository root contains `render.yaml`, an infrastructure-as-code Blueprint 
    - `SCENE_CACHE_TTL_SECONDS`: `21600`
    - `RATE_LIMIT_ASK_PER_MIN`: `40`
    - `RATE_LIMIT_SCENE_PER_MIN`: `20`
+   - `RATE_LIMIT_VALIDATE_PER_MIN`: `40` (per-minute rate limit for teacher validate endpoint)
+   - `SCENE_MAX_CONCURRENCY`: `2` (maximum concurrent heavy scene processing operations)
+   - `SCENE_QUEUE_WAIT_SECONDS`: `6.0` (maximum queue wait time before returning HTTP 503 Retry-After)
+   - `ENVIRONMENT`: `production` (when set to production, interactive /docs, /redoc, and /openapi.json are disabled)
    - `ALLOWED_ORIGINS`: `https://ghost-touch-iota.vercel.app`
 7. Click **Apply**.
 8. Wait for Render to complete the build (`pip install .`) and start the service (`uvicorn app.main:app --host 0.0.0.0 --port $PORT`).

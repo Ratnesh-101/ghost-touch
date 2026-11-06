@@ -261,54 +261,78 @@ def parse_allowed_origins(raw: str | None) -> list[str]:
     return origins
 
 
+def is_production() -> bool:
+    """Check if current environment is production (SEC-08)."""
+    return os.environ.get("ENVIRONMENT", "").strip().lower() == "production"
+
+
+router = APIRouter()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Validate settings and initialize provider chain at startup."""
     validate_env_settings()
-    logger.info("allowed CORS origins: %s", _origins)
+    allowed = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173")
+    origins = parse_allowed_origins(allowed)
+    logger.info("allowed CORS origins: %s", origins)
     get_provider_chain()
     yield
 
 
-app = FastAPI(
-    title="Ghost Touch API",
-    version="0.1.0",
-    description="Turns a photo of a STEM diagram into a tactile DiagramScene.",
-    lifespan=lifespan,
-)
+def create_app() -> FastAPI:
+    """Create FastAPI application configured for current environment (SEC-07, SEC-08)."""
+    prod = is_production()
+    docs_url = None if prod else "/docs"
+    redoc_url = None if prod else "/redoc"
+    openapi_url = None if prod else "/openapi.json"
 
-# CORS: allow frontend origins. expose_headers allows browser to read
-# X-Vision-Provider (Finding 12).
-_allowed = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173")
-_origins = parse_allowed_origins(_allowed)
+    app_instance = FastAPI(
+        title="Ghost Touch API",
+        version="0.1.0",
+        description="Turns a photo of a STEM diagram into a tactile DiagramScene.",
+        lifespan=lifespan,
+        docs_url=docs_url,
+        redoc_url=redoc_url,
+        openapi_url=openapi_url,
+    )
 
-# Added first so CORS (added next) wraps it and 413/429 replies still carry CORS headers.
-app.add_middleware(
-    RequestGuardMiddleware,
-    body_limits={
-        "/api/v1/scene": MAX_UPLOAD_SIZE + MULTIPART_OVERHEAD,
-        "/api/v1/ask": MAX_ASK_BODY_SIZE,
-        "/api/v1/validate": MAX_VALIDATE_BODY_SIZE,
-    },
-    rate_limits=default_rate_limits(),
-)
+    allowed = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173")
+    origins = parse_allowed_origins(allowed)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_origins,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["X-Vision-Provider", "X-Scene-Cache"],
-)
+    app_instance.add_middleware(
+        RequestGuardMiddleware,
+        body_limits={
+            "/api/v1/scene": MAX_UPLOAD_SIZE + MULTIPART_OVERHEAD,
+            "/api/v1/ask": MAX_ASK_BODY_SIZE,
+            "/api/v1/validate": MAX_VALIDATE_BODY_SIZE,
+        },
+        rate_limits=default_rate_limits(),
+    )
+
+    app_instance.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["X-Vision-Provider", "X-Scene-Cache"],
+    )
+
+    app_instance.add_middleware(SecurityHeadersMiddleware)
+    app_instance.include_router(router)
+    return app_instance
 
 
-@app.get("/api/v1/health")
+app = create_app()
+
+
+@router.get("/api/v1/health")
 async def health() -> dict[str, bool]:
     """Liveness probe. DoD: returns ``{"ok": true}``."""
     return {"ok": True}
 
 
-@app.post("/api/v1/scene")
+@router.post("/api/v1/scene")
 async def process_scene(
     request: Request,
     response: Response,
@@ -395,180 +419,203 @@ async def process_scene(
         logger.info("scene served from cache: provider=%s", cached_provider)
         return cached_payload
 
+    sem = get_scene_semaphore()
+    wait_seconds = parse_scene_queue_wait_seconds()
     try:
-        total_deadline = float(os.environ.get("SCENE_TIMEOUT_SECONDS", "15.0"))
-        if total_deadline <= 0:
-            total_deadline = 15.0
-    except ValueError:
-        total_deadline = 15.0
+        await asyncio.wait_for(sem.acquire(), timeout=wait_seconds)
+    except TimeoutError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Server is busy processing other diagram requests. reason: queue_timeout",
+            headers={"Retry-After": "5"},
+        ) from exc
 
-    async def run_raw_mode(reason: str, provider_used: str = "none") -> dict[str, Any]:
-        """Execute Raw Mode off the event loop within remaining total deadline."""
-        elapsed = time.monotonic() - start_time
-        remaining = max(0.5, total_deadline - elapsed)
+    try:
+        # SEC-03: Client disconnect check before vision processing
+        if await request.is_disconnected():
+            logger.info("Client disconnected before vision chain; aborting")
+            return Response(status_code=499)
+
         try:
-            # Finding 4: execute build_raw_scene in worker thread with remaining deadline
-            raw_scene = await asyncio.wait_for(
-                asyncio.to_thread(build_raw_scene, image_bytes),
-                timeout=remaining,
+            total_deadline = float(os.environ.get("SCENE_TIMEOUT_SECONDS", "15.0"))
+            if total_deadline <= 0:
+                total_deadline = 15.0
+        except ValueError:
+            total_deadline = 15.0
+
+        async def run_raw_mode(reason: str, provider_used: str = "none") -> dict[str, Any]:
+            """Execute Raw Mode off the event loop within remaining total deadline."""
+            if await request.is_disconnected():
+                logger.info("Client disconnected before raw mode; aborting")
+                return Response(status_code=499)
+
+            elapsed = time.monotonic() - start_time
+            remaining = max(0.5, total_deadline - elapsed)
+            try:
+                # Finding 4: execute build_raw_scene in worker thread with remaining deadline
+                raw_scene = await asyncio.wait_for(
+                    asyncio.to_thread(build_raw_scene, image_bytes),
+                    timeout=remaining,
+                )
+            except TimeoutError as exc:
+                raise HTTPException(
+                    status_code=504,
+                    detail="Diagram processing timed out. Please try again with a simpler image.",
+                ) from exc
+            except RawModeError as exc:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Could not process image: {exc}. Please upload a clear diagram photo.",
+                ) from exc
+
+            # Finding 5: detect empty scene (blank photo) and reject unvalidated raw scenes
+            if (
+                len(raw_scene.points) == 0
+                and len(raw_scene.segments) == 0
+                and len(raw_scene.bars) == 0
+                and len(raw_scene.polylines) == 0
+            ):
+                raise HTTPException(
+                    status_code=422,
+                    detail="No diagram outlines detected in image. Please take a clearer photo.",
+                )
+
+            # Rule 5: Pass raw mode scenes through validator
+            val_result = validator(raw_scene.model_dump())
+            if val_result.scene is None:
+                errors_msg = "; ".join(val_result.errors) if val_result.errors else "invalid scene"
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        f"Extracted outline could not be validated: {errors_msg}. "
+                        "Please upload a clearer photo."
+                    ),
+                )
+
+            final_scene = val_result.scene
+
+            # Finding 11: Header is 'none' whenever mode is 'raw'
+            response.headers["X-Vision-Provider"] = "none"
+            elapsed_ms = int((time.monotonic() - start_time) * 1000)
+            logger.info(
+                "scene processed: provider=%s mode=raw reason=%s elapsed_ms=%d",
+                provider_used,
+                reason,
+                elapsed_ms,
             )
-        except TimeoutError as exc:
-            raise HTTPException(
-                status_code=504,
-                detail="Diagram processing timed out. Please try again with a simpler image.",
-            ) from exc
-        except RawModeError as exc:
-            raise HTTPException(
-                status_code=422,
-                detail=f"Could not process image: {exc}. Please upload a clear diagram photo.",
-            ) from exc
+            return {
+                "scene": final_scene.model_dump(),
+                "mode": "raw",
+                "reason": reason,
+            }
 
-        # Finding 5: detect empty scene (blank photo) and reject unvalidated raw scenes
-        if (
-            len(raw_scene.points) == 0
-            and len(raw_scene.segments) == 0
-            and len(raw_scene.bars) == 0
-            and len(raw_scene.polylines) == 0
-        ):
-            raise HTTPException(
-                status_code=422,
-                detail="No diagram outlines detected in image. Please take a clearer photo.",
+        # Step 4: Zero providers configured -> Raw Mode immediately
+        if not chain.providers:
+            return await run_raw_mode("no_provider", "none")
+
+        provider_state = {"name": "none"}
+        if total_deadline > RAW_MODE_RESERVE_SECONDS:
+            ai_budget = total_deadline - RAW_MODE_RESERVE_SECONDS
+        else:
+            ai_budget = max(0.05, total_deadline * 0.7)
+        ai_deadline = start_time + ai_budget
+
+        def ai_payload(scene: Any, provider: str, note: str = "") -> dict[str, Any]:
+            response.headers["X-Vision-Provider"] = provider
+            elapsed_ms = int((time.monotonic() - start_time) * 1000)
+            logger.info(
+                "scene processed: provider=%s mode=ai reason=none%s elapsed_ms=%d",
+                provider,
+                note,
+                elapsed_ms,
             )
+            return {"scene": scene.model_dump(), "mode": "ai"}
 
-        # Rule 5: Pass raw mode scenes through validator
-        val_result = validator(raw_scene.model_dump())
-        if val_result.scene is None:
-            errors_msg = "; ".join(val_result.errors) if val_result.errors else "invalid scene"
-            raise HTTPException(
-                status_code=422,
-                detail=(
-                    f"Extracted outline could not be validated: {errors_msg}. "
-                    "Please upload a clearer photo."
-                ),
+        async def attempt_ai() -> tuple[dict[str, Any] | None, str]:
+            """One AI extraction plus at most one validation retry.
+
+            Returns (payload, "") on success or (None, fallback_reason). Raw Mode is NOT run here,
+            so the AI deadline can never cancel it half way (it runs once, after this returns).
+            """
+            raw_text, provider_state["name"] = await chain.extract(
+                image_bytes, content_type, build_prompt(), deadline=ai_deadline
             )
+            used = provider_state["name"]
+            result = validator(raw_text)
+            if result.scene is not None:
+                if result.scene.kind == "function_graph":
+                    # A traced curve is imprecise: read the equation and sample it ourselves.
+                    sampled = await sampled_graph_scene()
+                    if sampled is not None:
+                        return ai_payload(sampled, used, " (equation route)"), ""
+                return ai_payload(result.scene, used), ""
 
-        final_scene = val_result.scene
+            # One validation retry on the same provider that answered
+            remaining = ai_deadline - time.monotonic()
+            if remaining < 3.0:
+                return None, "timeout"
+            provider = chain.get_provider(used)
+            if provider is None:
+                return None, "invalid"
 
-        # Finding 11: Header is 'none' whenever mode is 'raw'
-        response.headers["X-Vision-Provider"] = "none"
-        elapsed_ms = int((time.monotonic() - start_time) * 1000)
-        logger.info(
-            "scene processed: provider=%s mode=raw reason=%s elapsed_ms=%d",
-            provider_used,
-            reason,
-            elapsed_ms,
-        )
-        return {
-            "scene": final_scene.model_dump(),
-            "mode": "raw",
-            "reason": reason,
-        }
+            retry_raw = await provider.extract(
+                image_bytes,
+                content_type,
+                build_prompt(result.errors),
+                timeout=min(remaining, chain.call_timeout),
+            )
+            retry_result = validator(retry_raw)
+            if retry_result.scene is not None:
+                return ai_payload(retry_result.scene, used, " (after retry)"), ""
 
-    # Step 4: Zero providers configured -> Raw Mode immediately
-    if not chain.providers:
-        return await run_raw_mode("no_provider", "none")
-
-    provider_state = {"name": "none"}
-    if total_deadline > RAW_MODE_RESERVE_SECONDS:
-        ai_budget = total_deadline - RAW_MODE_RESERVE_SECONDS
-    else:
-        ai_budget = max(0.05, total_deadline * 0.7)
-    ai_deadline = start_time + ai_budget
-
-    def ai_payload(scene: Any, provider: str, note: str = "") -> dict[str, Any]:
-        response.headers["X-Vision-Provider"] = provider
-        elapsed_ms = int((time.monotonic() - start_time) * 1000)
-        logger.info(
-            "scene processed: provider=%s mode=ai reason=none%s elapsed_ms=%d",
-            provider,
-            note,
-            elapsed_ms,
-        )
-        return {"scene": scene.model_dump(), "mode": "ai"}
-
-    async def attempt_ai() -> tuple[dict[str, Any] | None, str]:
-        """One AI extraction plus at most one validation retry.
-
-        Returns (payload, "") on success or (None, fallback_reason). Raw Mode is NOT run here,
-        so the AI deadline can never cancel it half way (it runs once, after this returns).
-        """
-        raw_text, provider_state["name"] = await chain.extract(
-            image_bytes, content_type, build_prompt(), deadline=ai_deadline
-        )
-        used = provider_state["name"]
-        result = validator(raw_text)
-        if result.scene is not None:
-            if result.scene.kind == "function_graph":
-                # A traced curve is imprecise: read the equation and sample it ourselves.
-                sampled = await sampled_graph_scene()
-                if sampled is not None:
-                    return ai_payload(sampled, used, " (equation route)"), ""
-            return ai_payload(result.scene, used), ""
-
-        # One validation retry on the same provider that answered
-        remaining = ai_deadline - time.monotonic()
-        if remaining < 3.0:
-            return None, "timeout"
-        provider = chain.get_provider(used)
-        if provider is None:
+            # Last attempt before Raw Mode: it may be a function graph the tracer could not draw.
+            rescued = await sampled_graph_scene()
+            if rescued is not None:
+                return ai_payload(rescued, used, " (equation rescue)"), ""
             return None, "invalid"
 
-        retry_raw = await provider.extract(
-            image_bytes,
-            content_type,
-            build_prompt(result.errors),
-            timeout=min(remaining, chain.call_timeout),
-        )
-        retry_result = validator(retry_raw)
-        if retry_result.scene is not None:
-            return ai_payload(retry_result.scene, used, " (after retry)"), ""
+        async def sampled_graph_scene() -> Any | None:
+            """A validated function_graph scene sampled from the model's equation, or None."""
+            spec_scene = await graph_scene_from_chain(chain, image_bytes, content_type, ai_deadline)
+            if spec_scene is None:
+                return None
+            return validator(spec_scene).scene
 
-        # Last attempt before Raw Mode: it may be a function graph the tracer could not draw.
-        rescued = await sampled_graph_scene()
-        if rescued is not None:
-            return ai_payload(rescued, used, " (equation rescue)"), ""
-        return None, "invalid"
-
-    async def sampled_graph_scene() -> Any | None:
-        """A validated function_graph scene sampled from the model's equation, or None."""
-        spec_scene = await graph_scene_from_chain(chain, image_bytes, content_type, ai_deadline)
-        if spec_scene is None:
-            return None
-        return validator(spec_scene).scene
-
-    payload: dict[str, Any] | None = None
-    fallback_reason = "error"
-    try:
-        async with asyncio.timeout(ai_budget):
-            payload, fallback_reason = await attempt_ai()
-    except TimeoutError:
-        fallback_reason = "timeout"
-    except VisionError as exc:
-        logger.warning("All vision providers failed: %s", exc)
-        fallback_reason = "provider_error"
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.error("Unexpected error in scene pipeline: %s", exc)
+        payload: dict[str, Any] | None = None
         fallback_reason = "error"
+        try:
+            async with asyncio.timeout(ai_budget):
+                payload, fallback_reason = await attempt_ai()
+        except TimeoutError:
+            fallback_reason = "timeout"
+        except VisionError as exc:
+            logger.warning("All vision providers failed: %s", exc)
+            fallback_reason = "provider_error"
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.error("Unexpected error in scene pipeline: %s", exc)
+            fallback_reason = "error"
 
-    if payload is not None:
-        scene_cache.put(cache_key, payload, provider_state["name"])
-        response.headers["X-Scene-Cache"] = "MISS"
-        if improve_provider is not None:
-            background_tasks.add_task(
-                run_improve_pass,
-                improve_provider=improve_provider,
-                image_bytes=image_bytes,
-                content_type=content_type,
-                cache_key=cache_key,
-                validator=validator,
-            )
-        return payload
-    return await run_raw_mode(fallback_reason, provider_state["name"])
+        if payload is not None:
+            scene_cache.put(cache_key, payload, provider_state["name"])
+            response.headers["X-Scene-Cache"] = "MISS"
+            if improve_provider is not None:
+                background_tasks.add_task(
+                    run_improve_pass,
+                    improve_provider=improve_provider,
+                    image_bytes=image_bytes,
+                    content_type=content_type,
+                    cache_key=cache_key,
+                    validator=validator,
+                )
+            return payload
+        return await run_raw_mode(fallback_reason, provider_state["name"])
+    finally:
+        sem.release()
 
 
-@app.post("/api/v1/ask", response_model=AskResponse)
+@router.post("/api/v1/ask", response_model=AskResponse)
 async def ask_question_route(
     request: AskRequest,
     chain: Annotated[ProviderChain, Depends(get_provider_chain)],
@@ -585,6 +632,13 @@ class ValidateRequest(BaseModel):
 
     scene: dict[str, Any]
 
+    @field_validator("scene")
+    @classmethod
+    def _validate_scene_size(cls, value: dict[str, Any]) -> dict[str, Any]:
+        if isinstance(value, dict):
+            _check_scene_size(value)
+        return value
+
 
 class ValidateResponse(BaseModel):
     """Response model for POST /api/v1/validate."""
@@ -594,7 +648,7 @@ class ValidateResponse(BaseModel):
     errors: list[str] = Field(default_factory=list)
 
 
-@app.post("/api/v1/validate", response_model=ValidateResponse)
+@router.post("/api/v1/validate", response_model=ValidateResponse)
 async def validate_scene_route(
     request: ValidateRequest,
     validator: Annotated[

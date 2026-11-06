@@ -356,23 +356,51 @@ def facts_lookup(scene: DiagramScene, question: str, lang: str = "en-IN") -> str
     return answer
 
 
-def _check_scene_size(scene: DiagramScene) -> None:
+def _check_scene_size(scene: DiagramScene | dict[str, Any]) -> None:
     """Reject scenes that are far larger than any real diagram (cost and abuse guard)."""
+    if isinstance(scene, DiagramScene):
+        points = scene.points
+        segments = scene.segments
+        polylines = scene.polylines
+        bars = scene.bars
+        facts = scene.facts
+        title = scene.title
+        poly_point_counts = [len(p.points) for p in polylines]
+        labels = [e.label or "" for e in (*points, *segments, *polylines)] + [b.label for b in bars]
+    elif isinstance(scene, dict):
+        points = scene.get("points") or []
+        segments = scene.get("segments") or []
+        polylines = scene.get("polylines") or []
+        bars = scene.get("bars") or []
+        facts = scene.get("facts") or []
+        title = scene.get("title")
+        poly_point_counts = [
+            len(p.get("points", [])) if isinstance(p, dict) else 0 for p in polylines
+        ]
+        labels = []
+        for elem in [*points, *segments, *polylines, *bars]:
+            if isinstance(elem, dict):
+                lbl = elem.get("label")
+                if lbl is not None:
+                    labels.append(str(lbl))
+    else:
+        return
+
     counts = (
-        (len(scene.points), MAX_SCENE_POINTS, "points"),
-        (len(scene.segments), MAX_SCENE_SEGMENTS, "segments"),
-        (len(scene.polylines), MAX_SCENE_POLYLINES, "polylines"),
-        (len(scene.bars), MAX_SCENE_BARS, "bars"),
-        (len(scene.facts), MAX_SCENE_FACTS, "facts"),
+        (len(points), MAX_SCENE_POINTS, "points"),
+        (len(segments), MAX_SCENE_SEGMENTS, "segments"),
+        (len(polylines), MAX_SCENE_POLYLINES, "polylines"),
+        (len(bars), MAX_SCENE_BARS, "bars"),
+        (len(facts), MAX_SCENE_FACTS, "facts"),
     )
     for actual, limit, name in counts:
         if actual > limit:
             raise ValueError(f"scene has too many {name} ({actual} > {limit})")
-    if any(len(p.points) > MAX_POLYLINE_POINTS for p in scene.polylines):
+    if any(pts_len > MAX_POLYLINE_POINTS for pts_len in poly_point_counts):
         raise ValueError(f"a polyline has more than {MAX_POLYLINE_POINTS} points")
-    texts = [scene.title or "", *scene.facts]
-    texts += [e.label or "" for e in (*scene.points, *scene.segments, *scene.polylines)]
-    texts += [b.label for b in scene.bars]
+    texts = [str(title or "")]
+    texts += [str(f) for f in facts if f is not None]
+    texts += labels
     if any(len(t) > MAX_TEXT_CHARS for t in texts):
         raise ValueError(f"a label or fact is longer than {MAX_TEXT_CHARS} characters")
 
