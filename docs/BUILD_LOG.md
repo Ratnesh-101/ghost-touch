@@ -356,3 +356,27 @@ Format for each entry:
   - `frontend/tests/explore.lab.test.tsx` (new)
   - `docs/reports/agy-lab-explore-report.md` (new)
   - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity — Lane lab-warmup (survive Render cold start)
+- Built backend warm-up client in `frontend/src/api/health.ts` firing background `GET {base}/api/v1/health` on page load to wake up idling Render backend:
+  - Module-level guard ensures single execution per page load.
+  - Reuses `defaultBaseUrl` from `frontend/src/api/scene.ts` for exact same-origin / configured base-URL parity.
+  - AbortController timeout of 60 seconds (`WARM_TIMEOUT_MS = 60_000`).
+  - Swallows all errors (never throws, never logs with console, never speaks).
+  - Skips fetch when `isOnline` returns false (`navigator` access avoided outside drivers).
+  - Returns a promise so tests can await completion; exported `resetWarmGuardForTesting()`.
+- Wired warm-up on mount in `frontend/src/App.tsx` via a single `useEffect` calling `void warmBackend()`, without touching routing, drivers, or screen state machine.
+- Raised `SCENE_TIMEOUT_MS` from 20 s to 45 s (`45_000`) in `frontend/src/api/scene.ts` so cold backend can answer initial scene requests; updated doc comments.
+- Added comprehensive unit tests in `frontend/tests/api.health.test.ts` (9 tests) covering URL routing, single execution, error swallowing, online status check, 60s timeout abort, and constants. Updated `frontend/tests/api.scene.test.ts` for `SCENE_TIMEOUT_MS = 45_000`.
+- Verification results:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: clean (0 errors).
+  - `npm --prefix frontend test`: 54 test files passed, 747 tests passed (all 737 baseline tests + 10 new/updated tests).
+  - `npm --prefix frontend run build`: cleanly built client and PWA service worker (22 precache entries, 448.36 KiB).
+- Files touched:
+  - `frontend/src/api/health.ts`
+  - `frontend/src/api/scene.ts`
+  - `frontend/src/App.tsx`
+  - `frontend/tests/api.health.test.ts`
+  - `frontend/tests/api.scene.test.ts`
+  - `docs/reports/agy-lab-warmup-report.md`
+  - `docs/BUILD_LOG.md`
