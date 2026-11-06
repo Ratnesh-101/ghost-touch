@@ -261,3 +261,25 @@ Format for each entry:
 - **Not fixable:** `deepmerge` (low) has no patched release (4.3.1 is the latest). Build-time only, not shipped. Dismiss the alert as "no fix available / not used at runtime" on GitHub.
 - **Backend:** pip-audit found only the venv's bundled `setuptools 65.5.0` (not a project dependency); app packages clean.
 - **Gates (clean clone, fresh install):** tsc clean, 473 frontend tests pass, build OK, PWA still emits `sw.js` and `manifest.webmanifest`.
+
+
+## 2026-11-06 - Antigravity - Lane lab-i18n: Frankenstein lab copy and LabSettings sheet
+- **Tool:** Antigravity (agy headless run via `scripts/agy-run.sh`, lane `lab-i18n`).
+- **What was built:**
+  - Added 23 Frankenstein Lab theme keys across `en`, `hi`, and `gu` in `frontend/src/i18n/index.ts` with strict parity and non-empty values. Updated `app.tagline` in `en` from `"Feel diagrams you cannot see."` to `"Feel diagrams you can't see."` per brief instructions.
+  - Implemented pure helpers `formatRateMultiplier(rate)` and `describeSettings(language, rate)` for dynamic Capture screen settings button labelling.
+  - Built `frontend/src/components/LabSettings.tsx`: modal bottom sheet (`role="dialog"`, `aria-modal="true"`, labelled by visible title) wrapping `LanguageSelector` and `RateSelector` under localized section headers, with focus management (moves into sheet, traps `Tab` cycles, returns to opening trigger on dismissal), Escape key dismissal, `speak` announcements on open/close (`lab.settings.opened/closed`), and touch targets >= 48×48 CSS px.
+  - Built `frontend/src/styles/settings.css`: lab theme styling using CSS custom properties with Frankenstein accents (`--gt-copper`, `--gt-bone`, `--gt-cyan`), >= 3px visible focus rings, reduced motion support, and forced-colors / high-contrast support.
+  - Built test suites: `frontend/tests/lab.i18n.test.ts` (10 tests) and `frontend/tests/labSettings.test.tsx` (12 tests) verifying dialog semantics, localized rendering, CSS touch targets, focus rings, and pure helper formatting.
+- **What broke / findings:**
+  - Vitest CSS inclusion list in `vitest.config.ts` only includes `/global\.css/`, causing CSS imports via `?raw` for other stylesheets to evaluate to `""` in node environment; resolved by reading `settings.css` directly via `node:fs` as done in `a11y.contrast.test.ts`.
+  - TypeScript strict checking caught `SpeechDriver.getRate` mock return type in unit test requiring explicit `SpeechRateSetting` return type, and `HapticsDriver.vibrate` fallback mock returning `boolean` (`() => false`). Resolved cleanly.
+- **Gates:** `tsc` clean, 501 frontend tests pass (44 test files), frontend `vite build` cleanly built with PWA service worker (14 precache entries), backend 346 tests pass, backend `ruff check` and `ruff format --check` clean.
+- **Files touched:**
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/components/LabSettings.tsx`
+  - `frontend/src/styles/settings.css`
+  - `frontend/tests/lab.i18n.test.ts`
+  - `frontend/tests/labSettings.test.tsx`
+  - `docs/reports/agy-lab-i18n-report.md`
+  - `docs/BUILD_LOG.md`
