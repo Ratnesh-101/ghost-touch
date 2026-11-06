@@ -16,7 +16,7 @@ We stitched 3 phone parts into an assistive creature in our Frankenstein's Lab r
 Works with Android TalkBack. 1049 frontend + 348 backend tests, 17 mathematical properties verified with fast-check & Hypothesis. Spec-driven engineering by Kiro; Lab redesign built by Antigravity (agy); supervised by Claude Code.
 
 Demo video: [FILL: video URL]  
-Repo & live demo: [FILL: repo or live URL]  
+Repo & live demo: https://github.com/Ratnesh-101/ghost-touch | https://ghost-touch-iota.vercel.app  
 
 ---
 
@@ -40,7 +40,7 @@ Ghost Touch was built through honest multi-agent pairing: spec-driven architectu
 Next step: in-person usability testing with blind students at the Blind People's Association (BPA) in Ahmedabad (physical phone motor validation pending).
 
 Watch the 3-minute demo: [FILL: video URL]  
-Explore the codebase: [FILL: repo or live URL]  
+Explore the codebase: https://github.com/Ratnesh-101/ghost-touch  
 
 ---
 
@@ -57,7 +57,7 @@ We stitched three common phone parts into an assistive creature in our Frankenst
 Start screen features a friendly creature mascot and one "Wake the creature" button. Explore diagrams on a high-contrast specimen table.
 
 Demo video: [FILL: video URL]  
-Repo: [FILL: repo or live URL]  
+Repo: https://github.com/Ratnesh-101/ghost-touch  
 
 ### Post 2/4 (How It Feels & TalkBack)
 #KiroweenHackathon26 2/4: How does Ghost Touch work?
@@ -79,4 +79,4 @@ If cloud AI fails, classical OpenCV Canny edge detection (Raw Mode) guarantees t
 #KiroweenHackathon26 4/4: Radical transparency: 1049 frontend tests and 348 backend tests pass cleanly. What remains untested is physical phone motor calibration and trials with blind students at the Blind People's Association (BPA) in Ahmedabad.
 
 Watch the full walkthrough: [FILL: video URL]  
-Try the app or inspect the code: [FILL: repo or live URL]  
+Try the app or inspect the code: https://ghost-touch-iota.vercel.app  

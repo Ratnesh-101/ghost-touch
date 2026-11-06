@@ -271,6 +271,6 @@ All claims in this document are supported by automated test suites in the reposi
 - **Backend:** 422 tests collected and passing (`backend/.venv/Scripts/python -m pytest backend`; last full run 2026-11-06).
 - **Formatting & Type-Checking:** Strict TypeScript checking (`npm --prefix frontend exec -- tsc -p frontend --noEmit`) and Ruff verification (`backend/.venv/Scripts/python -m ruff check backend`, `backend/.venv/Scripts/python -m ruff format --check backend`) run clean with 0 errors.
 - **Production Build:** Production bundle and PWA service worker compile cleanly (`npm --prefix frontend run build`).
-- **Submission Day Verification:** [FILL: re-run the counts and gates on submission day]
+- **Submission Day Verification:** Verified on main on 2026-11-06: 1203 frontend tests in 82 files, 422 backend tests, and clean passes for tsc, ruff check, ruff format --check, and production build (re-run before submitting).
 
 Ghost Touch demonstrates that combining spec-driven architecture, property-based testing, and disciplined multi-agent orchestration yields robust, accessible software engineered for real-world impact.
