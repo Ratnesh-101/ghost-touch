@@ -8,7 +8,7 @@
  * All functions here are pure and unit-tested without DOM or browser APIs.
  */
 
-import { requestAsk, AskRequestError, type AskResponse, type AskSource } from '../api/ask';
+import { requestAsk, AskRequestError, type AskResponse, type AskSource, type GuideTarget } from '../api/ask';
 import type { DiagramScene } from '../core/scene';
 import { ListenError, type AudioDriver, type SpeechDriver } from '../drivers';
 import { getLang, LANG_BCP47, t } from '../i18n';
@@ -18,7 +18,7 @@ export const LISTENING_BEEP_HZ = 660;
 export const LISTENING_BEEP_MS = 150;
 
 export type AskOutcome =
-  | { kind: 'success'; answer: string; source: AskSource }
+  | { kind: 'success'; answer: string; source: AskSource; target?: GuideTarget }
   | { kind: 'busy' }
   | { kind: 'empty' }
   | { kind: 'cancelled' }
@@ -197,7 +197,12 @@ export class AskManager {
       } catch {
         // non-fatal
       }
-      return { kind: 'success', answer: response.answer, source: response.source };
+      return {
+        kind: 'success',
+        answer: response.answer,
+        source: response.source,
+        target: response.target,
+      };
     } catch (err: unknown) {
       if (
         controller.signal.aborted ||
@@ -290,7 +295,12 @@ export class AskManager {
       } catch {
         // non-fatal
       }
-      return { kind: 'success', answer: response.answer, source: response.source };
+      return {
+        kind: 'success',
+        answer: response.answer,
+        source: response.source,
+        target: response.target,
+      };
     } catch (err: unknown) {
       if (
         controller.signal.aborted ||

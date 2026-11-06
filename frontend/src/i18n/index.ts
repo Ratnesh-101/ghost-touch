@@ -233,6 +233,28 @@ const en: Record<string, string> = {
   'lab.specimen.bars': 'Bar chart',
   'lab.empty.saved': 'No saved diagrams yet. Take a photo and save one.',
   'lab.empty.generic': 'Nothing here yet.',
+
+  // Guide my finger (Lane g2-guide-ui)
+  'guide.start': 'Guiding to {label}.',
+  'guide.stopped': 'Guide stopped.',
+  'guide.arrived': 'Arrived at {label}.',
+  'guide.notFound': 'Could not find {label} in this diagram.',
+  'guide.notGuiding': 'Not currently guiding.',
+  'guide.hint.left': 'Move left',
+  'guide.hint.right': 'Move right',
+  'guide.hint.up': 'Move up',
+  'guide.hint.down': 'Move down',
+  'guide.hint.up-left': 'Move up and left',
+  'guide.hint.up-right': 'Move up and right',
+  'guide.hint.down-left': 'Move down and left',
+  'guide.hint.down-right': 'Move down and right',
+  'guide.hint.here': 'You are here',
+  'ask.guideMe': 'Guide me',
+  'ask.guideOffer': 'Tap Guide me to feel it.',
+  'lab.settings.guide': 'Guide my finger',
+  'lab.settings.guideOn': 'Finger guidance enabled.',
+  'lab.settings.guideOff': 'Finger guidance disabled.',
+  'lab.settings.guideHint': 'Tones and vibration guide your finger to targets.',
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -432,6 +454,28 @@ const hi: Record<string, string> = {
   'lab.specimen.bars': 'बार चार्ट',
   'lab.empty.saved': 'अभी कोई सहेजा गया चित्र नहीं है। एक फोटो लें और सहेजें।',
   'lab.empty.generic': 'यहाँ अभी कुछ नहीं है।',
+
+  // Guide my finger (Lane g2-guide-ui)
+  'guide.start': '{label} का मार्गदर्शन कर रहे हैं।',
+  'guide.stopped': 'मार्गदर्शन रोक दिया गया।',
+  'guide.arrived': '{label} पर पहुँच गए।',
+  'guide.notFound': 'इस चित्र में {label} नहीं मिला।',
+  'guide.notGuiding': 'अभी मार्गदर्शन नहीं किया जा रहा है।',
+  'guide.hint.left': 'बाएँ चलें',
+  'guide.hint.right': 'दाएँ चलें',
+  'guide.hint.up': 'ऊपर चलें',
+  'guide.hint.down': 'नीचे चलें',
+  'guide.hint.up-left': 'ऊपर और बाएँ चलें',
+  'guide.hint.up-right': 'ऊपर और दाएँ चलें',
+  'guide.hint.down-left': 'नीचे और बाएँ चलें',
+  'guide.hint.down-right': 'नीचे और दाएँ चलें',
+  'guide.hint.here': 'आप यहाँ हैं',
+  'ask.guideMe': 'मार्गदर्शन करें',
+  'ask.guideOffer': 'महसूस करने के लिए मार्गदर्शन करें पर टैप करें।',
+  'lab.settings.guide': 'उंगली मार्गदर्शन',
+  'lab.settings.guideOn': 'उंगली मार्गदर्शन सक्षम किया गया।',
+  'lab.settings.guideOff': 'उंगली मार्गदर्शन अक्षम किया गया।',
+  'lab.settings.guideHint': 'टोन और कंपन आपकी उंगली को लक्ष्य तक ले जाते हैं।',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -631,6 +675,28 @@ const gu: Record<string, string> = {
   'lab.specimen.bars': 'સ્તંભ આલેખ',
   'lab.empty.saved': 'હજી કોઈ સેવ કરેલી આકૃતિ નથી. ફોટો લો અને સેવ કરો.',
   'lab.empty.generic': 'અહીં હજી કંઈ નથી.',
+
+  // Guide my finger (Lane g2-guide-ui)
+  'guide.start': '{label} તરફ માર્ગદર્શન આપી રહ્યા છીએ.',
+  'guide.stopped': 'માર્ગદર્શન રોકી દીધું.',
+  'guide.arrived': '{label} પર પહોંચી ગયા.',
+  'guide.notFound': 'આ આકૃતિમાં {label} મળ્યું નથી.',
+  'guide.notGuiding': 'હાલમાં માર્ગદર્શન ચાલુ નથી.',
+  'guide.hint.left': 'ડાબે ખસો',
+  'guide.hint.right': 'જમણે ખસો',
+  'guide.hint.up': 'ઉપર ખસો',
+  'guide.hint.down': 'નીચે ખસો',
+  'guide.hint.up-left': 'ઉપર અને ડાબે ખસો',
+  'guide.hint.up-right': 'ઉપર અને જમણે ખસો',
+  'guide.hint.down-left': 'નીચે અને ડાબે ખસો',
+  'guide.hint.down-right': 'નીચે અને જમણે ખસો',
+  'guide.hint.here': 'તમે અહીં છો',
+  'ask.guideMe': 'માર્ગદર્શન આપો',
+  'ask.guideOffer': 'અનુભવવા માટે માર્ગદર્શન આપો પર ટેપ કરો.',
+  'lab.settings.guide': 'આંગળી માર્ગદર્શન',
+  'lab.settings.guideOn': 'આંગળી માર્ગદર્શન સક્ષમ કર્યું.',
+  'lab.settings.guideOff': 'આંગળી માર્ગદર્શન અક્ષમ કર્યું.',
+  'lab.settings.guideHint': 'ટોન અને વાઇબ્રેશન તમારી આંગળીને લક્ષ્ય સુધી લઈ જાય છે.',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };

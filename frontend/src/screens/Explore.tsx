@@ -23,6 +23,10 @@ import type { DiagramScene } from '../core/scene';
 import { runEffects, type Drivers } from '../drivers';
 import { leaveExploreEntry, onBack as subscribeBack, pushExploreEntry } from '../drivers/navigation';
 import { askErrorMessage, AskManager, LISTENING_BEEP_HZ, LISTENING_BEEP_MS, type AskOutcome } from '../flow/ask';
+import type { GuideTarget } from '../api/ask';
+import { isGuideActive } from '../config/features';
+import { GuideController } from '../flow/guide';
+import { resolveTarget } from '../guide';
 import { executeExploreCommand, parseExploreCommand } from '../flow/commands';
 import {
   CENTRE_TICK_MS,
@@ -165,6 +169,9 @@ export function Explore({
   const [showTextFallback, setShowTextFallback] = useState(!drivers.speech.canListen);
   const [questionText, setQuestionText] = useState('');
   const [debugText, setDebugText] = useState(() => t('explore.debugWaiting'));
+  const [offeredTarget, setOfferedTarget] = useState<GuideTarget | null>(null);
+  const [isGuiding, setIsGuiding] = useState(false);
+  const guideController = useRef<GuideController | null>(null);
   const isSpeechActive = drivers.speech.canSpeak && Boolean(announced);
   const [speechAnnounced, setSpeechAnnounced] = useState(
     suppressAriaLabel ?? false,
@@ -220,7 +227,24 @@ export function Explore({
     setTimeout(() => ref.current?.focus(), 0);
   };
 
+  const handleStartGuideFromOffer = (): void => {
+    if (!offeredTarget) return;
+    const resolved = resolveTarget(sceneRef.current, offeredTarget);
+    if (resolved && guideController.current) {
+      setOfferedTarget(null);
+      guideController.current.start(resolved);
+      setIsGuiding(true);
+      const msg = t('guide.start').replace('{label}', resolved.label);
+      setStatusMessage(msg);
+      lastSpokenRef.current = msg;
+    }
+  };
+
   const handleExit = (): void => {
+    if (guideController.current?.isGuiding()) {
+      guideController.current.stop('back');
+      return;
+    }
     if (leaving.current) return;
     leaving.current = true;
     try {
@@ -298,8 +322,9 @@ export function Explore({
 
       if (leaving.current) return;
 
+      const isGuide = isGuideActive();
       // Check if recognized phrase is an Explore voice command
-      const cmd = parseExploreCommand(transcript);
+      const cmd = parseExploreCommand(transcript, isGuide);
       if (cmd.type !== 'unknown') {
         const currentNorm = pendingCursor.current
           ? toNorm(pendingCursor.current, viewportRef.current)
@@ -312,7 +337,16 @@ export function Explore({
           lastSpoken: lastSpokenRef.current,
           currentCornerIndex: cornerIndexRef.current,
           currentRate,
+          isGuiding: guideController.current?.isGuiding(),
+          isGuideActive: isGuide,
         });
+
+        if (result.stopGuide) {
+          guideController.current?.stop('voice');
+        } else if (result.guideTarget) {
+          guideController.current?.start(result.guideTarget);
+          setIsGuiding(true);
+        }
 
         if (result.nextCornerIndex !== undefined) {
           cornerIndexRef.current = result.nextCornerIndex;
@@ -373,7 +407,20 @@ export function Explore({
       });
 
       if (leaving.current) return;
-      if (outcome.kind === 'failed') {
+      if (outcome.kind === 'success') {
+        if (outcome.target && isGuideActive()) {
+          setOfferedTarget(outcome.target);
+          const offerText = t('ask.guideOffer');
+          const fullMessage = outcome.answer + ' ' + offerText;
+          setStatusMessage(fullMessage);
+          try {
+            drivers.speech.speak(fullMessage, lang);
+          } catch {
+            // ignore
+          }
+          lastSpokenRef.current = fullMessage;
+        }
+      } else if (outcome.kind === 'failed') {
         setShowTextFallback(true);
       }
     } catch (err: unknown) {
@@ -458,6 +505,18 @@ export function Explore({
       if (!leaving.current) {
         setIsBusy(false);
         if (outcome?.kind === 'success') {
+          if (outcome.target && isGuideActive()) {
+            setOfferedTarget(outcome.target);
+            const offerText = t('ask.guideOffer');
+            const fullMessage = outcome.answer + ' ' + offerText;
+            setStatusMessage(fullMessage);
+            try {
+              drivers.speech.speak(fullMessage, lang);
+            } catch {
+              // ignore
+            }
+            lastSpokenRef.current = fullMessage;
+          }
           setQuestionText('');
           focusAfterRender(askButtonRef);
         } else {
@@ -618,6 +677,17 @@ export function Explore({
       ctx.arc(cursor.x, cursor.y, 5, 0, Math.PI * 2);
       ctx.fill();
     }
+
+    // Guide target indicator for sighted observers
+    const guideTarget = guideController.current?.getTarget();
+    if (isGuiding && guideTarget) {
+      const sp = toScreen(guideTarget, view);
+      ctx.strokeStyle = '#00f0ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, 14, 0, Math.PI * 2);
+      ctx.stroke();
+    }
   };
 
   const scheduleDraw = (view: Viewport, cursor: ScreenPoint | null): void => {
@@ -656,7 +726,33 @@ export function Explore({
 
   useEffect(() => {
     pushExploreEntry();
+
+    const gc = new GuideController({
+      drivers,
+      lang: LANG_BCP47[getLang()] ?? 'en-IN',
+      onArrived: (target) => {
+        setIsGuiding(false);
+        const msg = t('guide.arrived').replace('{label}', target.label);
+        setStatusMessage(msg);
+        lastSpokenRef.current = msg;
+      },
+      onStopped: (_reason) => {
+        setIsGuiding(false);
+        const msg = t('guide.stopped');
+        setStatusMessage(msg);
+        lastSpokenRef.current = msg;
+      },
+      onStateChange: (st) => {
+        setIsGuiding(st.phase === 'guiding');
+      },
+    });
+    guideController.current = gc;
+
     const unbindBack = subscribeBack(() => {
+      if (guideController.current?.isGuiding()) {
+        guideController.current.stop('back');
+        return;
+      }
       if (leaving.current) return;
       leaving.current = true;
       drivers.audio.playEarcon?.('back');
@@ -687,6 +783,8 @@ export function Explore({
     }
 
     return () => {
+      gc.destroy();
+      guideController.current = null;
       clearLongPressTimer();
       askManager.current.abort();
       unbindBack();
@@ -746,6 +844,14 @@ export function Explore({
       }, TWO_FINGER_LONG_PRESS_MS);
     } else {
       clearLongPressTimer();
+    }
+
+    if (guideController.current?.isGuiding()) {
+      primaryPointerId.current = e.pointerId;
+      const norm = toNorm(coords, view);
+      guideController.current.move(norm, now);
+      scheduleDraw(view, coords);
+      return;
     }
 
     // Only the first active pointer drives the engine (finding 11)
@@ -852,6 +958,13 @@ export function Explore({
       return;
     }
 
+    if (guideController.current?.isGuiding()) {
+      const norm = toNorm(coords, view);
+      guideController.current.move(norm, now);
+      scheduleDraw(view, coords);
+      return;
+    }
+
     // Per-move pipeline
     const moveResult = processPointerMove(
       scene,
@@ -885,6 +998,15 @@ export function Explore({
       e.pointerId,
       primaryPointerId.current,
     );
+
+    if (guideController.current?.isGuiding()) {
+      if (isPrimaryLift) {
+        primaryPointerId.current = promotedPointerId;
+        guideController.current.lift(performance.now());
+        scheduleDraw(viewportRef.current, null);
+      }
+      return;
+    }
 
     if (isPrimaryLift) {
       if (promotedPointerId !== null && promotedCoords !== null) {
@@ -940,7 +1062,7 @@ export function Explore({
   };
 
   return (
-    <main className="gt-explore gt-lab-explore">
+    <main className={`gt-explore gt-lab-explore${isGuiding ? ' gt-explore--guiding' : ''}`}>
       <header className="gt-explore__header gt-lab-header">
         <div className="gt-toolbar">
           <SettingsLauncher drivers={drivers} speak={(text) => drivers.speech.speak(text)} />
@@ -1037,6 +1159,18 @@ export function Explore({
 
       <footer className="gt-explore__footer">
         <div className="gt-explore__actions">
+          {offeredTarget && isGuideActive() && (
+            <AccessibleButton
+              data-testid="explore-guide-me"
+              className="gt-control gt-btn gt-btn--primary gt-explore__guide-me"
+              onClick={handleStartGuideFromOffer}
+              disabled={isBusy}
+              aria-label={t('ask.guideMe')}
+              style={{ minWidth: '48px', minHeight: '48px' }}
+            >
+              {t('ask.guideMe')}
+            </AccessibleButton>
+          )}
           <AccessibleButton
             ref={askButtonRef}
             className="gt-control gt-explore__ask"

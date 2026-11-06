@@ -15,6 +15,7 @@
 import { toScreen, type NormPoint, type ScreenPoint, type Viewport } from '../core/geometry';
 import type { DiagramScene, Point } from '../core/scene';
 import type { SpeechRateSetting } from '../drivers/speech';
+import { resolveTarget, type ResolvedTarget } from '../guide';
 import { t } from '../i18n';
 
 export type CommandType =
@@ -24,12 +25,15 @@ export type CommandType =
   | 'describe'
   | 'help'
   | 'set_rate'
+  | 'guide_to'
+  | 'stop'
   | 'unknown';
 
 export interface ParsedCommand {
   readonly type: CommandType;
   readonly raw: string;
   readonly rateSetting?: SpeechRateSetting;
+  readonly targetLabel?: string;
 }
 
 export interface ExploreCommandContext {
@@ -39,6 +43,8 @@ export interface ExploreCommandContext {
   readonly lastSpoken: string;
   readonly currentCornerIndex: number;
   readonly currentRate: SpeechRateSetting;
+  readonly isGuiding?: boolean;
+  readonly isGuideActive?: boolean;
 }
 
 export interface ExploreCommandResult {
@@ -47,6 +53,8 @@ export interface ExploreCommandResult {
   readonly nextCursor?: ScreenPoint;
   readonly nextRate?: SpeechRateSetting;
   readonly earcon?: 'success' | 'error' | 'listening' | 'start' | 'back';
+  readonly guideTarget?: ResolvedTarget;
+  readonly stopGuide?: boolean;
 }
 
 function normalizeInput(input: string): string {
@@ -57,9 +65,95 @@ function normalizeInput(input: string): string {
     .replace(/\s+/g, ' ');
 }
 
+export function extractGuideTargetLabel(norm: string): string | null {
+  // English: take me to ..., find ..., guide me to ..., guide to ...
+  let m = norm.match(/^(?:take me to|guide me to|guide to)\s+(?:point|vertex|corner|line|bar)?\s*(.+)$/i);
+  if (m && m[1]) return m[1].trim();
+
+  m = norm.match(/^find\s+(?:point|vertex|corner|line|bar)?\s*(.+)$/i);
+  if (m && m[1]) return m[1].trim();
+
+  // English: go to point <x> (exclude 'go to next corner')
+  if (norm !== 'go to next corner' && norm !== 'go to corner') {
+    m = norm.match(/^go to\s+(?:point|vertex|corner|line|bar)?\s*(.+)$/i);
+    if (m && m[1] && m[1] !== 'next corner' && m[1] !== 'next vertex' && m[1] !== 'corner') {
+      return m[1].trim();
+    }
+  }
+
+  // Hindi: मुझे [बिंदु] <label> पर ले चलो / ले जाओ
+  m = norm.match(/^मुझे\s+(?:बिंदु|शीर्ष|कोना|रेखा)?\s*(.+?)\s*पर ले (?:चलो|जाओ)$/);
+  if (m && m[1]) return m[1].trim();
+
+  // Hindi: <label> पर ले चलो / ले जाओ
+  m = norm.match(/^(.+?)\s*पर ले (?:चलो|जाओ)$/);
+  if (m && m[1]) return m[1].trim();
+
+  // Hindi: <label> खोजें / ढूंढें / खोजो / ढूंढो
+  m = norm.match(/^(?:बिंदु|शीर्ष|कोना|रेखा)?\s*(.+?)\s*(?:खोजें|ढूंढें|खोजो|ढूंढो)$/);
+  if (m && m[1]) return m[1].trim();
+
+  m = norm.match(/^(?:खोजें|ढूंढें)\s+(?:बिंदु|शीर्ष|कोना|रेखा)?\s*(.+)$/);
+  if (m && m[1]) return m[1].trim();
+
+  // Gujarati: મને [બિંદુ] <label> પર લઈ જાઓ
+  m = norm.match(/^મને\s+(?:બિંદુ|ખૂણો|રેખા)?\s*(.+?)\s*પર લઈ જાઓ$/);
+  if (m && m[1]) return m[1].trim();
+
+  // Gujarati: <label> પર લઈ જાઓ
+  m = norm.match(/^(.+?)\s*પર લઈ જાઓ$/);
+  if (m && m[1]) return m[1].trim();
+
+  // Gujarati: <label> શોધો
+  m = norm.match(/^(?:બિંદુ|ખૂણો|રેખા)?\s*(.+?)\s*શોધો$/);
+  if (m && m[1]) return m[1].trim();
+
+  m = norm.match(/^શોધો\s+(?:બિંદુ|ખૂણો|રેખા)?\s*(.+)$/);
+  if (m && m[1]) return m[1].trim();
+
+  return null;
+}
+
 /** Pure parser for voice commands supporting English, Hindi, and Gujarati. */
-export function parseExploreCommand(transcript: string): ParsedCommand {
+export function parseExploreCommand(
+  transcript: string,
+  guideActiveOrOptions: boolean | { isGuideActive?: boolean } = false,
+): ParsedCommand {
   const norm = normalizeInput(transcript);
+  const isGuide =
+    typeof guideActiveOrOptions === 'boolean'
+      ? guideActiveOrOptions
+      : Boolean(guideActiveOrOptions?.isGuideActive);
+
+  // Guide commands (active only when guide feature flag & setting are active)
+  if (isGuide) {
+    if (
+      norm === 'stop' ||
+      norm === 'stop guide' ||
+      norm === 'stop guiding' ||
+      norm === 'cancel guide' ||
+      norm === 'end guide' ||
+      norm === 'रुकें' ||
+      norm === 'रुक जाओ' ||
+      norm === 'रोको' ||
+      norm === 'गाइड रोको' ||
+      norm === 'बंद करो' ||
+      norm === 'गाइड बंद करो' ||
+      norm === 'ઊભા રહો' ||
+      norm === 'રોકો' ||
+      norm === 'બંધ કરો' ||
+      norm === 'થોભો' ||
+      norm === 'ગાઇડ બંધ કરો' ||
+      norm === 'ગાઈડ રોકો'
+    ) {
+      return { type: 'stop', raw: transcript };
+    }
+
+    const targetLabel = extractGuideTargetLabel(norm);
+    if (targetLabel && targetLabel.length > 0) {
+      return { type: 'guide_to', targetLabel, raw: transcript };
+    }
+  }
 
   // 1. Where am I
   if (
@@ -296,6 +390,66 @@ export function findNearestVertex(
   return best;
 }
 
+/** Find element in scene by label or ID matching query. */
+export function findElementByLabelOrId(
+  scene: DiagramScene,
+  query: string,
+): { id: string; label: string } | null {
+  const q = query.toLowerCase().trim();
+  const strippedQ = q
+    .replace(
+      /^(?:point|vertex|corner|line|segment|bar|polyline|बिंदु|शीर्ष|कोना|रेखा|બિંદુ|ખૂણો|રેખા)\s+/i,
+      '',
+    )
+    .trim();
+
+  // 1. Points
+  if (scene.points) {
+    for (const p of scene.points) {
+      const pLabel = (p.label ?? '').toLowerCase().trim();
+      const pId = p.id.toLowerCase().trim();
+      if (pLabel === q || pId === q || pLabel === strippedQ || pId === strippedQ) {
+        return { id: p.id, label: p.label || p.id };
+      }
+    }
+  }
+
+  // 2. Segments
+  if (scene.segments) {
+    for (const s of scene.segments) {
+      const sLabel = (s.label ?? '').toLowerCase().trim();
+      const sId = s.id.toLowerCase().trim();
+      if (sLabel === q || sId === q || sLabel === strippedQ || sId === strippedQ) {
+        return { id: s.id, label: s.label || s.id };
+      }
+    }
+  }
+
+  // 3. Polylines
+  if (scene.polylines) {
+    for (const pl of scene.polylines) {
+      const plLabel = (pl.label ?? '').toLowerCase().trim();
+      const plId = pl.id.toLowerCase().trim();
+      if (plLabel === q || plId === q || plLabel === strippedQ || plId === strippedQ) {
+        return { id: pl.id, label: pl.label || pl.id };
+      }
+    }
+  }
+
+  // 4. Bars
+  if (scene.bars) {
+    for (const b of scene.bars) {
+      const bLabel = (b.label ?? '').toLowerCase().trim();
+      const bId = b.id.toLowerCase().trim();
+      if (bLabel === q || bId === q || bLabel === strippedQ || bId === strippedQ) {
+        return { id: b.id, label: b.label || b.id };
+      }
+    }
+  }
+
+  return null;
+}
+
 /** Pure execution of an Explore voice command. */
 export function executeExploreCommand(
   cmd: ParsedCommand,
@@ -306,6 +460,45 @@ export function executeExploreCommand(
   const coarsePos = getCoarsePosition(currentPos);
 
   switch (cmd.type) {
+    case 'stop': {
+      if (ctx.isGuiding) {
+        return {
+          speech: t('guide.stopped'),
+          stopGuide: true,
+          earcon: 'back',
+        };
+      }
+      return {
+        speech: t('guide.notGuiding'),
+        earcon: 'back',
+      };
+    }
+
+    case 'guide_to': {
+      if (!cmd.targetLabel) {
+        return { speech: t('commands.unrecognized'), earcon: 'error' };
+      }
+      const found = findElementByLabelOrId(scene, cmd.targetLabel);
+      if (!found) {
+        return {
+          speech: t('guide.notFound').replace('{label}', cmd.targetLabel),
+          earcon: 'error',
+        };
+      }
+      const resolved = resolveTarget(scene, { kind: 'element', elementId: found.id });
+      if (!resolved) {
+        return {
+          speech: t('guide.notFound').replace('{label}', cmd.targetLabel),
+          earcon: 'error',
+        };
+      }
+      return {
+        speech: t('guide.start').replace('{label}', resolved.label),
+        guideTarget: resolved,
+        earcon: 'success',
+      };
+    }
+
     case 'where_am_i': {
       const nearest = findNearestVertex(scene.points, currentPos);
       if (nearest && nearest.dist <= 0.35) {
@@ -336,13 +529,27 @@ export function executeExploreCommand(
       }
       const ptCoarse = getCoarsePosition({ x: pt.x, y: pt.y });
       const label = pt.label ?? pt.id;
+      const nextCursor = toScreen(pt, view);
+
+      if (ctx.isGuideActive) {
+        const resolved = resolveTarget(scene, { kind: 'element', elementId: pt.id });
+        if (resolved) {
+          return {
+            speech: t('guide.start').replace('{label}', resolved.label),
+            nextCornerIndex: nextIndex,
+            nextCursor,
+            guideTarget: resolved,
+            earcon: 'success',
+          };
+        }
+      }
+
       const speech = t('commands.cornerAnnounce')
         .replace('{index}', String(nextIndex + 1))
         .replace('{total}', String(points.length))
         .replace('{label}', label)
         .replace('{pos}', ptCoarse);
 
-      const nextCursor = toScreen(pt, view);
       return {
         speech,
         nextCornerIndex: nextIndex,
