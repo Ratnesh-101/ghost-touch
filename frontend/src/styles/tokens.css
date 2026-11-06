@@ -18,9 +18,12 @@
   --gt-surface-active: #223028;
   --gt-surface-subtle: rgba(255, 255, 255, 0.03);
   --gt-surface-card: #121814;
+  --gt-surface-raised: #13271f;
+  --gt-surface-sunken: #0d1a15;
 
   /* --- Colors: Creature Life Green Accents --- */
   --gt-green: #39ff88;
+  --gt-green-bright: #4dff95;
   --gt-green-dim: #25a357;
   --gt-green-subtle: rgba(57, 255, 136, 0.08);
   --gt-green-surface: rgba(57, 255, 136, 0.12);
@@ -39,7 +42,9 @@
   /* --- Colors: Aged Copper & Brass (Lab Hardware, Rivets, Button Borders) --- */
   --gt-copper: #c88a4b;
   --gt-copper-bright: #e0a96d;
+  --gt-copper-highlight: #e0a370;
   --gt-copper-dim: #9e6432;
+  --gt-copper-shadow: #4a2810;
   --gt-brass: #d4a359;
   --gt-hardware: #c88a4b;
   --gt-copper-subtle: rgba(200, 138, 75, 0.12);
