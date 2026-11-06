@@ -356,3 +356,31 @@ Format for each entry:
   - `frontend/tests/explore.lab.test.tsx` (new)
   - `docs/reports/agy-lab-explore-report.md` (new)
   - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity — Lane lab-pwa (Fix Deployment, PWA Precache & Offline Assets)
+- Implemented PWA offline and deployment fixes per `docs/reports/audit-pwa.md` and `docs/briefs/agy-lab-pwa.md`:
+  - `frontend/vercel.json`: Updated SPA negative-lookahead rewrite regex to prevent shadowing static assets (`assets/`, `samples/`, `icons/`, `brand/`, `mascot/`, `voice/`, `sw.js`, `registerSW.js`, `workbox-*.js`, `manifest.webmanifest`, `favicon.*`, `apple-touch-icon.png`, `robots.txt`).
+  - `frontend/vite.config.ts`: Eliminated duplicate precache entries by removing explicit `includeAssets` and disabling `includeManifestIcons`; added `runtimeCaching` rule for dynamic PDF worker and chunks (`CacheFirst`, named cache `pdf-runtime-cache`, 30-day expiration); precached self-hosted fonts (`woff2`); excluded large `brand/og-image.*` and orphaned `voice/manifest.json` from precache; wired `siteUrlPlugin`.
+  - `frontend/vite-plugins/siteUrl.ts`: Added Vite build plugin using `transformIndexHtml` that rewrites `og:image`, `twitter:image`, and `og:url` to absolute URLs when `VITE_SITE_URL` is set, stripping trailing slashes and leaving relative paths untouched when unset.
+  - `frontend/index.html`: Added canonical `<meta property="og:url" content="/" />` tag in `<head>`.
+  - `frontend/public/mascot/frankenstein-phone.svg`: Replaced invalid JSX `className="gt-mascot"` with valid SVG XML `class="gt-mascot"`.
+  - `frontend/tests/vercel.rewrite.test.ts`: Added unit tests verifying every static asset path passes through without rewriting while SPA routes (`/`, `/anything`, `/saved`) are rewritten to `index.html`.
+  - `frontend/tests/pwa.config.test.ts`: Added unit tests asserting theme/background colors match `#0b0e0c`, duplicate icon precache elimination, precache hygiene (`woff2` present, `og-image` and `voice/manifest.json` ignored), Workbox runtime caching shape, and `transformSiteUrl` behavior.
+  - `docs/DEPLOY.md`: Added Step 3 "Social preview and domain (`VITE_SITE_URL`)" detailing environment variable configuration, Vercel redeployment, and link preview testing via curl and web debuggers.
+  - `docs/design/LAB_THEME.md`: Populated the `## Logo` section with construction summary, palette tokens, clear space ("Bolt Rule"), minimum dimensions, prohibited usages ("Don'ts"), and reference link to `LOGO.md`.
+- Verification results (Gates):
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: clean (exit 0).
+  - `npm --prefix frontend test`: 55 test files passed, 781 tests passed (+2 new test files, +44 new tests).
+  - `npm --prefix frontend run build`: build clean; generated `dist/sw.js` with 18 precache entries (438.45 KiB), confirming each icon listed once, `woff2` fonts present, and `og-image` absent.
+- Files touched:
+  - `frontend/vercel.json`
+  - `frontend/vite.config.ts`
+  - `frontend/vite-plugins/siteUrl.ts` (new)
+  - `frontend/index.html`
+  - `frontend/public/mascot/frankenstein-phone.svg`
+  - `frontend/tests/vercel.rewrite.test.ts` (new)
+  - `frontend/tests/pwa.config.test.ts` (new)
+  - `docs/DEPLOY.md`
+  - `docs/design/LAB_THEME.md`
+  - `docs/reports/agy-lab-pwa-report.md` (new)
+  - `docs/BUILD_LOG.md`

@@ -79,6 +79,8 @@ The frontend is a Vite + React 18 Progressive Web App configured via `frontend/v
 5. Expand **Environment Variables** and add:
    - **Key**: `VITE_API_URL`
    - **Value**: Your Render backend URL from Step 1 (e.g., `https://ghost-touch-backend-xxxx.onrender.com`, **strictly without trailing slash**).
+   - **Key**: `VITE_SITE_URL` *(Optional on initial deployment; configure in Step 3 once your production domain is established)*
+   - **Value**: Your frontend URL (e.g., `https://ghost-touch.vercel.app`, **strictly without trailing slash**).
 6. Click **Deploy**.
 7. Wait ~60 seconds for the build to complete.
 8. Copy your production frontend URL:
@@ -89,7 +91,32 @@ The frontend is a Vite + React 18 Progressive Web App configured via `frontend/v
 
 ---
 
-#### 4. Step 3: Connect Frontend & Backend (`ALLOWED_ORIGINS` & Redeploy)
+#### 4. Step 3: Social Preview and Domain (`VITE_SITE_URL`)
+
+Social crawlers (Twitter / X cards, WhatsApp, Discord, LinkedIn, Slack) require absolute URLs for OpenGraph image and canonical URL tags (`og:image`, `twitter:image`, `og:url`). Social crawlers do not execute JavaScript or install Service Workers, so these URLs must be injected into the static HTML at build time.
+
+1. Once your frontend is deployed and you know its assigned domain (e.g. `https://ghost-touch.vercel.app` or a custom production domain):
+2. In the [Vercel Dashboard](https://vercel.com/dashboard), navigate to **Settings** -> **Environment Variables**.
+3. Add (or edit) the variable:
+   - **Key**: `VITE_SITE_URL`
+   - **Value**: Your production frontend origin (e.g. `https://ghost-touch.vercel.app`, **strictly without trailing slash**).
+4. Redeploy the frontend (click **Deployments** -> select the latest deployment -> click `...` -> **Redeploy**) so the Vite `siteUrlPlugin` rewrites the metadata tags into absolute URLs during `transformIndexHtml`.
+5. **How to test**:
+   - Use an online link preview tool such as [OpenGraph.xyz](https://www.opengraph.xyz/), [Social Share Preview](https://socialsharepreview.com/), or paste your link into a Discord or Slack channel to verify the preview card displays the creature artwork, title, and description.
+   - You can also verify via curl from a terminal:
+     ```bash
+     curl -s https://<VERCEL_URL> | grep -E "og:image|twitter:image|og:url"
+     ```
+     Confirm the output contains absolute URLs:
+     ```html
+     <meta property="og:url" content="https://<VERCEL_URL>/" />
+     <meta property="og:image" content="https://<VERCEL_URL>/brand/og-image.png" />
+     <meta name="twitter:image" content="https://<VERCEL_URL>/brand/og-image.png" />
+     ```
+
+---
+
+#### 5. Step 4: Connect Frontend & Backend (`ALLOWED_ORIGINS` & Redeploy)
 
 To allow the Vercel frontend to make cross-origin requests to the Render backend:
 
@@ -104,7 +131,7 @@ To allow the Vercel frontend to make cross-origin requests to the Render backend
 
 ---
 
-#### 5. Step 4: Smoke Tests & Verification
+#### 6. Step 5: Smoke Tests & Verification
 
 Verify the end-to-end deployment using the following command-line and mobile checks.
 

@@ -143,4 +143,45 @@ Defined in `frontend/src/styles/global.css`:
 ---
 
 ## Logo
-Filled in by the brand lane
+
+The Ghost Touch logo balances tactile STEM precision with the Frankenstein's Laboratory narrative. The mark embodies the sensory creature: a mobile device chassis perceiving a tactile diagram triangle through haptic vibration waves, grounded by a copper neck bolt electrode and stitched bone seams.
+
+For complete brand guidelines, coordinate maps, asset exports, and character illustrations, see [docs/design/LOGO.md](./LOGO.md).
+
+### 1. Construction Summary
+- **Base Grid**: Designed on a `100 × 100` coordinate space (`logo-mark.svg`).
+- **Phone Chassis**: Rounded rectangle `rect(x: 28, y: 16, width: 46, height: 68, rx: 10)` in Life Green (`#39ff88`) stroke (`3px`) with Deep Charcoal (`#0b0e0c`) fill.
+- **Display Screen**: Recessed display bezel `rect(x: 34, y: 24, width: 34, height: 46, rx: 5)` in dark screen `#070a08` with faint green stroke.
+- **Diagram Triangle**: Tactile polygon `polygon((51, 32), (40, 58), (62, 58))` with three circular vertex anchor nodes (radius `2.5px`), symbolizing tactile geometry exploration.
+- **Neck Bolt Electrode**: Frankenstein copper terminal cap (`rect(x: 16, y: 42, width: 5, height: 16, rx: 2)`, `#d9904a`) and shank (`rect(x: 20, y: 44, width: 8, height: 12, rx: 2)`, `#c9803a`) on the left chassis flank.
+- **Stitched Seams (Bone Sutures)**: Dashed suture lines (`#e8dfc8`, dashed `3 2`) across the top-right and bottom-left chassis corners with perpendicular cross-ticks.
+- **Tactile Vibration Waves**: Three radiant haptic arcs emanating to the right from the phone edge (inner radius 14 px solid, middle radius 22 px 0.8 opacity, outer radius 30 px dashed `4 3` 0.55 opacity).
+- **Horizontal Wordmark (`logo-full.svg`, `340 × 80`)**: Scaled mark at left paired with Atkinson Hyperlegible Bold wordmark ("Ghost " in Bone White `#f5fff8`, "Touch" in Life Green `#39ff88`) and a 4-tie dashed suture line (`#e8dfc8`) running beneath "Touch".
+- **Creature Mascot Character (`Mascot.tsx`)**: Extended friendly character featuring a glowing screen-face with two optic sensor pupil-eyes (`r: 5.5`), cheerful stitched smile, copper bolts, buzzer cylinder, and theremin voice antenna.
+
+### 2. Brand Colours
+| Name | Hex Value | Role & Usage | WCAG Contrast on `#0b0e0c` |
+|---|---|---|---|
+| **Life Green** | `#39ff88` | Primary creature energy, active diagram strokes, brand mark | `15.8:1` (AAA) |
+| **Aged Copper** | `#c9803a` / `#d9904a` | Hardware bolt, electrodes, lab button borders, focus rings | `4.8:1` (AA Large) |
+| **Bone / Parchment** | `#e8dfc8` | Suture lines, surgical stitches, secondary labels | `14.2:1` (AAA) |
+| **Lab Charcoal** | `#0b0e0c` | Canvas background, PWA theme and background color, app shell | Base Surface |
+| **Voltage Cyan** | `#00e5ff` | Electric sparks, safe-zone rings, HUD status chips | `13.5:1` (AAA) |
+
+### 3. Clear Space (The "Bolt Rule")
+To preserve visual prominence and legibility, keep an exclusion zone surrounding all four sides of the mark and logo equal to the height of the neck bolt:
+- $H_{\text{bolt}} = 16\text{ px}$ in the `100 × 100` coordinate space (or $0.2 \times \text{height}$ of the asset).
+- No typography, UI boundaries, icons, or illustrations may enter this exclusion zone.
+
+### 4. Minimum Dimensions
+- **Favicon Variant (`favicon.svg`)**: Minimum readable size is **16 × 16 px**. At scales $\le 32\text{ px}$, delicate suture ticks and vibration arcs are omitted to preserve clarity.
+- **Logo Mark (`logo-mark.svg`)**: Minimum size **32 × 32 px**.
+- **Full Logo (`logo-full.svg`)**: Minimum width **120 px** (height $\approx 28\text{ px}$). Below 120 px, the wordmark must not be used; use the mark or favicon instead.
+
+### 5. Prohibited Usages (The "Don'ts")
+1. **Do NOT recolour outside the palette**: Never use generic neon greens, reds, or purples. Use `#39ff88`, `#c9803a`, and `#e8dfc8`.
+2. **Do NOT distort or stretch**: Maintain aspect ratio strictly when scaling.
+3. **Do NOT add novelty horror effects**: No bloody drips, slime, spiderwebs, or drop shadows. Spookiness belongs to electrical lab construction, never to vision disability.
+4. **Do NOT place on low-contrast backgrounds**: Maintain $\ge 7:1$ contrast against surfaces. On light backgrounds, use `logo-mono.svg` (solid `#0b0e0c`).
+5. **Do NOT use the mark as the sole heading**: The logo must never be the only content of an `<h1>` element without accessible text for screen readers.
+6. **Do NOT flip or mirror**: The neck bolt is always mounted on the left chassis edge; vibration waves radiate to the right.
