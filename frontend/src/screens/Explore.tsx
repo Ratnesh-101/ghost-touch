@@ -10,8 +10,7 @@
 import { useCallback, useEffect, useRef, useState, type JSX, type PointerEvent } from 'react';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { Spark } from '../components/lab/Spark';
-import { LanguageSelector } from '../components/LanguageSelector';
-import { RateSelector } from '../components/RateSelector';
+import { SettingsLauncher } from '../components/SettingsLauncher';
 import { StatusText } from '../components/StatusText';
 import {
   makeViewport,
@@ -46,15 +45,14 @@ import {
 } from '../flow/explore';
 import { canvasAriaLabel, sceneName } from '../flow/navigation';
 import { getLang, LANG_BCP47, t } from '../i18n';
+import {
+  markAlivePlayed,
+  markReturningFromCorrect,
+  resetAliveForTesting,
+  shouldPlayAlive,
+} from '../flow/alive';
 
-// Track scenes that have already played the one-shot alive spark (Task lab-alive)
-let playedScenes = new WeakSet<DiagramScene>();
-let isReturningFromCorrect = false;
-
-export function resetAliveForTesting(): void {
-  playedScenes = new WeakSet<DiagramScene>();
-  isReturningFromCorrect = false;
-}
+export { resetAliveForTesting };
 
 interface ExploreProps {
   scene: DiagramScene;
@@ -99,34 +97,36 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }:
   const [showTextFallback, setShowTextFallback] = useState(!drivers.speech.canListen);
   const [questionText, setQuestionText] = useState('');
   const [debugText, setDebugText] = useState(() => t('explore.debugWaiting'));
-  const [isAlive, setIsAlive] = useState<boolean>(() => {
-    if (isReturningFromCorrect) {
-      isReturningFromCorrect = false;
-      playedScenes.add(scene);
-      return false;
-    }
-    if (playedScenes.has(scene)) {
-      return false;
-    }
-    playedScenes.add(scene);
-    return true;
-  });
-
+  const initialAliveRef = useRef<boolean>(shouldPlayAlive(scene));
+  const [isAlive, setIsAlive] = useState(initialAliveRef.current);
   const prevSceneRef = useRef<DiagramScene>(scene);
-  if (prevSceneRef.current !== scene) {
-    prevSceneRef.current = scene;
-    if (!playedScenes.has(scene)) {
-      playedScenes.add(scene);
-      setIsAlive(true);
-    }
+
+  if (typeof window === 'undefined' && initialAliveRef.current) {
+    markAlivePlayed(scene);
   }
+
+  useEffect(() => {
+    if (initialAliveRef.current) {
+      markAlivePlayed(scene);
+    }
+  }, [scene]);
+
+  useEffect(() => {
+    if (prevSceneRef.current !== scene) {
+      prevSceneRef.current = scene;
+      if (shouldPlayAlive(scene)) {
+        markAlivePlayed(scene);
+        setIsAlive(true);
+      }
+    }
+  }, [scene]);
 
   const handleAliveDone = useCallback((): void => {
     setIsAlive(false);
   }, []);
 
   const handleCorrectClick = (): void => {
-    isReturningFromCorrect = true;
+    markReturningFromCorrect();
     onCorrect?.();
   };
   const isRawScene = isRaw ?? (scene.kind === 'unknown' || announced.includes(t('raw.announce')));
@@ -414,7 +414,7 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }:
     ctx.clearRect(0, 0, w, h);
 
     // Background
-    ctx.fillStyle = '#0b0b10';
+    ctx.fillStyle = '#0b0e0c';
     ctx.fillRect(0, 0, w, h);
 
     // Faint cross at canvas centre for sighted observers
@@ -827,10 +827,9 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }:
     <main className="gt-explore gt-lab-explore">
       <header className="gt-explore__header gt-lab-header">
         <div className="gt-toolbar">
-          <LanguageSelector drivers={drivers} />
-          <RateSelector drivers={drivers} />
+          <SettingsLauncher drivers={drivers} speak={(text) => drivers.speech.speak(text)} />
         </div>
-        <div className="gt-explore__title-row" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
+        <div className="gt-explore__title-row">
           <h1 className="gt-explore__title">{sceneName(scene)}</h1>
           <span className="gt-explore__badge gt-lab-badge" aria-hidden="true">Diagram</span>
         </div>

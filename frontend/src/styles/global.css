@@ -954,10 +954,18 @@ body {
 
 .gt-explore__header {
   display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-xs);
+  margin-bottom: var(--gt-space-xs);
+  width: 100%;
+}
+
+.gt-explore__title-row {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: baseline;
   gap: var(--gt-space-sm);
-  margin-bottom: var(--gt-space-2xs);
+  width: 100%;
 }
 
 .gt-explore__title {
@@ -973,6 +981,8 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
   word-break: break-word;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .gt-explore__badge {
@@ -985,6 +995,8 @@ body {
   border-radius: var(--gt-radius-sm);
   background: var(--gt-surface-card);
   border: 1px solid var(--gt-border-subtle);
+  flex-shrink: 0;
+  align-self: flex-start;
 }
 
 .gt-explore__status-card {
@@ -1010,13 +1022,14 @@ body {
 .gt-explore__canvas-container {
   flex: 1 1 auto;
   display: flex;
+  flex-direction: column;
   position: relative;
-  min-height: clamp(220px, 50dvh, 100%);
+  min-height: clamp(220px, 55dvh, 100%);
   border-radius: var(--gt-radius-lg);
   overflow: hidden;
   border: 2px solid #20202e;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), inset 0 0 24px rgba(0, 0, 0, 0.6);
-  background: #000000;
+  background: var(--gt-bg, #0b0e0c);
 }
 
 .gt-explore__canvas-container:focus-within {
@@ -1028,8 +1041,10 @@ body {
   display: block;
   width: 100%;
   height: 100%;
+  flex: 1 1 auto;
+  align-self: stretch;
   touch-action: none;
-  background: #000000;
+  background: var(--gt-bg, #0b0e0c);
   outline: none;
   cursor: crosshair;
 }

@@ -671,3 +671,34 @@ Format for each entry:
   - `frontend/tests/capture.lifecycle.test.tsx` (new)
   - `docs/reports/agy-lab-flowbugsa-report.md` (new)
   - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity — Lane lab-explore4: Toolbar, title wrap, canvas fill, layout shift, alive registry
+- Replaced the old language and speech rate selectors across the top of Explore with extracted `SettingsLauncher` component (containing launcher button and modal `LabSettings` sheet), freeing ~250 px on mobile viewports.
+- Restructured Explore header to full-width column: title wraps cleanly across 2 lines (`white-space: normal`, `-webkit-line-clamp: 2`, `flex: 1 1 auto; min-width: 0`), and Diagram badge is protected from squeezing (`flex-shrink: 0; align-self: flex-start`).
+- Fixed canvas sizing and container fill in Explore and Correct:
+  - In Explore: `.gt-lab-specimen-table` and `.gt-explore__canvas-container` set `flex: 1 1 auto; flex-direction: column; min-height: clamp(220px, 55dvh, 100%); padding: 0`. `.gt-explore__canvas` sets `flex: 1 1 auto; align-self: stretch; width: 100%; height: 100%`. Backgrounds unified to `var(--gt-bg, #0b0e0c)` in CSS and `renderStaticScene`, eliminating the lighter rectangle on black.
+  - In Correct: `.gt-correct__canvas-container` flex alignment changed from `justify-content: center; align-items: center` to `flex-direction: column`, allowing `<canvas className="gt-correct__canvas">` (`flex: 1 1 auto; align-self: stretch; width: 100%; height: 100%`) to fill the entire container frame instead of collapsing to a 177 px square. Backgrounds unified to `var(--gt-bg, #0b0e0c)`.
+- Reserved Teacher Correct status area height: `.gt-correct__status-card` sets `min-height: 4.5rem; display: flex; align-items: center;` and `.gt-correct__status` sets `min-height: 3rem; display: flex; align-items: center; width: 100%`. Prevents ~47 px canvas jump when dragging points.
+- Refactored alive spark lifecycle into a pure state registry module `frontend/src/flow/alive.ts` (`shouldPlayAlive`, `markAlivePlayed`, `markReturningFromCorrect`, `resetAliveForTesting`). Explore reads from `useRef`/`useEffect` with no side effects during render or state initializers, remaining resilient to React StrictMode.
+- Added comprehensive unit tests:
+  - `frontend/tests/alive.flow.test.ts` (8 tests)
+  - `frontend/tests/settingsLauncher.test.tsx` (5 tests)
+  - `frontend/tests/explore.layout.test.tsx` (9 tests)
+- Verification results:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors (clean).
+  - `npm --prefix frontend test`: 69 test files passed (69), 1001 passed (979 baseline + 22 new).
+  - `npm --prefix frontend run build`: 0 warnings, clean production bundle with all CSS rules verified in `dist/assets/index-*.css`.
+  - Zero backend commands executed.
+- Files touched:
+  - `frontend/src/components/SettingsLauncher.tsx` (new)
+  - `frontend/src/flow/alive.ts` (new)
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/styles/explore.css`
+  - `frontend/src/styles/correct.css`
+  - `frontend/src/styles/global.css`
+  - `frontend/tests/alive.flow.test.ts` (new)
+  - `frontend/tests/settingsLauncher.test.tsx` (new)
+  - `frontend/tests/explore.layout.test.tsx` (new)
+  - `docs/reports/agy-lab-explore4-report.md` (new)
+  - `docs/BUILD_LOG.md`
+
