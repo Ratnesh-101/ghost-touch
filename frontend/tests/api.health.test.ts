@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   WARM_TIMEOUT_MS,
   isBackendWarmed,
@@ -27,10 +27,16 @@ function hangingFetch(): typeof fetch {
 
 describe('warmBackend', () => {
   beforeEach(() => {
+    vi.stubEnv('VITE_API_URL', '');
     resetWarmGuardForTesting();
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('calls GET /api/v1/health using default base URL (same-origin)', async () => {
+    vi.stubEnv('VITE_API_URL', '');
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
     await warmBackend({ fetchImpl });
 
@@ -42,7 +48,30 @@ describe('warmBackend', () => {
     expect(isBackendWarmed()).toBe(true);
   });
 
+  it('uses VITE_API_URL from environment when baseUrl option is omitted (stripping trailing slashes)', async () => {
+    vi.stubEnv('VITE_API_URL', 'https://api.example.test/');
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
+    await warmBackend({ fetchImpl });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://api.example.test/api/v1/health');
+    expect(init.method).toBe('GET');
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+    expect(isBackendWarmed()).toBe(true);
+  });
+
   it('uses the configured base URL when provided', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
+    await warmBackend({ baseUrl: 'https://backend.example.com', fetchImpl });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const [url] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://backend.example.com/api/v1/health');
+  });
+
+  it('prefers explicit baseUrl option over VITE_API_URL environment variable', async () => {
+    vi.stubEnv('VITE_API_URL', 'https://env.example.test');
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
     await warmBackend({ baseUrl: 'https://backend.example.com', fetchImpl });
 
