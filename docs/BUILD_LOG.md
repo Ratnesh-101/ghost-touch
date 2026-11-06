@@ -267,3 +267,14 @@ Format for each entry:
 - **Vision model kept as MiniCPM (owner decision):** Nemotron-3.5-Super-VL scored 6/10 usable on the clean spike samples (all bar charts and shapes 0.93-1.00; the three graphs and one triangle failed with empty replies or timeouts, median 65 s per call), but the chain's per-provider timeout is 8 s, so it would rarely finish as the last fallback. MiniCPM scored 0/10 in the same spike (replies not parseable as JSON); owner chose to keep it anyway.
 - **OpenAI key verified live:** `gpt-4.1-mini` returned a valid triangle scene in about 4-5 s.
 - Gates: backend tests, ruff check and format clean.
+
+
+## 2026-11-06 — Antigravity — Lane lab-saved (Saved Diagrams & Correct screens in Lab theme)
+- Restyled Saved Diagrams and Teacher Correct screens according to `docs/briefs/lab-spec.md` and `docs/briefs/agy-lab-saved.md`:
+  - `frontend/src/styles/saved.css`: lab specimen cards with copper borders, stitched edge seams (dashed suture border), small corner rivets, voltage cyan primary open button, danger confirm delete buttons, 48x48 min touch targets, visible focus rings, reduced motion support.
+  - `frontend/src/screens/SavedDiagrams.tsx`: imported Mascot component, rendered Mascot (`aria-hidden="true"`) centred above `t('saved.empty')` in the empty state; preserved all speech announcements, aria attributes, and button handlers.
+  - `frontend/src/styles/correct.css`: restyled canvas container as specimen table (copper border, corner rivets, stitched dashed seam), maximum contrast canvas without interior texture (`touch-action: none`), copper-bordered toolbar buttons, voltage cyan Save button, 48x48 targets, visible focus rings, reduced motion.
+  - Added new test suites `frontend/tests/saved.lab.test.tsx` (27 tests) and `frontend/tests/correct.lab.test.tsx` (22 tests) validating markup, 48x48 targets, focus-visible rules, CSS variable usage (zero hard-coded colors), and lab motifs.
+- Findings / Broken during run: SSR `renderToStaticMarkup` without an event loop does not trigger `useEffect` in Node, so static markup for async loaded states is tested via component structure and CSS inspection. Multi-line declarations in CSS parsed by declaration maps instead of raw line splits.
+- Verification results: `tsc` clean, 522 frontend tests passed (473 baseline + 49 new), build clean, pytest 348 passed, ruff clean.
+- Files touched: `frontend/src/screens/SavedDiagrams.tsx`, `frontend/src/styles/saved.css`, `frontend/src/styles/correct.css`, `frontend/tests/saved.lab.test.tsx`, `frontend/tests/correct.lab.test.tsx`, `docs/reports/agy-lab-saved-report.md`, `docs/BUILD_LOG.md`.
