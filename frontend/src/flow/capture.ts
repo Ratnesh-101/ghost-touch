@@ -5,7 +5,7 @@
  * rejected, what is said, when the progress tone stops) are unit tested with
  * fakes instead of a browser.
  */
-import { requestScene, type SceneResponse } from '../api/scene';
+import { requestScene, SceneRequestError, type SceneResponse } from '../api/scene';
 import {
   isPdfFile,
   MAX_CAMERA_BYTES,
@@ -46,6 +46,16 @@ const PDF_ERROR_KEYS: Record<PdfErrorReason, string> = {
 
 export function pdfErrorMessage(reason: PdfErrorReason): string {
   return t(PDF_ERROR_KEYS[reason]);
+}
+
+export function captureErrorMessage(error: unknown): string {
+  if (error instanceof PdfError) {
+    return pdfErrorMessage(error.reason);
+  }
+  if (error instanceof SceneRequestError && error.failure === 'busy') {
+    return t('capture.errorBusy');
+  }
+  return t('capture.error');
 }
 
 /** Where the file came from decides the size limit: the camera's raw photo vs a chosen file. */
@@ -119,11 +129,7 @@ export async function processImageFile(
     return { kind: 'scene', response };
   } catch (err: unknown) {
     if (deps.signal.aborted) return { kind: 'cancelled' };
-    if (err instanceof PdfError) {
-      deps.say(pdfErrorMessage(err.reason));
-      return { kind: 'failed' };
-    }
-    deps.say(t('capture.error'));
+    deps.say(captureErrorMessage(err));
     return { kind: 'failed' };
   } finally {
     stopTone();
