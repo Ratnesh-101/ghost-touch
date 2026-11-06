@@ -356,3 +356,34 @@ Format for each entry:
   - `frontend/tests/explore.lab.test.tsx` (new)
   - `docs/reports/agy-lab-explore-report.md` (new)
   - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity — Lane lab-startscreen: Frankenstein Lab Start Screen
+- Rebuilt Start screen hero (`frontend/src/screens/Start.tsx`) in the "Frankenstein's Laboratory" theme:
+  - Preserved single full-screen `<button>` contract with `aria-label={t('start.intro')}`, `speakIntro(drivers)`, `handleStartTap(drivers)`, and focus-on-mount.
+  - Hero content is completely `aria-hidden="true"`, ensuring screen readers hear only the clear intro sentence.
+  - Added full decorative Logo (`<Logo variant="full" decorative className="gt-start__logo" />`).
+  - Added creature Mascot emblem (`<Mascot />` inside `.gt-start__creature-emblem`).
+  - Added tagline `t('app.tagline')` styled with bone text token `--gt-bone` (>13:1 contrast on lab charcoal).
+  - Added decorative lab suture seam divider (`<Seam className="gt-start__seam" />`).
+  - Added creature triad organ tiles via `<OrganTiles>` displaying Nerves (vibration), Eyes (vision AI), and Voice (theremin + speech) with titles, descriptions, corner rivets, and cyan hardware icons.
+  - Replaced hard-coded English chips and English subhint with translated strings through `t()`, adding `lab.start.subhint` to `en`, `hi`, and `gu`.
+  - Added huge "Wake the creature" call to action badge (`.gt-start__action-badge`) showing `t('lab.start.wake')` with slow gentle idle glow animation and pulse dot.
+- Fixed layout defect audit BUG-03 in `frontend/src/styles/global.css`:
+  - Resolved flexbox scroll-clipping bug at 200% zoom and in landscape by removing `justify-content: center` and `margin: auto 0`, scrolling from top origin (0, 0) via `margin: 0 auto; min-height: 100%` and `justify-content: safe center;`.
+  - Added safe-area padding (`env(safe-area-inset-*)`) for hardware notches and camera cutouts.
+  - Ensured no `white-space: nowrap` or fixed heights on text containers to prevent clipping taller Indian script glyphs (Devanagari, Gujarati).
+  - Configured 3px visible focus ring (`outline: 3px solid var(--gt-focus)`) with cyan glow on `.gt-start-surface:focus-visible`.
+  - Added reduced-motion support disabling animations on pulse dot and action badge idle glow under `prefers-reduced-motion: reduce`.
+- Added test suite `frontend/tests/start.lab.test.tsx` with 16 tests verifying single button, aria-hidden hero, Logo, Mascot, organ tiles, CTA badge, complete lack of hard-coded English strings in Hindi and Gujarati, BUG-03 scroll fix, safe-area padding, touch targets, and reduced motion.
+- Gates / DoD verification:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: clean.
+  - `npm --prefix frontend test`: 54 test files passed, 753 tests passed (16 new tests, 0 regressions).
+  - `npm --prefix frontend run build`: Vite + PWA build succeeded in 159ms with 22 precache entries (462.85 KiB).
+- Files touched:
+  - `frontend/src/screens/Start.tsx`
+  - `frontend/src/styles/global.css`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/tests/start.lab.test.tsx` (new)
+  - `docs/reports/agy-lab-startscreen-report.md` (new)
+  - `docs/BUILD_LOG.md`
+
