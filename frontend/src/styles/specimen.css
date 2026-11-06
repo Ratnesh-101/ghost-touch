@@ -1,0 +1,84 @@
+/**
+ * Frankenstein's Lab Specimen Preview Styles
+ *
+ * Requirements (docs/briefs/lab-spec.md & docs/briefs/agy-lab-specimen.md):
+ * - Lab specimen jar mini preview card.
+ * - Diagram lines in life green on deep charcoal background.
+ * - Colours exclusively from CSS variables with standard fallbacks:
+ *   --gt-bg (fallback #0b0e0c)
+ *   --gt-green (fallback #39ff88)
+ *   --gt-copper (fallback var(--gt-green-dim, #2ea363))
+ * - Zero decorative animations (static SVG vector).
+ * - Under prefers-reduced-motion: reduce, no changes occur.
+ */
+
+.gt-specimen {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100px;
+  max-height: 100px;
+  overflow: hidden;
+  border-radius: 8px;
+  box-sizing: border-box;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Deep lab charcoal card background */
+.gt-specimen__bg {
+  fill: var(--gt-bg, #0b0e0c);
+  stroke: var(--gt-copper, var(--gt-green-dim, #2ea363));
+  stroke-width: 1;
+  stroke-opacity: 0.35;
+}
+
+/* Primary diagram lines (segments, polylines, bar borders) */
+.gt-specimen__line {
+  fill: none;
+  stroke: var(--gt-green, #39ff88);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Bar chart bars have a faint luminous tint inside the stroked outline */
+.gt-specimen__line--bar {
+  fill: rgba(57, 255, 136, 0.08);
+}
+
+/* Coordinate axes (copper / aged hardware accent) */
+.gt-specimen__axis {
+  fill: none;
+  stroke: var(--gt-copper, var(--gt-green-dim, #2ea363));
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-dasharray: 2 3;
+  opacity: 0.8;
+}
+
+/* Vertex dots (named points in geometry diagrams) */
+.gt-specimen__dot {
+  fill: var(--gt-green, #39ff88);
+  stroke: var(--gt-bg, #0b0e0c);
+  stroke-width: 1;
+}
+
+/* Static neutral specimen jar placeholder (loading & error fallback) */
+.gt-specimen__placeholder {
+  fill: none;
+  stroke: var(--gt-copper, var(--gt-green-dim, #2ea363));
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.45;
+}
+
+/* Reduced motion guarantee: zero transitions or keyframes */
+@media (prefers-reduced-motion: reduce) {
+  .gt-specimen,
+  .gt-specimen * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
