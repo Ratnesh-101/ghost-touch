@@ -30,6 +30,9 @@ Haptic and auditory feedback is tuned to keep tactile sensations distinct:
 - **Curves sing:** Tracing function graphs plays a continuous theremin pitch (200–1000 Hz) that rises with visual height.
 - **TalkBack pass-through:** Supports TalkBack double-tap-and-hold relative dragging, with a 25 ms centre reference tick on touch start.
 - **Voice Q&A:** Ask questions aloud ("How long is AB?") and receive spoken answers grounded in detected diagram facts.
+- **Guide my finger (Flagged OFF by default):** Directional audio/haptic guidance toward diagram elements, peaks, or Ask targets (e.g. "take me to B", "find the peak", or Ask followed by "Guide me"). Pulses accelerate as the finger approaches, Web Audio pitch indicates vertical direction (higher pitch when target is above), and dynamic stereo pan guides horizontal position on headphones. Phone speakers receive spoken directional hints ("left", "up-right", "here"). Cancelable at any time by voice ("stop"), Back button, or a 20-second timeout, concluding with a distinct arrival buzz. (Requires `VITE_FEATURE_GUIDE=1` and Settings toggle; default OFF).
+- **Teacher verify & share (Flagged OFF by default):** Sighted teachers can review, adjust, and stamp diagrams with their name and note at `#/teach`. Diagrams are compressed into URL fragment hashes (`#s=...`) using `lz-string` and shared via direct link or on-screen QR code. Students open shared diagrams instantly and offline, greeted by a spoken "Verified by [Name]" announcement and banner with zero server round-trips. (Requires `VITE_FEATURE_SHARE=1` and Settings toggle; default OFF).
+  > **Note on verification:** Verified means a person reviewed this diagram. It is not cryptographic proof. Shared links live in the URL fragment and never reach our server.
 
 ### Tuned haptic vocabulary
 
@@ -127,6 +130,8 @@ uvicorn app.main:app --app-dir backend --reload --port 8000
 | `GEMINI_THINKING` | Backend | Thinking level budget (default: `minimal`) |
 | `ALLOWED_ORIGINS` | Backend | CORS allowed frontend URLs |
 | `VITE_API_URL` | Frontend | Backend API endpoint URL |
+| `VITE_FEATURE_GUIDE` | Frontend | Feature flag: "Guide my finger" (`1` = ON, unset = OFF; default OFF) |
+| `VITE_FEATURE_SHARE` | Frontend | Feature flag: "Teacher verify & share" (`1` = ON, unset = OFF; default OFF) |
 
 ## Tests
 
@@ -147,6 +152,7 @@ backend/.venv/Scripts/python -m ruff format --check backend
 ## Status and honest limitations
 
 - **Not yet phone-tested:** Automated test suites and browser emulation pass cleanly, but physical vibration motor strength and live TalkBack drag tracking have not yet been tested on an actual phone by the owner.
+- **Guide and Share flagged OFF by default:** "Guide my finger" and "Teacher verify & share" are implemented behind dual feature flags (`VITE_FEATURE_GUIDE`, `VITE_FEATURE_SHARE` plus user settings toggles) and remain OFF by default until full phone verification. Verified means a person reviewed this diagram. It is not cryptographic proof. Shared links live in the URL fragment and never reach our server.
 - **Machine-translated Hindi and Gujarati:** Interface text and speech synthesis support English, Hindi (`hi`), and Gujarati (`gu`); Hindi and Gujarati translations are machine-translated and have not yet been reviewed by native speakers.
 - **AI fallback to Raw Mode on free tier:** The Render backend free tier spins down on idle (~30s cold start). If upstream vision providers time out or encounter rate limits, the backend drops into OpenCV edge detection (Raw Mode) so students can still feel the outlines.
 - **Android only:** The application targets Android Chrome because iOS Safari does not support the Web Vibration API.

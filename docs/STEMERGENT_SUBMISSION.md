@@ -32,6 +32,8 @@ The app is built for the diagrams STEM actually uses: **geometry** (labelled poi
 5. **Teacher Correct Mode.** If a diagram photograph is imperfect, a sighted teacher can tap "Correct" to drag points, rename labels, or delete elements with full undo/redo and live validation against `POST /api/v1/validate` before handing the phone back to the student.
 6. **Inputs & Localization.** Camera photo, chosen image, or the first page of a PDF (rendered client-side via lazy-loaded PDF.js); three sample diagrams work with no camera and no network. Supports English, Hindi (`hi`), and Gujarati (`gu`) voice synthesis and UI strings.
 7. **Accessible Creature Presentation.** High-contrast theme meeting WCAG AAA contrast tokens, 48×48 px minimum touch targets, `prefers-reduced-motion` support, and a decorative creature mascot SVG.
+8. **Guide My Finger.** Students can be guided directly toward diagram elements, peaks, or Ask targets (e.g. "take me to B", "where is the right angle?" followed by "Guide me"); the app guides the student's finger with accelerating proximity pulses, stereo panning on headphones, pitch elevation, and periodic spoken direction cues ("left", "up-right", "here") until a confirming arrival buzz.
+9. **Teacher Verify & Share.** Sighted teachers can review and correct diagrams on laptop or phone (`#/teach`), stamp them with their name and note, and share them directly via URL fragment hashes (`#s=...`) or QR codes. Shared diagrams load completely offline with zero server storage, displaying a "Verified by [Teacher]" banner.
 
 The core decision logic is a pure state machine (no browser code), so it is thoroughly property-tested; browser APIs live in thin drivers.
 
