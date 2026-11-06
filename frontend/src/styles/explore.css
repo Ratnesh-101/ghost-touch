@@ -305,6 +305,99 @@
 }
 
 /* ==========================================================================
+   "IT'S ALIVE" MOMENT (Lane lab-alive)
+   - One-shot electric arc across top edge of frame + green glow pulse on frame border
+   - Total animation duration: 950ms (strictly < 1.2s WCAG limit)
+   - Flash count: 2 peaks over 0.95s (~2.1 Hz, strictly <= 3 Hz WCAG 2.3.1 limit)
+   - Strictly non-interactive (pointer-events: none, aria-hidden="true")
+   - Below canvas in stacking order (z-index: 1 vs canvas z-index: 2)
+   - Fully disabled under prefers-reduced-motion: reduce
+   ========================================================================== */
+
+.gt-explore__spark-wrapper {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: var(--gt-radius-lg, 16px);
+  animation: gt-alive-border-pulse var(--gt-spark-duration, 950ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.gt-explore__spark {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  right: 0;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
+}
+
+.gt-explore__spark .gt-spark__svg {
+  width: 100%;
+  max-width: 480px;
+  height: 100%;
+  overflow: visible;
+}
+
+.gt-lab-status-card--alive {
+  animation: gt-alive-hud-pulse var(--gt-spark-duration, 950ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes gt-alive-border-pulse {
+  0% {
+    box-shadow: 0 0 0 0 transparent, inset 0 0 0 0 transparent;
+  }
+  20% {
+    box-shadow:
+      0 0 16px var(--gt-green-glow, rgba(57, 255, 136, 0.5)),
+      0 0 24px var(--gt-cyan-glow, rgba(0, 240, 255, 0.4)),
+      inset 0 0 16px var(--gt-green-glow, rgba(57, 255, 136, 0.35));
+  }
+  50% {
+    box-shadow:
+      0 0 8px var(--gt-green-glow, rgba(57, 255, 136, 0.3)),
+      inset 0 0 8px var(--gt-green-glow, rgba(57, 255, 136, 0.2));
+  }
+  75% {
+    box-shadow:
+      0 0 20px var(--gt-green-glow, rgba(57, 255, 136, 0.6)),
+      0 0 28px var(--gt-cyan-glow, rgba(0, 240, 255, 0.4)),
+      inset 0 0 16px var(--gt-green-glow, rgba(57, 255, 136, 0.35));
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
+@keyframes gt-alive-hud-pulse {
+  0% {
+    border-color: var(--gt-copper, #c88a4b);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  }
+  20% {
+    border-color: var(--gt-cyan, #00f0ff);
+    box-shadow: 0 0 16px var(--gt-cyan-glow, rgba(0, 240, 255, 0.4)), 0 2px 10px rgba(0, 0, 0, 0.5);
+  }
+  50% {
+    border-color: var(--gt-copper, #c88a4b);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  }
+  75% {
+    border-color: var(--gt-green, #39ff88);
+    box-shadow: 0 0 16px var(--gt-green-glow, rgba(57, 255, 136, 0.4)), 0 2px 10px rgba(0, 0, 0, 0.5);
+  }
+  100% {
+    border-color: var(--gt-copper, #c88a4b);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* ==========================================================================
    REDUCED MOTION
    ========================================================================== */
 
@@ -313,8 +406,15 @@
   .gt-lab-frame,
   .gt-lab-rivet,
   .gt-lab-suture-border,
-  .gt-lab-raw-notice {
+  .gt-lab-raw-notice,
+  .gt-explore__spark-wrapper,
+  .gt-explore__spark,
+  .gt-lab-status-card--alive {
     animation: none !important;
     transition: none !important;
+  }
+
+  .gt-explore__spark-wrapper {
+    box-shadow: none !important;
   }
 }

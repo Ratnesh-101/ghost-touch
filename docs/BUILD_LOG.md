@@ -565,3 +565,29 @@ Format for each entry:
   - `docs/reports/agy-lab-correct2-report.md`
   - `docs/BUILD_LOG.md`
 
+
+
+## 2026-11-06 — Antigravity — Lane lab-alive: "IT'S ALIVE" Moment on Explore Screen
+- Implemented the "IT'S ALIVE" moment when a diagram finishes loading per `docs/briefs/lab-spec.md` and `docs/briefs/agy-lab-alive.md`:
+  - Added one-shot spark moment around the specimen-table frame and HUD chip on Explore screen.
+  - Added wrapper markup (`.gt-explore__spark-wrapper`) and one small state (`isAlive`) in `frontend/src/screens/Explore.tsx` with zero delay or obstruction to the canvas.
+  - Spark arc discharges across the top edge of the frame (`.gt-explore__spark`) between the HUD chip and specimen-table frame, never over the drawing area, strictly `pointer-events: none`, with canvas sitting above it in stacking order (`z-index: 2` vs `z-index: 1`).
+  - Added two-pulse green and cyan border glow animation on frame border (`@keyframes gt-alive-border-pulse`) and status card (`@keyframes gt-alive-hud-pulse`) lasting 950ms (< 1.2s WCAG limit) with flash rate ~2.1 Hz (<= 3 Hz WCAG 2.3.1 limit), cleanly restoring resting frames.
+  - Refined `frontend/src/components/lab/Spark.tsx` with stable callback reference (`onDoneRef`) avoiding timer resets during re-renders.
+  - Keyed scene tracking via `playedScenes` WeakSet and `isReturningFromCorrect` flag ensuring the spark plays once per freshly loaded scene, and never on re-renders, returning from Correct, or during Ask interactions.
+  - Full `prefers-reduced-motion: reduce` compliance: all animations disabled (`animation: none !important; box-shadow: none !important`), immediate resting frame.
+  - All colours use tokens (`--gt-copper`, `--gt-cyan`, `--gt-green`, `--gt-green-glow`, `--gt-cyan-glow`, `--gt-spark-duration`).
+- Tests and verification:
+  - Created `frontend/tests/alive.lab.test.tsx` (13 tests) verifying aria-hidden, pointer-events, one-shot per scene lifecycle, no re-triggering on re-render/Correct/Ask, immediate canvas interactivity, reduced motion disablement, <= 1.2s duration, <= 3 Hz flash rate, token usage, and CSS bundling.
+  - All 60 frontend test files passed (850 passed, 0 failed).
+  - TypeScript check (`tsc -p frontend --noEmit`) clean with 0 errors.
+  - Vite production build generated `dist/` with CSS rules bundled into `dist/assets/index-*.css`.
+- What broke / surprising findings:
+  - Initial media query parser in `alive.lab.test.tsx` matched a CSS comment mentioning `prefers-reduced-motion: reduce` before the actual `@media` block; fixed by stripping comments in the test parser.
+- Files touched:
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/styles/explore.css`
+  - `frontend/src/components/lab/Spark.tsx`
+  - `frontend/tests/alive.lab.test.tsx` (new)
+  - `docs/reports/agy-lab-alive-report.md` (new)
+  - `docs/BUILD_LOG.md`

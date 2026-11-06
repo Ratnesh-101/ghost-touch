@@ -7,8 +7,9 @@
  * Pure decisions live in `flow/explore.ts`, `flow/ask.ts`, and `flow/commands.ts`;
  * browser APIs live in `drivers/` (navigation history, canvas context & DOM events here).
  */
-import { useEffect, useRef, useState, type JSX, type PointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type JSX, type PointerEvent } from 'react';
 import { AccessibleButton } from '../components/AccessibleButton';
+import { Spark } from '../components/lab/Spark';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { RateSelector } from '../components/RateSelector';
 import { StatusText } from '../components/StatusText';
@@ -45,6 +46,15 @@ import {
 } from '../flow/explore';
 import { canvasAriaLabel, sceneName } from '../flow/navigation';
 import { getLang, LANG_BCP47, t } from '../i18n';
+
+// Track scenes that have already played the one-shot alive spark (Task lab-alive)
+let playedScenes = new WeakSet<DiagramScene>();
+let isReturningFromCorrect = false;
+
+export function resetAliveForTesting(): void {
+  playedScenes = new WeakSet<DiagramScene>();
+  isReturningFromCorrect = false;
+}
 
 interface ExploreProps {
   scene: DiagramScene;
@@ -89,6 +99,36 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }:
   const [showTextFallback, setShowTextFallback] = useState(!drivers.speech.canListen);
   const [questionText, setQuestionText] = useState('');
   const [debugText, setDebugText] = useState(() => t('explore.debugWaiting'));
+  const [isAlive, setIsAlive] = useState<boolean>(() => {
+    if (isReturningFromCorrect) {
+      isReturningFromCorrect = false;
+      playedScenes.add(scene);
+      return false;
+    }
+    if (playedScenes.has(scene)) {
+      return false;
+    }
+    playedScenes.add(scene);
+    return true;
+  });
+
+  const prevSceneRef = useRef<DiagramScene>(scene);
+  if (prevSceneRef.current !== scene) {
+    prevSceneRef.current = scene;
+    if (!playedScenes.has(scene)) {
+      playedScenes.add(scene);
+      setIsAlive(true);
+    }
+  }
+
+  const handleAliveDone = useCallback((): void => {
+    setIsAlive(false);
+  }, []);
+
+  const handleCorrectClick = (): void => {
+    isReturningFromCorrect = true;
+    onCorrect?.();
+  };
   const isRawScene = isRaw ?? (scene.kind === 'unknown' || announced.includes(t('raw.announce')));
   const rawNoticeTranslation = t('lab.raw.notice');
   const rawNoticeText =
@@ -696,7 +736,7 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }:
         </div>
       )}
 
-      <div className="gt-explore__status-card gt-lab-status-card">
+      <div className={`gt-explore__status-card gt-lab-status-card${isAlive ? ' gt-lab-status-card--alive' : ''}`}>
         <StatusText className="gt-explore__status" spoken={drivers.speech.canSpeak}>
           {statusMessage}
         </StatusText>
@@ -709,6 +749,15 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }:
           <span className="gt-lab-rivet gt-lab-rivet--bl" aria-hidden="true" />
           <span className="gt-lab-rivet gt-lab-rivet--br" aria-hidden="true" />
           <span className="gt-lab-suture-border" aria-hidden="true" />
+          {isAlive && (
+            <div className="gt-explore__spark-wrapper" aria-hidden="true">
+              <Spark
+                className="gt-explore__spark"
+                overlay={false}
+                onDone={handleAliveDone}
+              />
+            </div>
+          )}
         </div>
         <canvas
           ref={canvasRef}
@@ -773,7 +822,7 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }:
           {onCorrect && (
             <AccessibleButton
               className="gt-control gt-explore__correct"
-              onClick={onCorrect}
+              onClick={handleCorrectClick}
               disabled={isBusy}
             >
               {t('explore.correct')}
