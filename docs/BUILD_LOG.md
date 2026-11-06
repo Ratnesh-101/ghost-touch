@@ -702,3 +702,32 @@ Format for each entry:
   - `docs/reports/agy-lab-explore4-report.md` (new)
   - `docs/BUILD_LOG.md`
 
+
+## 2026-11-06 — Antigravity — Lab redesign (agy lanes supervised by Claude Code)
+- Architecture & Division of Labor:
+  - Built: Antigravity (agy, Gemini-based CLI agent executed via `scripts/agy-run.sh`) implemented the entire Lab redesign in parallel lanes: foundation (tokens, Atkinson Hyperlegible fonts, lab styling primitives), brand (SVG logo, creature mascot, manifest, favicons), i18n (devanagari/gujarati fallbacks, LabSettings modal sheet), Explore frame (specimen table, HUD), specimen previews, Saved diagrams and Teacher Correct restyling, loading meter, Start organ tiles and hero screen, Capture screen, PWA precache configuration and Vercel routing fixes, CI workflow hardening, backend warm-up route, phone test automation script, audio/speech driver fixes, Correct canvas sizing, mobile flow bug fixes, visual polish, and Explore canvas frame fill.
+  - Supervised: Claude Code (Anthropic) orchestrated all lanes, authored briefs, monitored progress, reviewed git diffs against architectural rules, re-ran gates, resolved merge conflicts (including manual conflict resolution in `Correct.tsx` and `App.tsx`), captured headless Brave before/after screenshots, ran brand image generation, verified deployments, and edited `.claude/settings.local.json`.
+- Quality Gates & Final Repository Verification:
+  - Frontend test suite: 1049 tests passed across 74 test files (`npm --prefix frontend test`).
+  - Frontend typecheck: clean with 0 errors (`npm --prefix frontend exec -- tsc -p frontend --noEmit`).
+  - Frontend build: clean production bundle and PWA service worker precache (`npm --prefix frontend run build`).
+  - Backend test suite: 348 passed, 1 skipped, 1 warning in 32.12s (`backend/.venv/Scripts/python -m pytest backend`).
+  - Backend lint & format: clean (`backend/.venv/Scripts/python -m ruff check backend`, `backend/.venv/Scripts/python -m ruff format --check backend`).
+- Real Bugs Found by Screenshot Review and Audits:
+  - Start Logo lost on phones: Flex shrink collapse caused the logo SVG to shrink to 0 height on 390×844 mobile viewports when sibling elements had `flex-shrink: 0`. Resolved with `aspect-ratio` and `flex-shrink: 0`.
+  - Dropped CSS `@import`: `@import './explore.css'` placed at the bottom of `global.css` violated CSS rules and was dropped by PostCSS; resolved by moving `@import` to the top and adding `tests/css.imports.test.ts` guard test.
+  - Canvas framing in Explore and Correct: Neither canvas filled its parent container; in Correct, flex centering collapsed the canvas to a 177 px square, and in Explore, background mismatch produced a lighter inset rectangle. Resolved with stretch flex rules, container layout updates, and unified background tokens.
+  - Vercel rewrite shadowing static assets: SPA catch-all rewrite rule shadowed static PWA assets, icons, and fonts until route ordering was corrected with negative-lookahead regex in `vercel.json`.
+  - Render cold start vs 20s timeout: Initial API requests on free-tier backend exceeded frontend 20s timeout on cold starts. Resolved by raising timeout to 45s and adding background warm-up fetch (`/api/v1/health`) on app load.
+- Still Unverified (Limitations & Pending Real-World Proof):
+  - Physical phone test: Tested under desktop Brave emulation (390×844, 1440×900) and automated synthetic suites; physical Android haptic motor response and TalkBack gestures remain unverified on hardware.
+  - Native-speaker review: Hindi and Gujarati translations are machine-generated and have not yet been proofread by native speakers.
+  - Brand logo approval: Logo assets are machine-generated and integrated, awaiting final stakeholder sign-off.
+  - AI mode on live backend: Live deployment fell back to OpenCV Raw Mode edge detection due to provider API keys and timeout constraints rather than live vision LLM inference.
+- Files touched:
+  - `docs/BUILD_LOG.md`
+  - `docs/KIRO_WRITEUP.md`
+  - `docs/design/LAB_THEME.md`
+  - `docs/STEMERGENT_SUBMISSION.md`
+  - `README.md`
+  - `docs/reports/agy-lab-finaldocs-report.md`
