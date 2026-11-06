@@ -214,7 +214,11 @@ def test_p13_rejects_colour_shape_only_labels(words):
     assert any("colour or generic shape" in e for e in result.errors)
 
 
-@given(st.text(alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ", min_size=1, max_size=3))
+@given(
+    st.text(alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ", min_size=1, max_size=3).filter(
+        lambda s: s.lower() not in COLOUR_SHAPE_WORDS
+    )
+)
 def test_p13_accepts_non_colour_shape_labels(label):
     """Labels with at least one non-colour/shape word are accepted."""
     data = {
@@ -222,6 +226,6 @@ def test_p13_accepts_non_colour_shape_labels(label):
         "points": [{"id": "A", "x": 0.5, "y": 0.5, "label": label}],
     }
     result = validate_scene(data)
-    # Should be accepted (single uppercase letters are never colour/shape words)
+    # Should be accepted (filtered so 1-3 letter strings cannot collide with colour/shape words)
     assert result.scene is not None
     assert not any("colour or generic shape" in e for e in result.errors)

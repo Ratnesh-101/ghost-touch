@@ -77,6 +77,40 @@ def parse_chat_response(name: str, response: httpx.Response, api_key: str) -> st
     return content.strip()
 
 
+DEFAULT_CLIENT_LIMITS = httpx.Limits(
+    max_keepalive_connections=5,
+    max_connections=10,
+)
+
+_shared_client: httpx.AsyncClient | None = None
+
+
+def get_shared_client(
+    transport: httpx.AsyncBaseTransport | None = None,
+) -> httpx.AsyncClient:
+    """Return the process-wide shared httpx.AsyncClient, creating it lazily if needed."""
+    global _shared_client
+    if _shared_client is None or _shared_client.is_closed:
+        _shared_client = httpx.AsyncClient(limits=DEFAULT_CLIENT_LIMITS, transport=transport)
+    return _shared_client
+
+
+def set_shared_client(client: httpx.AsyncClient | None) -> None:
+    """Explicitly set or clear the shared client instance (useful for testing)."""
+    global _shared_client
+    _shared_client = client
+
+
+async def close_shared_client() -> None:
+    """Close the process-wide shared httpx.AsyncClient on app shutdown."""
+    global _shared_client
+    if _shared_client is not None:
+        client = _shared_client
+        _shared_client = None
+        if not client.is_closed:
+            await client.aclose()
+
+
 async def post_chat_completion(
     *,
     name: str,
@@ -91,13 +125,9 @@ async def post_chat_completion(
         raise VisionError(name, "API key not configured", transient=False)
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     url = f"{base_url}/chat/completions"
-    http = client or httpx.AsyncClient()
+    http = client if client is not None else get_shared_client()
     try:
-        try:
-            response = await http.post(url, headers=headers, json=body, timeout=timeout)
-        finally:
-            if client is None:
-                await http.aclose()
+        response = await http.post(url, headers=headers, json=body, timeout=timeout)
     except httpx.ConnectTimeout as exc:
         raise VisionError(
             name,

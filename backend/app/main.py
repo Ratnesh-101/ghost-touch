@@ -46,6 +46,7 @@ from app.vision import (
     VisionProvider,
     build_chain_from_env,
 )
+from app.vision._openai_compat import close_shared_client
 from app.vision.prompts import build_prompt
 
 logger = logging.getLogger(__name__)
@@ -277,7 +278,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     origins = parse_allowed_origins(allowed)
     logger.info("allowed CORS origins: %s", origins)
     get_provider_chain()
-    yield
+    try:
+        yield
+    finally:
+        await close_shared_client()
 
 
 def create_app() -> FastAPI:
