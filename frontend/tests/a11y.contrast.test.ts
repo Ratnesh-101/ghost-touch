@@ -146,6 +146,7 @@ describe('a11y contrast (Requirement 12.2)', () => {
       { text: '--gt-line', bg: '--gt-surface-card', label: 'glowing green text on surface card' },
       { text: '--gt-focus', bg: '--gt-bg', label: 'focus ring indicator against background' },
       { text: '--gt-green-dim', bg: '--gt-bg', label: 'dim green UI element on background' },
+      { text: '--gt-bg', bg: '--gt-copper', label: 'raw badge text on copper' },
     ];
 
     for (const { text, bg, label } of uiPairs) {

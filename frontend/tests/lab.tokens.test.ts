@@ -16,10 +16,13 @@ describe('Lab foundation design tokens (docs/briefs/agy-lab-foundation.md)', () 
       expect(tokens['--gt-surface-hover']).toBe('#1b261f');
       expect(tokens['--gt-surface-active']).toBe('#223028');
       expect(tokens['--gt-surface-card']).toBe('#121814');
+      expect(tokens['--gt-surface-raised']).toBe('#13271f');
+      expect(tokens['--gt-surface-sunken']).toBe('#0d1a15');
     });
 
     it('preserves creature life green #39ff88', () => {
       expect(tokens['--gt-green']).toBe('#39ff88');
+      expect(tokens['--gt-green-bright']).toBe('#4dff95');
       expect(tokens['--gt-line']).toBe('#39ff88');
       expect(tokens['--gt-focus']).toBe('#39ff88');
     });
@@ -32,6 +35,8 @@ describe('Lab foundation design tokens (docs/briefs/agy-lab-foundation.md)', () 
     it('defines aged copper and brass for lab hardware and borders', () => {
       expect(tokens['--gt-copper']).toBe('#c88a4b');
       expect(tokens['--gt-copper-bright']).toBe('#e0a96d');
+      expect(tokens['--gt-copper-highlight']).toBe('#e0a370');
+      expect(tokens['--gt-copper-shadow']).toBe('#4a2810');
       expect(tokens['--gt-brass']).toBe('#d4a359');
       expect(tokens['--gt-hardware']).toBe('#c88a4b');
       expect(tokens['--gt-border-copper']).toBe('#c88a4b');

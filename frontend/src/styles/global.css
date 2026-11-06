@@ -196,7 +196,7 @@ body {
 }
 
 .gt-btn--primary:hover {
-  background: #4dff95;
+  background: var(--gt-green-bright, #4dff95);
   border-color: var(--gt-copper-bright);
   box-shadow: var(--gt-shadow-glow-strong);
 }
