@@ -18,6 +18,7 @@ class FakeRecognition implements RecognitionLike {
   onend: RecognitionLike['onend'] = null;
   start = vi.fn();
   stop = vi.fn();
+  abort = vi.fn();
 }
 
 function speechHost(recognition?: FakeRecognition): {
@@ -174,5 +175,42 @@ describe('WebSpeechDriver.listen', () => {
     const promise = new WebSpeechDriver(speechHost(rec).host).listen();
     rec.onresult?.({ results: [[{ transcript: 'ok' }]] });
     await expect(promise).resolves.toBe('ok');
+  });
+
+  it('cancelListen() is safe when idle (idempotent)', () => {
+    const driver = new WebSpeechDriver({});
+    expect(() => driver.cancelListen()).not.toThrow();
+    expect(() => driver.cancelListen()).not.toThrow();
+  });
+
+  it('cancelListen() aborts active recognition and rejects with ListenError("cancelled") (Finding 2)', async () => {
+    const rec = new FakeRecognition();
+    const driver = new WebSpeechDriver(speechHost(rec).host);
+    const promise = driver.listen();
+
+    expect(rec.start).toHaveBeenCalledTimes(1);
+    expect(rec.abort).not.toHaveBeenCalled();
+
+    driver.cancelListen();
+
+    expect(rec.abort).toHaveBeenCalledTimes(1);
+    await expect(promise).rejects.toMatchObject({ message: 'cancelled', reason: 'cancelled' });
+    await expect(promise).rejects.toBeInstanceOf(ListenError);
+  });
+
+  it('cancelListen() is idempotent across repeated calls during and after session', async () => {
+    const rec = new FakeRecognition();
+    const driver = new WebSpeechDriver(speechHost(rec).host);
+    const promise = driver.listen();
+
+    driver.cancelListen();
+    driver.cancelListen(); // repeated call
+    expect(rec.abort).toHaveBeenCalledTimes(1);
+
+    await expect(promise).rejects.toMatchObject({ message: 'cancelled' });
+
+    // Call after promise settled
+    expect(() => driver.cancelListen()).not.toThrow();
+    expect(rec.abort).toHaveBeenCalledTimes(1);
   });
 });
