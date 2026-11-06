@@ -539,6 +539,22 @@
   outline-offset: 2px;
 }
 
+.gt-verified-banner__honesty {
+  margin: var(--gt-space-xs, 8px) 0 0 0;
+  padding: 4px var(--gt-space-xs, 8px);
+  font-size: var(--gt-text-xs, 0.75rem);
+  color: var(--gt-text-muted, #a8c5b5);
+  line-height: 1.4;
+  border-left: 2px solid var(--gt-copper, #c88a4b);
+  cursor: pointer;
+  outline: none;
+}
+
+.gt-verified-banner__honesty:focus-visible {
+  outline: 2px solid var(--gt-focus, #39ff88);
+  outline-offset: 2px;
+}
+
 .gt-verified-banner__note-body {
   padding: var(--gt-space-xs, 8px);
   background: rgba(0, 0, 0, 0.35);

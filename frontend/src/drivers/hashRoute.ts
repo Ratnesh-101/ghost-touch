@@ -61,9 +61,6 @@ export function clearHash(): void {
     const loc = window.location;
     const path = (loc && loc.pathname ? loc.pathname : '') + (loc && loc.search ? loc.search : '');
     history.replaceState(null, '', path || '/');
-    if (loc && typeof loc.hash === 'string') {
-      loc.hash = '';
-    }
   } else if (typeof window.location !== 'undefined' && typeof window.location.hash === 'string') {
     window.location.hash = '';
   }

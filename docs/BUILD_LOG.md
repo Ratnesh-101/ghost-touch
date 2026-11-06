@@ -1420,3 +1420,43 @@ Format for each entry:
   - `frontend/tests/fix.runtime.test.tsx`
   - `docs/reports/agy-f1-fix-runtime-report.md`
   - `docs/BUILD_LOG.md`
+## 2026-11-06 — Antigravity (agy, reviewed by Claude) — Lane f2-fix-share (Teacher Share Security & Robustness Fixes)
+- Remediated confirmed security, robustness, and hostile input findings from audit `audit-a2-share-security.md`:
+  - SEC-01: Fragment-only length measurement before decompression preserving zip-bomb guard while allowing valid 12k payloads wrapped in full URLs.
+  - SEC-02: Sanitized Unicode bidirectional override/isolate characters, C1 controls, zero-width characters, and BOM in `sanitizeString`; isolated displayed names, notes, and labels with `<bdi>` in `VerifiedBanner.tsx`.
+  - SEC-03: Rendered honesty disclosure note `share.honesty` in the student banner area with `role="note"` and spoken on request only; added shared i18n key in en, hi, gu.
+  - SEC-05: Removed redundant `loc.hash = ''` assignment in `clearHash()` eliminating trailing `#` browser history entries.
+  - SEC-07: Normalized inverted bar coordinates (`Math.min`/`Math.max` on x0/x1 and y_top/y_base) ensuring shared bars are always touch-hittable.
+  - SEC-08: Added safe origin validation in `shareUrl`, falling back safely to `https://ghosttouch.app` on `"null"`, empty, or invalid protocols.
+  - SEC-10: Capped `raw.facts` to at most 50 items (`LIMITS.maxFacts`).
+  - Disallowed prototype keys and colliding system IDs (`__proto__`, `constructor`, `prototype`, `title`) by automatically prefixing as `el_<id>`.
+  - Deep nesting protection: added fast pre-parse bracket depth counter rejecting payloads nested beyond 32 levels.
+  - Floating-point normalization: converted `-0` to `+0` and gracefully rejected `NaN`/`Infinity`.
+  - Filtered leading verification checkmarks (`✓`, `✔`, `☑`, `√`) in teacher guidance notes.
+  - Configured HTTP security headers (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`) in `frontend/vercel.json`.
+- Appended Section 21 to `docs/user-test/translation-review.md` and rows to `docs/user-test/translation-review.csv`.
+- Created dedicated regression test suite `frontend/tests/fix.share.security.test.ts` with 20 tests.
+- What broke / surprising findings:
+  - `share.roundtrip.prop.test.ts` counterexample caught over-eager space trimming on notes with whitespace; resolved by targeting checkmark symbol classes rather than whitespace in `sanitizeString`.
+- Verification results:
+  - `npm --prefix frontend test`: 108 test files passed (1479 tests).
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: Clean (0 errors).
+  - `npm --prefix frontend run build`: Clean build in 223ms (dist/assets/index-V6-WFS1B.js 487.96 kB, pdf 430.16 kB, CSS 73.56 kB, precache 22 entries / 653.63 KiB).
+  - `backend/.venv/Scripts/python -m pytest backend`: 454 passed, 1 skipped in 36.92s.
+  - `backend/.venv/Scripts/python -m ruff check backend`: All checks passed.
+  - `backend/.venv/Scripts/python -m ruff format --check backend`: 60 files already formatted.
+- Files touched:
+  - `frontend/src/share/limits.ts`
+  - `frontend/src/share/validate.ts`
+  - `frontend/src/share/codec.ts`
+  - `frontend/src/drivers/hashRoute.ts`
+  - `frontend/src/components/VerifiedBanner.tsx`
+  - `frontend/src/styles/explore.css`
+  - `frontend/vercel.json`
+  - `frontend/tests/fix.share.security.test.ts`
+  - `docs/user-test/translation-review.md`
+  - `docs/user-test/translation-review.csv`
+  - `docs/reports/agy-f2-fix-share-report.md`
+  - `docs/BUILD_LOG.md`
+
+

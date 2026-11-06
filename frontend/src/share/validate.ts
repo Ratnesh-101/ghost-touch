@@ -26,7 +26,42 @@ import { LIMITS } from './limits';
 const CLAMP_TOLERANCE = 0.02;
 
 /**
- * Sanitize a string by stripping C0 control characters and DEL, then capping length.
+ * Unicode bidirectional control characters, C1 controls, and zero-width marks to strip.
+ * - \u0080-\u009F: C1 controls
+ * - \u200E, \u200F: LRM, RLM
+ * - \u202A-\u202E: LRE, RLE, PDF, LRO, RLO
+ * - \u2066-\u2069: LRI, RLI, FSI, PDI
+ * - \u200B: Zero-width space
+ * - \uFEFF: Zero-width no-break space / BOM
+ */
+const BIDI_AND_ZERO_WIDTH =
+  /[\u0080-\u009F\u200E\u200F\u202A-\u202E\u2066-\u2069\u200B\uFEFF]/g;
+
+/**
+ * Leading status symbols that could be used to spoof verification badges in notes.
+ */
+const LEADING_SPOOF_SYMBOLS = /^[✓✔☑√]+/u;
+
+/**
+ * Reserved prototype keys and system IDs disallowed as element IDs.
+ */
+const RESERVED_IDS = new Set([
+  '__proto__',
+  'constructor',
+  'prototype',
+  'tostring',
+  'valueof',
+  'hasownproperty',
+  'isprototypeof',
+  'propertyisenumerable',
+  'tolocalestring',
+  'title',
+  'scene:title',
+]);
+
+/**
+ * Sanitize a string by stripping C0/C1 control characters, Unicode bidi controls,
+ * and zero-width characters, then capping length (SEC-02).
  * Inert text such as HTML tags (<script>) is preserved as plain text.
  */
 export function sanitizeString(
@@ -39,12 +74,32 @@ export function sanitizeString(
   const pattern = allowNewlines
     ? /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g
     : /[\x00-\x1F\x7F]/g;
-  return val.replace(pattern, '').slice(0, maxLen);
+  let cleaned = val.replace(pattern, '').replace(BIDI_AND_ZERO_WIDTH, '');
+
+  if (allowNewlines) {
+    cleaned = cleaned.replace(LEADING_SPOOF_SYMBOLS, '');
+  }
+
+  return cleaned.slice(0, maxLen);
+}
+
+/**
+ * Sanitize an element ID: strip controls/bidi, cap length, and prefix reserved prototype/system keys.
+ */
+function sanitizeId(raw: unknown): string {
+  if (typeof raw !== 'string') return '';
+  const cleaned = sanitizeString(raw.trim(), 64);
+  if (!cleaned) return '';
+  if (RESERVED_IDS.has(cleaned.toLowerCase())) {
+    return `el_${cleaned}`;
+  }
+  return cleaned;
 }
 
 /**
  * Clamp a coordinate to [0, 1] if within +/-0.02 tolerance.
  * Returns ok: false if coordinate is beyond tolerance or not a finite number.
+ * Normalizes -0 to 0.
  * Cites: backend/app/validate.py _clamp_coord.
  */
 function clampCoord(val: unknown): { val: number; ok: boolean } {
@@ -52,9 +107,10 @@ function clampCoord(val: unknown): { val: number; ok: boolean } {
     return { val: 0, ok: false };
   }
   if (val < -CLAMP_TOLERANCE || val > 1 + CLAMP_TOLERANCE) {
-    return { val, ok: false };
+    return { val: Object.is(val, -0) ? 0 : val, ok: false };
   }
-  return { val: Math.max(0, Math.min(1, val)), ok: true };
+  const clamped = Math.max(0, Math.min(1, val));
+  return { val: Object.is(clamped, -0) ? 0 : clamped, ok: true };
 }
 
 /**
@@ -118,7 +174,7 @@ export function validateShareScene(
     for (const p of raw.points) {
       if (!p || typeof p !== 'object' || Array.isArray(p)) continue;
       const pObj = p as Record<string, unknown>;
-      const id = typeof pObj.id === 'string' && pObj.id.trim() ? sanitizeString(pObj.id, 64) : '';
+      const id = sanitizeId(pObj.id);
       if (!id) {
         errors.push('Point missing valid id');
         continue;
@@ -156,9 +212,9 @@ export function validateShareScene(
     for (const s of raw.segments) {
       if (!s || typeof s !== 'object' || Array.isArray(s)) continue;
       const sObj = s as Record<string, unknown>;
-      const id = typeof sObj.id === 'string' && sObj.id.trim() ? sanitizeString(sObj.id, 64) : '';
-      const a = typeof sObj.a === 'string' ? sanitizeString(sObj.a, 64) : '';
-      const b = typeof sObj.b === 'string' ? sanitizeString(sObj.b, 64) : '';
+      const id = sanitizeId(sObj.id);
+      const a = sanitizeId(sObj.a);
+      const b = sanitizeId(sObj.b);
       if (!id || !a || !b) {
         continue;
       }
@@ -184,10 +240,7 @@ export function validateShareScene(
     for (const poly of raw.polylines) {
       if (!poly || typeof poly !== 'object' || Array.isArray(poly)) continue;
       const polyObj = poly as Record<string, unknown>;
-      const id =
-        typeof polyObj.id === 'string' && polyObj.id.trim()
-          ? sanitizeString(polyObj.id, 64)
-          : '';
+      const id = sanitizeId(polyObj.id);
       if (!id) continue;
       const rawPts = polyObj.points;
       if (!Array.isArray(rawPts) || rawPts.length < 2) {
@@ -241,20 +294,23 @@ export function validateShareScene(
     );
   }
 
-  // Bars processing
+  // Bars processing (SEC-07: normalize orientation so bars are always touch-hittable)
   const bars: Bar[] = [];
   if (Array.isArray(raw.bars)) {
     for (const b of raw.bars) {
       if (!b || typeof b !== 'object' || Array.isArray(b)) continue;
       const bObj = b as Record<string, unknown>;
-      const id = typeof bObj.id === 'string' && bObj.id.trim() ? sanitizeString(bObj.id, 64) : '';
+      const id = sanitizeId(bObj.id);
       if (!id) continue;
       const label =
         typeof bObj.label === 'string'
           ? sanitizeString(bObj.label, LIMITS.maxLabel)
           : '';
-      const val =
+      let val =
         typeof bObj.value === 'number' && Number.isFinite(bObj.value) ? bObj.value : 0;
+      if (Object.is(val, -0)) {
+        val = 0;
+      }
       const x0Res = clampCoord(bObj.x0);
       const x1Res = clampCoord(bObj.x1);
       const yTopRes = clampCoord(bObj.y_top);
@@ -266,10 +322,10 @@ export function validateShareScene(
         id,
         label,
         value: val,
-        x0: x0Res.val,
-        x1: x1Res.val,
-        y_top: yTopRes.val,
-        y_base: yBaseRes.val,
+        x0: Math.min(x0Res.val, x1Res.val),
+        x1: Math.max(x0Res.val, x1Res.val),
+        y_top: Math.min(yTopRes.val, yBaseRes.val),
+        y_base: Math.max(yTopRes.val, yBaseRes.val),
       });
     }
   }
@@ -308,11 +364,12 @@ export function validateShareScene(
     axes = null;
   }
 
-  // Facts processing
+  // Facts processing (capped to LIMITS.maxFacts per SEC-10)
   let facts: string[] | undefined = undefined;
   if (Array.isArray(raw.facts)) {
     facts = raw.facts
       .filter((f): f is string => typeof f === 'string')
+      .slice(0, LIMITS.maxFacts)
       .map((f) => sanitizeString(f, 280));
   }
 

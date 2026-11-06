@@ -17,4 +17,5 @@ export const LIMITS = {
   maxSegments: 300,
   maxPolylinePoints: 2000,
   maxBars: 60,
+  maxFacts: 50,
 } as const;

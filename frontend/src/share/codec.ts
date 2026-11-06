@@ -64,7 +64,7 @@ export function encodeShare(p: SharePayload): string {
     verifiedBy: sanitizeString(p.verifiedBy ?? '', LIMITS.maxName),
     note: sanitizeString(p.note ?? '', LIMITS.maxNote, true),
     verifiedAt:
-      typeof p.verifiedAt === 'string'
+      typeof p.verifiedAt === 'string' && !Number.isNaN(Date.parse(p.verifiedAt))
         ? sanitizeString(p.verifiedAt, 100)
         : new Date().toISOString(),
   };
@@ -86,11 +86,50 @@ export function encodeShare(p: SharePayload): string {
 }
 
 /**
+ * Fast pre-parse bracket depth counter to reject deeply nested hostile JSON
+ * before JSON.parse and revivers exhaust the JS call stack.
+ */
+function checkNestingDepth(jsonStr: string, maxDepth = 32): boolean {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < jsonStr.length; i++) {
+    const ch = jsonStr.charCodeAt(i);
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === 92) {
+      escaped = true;
+      continue;
+    }
+    if (ch === 34) {
+      inString = !inString;
+      continue;
+    }
+    if (!inString) {
+      if (ch === 123 || ch === 91) {
+        depth++;
+        if (depth > maxDepth) return false;
+      } else if (ch === 125 || ch === 93) {
+        depth--;
+      }
+    }
+  }
+  return true;
+}
+
+/**
  * Build full share URL from origin and encoded payload.
+ * Validates origin protocol and falls back safely to 'https://ghosttouch.app'
+ * if origin is empty, 'null', or does not start with http:// or https:// (SEC-08).
  * Format: `${origin}/#s=${encoded}`
  */
 export function shareUrl(origin: string, encoded: string): string {
-  const cleanOrigin = origin.replace(/\/+$/, '');
+  let cleanOrigin = (origin || '').trim().replace(/\/+$/, '');
+  if (!cleanOrigin || cleanOrigin === 'null' || !/^https?:\/\//i.test(cleanOrigin)) {
+    cleanOrigin = 'https://ghosttouch.app';
+  }
   return `${cleanOrigin}/#s=${encoded}`;
 }
 
@@ -127,11 +166,12 @@ export function decodeShare(hash: string): SharePayload {
       throw new ShareError('empty', 'Empty share hash');
     }
 
-    // Check length BEFORE any decompression call
-    if (hash.length > LIMITS.maxHashChars || raw.length > LIMITS.maxHashChars) {
+    // Check length BEFORE any decompression call (zip bomb guard).
+    // Note: Measure only the fragment (raw), not the full URL with origin (SEC-01 contract).
+    if (raw.length > LIMITS.maxHashChars) {
       throw new ShareError(
         'too-large',
-        `Share hash exceeds maximum length of ${LIMITS.maxHashChars} characters`,
+        `Share payload exceeds maximum length of ${LIMITS.maxHashChars} characters`,
       );
     }
 
@@ -153,6 +193,11 @@ export function decodeShare(hash: string): SharePayload {
         'too-large',
         `Decompressed payload exceeds maximum size of ${LIMITS.maxDecompressedChars} characters`,
       );
+    }
+
+    // Deep nesting guard: reject before recursive parse can exceed call stack
+    if (!checkNestingDepth(decompressed, 32)) {
+      throw new ShareError('bad-format', 'Payload exceeds maximum nesting depth');
     }
 
     // Safe JSON parse with prototype pollution prevention
@@ -196,10 +241,14 @@ export function decodeShare(hash: string): SharePayload {
     // Sanitize metadata strings
     const verifiedBy = sanitizeString(payloadObj.verifiedBy ?? '', LIMITS.maxName);
     const note = sanitizeString(payloadObj.note ?? '', LIMITS.maxNote, true);
-    const verifiedAt =
-      typeof payloadObj.verifiedAt === 'string'
-        ? sanitizeString(payloadObj.verifiedAt, 100)
-        : new Date().toISOString();
+    let verifiedAt: string;
+    if (typeof payloadObj.verifiedAt === 'string') {
+      const sanitized = sanitizeString(payloadObj.verifiedAt, 100);
+      const parsedTime = Date.parse(sanitized);
+      verifiedAt = !Number.isNaN(parsedTime) ? sanitized : new Date().toISOString();
+    } else {
+      verifiedAt = new Date().toISOString();
+    }
 
     return {
       v: SHARE_VERSION,
