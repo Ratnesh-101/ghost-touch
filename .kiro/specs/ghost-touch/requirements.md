@@ -141,3 +141,18 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 5. WHEN the user presses the Android Back button or performs the system or TalkBack Back gesture, OR activates the labelled Back button THEN the system SHALL leave Explore and speak the Capture prompt. WHEN TalkBack is off, a two-finger swipe down SHALL also leave Explore.
 6. THE system SHALL NOT rely on a two-finger gesture as the only way to leave Explore.
 7. WHEN the spoken text of a screen is also shown on screen THEN the system SHALL NOT make the screen reader read it a second time.
+
+### Requirement 14: Frankenstein's Laboratory theme and sensory aesthetics
+*(Note: Written by Antigravity (agy) on the owner's instruction, awaiting Kiro review; retroactively formalizes the Frankenstein Laboratory visual and sensory theme implemented by Antigravity).*
+
+**User Story:** As a blind or low-vision STEM student, I want the Frankenstein's Laboratory visual and sensory theme to provide extreme contrast, legible typography, tactile clarity, and photosensitive safety without compromising non-visual exploration.
+
+#### Acceptance Criteria
+1. **Contrast:** All body and title text SHALL meet WCAG AAA contrast of at least 7:1 against dark surfaces (`--gt-text` #eafff5 > 18:1, `--gt-text-primary` #f5fff8 > 18:1, `--gt-bone` #ded6c4 > 13:1, `--gt-text-muted` #a8c5b5 > 10:1), and UI boundaries/borders SHALL meet at least 4.5:1.
+2. **Touch targets:** Every interactive control SHALL provide an accessible name and a minimum touch target of 48×48 CSS px (`--gt-target`: 48px).
+3. **Typography:** Atkinson Hyperlegible (400 and 700 weights) SHALL be self-hosted as woff2 files in `frontend/src/assets/fonts/` with `font-display: swap` and precached by the service worker; Indian language fallbacks (`'Nirmala UI'`, `'Noto Sans Devanagari'`, `'Noto Sans Gujarati'`) SHALL be maintained.
+4. **Reduced motion:** WHEN `prefers-reduced-motion: reduce` is active THEN the system SHALL disable all glowing animations, pulse transitions, and electric arcs, providing static non-animated visuals.
+5. **Photosensitive safety & animation limits:** WHEN a diagram scene finishes loading THEN the system SHALL show the "IT'S ALIVE" spark sequence for at most 1.2 s, flashing at most 3 times per second (WCAG 2.3.1 compliance, ~2.1 Hz), accompanied by the existing success earcon.
+6. **Tactile canvas purity:** WHILE exploring a diagram on the Explore canvas THEN the drawing area SHALL remain pure high-contrast glowing green lines on near-black background (`#0b0e0c`) with NO decorative textures, blueprint grids, stitches, or rivets inside the canvas that could interfere with touch exploration.
+7. **Full internationalization:** Every user-facing string SHALL flow through `t()` with complete parity across `en`, `hi`, and `gu` in `frontend/src/i18n/index.ts`.
+8. **Accessible brand assets:** Brand assets (`logo-mark.svg`, `logo-full.svg`, `Mascot.tsx`) SHALL respect the neck-bolt exclusion zone rule, enforce file size limits (<6 KB for brand icons, <10 KB for og-image), and mark all purely decorative graphics with `aria-hidden="true"`.
