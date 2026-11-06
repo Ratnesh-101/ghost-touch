@@ -3,6 +3,9 @@
 Nebius exposes an OpenAI-compatible Chat Completions API. Environment:
     NEBIUS_API_KEY    required (a provider without a key is skipped at start-up)
     NEBIUS_MODEL      vision-capable model id (default ``openbmb/MiniCPM-V-4_5``)
+    NEBIUS_TEXT_MODEL optional text-only model id for ``complete`` (Ask); defaults to NEBIUS_MODEL.
+                      Text-only models such as ``nvidia/Nemotron-3-Ultra-550b-a55b`` reject images,
+                      so they can only be used here, never in NEBIUS_MODEL.
     NEBIUS_BASE_URL   default ``https://api.tokenfactory.nebius.com/v1``
 
 This is also the key used for bulk test runs, spike runs and other "labour", so that the
@@ -42,15 +45,16 @@ class NebiusProvider:
     ) -> None:
         self.api_key = api_key if api_key is not None else os.environ.get("NEBIUS_API_KEY", "")
         self.model = model or os.environ.get("NEBIUS_MODEL", "").strip() or DEFAULT_MODEL
+        self.text_model = os.environ.get("NEBIUS_TEXT_MODEL", "").strip() or self.model
         self.base_url = (
             base_url or os.environ.get("NEBIUS_BASE_URL", "").strip() or DEFAULT_BASE_URL
         ).rstrip("/")
         self.inline_limit = inline_limit
         self._client = client
 
-    def _body(self, content: Any, max_tokens: int) -> dict[str, Any]:
+    def _body(self, content: Any, max_tokens: int, model: str | None = None) -> dict[str, Any]:
         return {
-            "model": self.model,
+            "model": model or self.model,
             "messages": [{"role": "user", "content": content}],
             "temperature": 0.0,
             "max_tokens": max_tokens,
@@ -81,4 +85,4 @@ class NebiusProvider:
 
     async def complete(self, prompt: str, *, timeout: float) -> str:
         """Complete a text-only prompt (used by Ask). Raises VisionError on any failure."""
-        return await self._post(self._body(prompt, COMPLETE_MAX_TOKENS), timeout)
+        return await self._post(self._body(prompt, COMPLETE_MAX_TOKENS, self.text_model), timeout)

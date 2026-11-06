@@ -261,3 +261,9 @@ Format for each entry:
 - **Not fixable:** `deepmerge` (low) has no patched release (4.3.1 is the latest). Build-time only, not shipped. Dismiss the alert as "no fix available / not used at runtime" on GitHub.
 - **Backend:** pip-audit found only the venv's bundled `setuptools 65.5.0` (not a project dependency); app packages clean.
 - **Gates (clean clone, fresh install):** tsc clean, 473 frontend tests pass, build OK, PWA still emits `sw.js` and `manifest.webmanifest`.
+
+## 2026-11-06 - Nebius text model and provider check (Claude Code)
+- **Added `NEBIUS_TEXT_MODEL`:** optional text-only model for `complete()` (Ask answers); falls back to `NEBIUS_MODEL`. Live check: `nvidia/Nemotron-3-Ultra-550b-a55b` answered an Ask-style prompt in 1.1 s. Ultra rejects images (HTTP 400), so it can never be `NEBIUS_MODEL`. Two new tests.
+- **Vision model kept as MiniCPM (owner decision):** Nemotron-3.5-Super-VL scored 6/10 usable on the clean spike samples (all bar charts and shapes 0.93-1.00; the three graphs and one triangle failed with empty replies or timeouts, median 65 s per call), but the chain's per-provider timeout is 8 s, so it would rarely finish as the last fallback. MiniCPM scored 0/10 in the same spike (replies not parseable as JSON); owner chose to keep it anyway.
+- **OpenAI key verified live:** `gpt-4.1-mini` returned a valid triangle scene in about 4-5 s.
+- Gates: backend tests, ruff check and format clean.

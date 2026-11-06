@@ -33,6 +33,9 @@ services:
         value: https://api.openai.com/v1
       - key: NEBIUS_MODEL
         value: openbmb/MiniCPM-V-4_5
+      # Text-only (Ask answers). Cannot read images, so it must not be used for NEBIUS_MODEL.
+      - key: NEBIUS_TEXT_MODEL
+        value: nvidia/Nemotron-3-Ultra-550b-a55b
       - key: NEBIUS_BASE_URL
         value: https://api.tokenfactory.nebius.com/v1
       # Order of fallback: Gemini first, then OpenAI, then Nebius (last). Providers without a key are skipped.

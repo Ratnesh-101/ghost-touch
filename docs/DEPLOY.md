@@ -43,6 +43,7 @@ The repository root contains `render.yaml`, an infrastructure-as-code Blueprint 
    - `OPENAI_MODEL`: `gpt-4.1-mini`
    - `OPENAI_BASE_URL`: `https://api.openai.com/v1`
    - `NEBIUS_MODEL`: `openbmb/MiniCPM-V-4_5`
+   - `NEBIUS_TEXT_MODEL`: `nvidia/Nemotron-3-Ultra-550b-a55b` (text-only, used for Ask answers)
    - `NEBIUS_BASE_URL`: `https://api.tokenfactory.nebius.com/v1`
    - `VISION_PROVIDERS`: `gemini,openai,nebius`
    - `PROVIDER_TIMEOUT_SECONDS`: `8.0`

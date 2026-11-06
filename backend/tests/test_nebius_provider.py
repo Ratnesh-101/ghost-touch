@@ -68,6 +68,33 @@ def test_complete_is_text_only() -> None:
     assert seen["body"]["messages"][0]["content"] == "How long is AB?"
 
 
+def test_complete_uses_the_text_model_but_extract_keeps_the_vision_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("NEBIUS_TEXT_MODEL", "text/only-model")
+    models: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        models.append(json.loads(request.content)["model"])
+        return _reply("ok")
+
+    async def go() -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            provider = NebiusProvider(api_key=FAKE_KEY, client=client)
+            await provider.complete("hi", timeout=5.0)
+            await provider.extract(PNG, "image/png", "prompt", timeout=5.0)
+
+    asyncio.run(go())
+
+    assert models == ["text/only-model", DEFAULT_MODEL]
+
+
+def test_text_model_defaults_to_the_vision_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("NEBIUS_TEXT_MODEL", raising=False)
+    monkeypatch.setenv("NEBIUS_MODEL", "some/vl-model")
+    assert NebiusProvider(api_key=FAKE_KEY).text_model == "some/vl-model"
+
+
 def test_auth_failure_never_leaks_the_key() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(401, text=f"bad token {FAKE_KEY}")
