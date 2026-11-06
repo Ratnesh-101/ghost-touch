@@ -23,6 +23,7 @@ export {
   panFor,
   directionHint,
   hasArrived,
+  SECTOR_HYSTERESIS_DEG,
 } from './geometry';
 
 export type {

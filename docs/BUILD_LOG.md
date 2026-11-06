@@ -1382,3 +1382,41 @@ Format for each entry:
   - `docs/reports/audit-a5-integration.md`
   - `docs/BUILD_LOG.md`
 
+
+## 2026-11-06 — agy, reviewed by Claude — Lane f1-fix-runtime (Fix guide runtime & integration defects)
+- Resolved all confirmed high/medium runtime defects from `docs/reports/audit-a1-guide-runtime.md` and integration defects from `docs/reports/audit-a5-integration.md`:
+  - **A5-01 (App.tsx):** Removed duplicate unconditional `warmBackend()` call in `App.tsx` ensuring 0 network calls on Student Open (`/#s=...`) and offline.
+  - **A5-02 (audio.ts):** Guarded `setGuideTone(null)` to never create or start Web Audio oscillators when no guide oscillator is active (prevents audio node leak when guide flag is OFF).
+  - **G-RUN-01 (Explore.tsx):** Unlocked `WebAudioDriver` on first user touch gesture and guide start in `Explore.tsx`, resolving permanently muted audio on shared link routes.
+  - **G-RUN-02 (Explore.tsx, flow/guide.ts):** Explicitly silenced active theremin tone (`setTone(null)`) and reset engine state when finger guidance begins via voice command or button offer, restoring clean single-tone audio.
+  - **G-RUN-03 (Explore.tsx, flow/ask.ts, flow/guide.ts):** Prevented back-to-back speech cancellations: avoided duplicated speech calls on voice `guide_to` and `stop` commands; formatted Ask responses with guidance offer into a single unified spoken utterance via `formatAnswer`; suppressed redundant `guide.stopped` announcement when switching guidance targets in `GuideController.start()`.
+  - **G-RUN-04 (Explore.tsx):** Restored browser history stack using `pushExploreEntry()` when Android system back gesture cancels finger guidance on the Explore screen.
+  - **G-RUN-05 (guide/geometry.ts, guide/machine.ts):** Added angular hysteresis (`SECTOR_HYSTERESIS_DEG = 4`) and direction hint throttling in `directionHint` and `guideStep` to eliminate hint spam and speech stutter on sector-boundary jitter.
+  - **G-RUN-06 (Explore.tsx, drivers/audio.ts):** Added `visibilitychange` listeners to silence guide tones and theremin and stop active guidance when the document becomes hidden (background tab, incoming call, or screen lock).
+  - **G-RUN-07 / A5-04 (Explore.tsx):** Subscribed `Explore.tsx` to `subscribeLang` via `useSyncExternalStore` and dynamically updated `GuideController` language dependencies on language change.
+  - **G-RUN-08 (Explore.tsx):** Stopped active guidance and cleared `offeredTarget` on scene prop changes.
+  - **G-RUN-09 (flow/commands.ts):** Added transliterated Hindi and Gujarati voice stop commands ("स्टॉप", "स्टॉप करो", "સ્ટોપ", "સ્ટોપ કરો", etc.) to `parseExploreCommand`.
+  - **G-RUN-10 (flow/commands.ts):** Added phonetic letter mapping in `findElementByLabelOrId` mapping Devanagari and Gujarati letter names ("ए", "બી", etc.) to Latin vertex labels ("A", "B", etc.).
+  - **A5-09 (i18n/index.ts, translation sheets):** Localized `teach.qrTooLong` in Hindi and Gujarati.
+  - **G-RUN-13 (Explore.tsx):** Promoted surviving pointer during multi-touch guidance lift without silencing guide tone.
+- Verified sound:
+  - 108 test files passed (1478 tests passed)
+  - `tsc -p frontend --noEmit`: 0 errors
+  - `npm run build`: built clean in 209ms (PWA precache 22 entries / 654.60 KiB)
+- Files touched:
+  - `frontend/src/App.tsx`
+  - `frontend/src/drivers/audio.ts`
+  - `frontend/src/flow/ask.ts`
+  - `frontend/src/flow/commands.ts`
+  - `frontend/src/flow/guide.ts`
+  - `frontend/src/guide/geometry.ts`
+  - `frontend/src/guide/index.ts`
+  - `frontend/src/guide/machine.ts`
+  - `frontend/src/guide/semantic.ts`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/screens/Explore.tsx`
+  - `docs/user-test/translation-review.md`
+  - `docs/user-test/translation-review.csv`
+  - `frontend/tests/fix.runtime.test.tsx`
+  - `docs/reports/agy-f1-fix-runtime-report.md`
+  - `docs/BUILD_LOG.md`

@@ -39,6 +39,7 @@ export interface AskDeps {
     lang: string,
     signal: AbortSignal,
   ) => Promise<AskResponse>;
+  formatAnswer?: (answer: string, target?: GuideTarget) => string;
 }
 
 /**
@@ -193,7 +194,10 @@ export class AskManager {
         // non-fatal
       }
       try {
-        deps.say(response.answer);
+        const answerText = deps.formatAnswer
+          ? deps.formatAnswer(response.answer, response.target)
+          : response.answer;
+        deps.say(answerText);
       } catch {
         // non-fatal
       }
@@ -291,7 +295,10 @@ export class AskManager {
         // non-fatal
       }
       try {
-        deps.say(response.answer);
+        const answerText = deps.formatAnswer
+          ? deps.formatAnswer(response.answer, response.target)
+          : response.answer;
+        deps.say(answerText);
       } catch {
         // non-fatal
       }

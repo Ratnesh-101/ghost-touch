@@ -147,12 +147,25 @@ export function parseExploreCommand(
       norm === 'गाइड रोको' ||
       norm === 'बंद करो' ||
       norm === 'गाइड बंद करो' ||
+      norm === 'स्टॉप' ||
+      norm === 'स्टॉप करो' ||
+      norm === 'स्टॉप गाइड' ||
+      norm === 'गाइड स्टॉप करो' ||
+      norm === 'गाइड स्टॉप' ||
       norm === 'ઊભા રહો' ||
       norm === 'રોકો' ||
       norm === 'બંધ કરો' ||
       norm === 'થોભો' ||
       norm === 'ગાઇડ બંધ કરો' ||
-      norm === 'ગાઈડ રોકો'
+      norm === 'ગાઈડ રોકો' ||
+      norm === 'સ્ટોપ' ||
+      norm === 'સ્ટોપ કરો' ||
+      norm === 'સ્ટોપ ગાઇડ' ||
+      norm === 'સ્ટોપ ગાઈડ' ||
+      norm === 'ગાઇડ સ્ટોપ કરો' ||
+      norm === 'ગાઈડ સ્ટોપ કરો' ||
+      norm === 'ગાઇડ સ્ટોપ' ||
+      norm === 'ગાઈડ સ્ટોપ'
     ) {
       return { type: 'stop', raw: transcript };
     }
@@ -408,6 +421,35 @@ export function findNearestVertex(
   return best;
 }
 
+const PHONETIC_LETTER_MAP: Record<string, string> = {
+  // Devanagari (Hindi)
+  'ए': 'a', 'अ': 'a', 'बी': 'b', 'ब': 'b', 'सी': 'c', 'स': 'c',
+  'डी': 'd', 'द': 'd', 'ई': 'e', 'इ': 'e', 'एफ': 'f', 'जी': 'g', 'एच': 'h',
+  'आई': 'i', 'आइ': 'i', 'जे': 'j', 'के': 'k', 'एल': 'l', 'एम': 'm', 'एन': 'n',
+  'ओ': 'o', 'पी': 'p', 'प': 'p', 'क्यू': 'q', 'आर': 'r', 'र': 'r',
+  'एस': 's', 'टी': 't', 'ट': 't', 'त': 't', 'यू': 'u', 'वी': 'v',
+  'डब्ल्यू': 'w', 'एक्स': 'x', 'वाई': 'y', 'जेड': 'z', 'ज़ेड': 'z',
+  // Gujarati
+  'એ': 'a', 'અ': 'a', 'બી': 'b', 'બ': 'b', 'સી': 'c', 'સ': 'c',
+  'ડી': 'd', 'દ': 'd', 'ઈ': 'e', 'ઇ': 'e', 'એફ': 'f', 'જી': 'g',
+  'એચ': 'h', 'આઈ': 'i', 'આઇ': 'i', 'જે': 'j', 'કે': 'k', 'એલ': 'l',
+  'એમ': 'm', 'એન': 'n', 'ઓ': 'o', 'પી': 'p', 'પ': 'p', 'ક્યૂ': 'q',
+  'આર': 'r', 'એસ': 's', 'ટી': 't', 'ટ': 't', 'યુ': 'u', 'વી': 'v',
+  'ડબલ્યુ': 'w', 'એક્સ': 'x', 'વાય': 'y', 'ઝેડ': 'z',
+};
+
+function toPhoneticLatin(term: string): string {
+  const trimmed = term.trim();
+  if (PHONETIC_LETTER_MAP[trimmed]) {
+    return PHONETIC_LETTER_MAP[trimmed];
+  }
+  const tokens = trimmed.split(/\s+/);
+  if (tokens.length > 1 && tokens.every((tok) => Boolean(PHONETIC_LETTER_MAP[tok]))) {
+    return tokens.map((tok) => PHONETIC_LETTER_MAP[tok]).join('');
+  }
+  return trimmed;
+}
+
 /** Find element in scene by label or ID matching query. */
 export function findElementByLabelOrId(
   scene: DiagramScene,
@@ -420,13 +462,28 @@ export function findElementByLabelOrId(
       '',
     )
     .trim();
+  const mappedQ = toPhoneticLatin(q);
+  const mappedStrippedQ = toPhoneticLatin(strippedQ);
+
+  const matches = (label: string, id: string): boolean => {
+    return (
+      label === q ||
+      id === q ||
+      label === strippedQ ||
+      id === strippedQ ||
+      label === mappedQ ||
+      id === mappedQ ||
+      label === mappedStrippedQ ||
+      id === mappedStrippedQ
+    );
+  };
 
   // 1. Points
   if (scene.points) {
     for (const p of scene.points) {
       const pLabel = (p.label ?? '').toLowerCase().trim();
       const pId = p.id.toLowerCase().trim();
-      if (pLabel === q || pId === q || pLabel === strippedQ || pId === strippedQ) {
+      if (matches(pLabel, pId)) {
         return { id: p.id, label: p.label || p.id };
       }
     }
@@ -437,7 +494,7 @@ export function findElementByLabelOrId(
     for (const s of scene.segments) {
       const sLabel = (s.label ?? '').toLowerCase().trim();
       const sId = s.id.toLowerCase().trim();
-      if (sLabel === q || sId === q || sLabel === strippedQ || sId === strippedQ) {
+      if (matches(sLabel, sId)) {
         return { id: s.id, label: s.label || s.id };
       }
     }
@@ -448,7 +505,7 @@ export function findElementByLabelOrId(
     for (const pl of scene.polylines) {
       const plLabel = (pl.label ?? '').toLowerCase().trim();
       const plId = pl.id.toLowerCase().trim();
-      if (plLabel === q || plId === q || plLabel === strippedQ || plId === strippedQ) {
+      if (matches(plLabel, plId)) {
         return { id: pl.id, label: pl.label || pl.id };
       }
     }
@@ -459,7 +516,7 @@ export function findElementByLabelOrId(
     for (const b of scene.bars) {
       const bLabel = (b.label ?? '').toLowerCase().trim();
       const bId = b.id.toLowerCase().trim();
-      if (bLabel === q || bId === q || bLabel === strippedQ || bId === strippedQ) {
+      if (matches(bLabel, bId)) {
         return { id: b.id, label: b.label || b.id };
       }
     }

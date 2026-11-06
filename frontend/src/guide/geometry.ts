@@ -308,14 +308,35 @@ export function panFor(dx: number): number {
   return Math.max(-1, Math.min(1, dx));
 }
 
+const HINT_NOMINAL_DEG: Record<Exclude<HintKey, 'here'>, number> = {
+  'right': 0,
+  'down-right': 45,
+  'down': 90,
+  'down-left': 135,
+  'left': 180,
+  'up-left': -135,
+  'up': -90,
+  'up-right': -45,
+};
+
+export const SECTOR_HYSTERESIS_DEG = 4;
+
+function angleDiffDeg(a: number, b: number): number {
+  let diff = Math.abs(a - b) % 360;
+  if (diff > 180) diff = 360 - diff;
+  return diff;
+}
+
 /**
  * Direction hint: dead-zone => 'here', or one of 8 compass directions.
  * y = 0 is top of screen.
+ * Optional prevHint enables angular hysteresis across sector boundaries.
  */
 export function directionHint(
   dx: number,
   dy: number,
-  deadZone: number = DEFAULT_GUIDE.arriveRadius
+  deadZone: number = DEFAULT_GUIDE.arriveRadius,
+  prevHint?: HintKey,
 ): HintKey {
   if (!Number.isFinite(dx) || !Number.isFinite(dy)) {
     return 'here';
@@ -330,6 +351,13 @@ export function directionHint(
   // dx < 0 is LEFT, dx > 0 is RIGHT
   // Angle in degrees [-180, 180]
   const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+
+  if (prevHint && prevHint !== 'here') {
+    const nominal = HINT_NOMINAL_DEG[prevHint];
+    if (nominal !== undefined && angleDiffDeg(deg, nominal) <= 22.5 + SECTOR_HYSTERESIS_DEG) {
+      return prevHint;
+    }
+  }
 
   if (deg >= -22.5 && deg <= 22.5) {
     return 'right';

@@ -267,7 +267,7 @@
 "teach.linkCopied (spoken)","Link copied","लिंक कॉपी हो गया","લિંક કોપી થઈ ગઈ","","","",""
 "teach.share","Share","साझा करें","શેર કરો","","","",""
 "teach.qrCodeAlt","QR code to open this verified diagram","इस सत्यापित आरेख को खोलने के लिए क्यूआर कोड","આ પ્રમાણિત આકૃતિ ખોલવા માટે ક્યુઆર કોડ","","","",""
-"teach.qrTooLong","Link too long for a QR code; use Copy link","Link too long for a QR code; use Copy link","Link too long for a QR code; use Copy link","","","","exact contract message"
+"teach.qrTooLong","Link too long for a QR code; use Copy link","क्यूआर कोड के लिए लिंक बहुत लंबा है; लिंक कॉपी करें का उपयोग करें","ક્યુઆર કોડ માટે લિંક ખૂબ લાંબી છે; લિંક કોપી કરો વાપરો","","","",""
 "teach.linkSize","Size: {chars} characters","आकार: {chars} वर्ण","કદ: {chars} અક્ષરો","","","","keep {chars}"
 "guide.semantic.none.peak (spoken)","There is no peak in this diagram.","इस आरेख में कोई शिखर नहीं है।","આ આકૃતિમાં કોઈ શિખર નથી.","","","",""
 "guide.semantic.none.trough (spoken)","There is no lowest point in this diagram.","इस आरेख में कोई न्यूनतम बिंदु नहीं है।","આ આકૃતિમાં કોઈ સૌથી નીચો બિંદુ નથી.","","","",""

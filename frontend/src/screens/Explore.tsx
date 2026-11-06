@@ -7,7 +7,7 @@
  * Pure decisions live in `flow/explore.ts`, `flow/ask.ts`, and `flow/commands.ts`;
  * browser APIs live in `drivers/` (navigation history, canvas context & DOM events here).
  */
-import { useCallback, useEffect, useRef, useState, type JSX, type PointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type JSX, type PointerEvent } from 'react';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { Spark } from '../components/lab/Spark';
 import { SettingsLauncher } from '../components/SettingsLauncher';
@@ -49,7 +49,7 @@ import {
   type PointerHistory,
 } from '../flow/explore';
 import { canvasAriaLabel, sceneName } from '../flow/navigation';
-import { getLang, LANG_BCP47, t } from '../i18n';
+import { getLang, subscribeLang, LANG_BCP47, t } from '../i18n';
 import {
   markAlivePlayed,
   markReturningFromCorrect,
@@ -172,6 +172,7 @@ export function Explore({
   const askManager = useRef<AskManager>(new AskManager());
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
   const [statusMessage, setStatusMessage] = useState(announced);
   const [isBusy, setIsBusy] = useState(false);
   const [showTextFallback, setShowTextFallback] = useState(!drivers.speech.canListen);
@@ -199,8 +200,16 @@ export function Explore({
   }, [scene]);
 
   useEffect(() => {
+    guideController.current?.setDeps({ lang: LANG_BCP47[currentLang] ?? 'en-IN' });
+  }, [currentLang]);
+
+  useEffect(() => {
     if (prevSceneRef.current !== scene) {
       prevSceneRef.current = scene;
+      if (guideController.current?.isGuiding()) {
+        guideController.current.stop('user');
+      }
+      setOfferedTarget(null);
       if (shouldPlayAlive(scene)) {
         markAlivePlayed(scene);
         setIsAlive(true);
@@ -240,6 +249,9 @@ export function Explore({
     const resolved = resolveTarget(sceneRef.current, offeredTarget);
     if (resolved && guideController.current) {
       setOfferedTarget(null);
+      drivers.audio.unlock();
+      drivers.audio.setTone(null);
+      engineState.current = initialState();
       guideController.current.start(resolved);
       setIsGuiding(true);
       const msg = t('guide.start').replace('{label}', resolved.label);
@@ -352,6 +364,8 @@ export function Explore({
         if (result.stopGuide) {
           guideController.current?.stop('voice');
         } else if (result.guideTarget) {
+          drivers.audio.setTone(null);
+          engineState.current = initialState();
           guideController.current?.start(result.guideTarget);
           setIsGuiding(true);
         }
@@ -375,10 +389,12 @@ export function Explore({
         }
 
         setStatusMessage(result.speech);
-        try {
-          drivers.speech.speak(result.speech, lang);
-        } catch {
-          // ignore
+        if (!result.stopGuide && !result.guideTarget) {
+          try {
+            drivers.speech.speak(result.speech, lang);
+          } catch {
+            // ignore
+          }
         }
         lastSpokenRef.current = result.speech;
         return;
@@ -397,6 +413,12 @@ export function Explore({
         speech: drivers.speech,
         scene,
         lang,
+        formatAnswer: (ans: string, target?: GuideTarget) => {
+          if (target && isGuide) {
+            return `${ans} ${t('ask.guideOffer')}`;
+          }
+          return ans;
+        },
         say: (text: string) => {
           setStatusMessage(text);
           try {
@@ -416,17 +438,8 @@ export function Explore({
 
       if (leaving.current) return;
       if (outcome.kind === 'success') {
-        if (outcome.target && isGuideActive()) {
+        if (outcome.target && isGuide) {
           setOfferedTarget(outcome.target);
-          const offerText = t('ask.guideOffer');
-          const fullMessage = outcome.answer + ' ' + offerText;
-          setStatusMessage(fullMessage);
-          try {
-            drivers.speech.speak(fullMessage, lang);
-          } catch {
-            // ignore
-          }
-          lastSpokenRef.current = fullMessage;
         }
       } else if (outcome.kind === 'failed') {
         setShowTextFallback(true);
@@ -477,6 +490,12 @@ export function Explore({
         speech: drivers.speech,
         scene,
         lang,
+        formatAnswer: (ans: string, target?: GuideTarget) => {
+          if (target && isGuideActive()) {
+            return `${ans} ${t('ask.guideOffer')}`;
+          }
+          return ans;
+        },
         say: (text: string) => {
           setStatusMessage(text);
           try {
@@ -515,15 +534,6 @@ export function Explore({
         if (outcome?.kind === 'success') {
           if (outcome.target && isGuideActive()) {
             setOfferedTarget(outcome.target);
-            const offerText = t('ask.guideOffer');
-            const fullMessage = outcome.answer + ' ' + offerText;
-            setStatusMessage(fullMessage);
-            try {
-              drivers.speech.speak(fullMessage, lang);
-            } catch {
-              // ignore
-            }
-            lastSpokenRef.current = fullMessage;
           }
           setQuestionText('');
           focusAfterRender(askButtonRef);
@@ -759,6 +769,7 @@ export function Explore({
     const unbindBack = subscribeBack(() => {
       if (guideController.current?.isGuiding()) {
         guideController.current.stop('back');
+        pushExploreEntry();
         return;
       }
       if (leaving.current) return;
@@ -769,6 +780,17 @@ export function Explore({
       primaryPointerId.current = null;
       onBackRef.current();
     });
+
+    const handleVisibilityChange = (): void => {
+      if (document.hidden) {
+        if (guideController.current?.isGuiding()) {
+          guideController.current.stop('user');
+        }
+        drivers.audio.setTone(null);
+        drivers.audio.setGuideTone?.(null);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     if (isSpeechActive) {
       setSpeechAnnounced(true);
@@ -791,6 +813,7 @@ export function Explore({
     }
 
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       gc.destroy();
       guideController.current = null;
       clearLongPressTimer();
@@ -820,6 +843,7 @@ export function Explore({
 
   const handlePointerDown = (e: PointerEvent<HTMLCanvasElement>): void => {
     if (leaving.current) return;
+    drivers.audio.unlock();
     e.currentTarget.setPointerCapture(e.pointerId);
     updateDimensions();
     const coords = getCanvasCoords(e);
@@ -1010,8 +1034,14 @@ export function Explore({
     if (guideController.current?.isGuiding()) {
       if (isPrimaryLift) {
         primaryPointerId.current = promotedPointerId;
-        guideController.current.lift(performance.now());
-        scheduleDraw(viewportRef.current, null);
+        if (promotedPointerId === null || promotedCoords === null) {
+          guideController.current.lift(performance.now());
+          scheduleDraw(viewportRef.current, null);
+        } else {
+          const norm = toNorm(promotedCoords, viewportRef.current);
+          guideController.current.move(norm, performance.now());
+          scheduleDraw(viewportRef.current, promotedCoords);
+        }
       }
       return;
     }

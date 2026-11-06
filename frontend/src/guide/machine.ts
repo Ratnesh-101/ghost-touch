@@ -189,7 +189,8 @@ export function guideStep(
     }
 
     // Direction hint: spoken on direction change OR every hintEveryMs
-    const hint = directionHint(dx, dy, cfg.arriveRadius);
+    // Sector-boundary jitter is suppressed by hysteresis in directionHint
+    const hint = directionHint(dx, dy, cfg.arriveRadius, s.lastHint ?? undefined);
     let nextLastHint = s.lastHint;
     let nextLastHintAt = s.lastHintAt;
 

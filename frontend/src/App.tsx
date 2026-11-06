@@ -277,10 +277,6 @@ export function App(): JSX.Element {
     }
   }, [view, drivers]);
 
-  useEffect(() => {
-    void warmBackend();
-  }, []);
-
   if (hash === DEBUG_HASH) return <Debug />;
 
   // After Start, the vibration warning (if any) was already spoken by the tap.

@@ -502,6 +502,14 @@ export function resolveSemantic(
             continue;
           }
 
+          // Ensure this point is not shadowed by an earlier point with identical coordinates
+          const firstWithCoords = scene.points.find(
+            (pt) => Math.abs(pt.x - p.x) < 1e-5 && Math.abs(pt.y - p.y) < 1e-5
+          );
+          if (firstWithCoords && firstWithCoords.id !== p.id) {
+            continue;
+          }
+
           // Must have EXACTLY two incident segments
           const incident = scene.segments.filter(
             (s) => s.a === p.id || s.b === p.id

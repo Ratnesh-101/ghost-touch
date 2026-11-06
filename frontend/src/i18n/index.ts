@@ -628,7 +628,7 @@ const hi: Record<string, string> = {
   'teach.linkCopied': 'लिंक कॉपी हो गया',
   'teach.share': 'साझा करें',
   'teach.qrCodeAlt': 'इस सत्यापित आरेख को खोलने के लिए क्यूआर कोड',
-  'teach.qrTooLong': 'Link too long for a QR code; use Copy link',
+  'teach.qrTooLong': 'क्यूआर कोड के लिए लिंक बहुत लंबा है; लिंक कॉपी करें का उपयोग करें',
   'teach.linkSize': 'आकार: {chars} वर्ण',
 };
 
@@ -926,7 +926,7 @@ const gu: Record<string, string> = {
   'teach.linkCopied': 'લિંક કોપી થઈ ગઈ',
   'teach.share': 'શેર કરો',
   'teach.qrCodeAlt': 'આ પ્રમાણિત આકૃતિ ખોલવા માટે ક્યુઆર કોડ',
-  'teach.qrTooLong': 'Link too long for a QR code; use Copy link',
+  'teach.qrTooLong': 'ક્યુઆર કોડ માટે લિંક ખૂબ લાંબી છે; લિંક કોપી કરો વાપરો',
   'teach.linkSize': 'કદ: {chars} અક્ષરો',
 };
 

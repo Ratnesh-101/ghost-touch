@@ -61,8 +61,11 @@ export class GuideController {
 
   start(target: ResolvedTarget, now = performance.now()): void {
     if (this.state.phase === 'guiding') {
-      this.stop('user', now);
+      this.clearTicker();
+      this.deps.drivers.audio.setGuideTone?.(null);
     }
+    // Suppress theremin during guidance per contract
+    this.deps.drivers.audio.setTone(null);
     const { state: nextState, effects } = guideStep(
       this.state,
       { type: 'start', target, now },

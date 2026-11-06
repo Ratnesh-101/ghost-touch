@@ -258,6 +258,9 @@ export class WebAudioDriver implements AudioDriver {
   setGuideTone(hz: number | null, pan = 0): void {
     this.activeGuideHz = hz !== null && Number.isFinite(hz) ? hz : null;
     this.activeGuidePan = Number.isFinite(pan) ? Math.max(-1, Math.min(1, pan)) : 0;
+    if (this.activeGuideHz === null && this.guideOsc === undefined) {
+      return;
+    }
     if (this.ctx === undefined) return;
     if (this.ctx.state === 'suspended') {
       this.resumeIfSuspended(this.ctx);
@@ -430,6 +433,9 @@ export class WebAudioDriver implements AudioDriver {
         if (this.ctx && this.ctx.state === 'suspended') {
           this.resumeIfSuspended(this.ctx);
         }
+      } else if (doc && (doc.visibilityState === 'hidden' || doc.hidden === true)) {
+        this.setTone(null);
+        this.setGuideTone?.(null);
       }
     };
 
