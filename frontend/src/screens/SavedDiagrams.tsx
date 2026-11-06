@@ -15,6 +15,7 @@ import { orderForDisplay, type SavedDiagram } from '../core/savedDiagrams';
 import type { DiagramStore } from '../drivers/diagramStore';
 import type { SpeechDriver } from '../drivers/speech';
 import { AccessibleButton } from '../components/AccessibleButton';
+import { Mascot } from '../components/Mascot';
 import { StatusText } from '../components/StatusText';
 import { getLang, LANG_BCP47, t } from '../i18n';
 import '../styles/saved.css';
@@ -134,7 +135,10 @@ export function SavedDiagrams({
       </div>
 
       {loading ? null : entries.length === 0 ? (
-        <p className="gt-saved__empty">{t('saved.empty')}</p>
+        <div className="gt-saved__empty-state">
+          <Mascot className="gt-saved__mascot" size={96} />
+          <p className="gt-saved__empty">{t('saved.empty')}</p>
+        </div>
       ) : (
         <ul className="gt-saved__list" role="list">
           {entries.map((entry) => (
