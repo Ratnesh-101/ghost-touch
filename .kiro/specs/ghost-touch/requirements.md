@@ -171,3 +171,31 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 4. THE backend SHALL account for EXIF orientation metadata when computing diagram coordinates in Raw Mode so orientation matches camera photos (SEC-04). (agy, awaiting Kiro review)
 5. THE backend SHALL enforce element count bounds on `POST /api/v1/validate` (max 500 points, 1000 segments) to prevent resource exhaustion (SEC-06). (agy, awaiting Kiro review)
 6. THE backend SHALL omit interactive OpenAPI documentation (`/docs`, `/redoc`) in production and emit `X-Content-Type-Options: nosniff` and `Cache-Control: no-store` headers (SEC-07, SEC-08). (agy, awaiting Kiro review)
+
+### Requirement 16: Security and robustness, round 2 (Kiro)
+**User Story:** As the owner of a free-tier service that pays per model call, I want abusive or malformed traffic to be bounded and visible, so that students keep getting answers and the bill stays predictable.
+
+#### Acceptance Criteria
+1. THE backend SHALL identify a client for rate limiting by the network peer address, EXCEPT that WHERE the request arrives through a trusted proxy (the number of trusted hops is configured, and defaults to one hop on Render and zero elsewhere) THEN it SHALL use the address that the trusted proxy appended to `X-Forwarded-For`, counted from the right. Entries the client wrote itself SHALL NOT change the client key. (A6-01)
+2. THE backend SHALL NOT keep rate-limit state for a client whose request window has expired; memory used by the limiter SHALL be bounded by the number of clients active in the last window. (A6-02)
+3. THE backend SHALL bound simultaneous `POST /api/v1/ask` model calls with a concurrency cap (default 4, configurable) and SHALL answer HTTP 503 with `Retry-After` when the wait for a slot exceeds a short limit, in the same way as `POST /api/v1/scene`. (A6-03)
+4. THE frontend host and the backend SHALL send a `Content-Security-Policy` that allows only what the PWA needs (own scripts, styles, fonts, images, worker, and the API origin) and SHALL forbid framing and plugins. A production build served by `vite preview` SHALL produce no CSP violation in normal use. (A6-04)
+5. THE backend SHALL apply body-size and rate-limit guards to a guarded route regardless of trailing or repeated slashes in the request path. (A6-05)
+6. THE frontend host SHALL send `Strict-Transport-Security` and a `Permissions-Policy` that grants camera and microphone to the app only. (A6-06)
+7. THE backend SHALL read the dimensions of a WebP image whose first chunk is not the image bitstream, and SHALL bound the candidate work Raw Mode does before it keeps its 300 segments. (A6-07, A6-08)
+8. THE CI workflow SHALL declare read-only token permissions and SHALL use action versions that exist. THE backend SHALL bound background improve passes with their own concurrency cap. WHEN a streamed body exceeds its limit THEN the backend SHALL answer HTTP 413, not 500. (A6-09, A6-10, A6-15)
+9. WHEN a client disconnects while `POST /api/v1/ask` is waiting for a model THEN the backend SHALL stop the work and SHALL answer HTTP 499.
+10. A spoken answer built from scene facts SHALL pass through the same length and sentence limit as a model answer. A model answer that is not a string SHALL be rejected. A lone unit word in a question SHALL NOT select a fact. A "don't know" answer SHALL be recognised whether it ends in `.`, `।` or `॥`, and SHALL carry no target. The point named "A" SHALL be answerable. (CORE-04, CORE-05, CORE-11, CORE-12)
+11. THE `Ask` and `Validate` endpoints SHALL accept any scene the Teacher Share contract allows (polylines up to 2000 points); `Validate` SHALL keep its own structural limits. (CORE-06, A2 contract)
+12. THE hit test SHALL treat a non-finite distance as a miss. (NEEDS-KIRO-01)
+
+### Requirement 17: Navigation and announcement integrity (Kiro)
+**User Story:** As a blind user, I want every screen change and every landmark to be spoken, and nothing I did to be lost silently, so that I never wonder where I am.
+
+#### Acceptance Criteria
+1. WHEN the user leaves a screen with the browser or Android Back control, including `#/teach`, `#/share` and the share error screen, THEN the system SHALL speak the destination prompt. IF the Teacher editor has unsaved changes THEN the system SHALL ask for confirmation before discarding them and SHALL stay on the editor until the user confirms. (CORE-01)
+2. WHEN a single pointer move produces more than one announcement (axis crossings and a vertex) THEN the system SHALL speak them as one utterance, in the order axis crossings first, then the vertex or bar, with nothing dropped. (CORE-02)
+3. WHEN the user leaves a screen before its asynchronous work finishes THEN the system SHALL NOT speak or change state on behalf of that screen. (CORE-03)
+4. WHEN the last saved diagram is deleted THEN the system SHALL speak the deletion and the empty list as one utterance and SHALL return focus to the screen heading. (CORE-07)
+5. IF the browser refuses pointer capture THEN Explore SHALL carry on working; WHEN the browser revokes pointer capture THEN the Teacher canvas SHALL end the drag. (CORE-08, CORE-09)
+6. THE notice that no voice is installed for the chosen language SHALL come from the language tables. (CORE-10)

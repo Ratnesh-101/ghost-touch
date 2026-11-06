@@ -172,3 +172,60 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [~] 22.7 Steps 13.1–13.9 (Guide my finger) and 14.1–14.8 (Teacher share), only if the feature flags are turned on
   - [ ] 22.8 Record each result in `PHONE_TEST.md`; turn every FAIL into a new task under this heading before any code is written
   - _Requirements: 4.*, 5.*, 10.*, 12.*, 13.*_
+
+## Phase 5 — Round 2 fixes (Kiro, 2026-11-07)
+
+> Order of work for every task: finding verified and recorded in `docs/reviews/kiro-round2.md` (FIXED / NOT REPRODUCED / SKIPPED), then tests, then code. Gate before ticking: frontend `npx tsc --noEmit; npx vitest run; npm run build`; backend `pytest; ruff check; ruff format --check`. One commit per task: `kiro: T<n> <summary>`.
+> Not changed in this round: contract decisions A2 SEC-01, A2 SEC-04, A5-05; the tuned haptic constants; `frontend/src/core` except for a real bug noted in the review.
+
+- [x] 23. Spec for round 2: Requirements 16 and 17, design section, properties P40–P46, tasks 23–28
+  - [x] 23.1 Requirement 16 (security and robustness) and Requirement 17 (navigation and announcement integrity) in `requirements.md`
+  - [x] 23.2 Design section "Security and Robustness, round 2" and rows P40–P46 in `design.md`
+  - [x] 23.3 Create `docs/reviews/kiro-round2.md` with one row per finding, filled in as each task verifies it
+  - _Requirements: 16.*, 17.*_
+
+- [ ] 24. Backend Ask fixes (lane f4 plus CORE-04, CORE-05, CORE-06, CORE-11, CORE-12)
+  - [ ] 24.1 Bring the f4 lane work onto main. The branch `agy/f4-fix-backend-ask` has no commits (its work is uncommitted in the lane worktree), so apply the worktree diff as a patch instead of `git merge --squash`; record this in the review
+  - [ ] 24.2 Fix `test_fix_ask_regression.py`: facts answers are clamped; a client disconnect gives 499; the element-id list in the prompt contains no raw `</user_question>`
+  - [ ] 24.3 Fix `test_hardening.py::test_validate_structural_limits`: `/validate` keeps its limits; only the `/ask` polyline cap becomes 2000
+  - [ ] 24.4 Fix `test_review_fixes.py`: a lone unit word must not select a fact
+  - [ ] 24.5 CORE-04: Hindi danda and double danda in `is_dont_know`; "don't know" carries no target
+  - [ ] 24.6 CORE-06: `MAX_POLYLINE_POINTS = 2000` for `/ask`
+  - [ ] 24.7 Confirmed mediums CORE-11 (point "A") and CORE-12 (non-string `answer`), if reproduced
+  - [ ] 24.8 Gate (backend and frontend) passes; commit `kiro: T24 ...`
+  - _Requirements: 16.9, 16.10, 16.11_
+
+- [ ] 25. Security A6-01 to A6-05 and confirmed mediums
+  - [ ] 25.1 A6-01: client identity from the trusted proxy hop, else the socket address
+  - [ ] 25.2 A6-02: prune empty rate-limit windows
+  - [ ] 25.3 A6-03: concurrency cap on `POST /api/v1/ask`
+  - [ ] 25.4 A6-04: CSP in `frontend/vercel.json` and on FastAPI; verify with `npm run build` and `npm run preview` that the console shows no violation
+  - [ ] 25.5 A6-05: guards apply under trailing and repeated slashes
+  - [ ] 25.6 A6-06 HSTS and Permissions-Policy; A6-07 WebP chunk walk; A6-08 Raw Mode candidate cap; A6-09 CI permissions and action versions; A6-10 improve-pass concurrency; A6-15 streamed overflow gives 413 (each only if reproduced)
+  - [ ] 25.7 Gate passes; commit `kiro: T25 ...`
+  - _Requirements: 16.1 to 16.8_
+
+- [ ] 26. Bugs CORE-01 to CORE-03 and confirmed mediums
+  - [ ] 26.1 CORE-01: Back from `#/teach`, `#/share` and the share error screen speaks the destination, and unsaved Teacher edits need confirmation
+  - [ ] 26.2 CORE-02: axis crossings and the vertex are spoken as one utterance
+  - [ ] 26.3 CORE-03: `SavedDiagrams` does not speak or set state after unmount
+  - [ ] 26.4 CORE-07 combined delete message and focus; CORE-08 pointer capture try/catch; CORE-09 lost pointer capture; CORE-10 localised missing-voice notice (each only if reproduced)
+  - [ ] 26.5 NEEDS-KIRO-01: `hitTest` treats non-finite distance as a miss (a real bug in `core/`; noted in the review)
+  - [ ] 26.6 Gate passes; commit `kiro: T26 ...`
+  - _Requirements: 16.12, 17.*_
+
+- [ ] 27. Property tests for round 2
+  - [ ] 27.1 P40 rate-limit identity resists spoofing; P41 limiter state is bounded
+  - [ ] 27.2 P42 guards are path-normalisation invariant
+  - [ ] 27.3 P43 Back navigation is total and spoken
+  - [ ] 27.4 P44 announcements join in order without loss
+  - [ ] 27.5 P45 fact answers are bounded; P46 "don't know" ignores trailing punctuation
+  - [ ] 27.6 Each new property is confirmed to fail on a deliberately broken version
+  - [ ] 27.7 Gate passes; commit `kiro: T27 ...`
+  - _Requirements: 16.1, 16.2, 16.5, 16.10, 17.1, 17.2_
+
+- [ ] 28. Evidence and log
+  - [ ] 28.1 `docs/kiro-evidence/round2.md`: spec to task to tests to what the tests caught
+  - [ ] 28.2 `docs/reviews/kiro-round2.md` complete: every finding FIXED, NOT REPRODUCED or SKIPPED with a reason
+  - [ ] 28.3 `docs/BUILD_LOG.md` entry: Kiro did this work; agent-written findings and code are credited to Antigravity
+  - [ ] 28.4 Commit `kiro: T28 ...`; nothing is pushed
