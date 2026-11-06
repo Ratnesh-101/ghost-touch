@@ -5,6 +5,7 @@ import {
   chooseEviction,
   deserialise,
   makeId,
+  orderForDisplay,
   SAVED_DIAGRAMS_CAP,
   type SavedDiagram,
   savedTitle,
@@ -279,6 +280,183 @@ describe('Property P15 — Eviction invariants', () => {
           }
         }
       }),
+      { numRuns: 250 },
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Kiro additions (Task 19.4): P33, P34, P35 for Requirement 11
+// ---------------------------------------------------------------------------
+
+function entryArb(): fc.Arbitrary<SavedDiagram> {
+  return fc.record({
+    id: fc.uuid(),
+    createdAt: fc.integer({ min: 0, max: 2_000_000_000_000 }),
+    title: fc.string({ maxLength: 20 }),
+    thumbnailDataUrl: fc.constant(''),
+    scene: fc.constant<DiagramScene>({ kind: 'geometry' }),
+    pinned: fc.boolean(),
+  });
+}
+
+describe('P33 — List order and spoken title (Requirements 11.1, 11.3)', () => {
+  /**
+   * P33a: orderForDisplay returns every entry exactly once, newest first,
+   * without mutating its input, and is idempotent.
+   *
+   * Validates: Requirement 11.3
+   */
+  it('orderForDisplay is a newest-first permutation and does not mutate (200+ runs)', () => {
+    fc.assert(
+      fc.property(fc.array(entryArb(), { maxLength: 25 }), (entries) => {
+        const snapshot = structuredClone(entries);
+        const ordered = orderForDisplay(entries);
+
+        expect(entries).toEqual(snapshot);
+        expect(ordered).toHaveLength(entries.length);
+        expect(ordered.map((e) => e.id).sort()).toEqual(entries.map((e) => e.id).sort());
+        for (let i = 1; i < ordered.length; i++) {
+          expect(ordered[i - 1]!.createdAt).toBeGreaterThanOrEqual(ordered[i]!.createdAt);
+        }
+        expect(orderForDisplay(ordered)).toEqual(ordered);
+      }),
+      { numRuns: 250 },
+    );
+  });
+
+  /**
+   * P33b: savedTitle is never blank. It is the trimmed scene title when one
+   * exists; otherwise the kind, followed by at most three trimmed non-blank
+   * point labels in scene order.
+   *
+   * Validates: Requirement 11.1
+   */
+  it('savedTitle is never blank and follows the title / kind + labels rule (200+ runs)', () => {
+    fc.assert(
+      fc.property(validSceneArbitrary(), (scene) => {
+        const title = savedTitle(scene);
+        expect(title.trim().length).toBeGreaterThan(0);
+        expect(title).toBe(title.trim());
+
+        const sceneTitle = typeof scene.title === 'string' ? scene.title.trim() : '';
+        if (sceneTitle !== '') {
+          expect(title).toBe(sceneTitle);
+          return;
+        }
+        const labels = (scene.points ?? [])
+          .map((p) => (typeof p.label === 'string' ? p.label.trim() : ''))
+          .filter((l) => l !== '')
+          .slice(0, 3);
+        expect(title).toBe(labels.length > 0 ? `${scene.kind}: ${labels.join(', ')}` : scene.kind);
+      }),
+      { numRuns: 250 },
+    );
+  });
+});
+
+describe('P34 — Re-saving or pinning an existing entry never evicts (Requirements 11.5, 11.6)', () => {
+  /**
+   * P34: applyAdd with an id that is already stored replaces that entry in
+   * place. The count does not change, nothing is evicted (even when the store
+   * is full and every entry is pinned), position and all other entries are
+   * unchanged. This is the path the Saved Diagrams screen uses to pin and
+   * unpin.
+   *
+   * Validates: Requirements 11.5, 11.6
+   */
+  it('replacing an existing id keeps count, order and other entries (200+ runs)', () => {
+    fc.assert(
+      fc.property(
+        fc.array(entryArb(), { minLength: 1, maxLength: SAVED_DIAGRAMS_CAP }),
+        fc.nat(SAVED_DIAGRAMS_CAP),
+        fc.boolean(),
+        fc.string({ maxLength: 10 }),
+        (entries, pick, pinned, title) => {
+          const unique = entries.filter((e, i) => entries.findIndex((o) => o.id === e.id) === i);
+          const index = pick % unique.length;
+          const original = unique[index]!;
+          const replacement: SavedDiagram = { ...original, pinned, title };
+
+          const result = applyAdd(unique, replacement, SAVED_DIAGRAMS_CAP);
+
+          expect(result.ok).toBe(true);
+          if (!result.ok) return;
+          expect(result.evictedId).toBeUndefined();
+          expect(result.next).toHaveLength(unique.length);
+          expect(result.next[index]).toEqual(replacement);
+          result.next.forEach((e, i) => {
+            if (i !== index) expect(e).toEqual(unique[i]);
+          });
+        },
+      ),
+      { numRuns: 250 },
+    );
+  });
+
+  it('a full store of pinned entries still accepts a pin toggle (200+ runs)', () => {
+    fc.assert(
+      fc.property(
+        fc.array(entryArb(), { minLength: SAVED_DIAGRAMS_CAP, maxLength: SAVED_DIAGRAMS_CAP }),
+        fc.nat(SAVED_DIAGRAMS_CAP - 1),
+        (raw, pick) => {
+          const allPinned = raw.map((e, i) => ({ ...e, id: `id-${i}`, pinned: true }));
+          const target = allPinned[pick]!;
+          const result = applyAdd(allPinned, { ...target, pinned: false }, SAVED_DIAGRAMS_CAP);
+          expect(result.ok).toBe(true);
+          if (result.ok) {
+            expect(result.next).toHaveLength(SAVED_DIAGRAMS_CAP);
+            expect(result.evictedId).toBeUndefined();
+          }
+        },
+      ),
+      { numRuns: 200 },
+    );
+  });
+});
+
+describe('P35 — Corrupt storage never crashes the reader (Requirement 11.7)', () => {
+  /**
+   * P35a: deserialise never throws on any input and returns either undefined
+   * or a fully typed entry.
+   *
+   * Validates: Requirement 11.7
+   */
+  it('deserialise never throws and returns undefined or a well-typed entry (200+ runs)', () => {
+    fc.assert(
+      fc.property(fc.oneof(fc.anything(), fc.string(), fc.jsonValue().map((v) => JSON.stringify(v))), (raw) => {
+        const result = deserialise(raw);
+        if (result === undefined) return;
+        expect(typeof result.id).toBe('string');
+        expect(result.id.trim()).not.toBe('');
+        expect(Number.isFinite(result.createdAt)).toBe(true);
+        expect(typeof result.title).toBe('string');
+        expect(typeof result.thumbnailDataUrl).toBe('string');
+        expect(typeof result.pinned).toBe('boolean');
+        expect(['geometry', 'function_graph', 'bar_chart', 'unknown']).toContain(result.scene.kind);
+      }),
+      { numRuns: 400 },
+    );
+  });
+
+  /**
+   * P35b: a stored entry that is missing a required field, or has one of the
+   * wrong type, is dropped rather than returned half-formed.
+   */
+  it('an entry with a missing or mistyped required field is rejected (200+ runs)', () => {
+    const keys = ['id', 'createdAt', 'title', 'thumbnailDataUrl', 'scene', 'pinned'] as const;
+    fc.assert(
+      fc.property(
+        entryArb(),
+        fc.constantFrom(...keys),
+        fc.constantFrom<'missing' | 'wrongType'>('missing', 'wrongType'),
+        (entry, key, how) => {
+          const stored: Record<string, unknown> = JSON.parse(serialise(entry)) as Record<string, unknown>;
+          if (how === 'missing') delete stored[key];
+          else stored[key] = key === 'pinned' || key === 'createdAt' ? 'x' : 42;
+          expect(deserialise(stored)).toBeUndefined();
+        },
+      ),
       { numRuns: 250 },
     );
   });

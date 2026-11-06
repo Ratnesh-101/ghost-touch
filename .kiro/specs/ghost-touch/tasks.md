@@ -118,3 +118,57 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 18.8 Backend SEC-06: Apply scene element count and size bounds on `POST /api/v1/validate` (already implemented and merged by agy lane x-hardening; verify against the code)
   - [x] 18.9 Backend SEC-07 & SEC-08: Add security headers (`X-Content-Type-Options: nosniff`, `Cache-Control: no-store`) and disable OpenAPI docs in production (already implemented and merged by agy lane x-hardening; verify against the code)
   - [x] 18.10 Backend SEC-09: Align `docs/DEPLOY.md` model configuration with `render.yaml` (`gemini-3.5-flash-lite`) (already implemented and merged by agy lane x-hardening; verify against the code)
+
+## Phase 3 — Kiro review, property gaps, and open items (Kiro, 2026-11-07)
+
+> Rule from the owner: every new piece of work starts as a task here before any code is written.
+> Legend: `[ ]` open, `[x]` done and verified, `[~]` needs the owner, a device, or an outside service.
+
+- [x] 19. Kiro review of agent-written core (Task 11, Task 13) and property-test gaps for Req 9, 11, 13
+  - [x] 19.1 Review `core/correct.ts`, P16, P17, `POST /api/v1/validate` and the Task 13 completion against `design.md` and `requirements.md`; write `docs/reviews/kiro-core-review.md` (adopt / rewrite / reject verdict per module)
+  - [x] 19.2 Req 9: add P31 (edit operations are total, touch only their target, and keep coordinates in [0, 1] for any numeric input including NaN and Infinity) in `tests/correct.prop.test.ts`
+  - [x] 19.3 Req 9: add P32 (`validateSceneInvariants` detects every injected violation: duplicate id, dangling reference, out-of-range or non-finite coordinate); fix any counterexample the property finds in `core/correct.ts`
+  - [x] 19.4 Req 11: add P33 (`orderForDisplay` is a newest-first permutation; `savedTitle` is never blank and uses the scene title when present), P34 (re-saving or pinning an existing id never evicts and never changes the count), P35 (`deserialise` never throws on arbitrary input) in `tests/savedDiagrams.prop.test.ts`
+  - [x] 19.5 Req 13: add P36 (centre tick fires once per excursion), P37 (centre tick never fires inside the corner quiet window; "Centre." is spoken at most once), P38 (two-finger exit swipe accepts only downward, fast, mostly vertical motion) in `tests/explore.gesture.prop.test.ts`
+  - [x] 19.6 Req 9.3: add P39 backend property (Hypothesis, 200 examples): a valid scene passes `validate_scene` unchanged, and `validate_scene` is idempotent on its own output
+  - [x] 19.7 Update `design.md` (P31–P39 rows; `DiagramStore` signature now returns `StoreResult`; `serialise` returns a string; `applyAdd` replaces an existing id in place)
+  - [x] 19.8 Raise backend property tests below 200 cases (P10 uses 40; P13 has no explicit setting) or document the exception
+  - [x] 19.9 Run `tsc`, full Vitest, ruff and pytest; record real results in `docs/BUILD_LOG.md` with "Kiro" as the tool
+  - _Requirements: 9.2, 9.3, 11.1, 11.3, 11.5, 11.6, 13.2, 13.3, 13.5_
+
+- [ ] 20. Follow-ups from the Kiro review (each needs a spec decision or app-code change; not part of Task 19)
+  - [ ] 20.1 `drivers/diagramStore.ts`: wait for `tx.oncomplete` and handle `tx.onabort` before reporting success, and close the database on error paths (a quota error surfaces at commit, so Req 11.7 can be missed today)
+  - [ ] 20.2 `App.tsx` `saveDiagram`: write the new entry first, then delete the evicted one, so a failed save cannot lose an old diagram (Req 11.5, 11.7)
+  - [ ] 20.3 Req 11.3: open and delete saved diagrams by voice (not implemented in `SavedDiagrams.tsx` or `flow/commands.ts`)
+  - [ ] 20.4 Req 11.1: `savedTitle` ignores its language argument and speaks the raw `kind` slug (for example "geometry") in Hindi and Gujarati; use i18n kind names
+  - [ ] 20.5 Req 9.2: Correct mode cannot delete polylines or bars; add `deletePolyline` and `deleteBar` to `core/correct.ts` and wire the screen
+  - [ ] 20.6 `tech.md` rule 1: centre-tick, axis-crossing and gesture decision logic lives in `flow/explore.ts` and calls `t()`; move the pure parts to `core/` and pass spoken text in
+  - [ ] 20.7 Req 11.1 says "every scene loaded successfully" but samples are not saved (`App.tsx` `source !== 'sample'`); decide and update the requirement or the code
+  - [x] 20.8 `package.json` `test:prop` finds nothing (`-t prop` matches test names, not file names); change to `vitest run .prop.test`
+  - [ ] 20.9 Replace the four remaining `fc.float` uses in `*.prop.test.ts` with `fc.double`
+  - [ ] 20.10 Keep `share/validate.ts` and `backend/app/validate.py` rules in sync (hand-mirrored); add a shared-fixture parity test
+  - _Requirements: 9.2, 11.1, 11.3, 11.5, 11.7_
+
+- [~] 21. Open items from `docs/handoffs/` (SESSION-2026-11-04 to 11-06-night, for-kiro.md, KIRO-PAUSE.md)
+  - [ ] 21.1 Re-verify the state of lanes g5-semantic-ask, f1-fix-runtime, f2-fix-share, f3-fix-teach (reports say unreviewed; git log shows g5 merged) and review them against the spec
+  - [ ] 21.2 Backend ask follow-ups A4-01 to A4-05 from `docs/reports/audit-a4-backend-ask.md` (Hindi danda in don't-know detection, clamp facts answers, polyline point cap, article "A", string answer check)
+  - [ ] 21.3 Re-verify audit claims A1 G-RUN-02 (theremin during guiding) and G-RUN-04 (Back and history); record NOT REPRODUCED if false
+  - [ ] 21.4 Confirm the five hooks (plus a11y, css-guard, pre-commit-build-log) appear in the Kiro hooks panel and fire; save a screenshot to `docs/kiro-evidence/`
+  - [ ] 21.5 Decide on the centre reference tick (25 ms): approve it into `tech.md` or change it, using the phone-test result (task 22.4)
+  - [ ] 21.6 Review Req 14/15, Task 17/18, P18–P30 and the three new hooks (all "agy, awaiting Kiro review")
+  - [ ] 21.7 Tick parent tasks 7, 10, 14, 15, 16 only after the matching device and deployment checks
+  - [~] 21.8 Owner: native-speaker check of Hindi and Gujarati (`docs/user-test/translation-review.md`), including key `capture.errorBusy`
+  - [~] 21.9 Owner: fill the remaining `[FILL]` markers in `STEMERGENT_SUBMISSION.md`, `SOCIAL.md`, `KIRO_WRITEUP.md`; set the TalkBack row to "verified" only after the phone test passes
+  - [~] 21.10 Owner: Render env check, one real photo on the live backend (expect mode "ai"), feature flags for Guide and Share, push local main, request Kiro credits before Dec 1
+  - [ ] 21.11 Remove stale entries: KIRO-PAUSE defects 1 and 5 are fixed in code; defects 6 and 8 are still open (see 20.8, 20.9)
+
+- [~] 22. Phone test (`docs/PHONE_TEST.md`, OnePlus Nord CE6, Chrome): `PHONE_TEST.md` is still an unfilled script with no recorded results, so these tasks cover running it and triaging what it finds
+  - [~] 22.1 Step 0: wake the Render backend and confirm `{"ok":true}` before testing
+  - [~] 22.2 Steps 5.1–5.4: TalkBack on, Explore entry, double-tap-hold pass-through; if TalkBack is silent on entry, revert the canvas `aria-label` suppression (Finding 5)
+  - [~] 22.3 Step 4.4: corner "bzzzz-tap" `[50, 90, 50]` with the 450 ms quiet window is still distinct from the line buzz
+  - [~] 22.4 Steps 5.2 and 5.4: centre tick (25 ms) is felt and distinct; feeds task 21.5
+  - [~] 22.5 Steps 6.x and 12.x: voice recognition and text-to-speech in English, Hindi, Gujarati
+  - [~] 22.6 Steps 8 and 9: a real photo (AI vs Raw Mode, reason and seconds) and a PDF first page
+  - [~] 22.7 Steps 13.1–13.9 (Guide my finger) and 14.1–14.8 (Teacher share), only if the feature flags are turned on
+  - [ ] 22.8 Record each result in `PHONE_TEST.md`; turn every FAIL into a new task under this heading before any code is written
+  - _Requirements: 4.*, 5.*, 10.*, 12.*, 13.*_

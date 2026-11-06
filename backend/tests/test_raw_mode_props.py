@@ -73,7 +73,7 @@ def random_diagram_image(draw: st.DrawFn) -> bytes:
     return buf.tobytes()
 
 
-@settings(max_examples=40, deadline=None)
+@settings(max_examples=200, deadline=None)
 @given(random_diagram_image())
 def test_p10_raw_mode_segment_bound_and_coordinates(image_bytes: bytes) -> None:
     """P10: build_raw_scene returns at most 300 segments, all coordinates within [0, 1]."""

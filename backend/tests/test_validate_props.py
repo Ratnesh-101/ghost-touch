@@ -198,6 +198,7 @@ def test_p9_reject_zero_drawable_elements():
 # ---------------------------------------------------------------------------
 
 
+@settings(max_examples=200)
 @given(st.lists(st.sampled_from(sorted(COLOUR_SHAPE_WORDS)), min_size=1, max_size=3))
 def test_p13_rejects_colour_shape_only_labels(words):
     """Labels made only of colour/shape words are rejected (Req 3.6).
@@ -214,6 +215,7 @@ def test_p13_rejects_colour_shape_only_labels(words):
     assert any("colour or generic shape" in e for e in result.errors)
 
 
+@settings(max_examples=200)
 @given(
     st.text(alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ", min_size=1, max_size=3).filter(
         lambda s: s.lower() not in COLOUR_SHAPE_WORDS
@@ -229,3 +231,103 @@ def test_p13_accepts_non_colour_shape_labels(label):
     # Should be accepted (filtered so 1-3 letter strings cannot collide with colour/shape words)
     assert result.scene is not None
     assert not any("colour or generic shape" in e for e in result.errors)
+
+
+# ---------------------------------------------------------------------------
+# P39 — Validation is a fixed point (Requirement 9.3, added by Kiro)
+# ---------------------------------------------------------------------------
+#
+# Teacher Correct mode sends an edited scene to POST /api/v1/validate and
+# swaps in whatever scene comes back. Two things must hold or the teacher
+# would see their edits silently change:
+#   (a) a well-formed scene comes back unchanged;
+#   (b) re-validating the validator's own output changes nothing.
+
+_unit = st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
+_label = st.one_of(st.none(), st.sampled_from(["A", "B", "C", "Point X", "apex"]))
+
+
+@st.composite
+def well_formed_scene(draw):
+    """A scene dict with unique ids, valid references, [0, 1] coords, and
+    labels that are not colour or shape words."""
+    n = draw(st.integers(min_value=1, max_value=5))
+    points = [
+        {"id": f"p{i}", "x": draw(_unit), "y": draw(_unit), "label": draw(_label)} for i in range(n)
+    ]
+    segments = []
+    for i in range(draw(st.integers(min_value=0, max_value=4))):
+        segments.append(
+            {
+                "id": f"s{i}",
+                "a": f"p{draw(st.integers(0, n - 1))}",
+                "b": f"p{draw(st.integers(0, n - 1))}",
+                "label": draw(_label),
+            }
+        )
+    polylines = [
+        {
+            "id": f"pl{i}",
+            "points": [[draw(_unit), draw(_unit)] for _ in range(draw(st.integers(2, 4)))],
+            "label": draw(_label),
+        }
+        for i in range(draw(st.integers(min_value=0, max_value=2)))
+    ]
+    bars = []
+    for i in range(draw(st.integers(min_value=0, max_value=2))):
+        x0, x1 = sorted((draw(_unit), draw(_unit)))
+        y_top, y_base = sorted((draw(_unit), draw(_unit)))
+        bars.append(
+            {
+                "id": f"b{i}",
+                "x0": x0,
+                "x1": x1,
+                "y_top": y_top,
+                "y_base": y_base,
+                "label": f"bar {i}",
+                "value": draw(st.floats(min_value=0, max_value=100, allow_nan=False)),
+            }
+        )
+    scene = {
+        "kind": draw(st.sampled_from(["geometry", "function_graph", "bar_chart", "unknown"])),
+        "title": draw(st.one_of(st.none(), st.just("Triangle ABC"))),
+        "points": points,
+        "segments": segments,
+        "polylines": polylines,
+        "bars": bars,
+    }
+    if draw(st.booleans()):
+        scene["axes"] = {"x_axis_y": draw(_unit), "y_axis_x": draw(_unit)}
+    return scene
+
+
+@settings(max_examples=200, suppress_health_check=[HealthCheck.too_slow])
+@given(well_formed_scene())
+def test_p39_well_formed_scene_is_accepted_unchanged(data):
+    """P39a: a well-formed scene passes validation with no repair applied.
+
+    Validates: Requirement 9.3
+    """
+    from app.schema import DiagramScene
+
+    result = validate_scene(data)
+    assert result.errors == []
+    assert result.scene is not None
+    assert result.scene.model_dump() == DiagramScene.model_validate(data).model_dump()
+
+
+@settings(max_examples=200, suppress_health_check=[HealthCheck.too_slow])
+@given(scene_or_garbage())
+def test_p39_validation_is_idempotent_on_its_own_output(raw):
+    """P39b: validating an accepted scene's own dump returns the same scene,
+    so Teacher Correct mode never sees a second round of silent edits.
+
+    Validates: Requirement 9.3
+    """
+    first = validate_scene(raw)
+    if first.scene is None:
+        return
+    second = validate_scene(first.scene.model_dump())
+    assert second.errors == []
+    assert second.scene is not None
+    assert second.scene.model_dump() == first.scene.model_dump()

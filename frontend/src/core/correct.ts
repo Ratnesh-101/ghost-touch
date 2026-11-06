@@ -15,6 +15,15 @@ export function clamp01(val: number): number {
 }
 
 /**
+ * True only for a finite number in [0, 1]. NaN fails every ordering
+ * comparison, so range checks written as `v < 0 || v > 1` silently accept it;
+ * every coordinate check in this module goes through this helper instead.
+ */
+function isUnit(val: number): boolean {
+  return Number.isFinite(val) && val >= 0 && val <= 1;
+}
+
+/**
  * Move a point to new normalized coordinates (x, y), clamping to [0, 1].
  * Returns a new DiagramScene with the updated point. If point is not found,
  * returns the original scene.
@@ -260,10 +269,10 @@ export function validateSceneInvariants(scene: DiagramScene): InvariantResult {
       pointIdSet.add(pt.id);
     }
 
-    if (pt.x < 0 || pt.x > 1 || !Number.isFinite(pt.x)) {
+    if (!isUnit(pt.x)) {
       errors.push(`Point '${pt.id}' x coordinate out of range [0, 1]: ${pt.x}`);
     }
-    if (pt.y < 0 || pt.y > 1 || !Number.isFinite(pt.y)) {
+    if (!isUnit(pt.y)) {
       errors.push(`Point '${pt.id}' y coordinate out of range [0, 1]: ${pt.y}`);
     }
   }
@@ -296,7 +305,7 @@ export function validateSceneInvariants(scene: DiagramScene): InvariantResult {
 
     for (let i = 0; i < poly.points.length; i++) {
       const coord = poly.points[i];
-      if (!coord || coord[0] < 0 || coord[0] > 1 || coord[1] < 0 || coord[1] > 1) {
+      if (!coord || !isUnit(coord[0]) || !isUnit(coord[1])) {
         errors.push(`Polyline '${poly.id}' coordinate [${coord?.[0]}, ${coord?.[1]}] out of range [0, 1]`);
       }
     }
@@ -311,10 +320,10 @@ export function validateSceneInvariants(scene: DiagramScene): InvariantResult {
       seenIds.add(bar.id);
     }
 
-    if (bar.x0 < 0 || bar.x0 > 1 || bar.x1 < 0 || bar.x1 > 1) {
+    if (!isUnit(bar.x0) || !isUnit(bar.x1)) {
       errors.push(`Bar '${bar.id}' x coordinates out of range [0, 1]`);
     }
-    if (bar.y_top < 0 || bar.y_top > 1 || bar.y_base < 0 || bar.y_base > 1) {
+    if (!isUnit(bar.y_top) || !isUnit(bar.y_base)) {
       errors.push(`Bar '${bar.id}' y coordinates out of range [0, 1]`);
     }
   }
@@ -322,10 +331,10 @@ export function validateSceneInvariants(scene: DiagramScene): InvariantResult {
   // Check axes
   if (scene.axes) {
     const { x_axis_y, y_axis_x } = scene.axes;
-    if (x_axis_y !== null && x_axis_y !== undefined && (x_axis_y < 0 || x_axis_y > 1)) {
+    if (x_axis_y !== null && x_axis_y !== undefined && !isUnit(x_axis_y)) {
       errors.push(`Axes x_axis_y out of range [0, 1]: ${x_axis_y}`);
     }
-    if (y_axis_x !== null && y_axis_x !== undefined && (y_axis_x < 0 || y_axis_x > 1)) {
+    if (y_axis_x !== null && y_axis_x !== undefined && !isUnit(y_axis_x)) {
       errors.push(`Axes y_axis_x out of range [0, 1]: ${y_axis_x}`);
     }
   }

@@ -1554,3 +1554,26 @@ Format for each entry:
   - `backend/tests/test_semantic.py`
   - `docs/reports/agy-g5-semantic-ask-report.md`
   - `docs/BUILD_LOG.md`
+## 2026-11-07 — Kiro — Task 19 (Kiro review of agent-written core, property-test gaps for Req 9, 11, 13)
+- Tool: **Kiro** did this work (review, tests, one core fix, spec edits). The modules under review (`core/correct.ts`, P16/P17, `POST /api/v1/validate`, the Task 13 completion) were written by Antigravity and are NOT claimed as Kiro's. Kiro also did not build anything from the Lab redesign.
+- Spec first: Tasks 19 to 22 were added to `.kiro/specs/ghost-touch/tasks.md` before any code was written. Task 19 is ticked below; Tasks 20, 21 and 22 are the open follow-ups from the review, the handoffs, and the phone test.
+- Built:
+  - Review: `docs/reviews/kiro-core-review.md`. Verdict ADOPT WITH FIXES; 14 findings (3 high, 4 medium).
+  - Property tests P31 and P32 (edit operations, invariant checker), a P17 supplement (history bookkeeping), P33 to P35 (saved diagrams), P36 to P38 (Explore gesture rules), P39 (backend validation is a fixed point). Every property runs at least 200 cases.
+  - `design.md`: P21 to P39 rows, `DiagramStore` signature, testing-strategy note.
+- What broke:
+  - P32 failed on its first run: `validateSceneInvariants` accepted NaN in polyline, bar and axis coordinates. Fixed in `core/correct.ts` (new `isUnit` helper). This is a real bug the existing P16 could not see.
+  - Two open high findings are NOT fixed and are tracked as tasks 20.1 and 20.2: IndexedDB writes are reported successful before the transaction commits, and `saveDiagram` deletes the evicted diagram before the new one is written.
+  - A first mutation-check script rewrote `frontend/src/flow/explore.ts` without its UTF-8 BOM; the BOM was restored and `git diff` on that file is empty.
+  - One typo ("felbacks") was introduced into `design.md` while editing the P20 row and fixed in the same session.
+- Mutation check (deliberate bugs, then reverted byte for byte): centre tick without the armed check was caught by P36; re-save not replacing in place was caught by P34; `movePoint` without clamping was caught by P16 and P31.
+- Raised to 200 cases: P10 (was 40) and P13 (was Hypothesis default). Fixed `npm run test:prop`, which matched nothing; it now runs 13 files and 79 tests.
+- Verification (real results, Downloads tree): `tsc --noEmit` clean; `vitest --run` 111 files, 1542 tests passed (baseline 110 files, 1518); `vite build` OK; backend `pytest` 477 passed in 63 s; `ruff check` clean and the edited backend test files pass `ruff format --check`.
+- Not verified: anything on a device (IndexedDB quota behaviour, TalkBack, haptic feel, centre tick), whether the Kiro hooks appear and fire in the hooks panel, and the `Documents\ghost-touch` tree (older, has none of these files, left untouched except the earlier `docs/reviews/session-review-latest.md`).
+- Files touched (all under `C:\Users\Admin\Downloads\ghost-touch-main\ghost-touch-main`):
+  - `frontend/src/core/correct.ts` (NaN fix)
+  - `frontend/tests/correct.prop.test.ts`, `frontend/tests/savedDiagrams.prop.test.ts`, `frontend/tests/explore.gesture.prop.test.ts` (new)
+  - `backend/tests/test_validate_props.py`, `backend/tests/test_raw_mode_props.py`
+  - `frontend/package.json` (`test:prop` script only)
+  - `.kiro/specs/ghost-touch/tasks.md`, `.kiro/specs/ghost-touch/design.md`
+  - `docs/reviews/kiro-core-review.md` (new), `docs/BUILD_LOG.md`

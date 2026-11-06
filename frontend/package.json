@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:prop": "vitest run --dir tests -t prop",
+    "test:prop": "vitest run .prop.test",
     "gen:types": "json2ts -i ../backend/scene.schema.json -o src/types/scene.gen.ts --no-additionalProperties"
   },
   "dependencies": {
