@@ -4,7 +4,7 @@ Reviewer: **Claude Code** (not Kiro). Date: 2026-11-06. Kiro credits are not ava
 
 Scope: merged commits for Requirement 14 and Task 17 (P18 to P20), Requirement 15 and Task 18, the three new hooks, the Explore fixes for Findings 5 and 14, and the property tests P21 to P30.
 
-**Verdict: FIX FIRST (two real defects in the hooks and one weak property), everything else ships.**
+**Verdict: FIX FIRST (two real defects in the hooks and one weak property), everything else ships. UPDATE: all three fixed by agy lane x-reviewfix and merged; verified (hooks JSON, P18 mutation check, 1203 tests).**
 
 | Severity | File:line | Problem | Fix |
 |---|---|---|---|

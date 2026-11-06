@@ -858,7 +858,7 @@ Format for each entry:
 ## 2026-11-06 - Claude Code - Review of the agy-built "Kiro-assigned" work and worktree cleanup
 - Tool: Claude Code (reviewer). Kiro credits are unavailable, so this review replaces the Kiro review and is NOT Kiro usage.
 - Reviewed Requirement 14/15, Task 17/18, P18-P20, the three new hooks, the Explore fixes and P21-P30. Report: `docs/reviews/review-agy-kiro-assigned-claude.md` (verdict FIX FIRST: two hook-command defects, one tautological property).
-- Follow-up fixes were handed to agy lane `x-reviewfix` (not yet merged when this was written).
+- Follow-up fixes were done by agy lane `x-reviewfix` and merged (hooks run from `frontend`, workspace-relative paths, P18 now parses the real CSS and was checked to fail when the token is raised to 1500 ms).
 - Housekeeping: all 60 old `gt-lane-*` worktrees removed (branches kept; 55 uncommitted files archived outside the repo in `gt-archive/`).
 ## 2026-11-06 — Antigravity (agy) — Lane x-reviewfix (fixes from a Claude Code review)
 - What was built:
