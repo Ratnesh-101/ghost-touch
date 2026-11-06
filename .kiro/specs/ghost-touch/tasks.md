@@ -184,15 +184,15 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 23.3 Create `docs/reviews/kiro-round2.md` with one row per finding, filled in as each task verifies it
   - _Requirements: 16.*, 17.*_
 
-- [ ] 24. Backend Ask fixes (lane f4 plus CORE-04, CORE-05, CORE-06, CORE-11, CORE-12)
-  - [ ] 24.1 Bring the f4 lane work onto main. The branch `agy/f4-fix-backend-ask` has no commits (its work is uncommitted in the lane worktree), so apply the worktree diff as a patch instead of `git merge --squash`; record this in the review
-  - [ ] 24.2 Fix `test_fix_ask_regression.py`: facts answers are clamped; a client disconnect gives 499; the element-id list in the prompt contains no raw `</user_question>`
-  - [ ] 24.3 Fix `test_hardening.py::test_validate_structural_limits`: `/validate` keeps its limits; only the `/ask` polyline cap becomes 2000
-  - [ ] 24.4 Fix `test_review_fixes.py`: a lone unit word must not select a fact
-  - [ ] 24.5 CORE-04: Hindi danda and double danda in `is_dont_know`; "don't know" carries no target
-  - [ ] 24.6 CORE-06: `MAX_POLYLINE_POINTS = 2000` for `/ask`
-  - [ ] 24.7 Confirmed mediums CORE-11 (point "A") and CORE-12 (non-string `answer`), if reproduced
-  - [ ] 24.8 Gate (backend and frontend) passes; commit `kiro: T24 ...`
+- [x] 24. Backend Ask fixes (lane f4 plus CORE-04, CORE-05, CORE-06, CORE-11, CORE-12)
+  - [x] 24.1 Bring the f4 lane work onto main. The branch `agy/f4-fix-backend-ask` has no commits (its work is uncommitted in the lane worktree), so apply the worktree diff as a patch instead of `git merge --squash`; record this in the review
+  - [x] 24.2 Fix `test_fix_ask_regression.py`: facts answers are clamped; a client disconnect gives 499; the element-id list in the prompt contains no raw `</user_question>`
+  - [x] 24.3 Fix `test_hardening.py::test_validate_structural_limits`: `/validate` keeps its limits; only the `/ask` polyline cap becomes 2000
+  - [x] 24.4 Fix `test_review_fixes.py`: a lone unit word must not select a fact
+  - [x] 24.5 CORE-04: Hindi danda and double danda in `is_dont_know`; "don't know" carries no target
+  - [x] 24.6 CORE-06: `MAX_POLYLINE_POINTS = 2000` for `/ask`
+  - [x] 24.7 Confirmed mediums CORE-11 (point "A") and CORE-12 (non-string `answer`), if reproduced
+  - [x] 24.8 Gate (backend and frontend) passes; commit `kiro: T24 ...`
   - _Requirements: 16.9, 16.10, 16.11_
 
 - [ ] 25. Security A6-01 to A6-05 and confirmed mediums

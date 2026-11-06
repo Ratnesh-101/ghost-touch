@@ -57,14 +57,18 @@ ALLOWED_MIME_TYPES = {
     "image/webp",
 }
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_VALIDATE_POLYLINE_POINTS = 1000  # /validate keeps its own structural limit (/ask allows 2000)
 MAX_ASK_BODY_SIZE = 512 * 1024  # a scene plus a 500-character question is far smaller
 MAX_VALIDATE_BODY_SIZE = 512 * 1024  # scene JSON for teacher correct validation
 RAW_MODE_RESERVE_SECONDS = 2.5  # Reserve inside 15s total budget for Raw Mode fallback
 DEFAULT_SCENE_MAX_CONCURRENCY = 2
 DEFAULT_SCENE_QUEUE_WAIT_SECONDS = 6.0
+DEFAULT_ASK_MAX_CONCURRENCY = 4
+DEFAULT_ASK_QUEUE_WAIT_SECONDS = 5.0
 
 _cached_chain: ProviderChain | None = None
 _scene_semaphore: asyncio.Semaphore | None = None
+_ask_semaphore: asyncio.Semaphore | None = None
 
 
 def parse_scene_max_concurrency() -> int:
@@ -126,6 +130,67 @@ def reset_scene_semaphore() -> None:
     """Reset the scene semaphore (for testing)."""
     global _scene_semaphore
     _scene_semaphore = None
+
+
+def parse_ask_max_concurrency() -> int:
+    """Parse ASK_MAX_CONCURRENCY env var (default 4, min 1 with warning)."""
+    raw = os.environ.get("ASK_MAX_CONCURRENCY")
+    if raw is None or not raw.strip():
+        return DEFAULT_ASK_MAX_CONCURRENCY
+    try:
+        val = int(raw)
+        if val < 1:
+            logger.warning(
+                "ASK_MAX_CONCURRENCY must be at least 1; using default %d",
+                DEFAULT_ASK_MAX_CONCURRENCY,
+            )
+            return DEFAULT_ASK_MAX_CONCURRENCY
+        return val
+    except (ValueError, TypeError):
+        logger.warning(
+            "Invalid ASK_MAX_CONCURRENCY '%s'; using default %d",
+            raw,
+            DEFAULT_ASK_MAX_CONCURRENCY,
+        )
+        return DEFAULT_ASK_MAX_CONCURRENCY
+
+
+def parse_ask_queue_wait_seconds() -> float:
+    """Parse ASK_QUEUE_WAIT_SECONDS env var (default 5.0, non-negative with warning)."""
+    raw = os.environ.get("ASK_QUEUE_WAIT_SECONDS")
+    if raw is None or not raw.strip():
+        return DEFAULT_ASK_QUEUE_WAIT_SECONDS
+    try:
+        val = float(raw)
+        if val < 0:
+            logger.warning(
+                "ASK_QUEUE_WAIT_SECONDS must be non-negative; using default %.1fs",
+                DEFAULT_ASK_QUEUE_WAIT_SECONDS,
+            )
+            return DEFAULT_ASK_QUEUE_WAIT_SECONDS
+        return val
+    except (ValueError, TypeError):
+        logger.warning(
+            "Invalid ASK_QUEUE_WAIT_SECONDS '%s'; using default %.1fs",
+            raw,
+            DEFAULT_ASK_QUEUE_WAIT_SECONDS,
+        )
+        return DEFAULT_ASK_QUEUE_WAIT_SECONDS
+
+
+def get_ask_semaphore() -> asyncio.Semaphore:
+    """Get or create the process-wide ask processing semaphore."""
+    global _ask_semaphore
+    if _ask_semaphore is None:
+        cap = parse_ask_max_concurrency()
+        _ask_semaphore = asyncio.Semaphore(cap)
+    return _ask_semaphore
+
+
+def reset_ask_semaphore() -> None:
+    """Reset the ask semaphore (for testing)."""
+    global _ask_semaphore
+    _ask_semaphore = None
 
 
 def reset_provider_chain() -> None:
@@ -622,13 +687,31 @@ async def process_scene(
 @router.post("/api/v1/ask", response_model=AskResponse)
 async def ask_question_route(
     request: AskRequest,
+    raw_request: Request,
     chain: Annotated[ProviderChain, Depends(get_provider_chain)],
-) -> AskResponse:
+) -> Any:
     """Answer questions about a diagram scene (Task 9.1).
 
     Uses vision/language provider completion with fallback to deterministic facts lookup.
     """
-    return await answer_question(request, chain)
+    sem = get_ask_semaphore()
+    wait_seconds = parse_ask_queue_wait_seconds()
+    try:
+        await asyncio.wait_for(sem.acquire(), timeout=wait_seconds)
+    except TimeoutError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Server is busy processing other ask requests.",
+            headers={"Retry-After": "5"},
+        ) from exc
+
+    try:
+        if await raw_request.is_disconnected():
+            logger.info("Client disconnected before ask processing; aborting")
+            return Response(status_code=499)
+        return await answer_question(request, chain)
+    finally:
+        sem.release()
 
 
 class ValidateRequest(BaseModel):
@@ -640,7 +723,7 @@ class ValidateRequest(BaseModel):
     @classmethod
     def _validate_scene_size(cls, value: dict[str, Any]) -> dict[str, Any]:
         if isinstance(value, dict):
-            _check_scene_size(value)
+            _check_scene_size(value, max_polyline_points=MAX_VALIDATE_POLYLINE_POINTS)
         return value
 
 

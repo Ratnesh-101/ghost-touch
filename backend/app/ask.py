@@ -52,7 +52,7 @@ MAX_QUESTION_CHARS = 500
 MAX_SCENE_POINTS = 500
 MAX_SCENE_SEGMENTS = 1000
 MAX_SCENE_POLYLINES = 50
-MAX_POLYLINE_POINTS = 1000
+MAX_POLYLINE_POINTS = 2000
 MAX_SCENE_BARS = 100
 MAX_SCENE_FACTS = 100
 MAX_TEXT_CHARS = 300  # any single fact / label / title
@@ -69,6 +69,7 @@ NON_ID_UPPERCASE: frozenset[str] = frozenset({"A", "I"})
 
 QUESTION_STOPWORDS: frozenset[str] = frozenset(
     {
+        # English
         "a",
         "about",
         "an",
@@ -125,6 +126,38 @@ QUESTION_STOPWORDS: frozenset[str] = frozenset(
         "with",
         "you",
         "your",
+        # Hindi question particles and common functional words
+        "क्या",
+        "कितना",
+        "कितनी",
+        "कितने",
+        "कहाँ",
+        "कहा",
+        "है",
+        "हैं",
+        "का",
+        "की",
+        "के",
+        "में",
+        "पर",
+        "से",
+        "बताओ",
+        "बताइए",
+        # Gujarati question particles and common functional words
+        "શું",
+        "કેટલું",
+        "કેટલી",
+        "કેટલા",
+        "ક્યાં",
+        "છે",
+        "નું",
+        "નો",
+        "ની",
+        "ના",
+        "માં",
+        "પર",
+        "થી",
+        "જણાવો",
     }
 )
 
@@ -135,9 +168,15 @@ def get_dont_know_answer(lang: str) -> str:
     return DONT_KNOW_RESPONSES.get(base_lang, DONT_KNOW_PHRASE)
 
 
+# Sentence-final marks (ASCII full stop, Devanagari danda and double danda) and spaces.
+_TRAILING_PUNCT = " \t\r\n.।॥"
+
+
 def is_dont_know(text: str) -> bool:
     """Check if model response indicates lack of knowledge from diagram."""
-    cleaned = text.strip().lower().replace("’", "'").replace("‘", "'").rstrip(".")
+    cleaned = (
+        text.strip().lower().replace("’", "'").replace("‘", "'").rstrip(_TRAILING_PUNCT).strip()
+    )
     if (
         "i don't know from this diagram" in cleaned
         or "i do not know from this diagram" in cleaned
@@ -155,7 +194,7 @@ def is_dont_know(text: str) -> bool:
     ):
         return True
     for phrase in DONT_KNOW_RESPONSES.values():
-        if phrase.lower().rstrip(".") in cleaned:
+        if phrase.lower().rstrip(_TRAILING_PUNCT).strip() in cleaned:
             return True
     return False
 
@@ -249,9 +288,13 @@ def extract_scene_element_ids(scene: DiagramScene) -> list[str]:
 def build_ask_prompt(scene: DiagramScene, question: str, lang: str = "en-IN") -> str:
     """Build the prompt for the vision/language model to answer questions (Task 9.1)."""
     compact = compact_scene(scene)
-    scene_json = json.dumps(compact, indent=2)
+    # Labels, titles, facts and ids are untrusted: a raw closing tag in any of them must not
+    # reach the prompt, where it could end the user-question block early.
+    scene_json = QUESTION_TAG_PATTERN.sub("[tag removed]", json.dumps(compact, indent=2))
     safe_question = QUESTION_TAG_PATTERN.sub("[tag removed]", question)
-    element_ids = extract_scene_element_ids(scene)
+    element_ids = [
+        QUESTION_TAG_PATTERN.sub("[tag removed]", eid) for eid in extract_scene_element_ids(scene)
+    ]
     element_ids_formatted = json.dumps(element_ids)
 
     return (
@@ -301,8 +344,12 @@ def _with_reversals(ids: set[str]) -> set[str]:
 
 
 def clamp_answer(text: str) -> str:
-    """Limit a spoken answer to two sentences and about 300 characters."""
-    sentences = SENTENCE_END_PATTERN.split(text.strip())
+    """Limit a spoken answer to two sentences and about 300 characters, sanitizing for TTS."""
+    # Strip non-printable ASCII control characters
+    sanitized = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
+    # Strip markdown formatting (*, _, `, #) that native TTS might pronounce aloud
+    sanitized = re.sub(r"[*_`#]", "", sanitized)
+    sentences = SENTENCE_END_PATTERN.split(sanitized.strip())
     clamped = " ".join(sentences[:MAX_ANSWER_SENTENCES])
     if len(clamped) > MAX_ANSWER_CHARS:
         clamped = clamped[:MAX_ANSWER_CHARS].rsplit(" ", 1)[0].rstrip(",;:") + "."
@@ -324,18 +371,36 @@ def facts_lookup(scene: DiagramScene, question: str, lang: str = "en-IN") -> str
     """
     candidates: list[_FactCandidate] = []
 
+    # Gather known IDs from scene elements first so point 'A' or 'I' is recognized
+    known_ids: set[str] = {eid.lower() for eid in extract_scene_element_ids(scene)}
+    for point in scene.points:
+        known_ids.update({point.id.lower(), (point.label or "").lower()} - {""})
+    for seg in scene.segments:
+        known_ids.update({seg.id.lower(), (seg.label or "").lower()} - {""})
+    for poly in scene.polylines:
+        known_ids.update({poly.id.lower(), (poly.label or "").lower()} - {""})
+    for bar in scene.bars:
+        known_ids.update({bar.id.lower(), (bar.label or "").lower()} - {""})
+    known_ids = _with_reversals(known_ids)
+
     # 1. Facts from scene.facts
     for fact in scene.facts:
         f_text = fact.strip()
-        raw_words = re.findall(r"[a-zA-Z0-9°²]+", f_text)
+        raw_words = re.findall(r"[\w°²]+", f_text, re.UNICODE)
         tokens = {normalize_token(w) for w in raw_words}
-        ids = _with_reversals({w.lower() for w in raw_words if _is_point_id(w)})
+        ids = _with_reversals(
+            {
+                w.lower()
+                for w in raw_words
+                if _is_point_id(w) or (w.isupper() and w.lower() in known_ids)
+            }
+        )
         candidates.append(_FactCandidate(text=f_text, tokens=tokens, ids=ids, is_fact=True))
 
     # 2. Bars
     for bar in scene.bars:
         bar_text = f"{bar.label} = {bar.value}"
-        b_tokens = {normalize_token(w) for w in re.findall(r"[a-zA-Z0-9°²]+", bar_text)}
+        b_tokens = {normalize_token(w) for w in re.findall(r"[\w°²]+", bar_text, re.UNICODE)}
         b_tokens.update({"bar", "value"})
         b_ids = _with_reversals({bar.label.lower(), bar.id.lower()})
         candidates.append(_FactCandidate(text=bar_text, tokens=b_tokens, ids=b_ids))
@@ -344,30 +409,33 @@ def facts_lookup(scene: DiagramScene, question: str, lang: str = "en-IN") -> str
     for seg in scene.segments:
         if seg.label:
             seg_text = f"Segment {seg.label}"
-            s_tokens = {normalize_token(w) for w in re.findall(r"[a-zA-Z0-9°²]+", seg_text)}
+            s_tokens = {normalize_token(w) for w in re.findall(r"[\w°²]+", seg_text, re.UNICODE)}
             s_ids = _with_reversals({seg.label.lower(), seg.id.lower()})
             candidates.append(_FactCandidate(text=seg_text, tokens=s_tokens, ids=s_ids))
 
     if not candidates:
         return None
 
-    # Tokenize question
-    q_raw = re.findall(r"[a-zA-Z0-9°²]+", question)
-    q_norm = [normalize_token(w) for w in q_raw]
-    q_content = {w for w in q_norm if w not in QUESTION_STOPWORDS}
-    known_ids: set[str] = set().union(*(c.ids for c in candidates))
-    for point in scene.points:
-        known_ids.update({point.id.lower(), (point.label or "").lower()} - {""})
+    # Update known_ids with any candidate IDs found
+    known_ids.update(*(c.ids for c in candidates))
     known_ids = _with_reversals(known_ids)
+
+    # Tokenize question
+    q_raw = re.findall(r"[\w°²]+", question, re.UNICODE)
+    q_norm = [normalize_token(w) for w in q_raw]
+    # A unit word ("cm", "degrees") is not distinctive: on its own it must not pick a fact.
+    q_content = {w for w in q_norm if w not in QUESTION_STOPWORDS and w not in UNIT_TOKENS}
 
     # An identifier is a point-like token: uppercase as typed, or lowercase but known to the scene.
     q_ids: set[str] = set()
     unknown_ids: set[str] = set()
     for w in q_raw:
         wl = w.lower()
-        if wl in UNIT_TOKENS or w in NON_ID_UPPERCASE:
+        if wl in UNIT_TOKENS:
             continue
-        if _is_point_id(w):
+        if w in NON_ID_UPPERCASE and wl not in known_ids:
+            continue
+        if _is_point_id(w) or (w.isupper() and wl in known_ids):
             (q_ids if wl in known_ids else unknown_ids).add(wl)
         elif wl in known_ids and wl not in QUESTION_STOPWORDS:
             q_ids.add(wl)
@@ -388,8 +456,11 @@ def facts_lookup(scene: DiagramScene, question: str, lang: str = "en-IN") -> str
         scored.append((score, cand))
 
     best_score = max(score for score, _ in scored)
-    # Threshold: must have matched an identifier (>=10) or at least 2 content tokens (>=4)
-    if best_score < 4:
+    # Threshold: must have matched an identifier (>=10) or at least 2 content tokens (>=4),
+    # or a distinctive content token against a fact (score >= 3, e.g. Hindi 'क्षेत्रफल').
+    if best_score < 3:
+        return None
+    if best_score == 3 and not any(cand.is_fact for s, cand in scored if s == best_score):
         return None
 
     # Several equally good matches ("AB and BC") are all read out, at most three.
@@ -398,8 +469,16 @@ def facts_lookup(scene: DiagramScene, question: str, lang: str = "en-IN") -> str
     return answer
 
 
-def _check_scene_size(scene: DiagramScene | dict[str, Any]) -> None:
-    """Reject scenes that are far larger than any real diagram (cost and abuse guard)."""
+def _check_scene_size(
+    scene: DiagramScene | dict[str, Any],
+    max_polyline_points: int | None = None,
+) -> None:
+    """Reject scenes that are far larger than any real diagram (cost and abuse guard).
+
+    `max_polyline_points` defaults to the `/ask` cap (matches the Teacher Share contract);
+    `/validate` passes its own, stricter structural limit.
+    """
+    poly_cap = MAX_POLYLINE_POINTS if max_polyline_points is None else max_polyline_points
     if isinstance(scene, DiagramScene):
         points = scene.points
         segments = scene.segments
@@ -438,13 +517,19 @@ def _check_scene_size(scene: DiagramScene | dict[str, Any]) -> None:
     for actual, limit, name in counts:
         if actual > limit:
             raise ValueError(f"scene has too many {name} ({actual} > {limit})")
-    if any(pts_len > MAX_POLYLINE_POINTS for pts_len in poly_point_counts):
-        raise ValueError(f"a polyline has more than {MAX_POLYLINE_POINTS} points")
+    if any(pts_len > poly_cap for pts_len in poly_point_counts):
+        raise ValueError(f"a polyline has more than {poly_cap} points")
     texts = [str(title or "")]
     texts += [str(f) for f in facts if f is not None]
     texts += labels
+    if isinstance(scene, DiagramScene):
+        texts += extract_scene_element_ids(scene)
+    elif isinstance(scene, dict):
+        for elem in [*points, *segments, *polylines, *bars]:
+            if isinstance(elem, dict) and elem.get("id") is not None:
+                texts.append(str(elem.get("id")))
     if any(len(t) > MAX_TEXT_CHARS for t in texts):
-        raise ValueError(f"a label or fact is longer than {MAX_TEXT_CHARS} characters")
+        raise ValueError(f"a label, fact, or id is longer than {MAX_TEXT_CHARS} characters")
 
 
 class AskRequest(BaseModel):
@@ -585,7 +670,7 @@ def parse_model_ask_output(ai_text: str) -> tuple[str, Any]:
     candidates: list[str] = []
 
     # Check for markdown code block ```json ... ``` or ``` ... ```
-    match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", cleaned)
+    match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", cleaned, re.IGNORECASE)
     if match:
         candidates.append(match.group(1).strip())
 
@@ -602,9 +687,9 @@ def parse_model_ask_output(ai_text: str) -> tuple[str, Any]:
         try:
             parsed = json.loads(cand)
             if isinstance(parsed, dict) and "answer" in parsed:
-                ans = str(parsed["answer"])
-                target = parsed.get("target")
-                return ans, target
+                raw_ans = parsed["answer"]
+                if isinstance(raw_ans, str) and raw_ans.strip():
+                    return raw_ans.strip(), parsed.get("target")
         except Exception:
             continue
 
@@ -780,7 +865,7 @@ async def answer_question(
             len(request.scene.points),
             elapsed_ms,
         )
-        return AskResponse(answer=fact_answer, source="facts", target=None)
+        return AskResponse(answer=clamp_answer(fact_answer), source="facts", target=None)
 
     logger.info(
         "ask processed: provider=none source=unknown question_len=%d scene_points=%d elapsed_ms=%d",

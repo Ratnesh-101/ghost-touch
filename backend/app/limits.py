@@ -124,9 +124,18 @@ class RequestGuardMiddleware:
 
     def _allow(self, client: str, path: str, per_minute: int) -> bool:
         now = time.monotonic()
-        window = _HITS[(client, path)]
+        key = (client, path)
+        window = _HITS[key]
         while window and now - window[0] > RATE_WINDOW_SECONDS:
             window.popleft()
+        if len(_HITS) > 1000:
+            stale = [
+                k
+                for k, w in _HITS.items()
+                if k != key and (not w or (now - w[-1] > RATE_WINDOW_SECONDS))
+            ]
+            for k in stale:
+                _HITS.pop(k, None)
         if len(window) >= per_minute:
             logger.warning("rate limit hit: path=%s", path)
             return False

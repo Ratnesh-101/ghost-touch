@@ -1625,3 +1625,24 @@ Format for each entry:
   - `docs/DEMO_SCRIPT.md`
   - `docs/reports/agy-submission-prep-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — agy, reviewed by Claude — Lane f4-fix-backend-ask (Audit A4 fixes)
+- Built by Antigravity (agy); brought onto main by Kiro on 2026-11-07 as a patch (see the T24 entry below). Kiro did not write this code.
+- Fixed A4-01 to A4-11 from `docs/reports/audit-a4-backend-ask.md`: Hindi danda in "don't know" detection, `facts_lookup` answers clamped, `MAX_POLYLINE_POINTS = 2000`, point "A" matchable, non-string `answer` rejected, Unicode-aware tokenisation, `/ask` concurrency cap and disconnect check (HTTP 499), control-character and markdown stripping in `clamp_answer`, stale-key pruning in the rate limiter, case-insensitive code fence, element-id length cap, `<user_question>` removed from element ids.
+- Files touched: `backend/app/ask.py`, `backend/app/limits.py`, `backend/app/main.py`, `backend/tests/test_fix_ask_regression.py`, `docs/reports/agy-f4-fix-backend-ask-report.md`, `docs/briefs/agy-f4-fix2.md`.
+- State when handed over: 6 tests failing (the lane reported 5).
+
+## 2026-11-07 — Kiro — T24 (Backend Ask fixes: lane f4 plus CORE-04, CORE-05, CORE-06, CORE-11, CORE-12)
+- Tool: **Kiro** did this work. The f4 code itself is Antigravity's (entry above) and is not claimed as Kiro's. Spec first: Requirements 16 and 17 and tasks 23 to 28 were committed (`kiro: T23`) before any of this.
+- Built:
+  - Brought the f4 work onto main. `agy/f4-fix-backend-ask` has no commits (the work is uncommitted in the lane worktree), so `git merge --squash` would have added nothing. The worktree diff for `backend/app` was applied as a patch and the three new files were copied; the lane worktree is unchanged.
+  - Fixed the 6 failing tests (the brief said 5): converted 3 async tests from `@pytest.mark.asyncio` to `asyncio.run` (no `pytest-asyncio` in the repo; no new dependency); sanitised the whole scene JSON in `build_ask_prompt` so a closing `</user_question>` in any label, title, fact or id cannot reach the prompt; `_check_scene_size` takes a per-endpoint polyline cap (`/ask` 2000, `/validate` back to 1000); unit words no longer count as content words in `facts_lookup`.
+  - CORE-04 completed with the double danda via `_TRAILING_PUNCT`. CORE-05, 06, 11, 12 verified as fixed by the lane, each reproduced on HEAD first.
+  - New tests: `backend/tests/test_round2_ask.py` (37 cases).
+- What broke or surprised:
+  - My first scripted edit to the f4 test file was rejected and then half-applied on retry (decorators removed, two `await` lines left), leaving a syntax error for one run; fixed with targeted edits. One test run raced the edits and reported stale results.
+  - A mutation check showed my first double-danda test was vacuous: long phrases match by substring, so a trailing `॥` never mattered for them. Added exact-match cases; the mutant now fails 21 tests.
+  - Keeping `/validate` at 1000 polyline points (owner instruction) means a Teacher scene with 1001 to 2000 points opens from a share link but cannot be saved in Correct mode. Noted in `docs/reviews/kiro-round2.md`.
+  - Several long PowerShell commands returned empty output; they were re-run in smaller pieces.
+- Verification (real results): backend `pytest` 533 passed, `ruff check` clean, `ruff format --check` clean (65 files); frontend `tsc --noEmit` clean, `vitest run` 111 files and 1542 tests passed, `npm run build` ok.
+- Files touched: `backend/app/ask.py`, `backend/app/limits.py` (lane), `backend/app/main.py`, `backend/tests/test_fix_ask_regression.py` (3 tests converted to `asyncio.run`, nothing else), `backend/tests/test_round2_ask.py` (new), `docs/reviews/kiro-round2.md`, `.kiro/specs/ghost-touch/tasks.md`, `docs/BUILD_LOG.md`, plus the lane's `docs/briefs/agy-f4-fix2.md` and `docs/reports/agy-f4-fix-backend-ask-report.md`.
