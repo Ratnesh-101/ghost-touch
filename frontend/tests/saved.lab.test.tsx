@@ -89,7 +89,7 @@ describe('Saved Diagrams: Lab Style markup & empty state', () => {
       }),
     );
 
-    expect(html).toContain('<h1 class="gt-saved__heading">');
+    expect(html).toContain('<h1 class="gt-saved__heading" tabindex="-1">');
     expect(html).toContain(t('saved.heading'));
     expect(html).toContain('gt-saved__back');
     expect(html).toContain('gt-saved__status-row');
@@ -201,5 +201,17 @@ describe('Saved Diagrams CSS: 48x48 targets, focus-visible & token conformance',
   it('respects prefers-reduced-motion with no animation', () => {
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
     expect(css).not.toContain('@keyframes');
+  });
+
+  it('BUG-05: wraps header elements with flex-wrap: wrap to prevent collisions at 320px/200% zoom', () => {
+    const headerRule = rules.find((r) => r.selectors.includes('.gt-saved__header'));
+    expect(headerRule, '.gt-saved__header rule must exist').toBeDefined();
+    expect(headerRule?.declarations['flex-wrap']).toBe('wrap');
+    expect(headerRule?.declarations['gap']).toBeDefined();
+  });
+
+  it('BUG-06: includes safe-area padding (env(safe-area-inset-*)) on .gt-saved', () => {
+    expect(css).toMatch(/\.gt-saved\s*\{[^}]*env\(safe-area-inset-top/);
+    expect(css).toMatch(/\.gt-saved\s*\{[^}]*env\(safe-area-inset-bottom/);
   });
 });

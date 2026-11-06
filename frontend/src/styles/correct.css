@@ -20,6 +20,10 @@
   color: var(--gt-text, #f0f6fc);
   box-sizing: border-box;
   padding: var(--gt-space-md, 16px);
+  padding-top: max(var(--gt-space-md, 16px), env(safe-area-inset-top, 0px));
+  padding-right: max(var(--gt-space-md, 16px), env(safe-area-inset-right, 0px));
+  padding-bottom: max(var(--gt-space-md, 16px), env(safe-area-inset-bottom, 0px));
+  padding-left: max(var(--gt-space-md, 16px), env(safe-area-inset-left, 0px));
   gap: var(--gt-space-md, 16px);
   max-width: 800px;
   margin: 0 auto;
@@ -70,7 +74,7 @@
   position: relative;
   width: 100%;
   flex: 1;
-  min-height: 280px;
+  min-height: clamp(160px, 40vh, 280px);
   max-height: 55vh;
   display: flex;
   justify-content: center;
@@ -86,6 +90,12 @@
   overflow: hidden;
   touch-action: none;
   box-shadow: var(--gt-shadow-card, 0 6px 24px rgba(0, 0, 0, 0.6));
+}
+
+@media (orientation: landscape) {
+  .gt-correct__canvas-container {
+    min-height: 160px;
+  }
 }
 
 /* Stitched seam inside the copper frame */
@@ -106,7 +116,6 @@
   height: 100%;
   min-width: var(--gt-target, 48px);
   min-height: var(--gt-target, 48px);
-  object-fit: contain;
   cursor: crosshair;
   background-color: var(--gt-bg, #0b0e0c);
 }
