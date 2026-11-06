@@ -334,8 +334,12 @@ describe('Lab Explore: Token Fallbacks and Reduced Motion (Brief Item 3 & 5)', (
     expect(exploreCss).toContain('var(--gt-bone,');
   });
 
-  it('global.css imports explore.css at the end of the file', () => {
-    expect(globalCss).toMatch(/@import\s+['"]\.\/explore\.css['"];?\s*$/);
+  it('global.css imports explore.css at the top of the file before any rules', () => {
+    expect(globalCss).toMatch(/@import\s+['"]\.\/explore\.css['"];?/);
+    const exploreImportIdx = globalCss.indexOf("@import './explore.css';");
+    const fontFaceIdx = globalCss.indexOf('@font-face');
+    expect(exploreImportIdx).toBeGreaterThan(-1);
+    expect(exploreImportIdx).toBeLessThan(fontFaceIdx);
   });
 
   it('specimen table frame explicitly disables animations under prefers-reduced-motion', () => {
@@ -346,5 +350,86 @@ describe('Lab Explore: Token Fallbacks and Reduced Motion (Brief Item 3 & 5)', (
     expect(block).toMatch(/\.gt-lab-specimen-table/);
     expect(block).toMatch(/animation:\s*none\s*!important/);
     expect(block).toMatch(/transition:\s*none\s*!important/);
+  });
+});
+
+describe('Lab Explore: Responsive Layout, Scrolling & Zoom Robustness (Lane lab-explore3)', () => {
+  it('the container has no height: 100dvh together with overflow: hidden (BUG-01)', () => {
+    const globalRules = parseCssRules(globalCss);
+    const containerDecls = findDeclarations(globalRules, '.gt-explore');
+    expect(containerDecls?.['height']).toBeUndefined();
+    expect(containerDecls?.['overflow']).not.toBe('hidden');
+    expect(containerDecls?.['overflow-y']).toBe('auto');
+    expect(containerDecls?.['min-height']).toMatch(/100dvh|100vh/);
+  });
+
+  it('the actions row wraps so controls never collide at 320px or 200% zoom (BUG-04)', () => {
+    const globalRules = parseCssRules(globalCss);
+    const actionsDecls = findDeclarations(globalRules, '.gt-explore__actions');
+    expect(actionsDecls?.['flex-wrap']).toBe('wrap');
+
+    const exploreRules = parseCssRules(exploreCss);
+    const exploreActionsDecls = findDeclarations(exploreRules, '.gt-explore__actions');
+    expect(exploreActionsDecls?.['flex-wrap']).toBe('wrap');
+  });
+
+  it('the title allows multiple lines and does not use nowrap (BUG-08)', () => {
+    const globalRules = parseCssRules(globalCss);
+    const titleDecls = findDeclarations(globalRules, '.gt-explore__title');
+    expect(titleDecls?.['white-space']).not.toBe('nowrap');
+    expect(titleDecls?.['-webkit-line-clamp']).toBe('2');
+
+    const exploreRules = parseCssRules(exploreCss);
+    const exploreTitleDecls = findDeclarations(exploreRules, '.gt-explore__title');
+    expect(exploreTitleDecls?.['white-space']).not.toBe('nowrap');
+    expect(exploreTitleDecls?.['-webkit-line-clamp']).toBe('2');
+  });
+
+  it('applies safe-area insets to the Explore container (BUG-06)', () => {
+    const globalRules = parseCssRules(globalCss);
+    const containerDecls = findDeclarations(globalRules, '.gt-explore');
+    expect(containerDecls?.['padding-top']).toContain('env(safe-area-inset-top');
+    expect(containerDecls?.['padding-bottom']).toContain('env(safe-area-inset-bottom');
+    expect(containerDecls?.['padding-left']).toContain('env(safe-area-inset-left');
+    expect(containerDecls?.['padding-right']).toContain('env(safe-area-inset-right');
+  });
+
+  it('canvas container uses flexible sizing with sensible clamp min-height', () => {
+    const globalRules = parseCssRules(globalCss);
+    const containerDecls = findDeclarations(globalRules, '.gt-explore__canvas-container');
+    expect(containerDecls?.['flex']).toMatch(/1\s+1\s+auto/);
+    expect(containerDecls?.['min-height']).toMatch(/clamp\(220px/);
+
+    const exploreRules = parseCssRules(exploreCss);
+    const tableDecls = findDeclarations(exploreRules, '.gt-lab-specimen-table');
+    expect(tableDecls?.['flex']).toMatch(/1\s+1\s+auto/);
+    expect(tableDecls?.['min-height']).toMatch(/clamp\(220px/);
+  });
+
+  it('every control still has a >= 48px touch target in both global.css and explore.css', () => {
+    const globalRules = parseCssRules(globalCss);
+    const exploreRules = parseCssRules(exploreCss);
+
+    for (const rules of [globalRules, exploreRules]) {
+      const ask = findDeclarations(rules, '.gt-explore__ask');
+      const back = findDeclarations(rules, '.gt-explore__back');
+      const correct = findDeclarations(rules, '.gt-explore__correct');
+      const send = findDeclarations(rules, '.gt-explore__send');
+      const askInput = findDeclarations(rules, '.gt-explore__ask-input');
+
+      expect(parseDimensionPx(ask?.['min-height'])).toBeGreaterThanOrEqual(48);
+      expect(parseDimensionPx(ask?.['min-width'])).toBeGreaterThanOrEqual(48);
+
+      expect(parseDimensionPx(back?.['min-height'])).toBeGreaterThanOrEqual(48);
+      expect(parseDimensionPx(back?.['min-width'])).toBeGreaterThanOrEqual(48);
+
+      expect(parseDimensionPx(correct?.['min-height'])).toBeGreaterThanOrEqual(48);
+      expect(parseDimensionPx(correct?.['min-width'])).toBeGreaterThanOrEqual(48);
+
+      expect(parseDimensionPx(send?.['min-height'])).toBeGreaterThanOrEqual(48);
+      expect(parseDimensionPx(send?.['min-width'])).toBeGreaterThanOrEqual(48);
+
+      expect(parseDimensionPx(askInput?.['min-height'])).toBeGreaterThanOrEqual(48);
+    }
   });
 });

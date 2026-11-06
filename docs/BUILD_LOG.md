@@ -389,4 +389,26 @@ Format for each entry:
   - `frontend/tests/api.health.test.ts`
   - `frontend/tests/api.scene.test.ts`
   - `docs/reports/agy-lab-warmup-report.md`
+
+## 2026-11-06 — Antigravity — Lane lab-explore3: Fix CSS import ordering and Explore layout bugs
+- Resolved CSS import bug and layout bugs identified in audit (`audit-layout.md` and `audit-csstests.md`):
+  - Moved `@import './explore.css';` to the top of `frontend/src/styles/global.css` (line 3, directly alongside `tokens.css` and `lab.css`), eliminating the PostCSS warning and ensuring all specimen table frame, rivets, and HUD rules are bundled in production CSS (`dist/assets/index-*.css`).
+  - Authored new guard test `frontend/tests/css.imports.test.ts` (3 tests) validating that for every CSS file in `src/styles/`, `@import` precedes all CSS rules, all imported files exist on disk, and all component-imported CSS files exist. Verified that this test specifically failed on the old layout before passing.
+  - Fixed BUG-01: Replaced `height: 100dvh; overflow: hidden;` on `.gt-explore` with `min-height: 100vh; min-height: 100dvh; overflow-y: auto;`, and configured `.gt-explore__canvas-container` with `flex: 1 1 auto; min-height: clamp(220px, 50dvh, 100%);` so the entire chrome (Ask, Correct, Back, fallback form) is fully scrollable and never clipped at 200% zoom, in landscape, or with the on-screen keyboard open.
+  - Fixed BUG-04: Added `flex-wrap: wrap;` to `.gt-explore__actions` in both `global.css` and `explore.css` so action buttons wrap cleanly without overflowing horizontally.
+  - Fixed BUG-08: Removed `white-space: nowrap; text-overflow: ellipsis;` on `.gt-explore__title` and applied 2-line multiline clamp (`-webkit-line-clamp: 2`).
+  - Fixed BUG-06: Added `env(safe-area-inset-*)` padding to `.gt-explore` in portrait and landscape.
+  - Fixed BUG-10: Defined `.gt-explore__correct` with `flex: 1; min-height: 52px; min-width: var(--gt-target)` for symmetric button sizing.
+  - Extended `frontend/tests/explore.lab.test.tsx` (+6 new assertions, 22 total) validating layout resiliency, action wrapping, title wrapping, safe-area insets, and >= 48px targets.
+- Verification results:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: clean (0 errors).
+  - `npm --prefix frontend test`: 54 test files passed, 746 passed (0 failures).
+  - `npm --prefix frontend run build`: clean production build (36.15 kB CSS bundle containing all frame and rivet classes).
+- Files touched:
+  - `frontend/src/styles/global.css`
+  - `frontend/src/styles/explore.css`
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/tests/css.imports.test.ts` (new)
+  - `frontend/tests/explore.lab.test.tsx`
+  - `docs/reports/agy-lab-explore3-report.md` (new)
   - `docs/BUILD_LOG.md`
