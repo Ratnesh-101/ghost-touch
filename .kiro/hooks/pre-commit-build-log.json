@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Pre-commit build log check",
+      "trigger": "PreCommit",
+      "description": "Remind agent to record honest tool attribution in docs/BUILD_LOG.md before committing",
+      "action": {
+        "type": "agent",
+        "prompt": "A commit is being prepared. Check docs/BUILD_LOG.md to ensure the latest changes are attributed honestly to the tool that built them (Kiro, Antigravity, or Claude Code). Verify that what was built, what broke, and all files touched are listed, and that agent work is never claimed as Kiro's."
+      },
+      "enabled": true
+    }
+  ]
+}

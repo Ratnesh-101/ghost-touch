@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Accessibility guard on save",
+      "trigger": "PostFileSave",
+      "description": "Run accessibility contrast, touch target, and motion test suites when screens or components change",
+      "matcher": "frontend[\\\\/]src[\\\\/](screens|components)[\\\\/].*\\.(tsx|ts)$",
+      "action": {
+        "type": "command",
+        "command": "npx vitest run tests/a11y.contrast.test.ts tests/a11y.targets.test.ts tests/a11y.motion.test.ts tests/screens.render.test.ts --reporter=dot"
+      },
+      "enabled": true
+    }
+  ]
+}
