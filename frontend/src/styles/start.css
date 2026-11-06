@@ -24,30 +24,6 @@
   user-select: none;
 }
 
-/* Stacked-layout rule for narrow widths (<= 640px) and 200% zoom */
-@media (max-width: 640px) {
-  .gt-organ-tiles {
-    grid-template-columns: 1fr;
-    gap: var(--gt-space-sm, 12px);
-  }
-
-  .gt-organ-tile {
-    flex-direction: row;
-    text-align: left;
-    align-items: center;
-    gap: var(--gt-space-md, 16px);
-    padding: var(--gt-space-md, 16px);
-  }
-
-  .gt-organ-tile__icon-wrapper {
-    margin-bottom: 0;
-  }
-
-  .gt-organ-tile__content {
-    align-items: flex-start;
-  }
-}
-
 /* Individual organ tile: stitched dashed border with copper corner rivet */
 .gt-organ-tile {
   position: relative;
@@ -140,4 +116,58 @@
   word-break: normal;
   white-space: normal;
   margin: 0;
+}
+
+/* ==========================================================================
+   NARROW VIEWPORTS (<= 640px) & 200% ZOOM COMPACT ROW LAYOUT
+   Lays each tile out horizontally (icon left, title + line right) in a
+   compact row of ~64 to 72 px, allowing Start hero to fit 390x844 without scrolling.
+   ========================================================================== */
+@media (max-width: 640px) {
+  .gt-organ-tiles {
+    grid-template-columns: 1fr;
+    gap: var(--gt-space-xs, 8px);
+  }
+
+  .gt-organ-tile {
+    flex-direction: row;
+    text-align: left;
+    align-items: center;
+    gap: var(--gt-space-sm, 12px);
+    padding: var(--gt-space-xs, 8px) var(--gt-space-md, 16px);
+    min-height: 64px;
+    height: auto;
+  }
+
+  .gt-organ-tile__rivet {
+    top: var(--gt-space-2xs, 4px);
+    right: var(--gt-space-2xs, 4px);
+  }
+
+  .gt-organ-tile__icon-wrapper {
+    width: 38px;
+    height: 38px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .gt-organ-tile__icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .gt-organ-tile__content {
+    align-items: flex-start;
+    gap: var(--gt-space-2xs, 2px);
+  }
+
+  .gt-organ-tile__title {
+    font-size: var(--gt-text-base, 1rem);
+    line-height: var(--gt-line-height-tight, 1.2);
+  }
+
+  .gt-organ-tile__line {
+    font-size: var(--gt-text-sm, 0.875rem);
+    line-height: var(--gt-line-height-normal, 1.35);
+  }
 }

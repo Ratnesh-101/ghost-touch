@@ -358,4 +358,16 @@ describe('Layout and zoom audit conformance (Item 6 & 7)', () => {
     expect(globalCss).toMatch(/@media\s*\(\s*max-width:\s*380px\s*\)/);
     expect(globalCss).toMatch(/\.gt-capture__samples-grid\s*\{[^}]*gap:\s*6px/);
   });
+
+  it('styles sample card labels with at least 0.875rem font size and natural wrapping', () => {
+    expect(globalCss).toMatch(/\.gt-capture__sample-name\s*\{[^}]*font-size:\s*var\(--gt-text-sm/);
+    expect(globalCss).toMatch(/\.gt-capture__sample-name\s*\{[^}]*overflow-wrap:\s*break-word/);
+    expect(globalCss).toMatch(/\.gt-capture__sample-name\s*\{[^}]*white-space:\s*normal/);
+  });
+
+  it('ensures sample button font-size is at least 0.875rem across all screen widths', () => {
+    expect(globalCss).toMatch(/\.gt-capture__sample-btn\s*\{[^}]*font-size:\s*var\(--gt-text-sm/);
+    const mqMatch = /@media\s*\(\s*max-width:\s*380px\s*\)\s*\{([\s\S]+?)\n\}/.exec(globalCss);
+    expect(mqMatch?.[1]).toMatch(/\.gt-capture__sample-btn\s*\{[^}]*font-size:\s*var\(--gt-text-sm/);
+  });
 });
