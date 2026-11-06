@@ -18,8 +18,8 @@ Before you begin, ensure you have active accounts on:
 1. **GitHub** — hosting the repository.
 2. **[Render](https://render.com/)** — for hosting the FastAPI backend web service (Free Tier).
 3. **[Vercel](https://vercel.com/)** — for hosting the Vite React PWA frontend (Hobby / Free Tier).
-4. **[Google AI Studio](https://aistudio.google.com/)** — to generate your primary `GEMINI_API_KEY`.
-5. *(Optional)* **[OpenAI Platform](https://platform.openai.com/)** — for `OPENAI_API_KEY` (first fallback after Gemini).
+4. **[OpenAI Platform](https://platform.openai.com/)** — for `OPENAI_API_KEY` (primary provider).
+5. *(Optional)* **[Google AI Studio](https://aistudio.google.com/)** — to generate your `GEMINI_API_KEY` (fallback after OpenAI).
 6. *(Optional)* **[Nebius Token Factory](https://tokenfactory.nebius.com/)** — for `NEBIUS_API_KEY` (last fallback and bulk test runs).
 
 ---
@@ -33,29 +33,29 @@ The repository root contains `render.yaml`, an infrastructure-as-code Blueprint 
 3. Connect your GitHub repository (`ghost-touch`).
 4. Render detects `render.yaml` and displays the `ghost-touch-backend` service.
 5. In the environment configuration screen, enter your secret API keys (marked with `sync: false`):
-   - **`GEMINI_API_KEY`**: Paste your Google Gemini API key from AI Studio (**Required**).
-   - **`OPENAI_API_KEY`**: *(Optional)* Paste your OpenAI API key. If omitted, OpenAI is skipped in the fallback chain.
+   - **`OPENAI_API_KEY`**: Paste your OpenAI API key from OpenAI Platform (**Primary**).
+   - **`GEMINI_API_KEY`**: *(Optional)* Paste your Google Gemini API key from AI Studio (fallback after OpenAI).
    - **`NEBIUS_API_KEY`**: *(Optional)* Paste your Nebius API key. If omitted, Nebius is skipped in the fallback chain.
 6. Leave all non-secret settings at their Blueprint defaults:
    - `PYTHON_VERSION`: `3.11.10`
-   - `GEMINI_MODEL`: `gemini-3.8-flash`
+   - `GEMINI_MODEL`: `gemini-3.5-flash-lite`
    - `GEMINI_THINKING`: `minimal`
    - `OPENAI_MODEL`: `gpt-4.1-mini`
    - `OPENAI_BASE_URL`: `https://api.openai.com/v1`
    - `NEBIUS_MODEL`: `openbmb/MiniCPM-V-4_5`
    - `NEBIUS_TEXT_MODEL`: `nvidia/Nemotron-3-Ultra-550b-a55b` (text-only, used for Ask answers)
    - `NEBIUS_BASE_URL`: `https://api.tokenfactory.nebius.com/v1`
-   - `VISION_PROVIDERS`: `gemini,openai,nebius`
-   - `PROVIDER_TIMEOUT_SECONDS`: `8.0`
+   - `VISION_PROVIDERS`: `openai,gemini,nebius`
+   - `PROVIDER_TIMEOUT_SECONDS`: `12.0`
    - `PROVIDER_RETRIES`: `1` (number of immediate retries on transient 429/5xx errors before fallback)
    - `PROVIDER_RETRY_BACKOFF_SECONDS`: `0.8` (backoff delay in seconds before retrying the same provider)
-   - `SCENE_TIMEOUT_SECONDS`: `15.0`
+   - `SCENE_TIMEOUT_SECONDS`: `25.0`
    - `ASK_TIMEOUT_SECONDS`: `10.0`
    - `SCENE_CACHE_SIZE`: `64`
    - `SCENE_CACHE_TTL_SECONDS`: `21600`
    - `RATE_LIMIT_ASK_PER_MIN`: `40`
    - `RATE_LIMIT_SCENE_PER_MIN`: `20`
-   - `ALLOWED_ORIGINS`: leave temporary placeholder (updated in Step 3).
+   - `ALLOWED_ORIGINS`: `https://ghost-touch-iota.vercel.app`
 7. Click **Apply**.
 8. Wait for Render to complete the build (`pip install .`) and start the service (`uvicorn app.main:app --host 0.0.0.0 --port $PORT`).
 9. Once live, copy your backend URL from the top of the Render service page:
@@ -82,14 +82,14 @@ The frontend is a Vite + React 18 Progressive Web App configured via `frontend/v
    - **Key**: `VITE_API_URL`
    - **Value**: Your Render backend URL from Step 1 (e.g., `https://ghost-touch-backend-xxxx.onrender.com`, **strictly without trailing slash**).
    - **Key**: `VITE_SITE_URL` *(Optional on initial deployment; configure in Step 3 once your production domain is established)*
-   - **Value**: Your frontend URL (e.g., `https://ghost-touch.vercel.app`, **strictly without trailing slash**).
+   - **Value**: Your frontend URL (e.g., `https://ghost-touch-iota.vercel.app`, **strictly without trailing slash**).
 6. Click **Deploy**.
 7. Wait ~60 seconds for the build to complete.
 8. Copy your production frontend URL:
    ```
-   https://ghost-touch.vercel.app
+   https://ghost-touch-iota.vercel.app
    ```
-   *(or your assigned Vercel URL, e.g. `https://ghost-touch-xxx.vercel.app`)*
+   *(or your assigned Vercel URL, e.g. `https://ghost-touch-iota.vercel.app`)*
 
 ---
 
@@ -97,11 +97,11 @@ The frontend is a Vite + React 18 Progressive Web App configured via `frontend/v
 
 Social crawlers (Twitter / X cards, WhatsApp, Discord, LinkedIn, Slack) require absolute URLs for OpenGraph image and canonical URL tags (`og:image`, `twitter:image`, `og:url`). Social crawlers do not execute JavaScript or install Service Workers, so these URLs must be injected into the static HTML at build time.
 
-1. Once your frontend is deployed and you know its assigned domain (e.g. `https://ghost-touch.vercel.app` or a custom production domain):
+1. Once your frontend is deployed and you know its assigned domain (e.g. `https://ghost-touch-iota.vercel.app` or a custom production domain):
 2. In the [Vercel Dashboard](https://vercel.com/dashboard), navigate to **Settings** -> **Environment Variables**.
 3. Add (or edit) the variable:
    - **Key**: `VITE_SITE_URL`
-   - **Value**: Your production frontend origin (e.g. `https://ghost-touch.vercel.app`, **strictly without trailing slash**).
+   - **Value**: Your production frontend origin (e.g. `https://ghost-touch-iota.vercel.app`, **strictly without trailing slash**).
 4. Redeploy the frontend (click **Deployments** -> select the latest deployment -> click `...` -> **Redeploy**) so the Vite `siteUrlPlugin` rewrites the metadata tags into absolute URLs during `transformIndexHtml`.
 5. **How to test**:
    - Use an online link preview tool such as [OpenGraph.xyz](https://www.opengraph.xyz/), [Social Share Preview](https://socialsharepreview.com/), or paste your link into a Discord or Slack channel to verify the preview card displays the creature artwork, title, and description.
@@ -126,9 +126,9 @@ To allow the Vercel frontend to make cross-origin requests to the Render backend
 2. Navigate to **Environment**.
 3. Find `ALLOWED_ORIGINS` and edit it to your production Vercel URL:
    ```
-   https://ghost-touch.vercel.app
+   https://ghost-touch-iota.vercel.app
    ```
-   *(If you also want local development access, separate origins with a comma: `https://ghost-touch.vercel.app,http://localhost:5173`. Trailing slashes and spaces are automatically sanitized by the backend.)*
+   *(If you also want local development access, separate origins with a comma: `https://ghost-touch-iota.vercel.app,http://localhost:5173`. Trailing slashes and spaces are automatically sanitized by the backend.)*
 4. Click **Save Changes**. Render will automatically trigger a zero-downtime redeploy.
 
 ---

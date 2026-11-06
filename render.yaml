@@ -38,11 +38,11 @@ services:
         value: nvidia/Nemotron-3-Ultra-550b-a55b
       - key: NEBIUS_BASE_URL
         value: https://api.tokenfactory.nebius.com/v1
-      # Order of fallback: Gemini first, then OpenAI, then Nebius (last). Providers without a key are skipped.
+      # Order of fallback: OpenAI first, then Gemini, then Nebius (last). Providers without a key are skipped.
       - key: VISION_PROVIDERS
-        value: gemini,openai,nebius
+        value: openai,gemini,nebius
       - key: PROVIDER_TIMEOUT_SECONDS
-        value: "8.0"
+        value: "12.0"
       # Number of immediate retries on a transient provider error (429, 503) before falling through
       - key: PROVIDER_RETRIES
         value: "1"
@@ -50,7 +50,7 @@ services:
       - key: PROVIDER_RETRY_BACKOFF_SECONDS
         value: "0.8"
       - key: SCENE_TIMEOUT_SECONDS
-        value: "15.0"
+        value: "25.0"
       - key: ASK_TIMEOUT_SECONDS
         value: "10.0"
       - key: SCENE_CACHE_SIZE
@@ -63,4 +63,4 @@ services:
         value: "20"
       # Replace this with the deployed Vercel frontend URL (no trailing slash)
       - key: ALLOWED_ORIGINS
-        value: https://your-frontend-app.vercel.app
+        value: https://ghost-touch-iota.vercel.app
