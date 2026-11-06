@@ -1577,3 +1577,27 @@ Format for each entry:
   - `frontend/package.json` (`test:prop` script only)
   - `.kiro/specs/ghost-touch/tasks.md`, `.kiro/specs/ghost-touch/design.md`
   - `docs/reviews/kiro-core-review.md` (new), `docs/BUILD_LOG.md`
+
+
+## 2026-11-07 — agy, reviewed by Claude — Lane a11y-audit (Comprehensive frontend accessibility & UX audit)
+- Conducted full accessibility and UX audit of frontend source (`frontend/src/`) and specifications per `docs/briefs/agy-a11y-audit.md` and `docs/PHONE_TEST.md`:
+  - Evaluated screen-reader names, roles, and labels across all screens (`Start`, `Capture`, `Explore`, `Correct`, `SavedDiagrams`, `Teach`, `ShareError`, and `LabSettings`).
+  - Evaluated focus management, Tab order, keyboard traps, and Escape dismissal in modal dialogs.
+  - Computed color contrast ratios from CSS design tokens; verified AAA compliance (>10:1 to 18:1) on primary tokens.
+  - Inspected reduced-motion handling across global and screen CSS stylesheets and `Spark.tsx`.
+  - Traced TalkBack flow from `docs/PHONE_TEST.md` and catalogued potential blind-user friction points.
+  - Audited error announcement localization in English, Hindi, and Gujarati across capture, ask, storage, and share paths.
+- Key findings recorded in `docs/reports/agy-a11y-audit.md`:
+  - A11Y-01 (Critical): Explore canvas suppresses `aria-label` when `speechAnnounced` is true, exposing `<canvas role="img">` as unlabelled graphic to TalkBack.
+  - A11Y-02 (High): `LanguageSelector` and `RateSelector` buttons fire `speech.speak()` inside `onFocus`, causing severe speech collision with TalkBack announcements during swiping.
+  - A11Y-03 (High): Student verification banner honesty line is an interactive control (`tabIndex={0}`, `onClick`) with `role="note"` and measures only ~20px tall, violating the 48x48 px minimum touch target.
+  - A11Y-04 (High): Switching languages to Hindi or Gujarati does not update `<html lang>`, causing TalkBack to use English pronunciation on Indic scripts.
+  - A11Y-05 (Medium): `StatusText` omits `aria-live` and `role="status"` when `canSpeak` is true, risking missed alerts if speech synthesis is muted or ducked.
+  - A11Y-06 (Medium): Explore canvas lacks an `onKeyDown` handler for keyboard-only arrow navigation.
+  - A11Y-07 (Medium): Missing system voice notice in `speech.ts` is hardcoded in English.
+  - A11Y-08 (Medium): `--gt-danger: #f85149` yields 5.76:1 contrast on charcoal, falling short of AAA 7:1 standard for body text in Correct mode.
+  - Deployed URL `https://ghost-touch-iota.vercel.app` was unreachable due to sandbox run rules forbidding network access; noted upfront in audit report.
+- Files touched:
+  - `docs/reports/agy-a11y-audit.md`
+  - `docs/BUILD_LOG.md`
+
