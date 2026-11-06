@@ -390,3 +390,21 @@ Format for each entry:
   - `frontend/tests/api.scene.test.ts`
   - `docs/reports/agy-lab-warmup-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity — Lane lab-testenv (frontend tests independent of local env files)
+- Isolated frontend tests from developer local environment variables (`VITE_API_URL` set in `frontend/.env.local` causing test failures on developer machines):
+  - Audited all tests in `frontend/tests/` for `import.meta.env`, `VITE_API_URL`, and default base URL resolution; identified `frontend/tests/api.health.test.ts` as the sole test suite depending on ambient environment for base URLs.
+  - Made `frontend/tests/api.health.test.ts` hermetic by stubbing `vi.stubEnv('VITE_API_URL', '')` in `beforeEach` and restoring via `vi.unstubAllEnvs()` in `afterEach`.
+  - Added dedicated test asserting that configured `VITE_API_URL` in the environment (e.g. `'https://api.example.test/'`) is correctly used by `warmBackend` with trailing slashes stripped (`'https://api.example.test/api/v1/health'`).
+  - Added test asserting that explicit `baseUrl` option overrides `VITE_API_URL`.
+  - Added global safety net `env: { VITE_API_URL: '' }` to `test` block in `frontend/vitest.config.ts`.
+  - Verified hermeticity by running tests with `VITE_API_URL` set to both empty string and non-empty `http://localhost:8000` (all 56 test files passed under both conditions).
+- Verification results:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: clean (0 errors).
+  - `npm --prefix frontend test`: 56 test files passed, 798 passed (+2 new tests).
+  - `npm --prefix frontend run build`: cleanly built client and PWA service worker (22 precache entries, 457.49 KiB).
+- Files touched:
+  - `frontend/tests/api.health.test.ts`
+  - `frontend/vitest.config.ts`
+  - `docs/reports/agy-lab-testenv-report.md`
+  - `docs/BUILD_LOG.md`
