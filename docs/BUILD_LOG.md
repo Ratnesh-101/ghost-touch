@@ -1646,3 +1646,29 @@ Format for each entry:
   - Several long PowerShell commands returned empty output; they were re-run in smaller pieces.
 - Verification (real results): backend `pytest` 533 passed, `ruff check` clean, `ruff format --check` clean (65 files); frontend `tsc --noEmit` clean, `vitest run` 111 files and 1542 tests passed, `npm run build` ok.
 - Files touched: `backend/app/ask.py`, `backend/app/limits.py` (lane), `backend/app/main.py`, `backend/tests/test_fix_ask_regression.py` (3 tests converted to `asyncio.run`, nothing else), `backend/tests/test_round2_ask.py` (new), `docs/reviews/kiro-round2.md`, `.kiro/specs/ghost-touch/tasks.md`, `docs/BUILD_LOG.md`, plus the lane's `docs/briefs/agy-f4-fix2.md` and `docs/reports/agy-f4-fix-backend-ask-report.md`.
+
+
+
+## 2026-11-07 — agy, reviewed by Claude — Lane cleanup-report (Branch and Worktree Audit)
+- Performed a comprehensive, read-only audit of all `agy/*` branches and `gt-lane-*` worktrees per `docs/briefs/agy-cleanup-report.md`.
+- Analyzed 86 `agy/*` branches:
+  - 83 branches identified as SAFE TO DELETE (all verified ancestors of `main` via merge commits or squashed lane commits).
+  - 3 branches identified as KEEP (active lanes in progress: `agy/cleanup-report`, `agy/a11y-audit`, `agy/submission-prep`).
+  - 0 branches UNSURE.
+- Analyzed 24 `gt-lane-*` worktrees:
+  - 21 worktrees identified as SAFE TO DELETE (all completed and merged into `main` with clean working trees).
+  - 3 worktrees identified as KEEP (active lanes in progress: `gt-lane-cleanup-report`, `gt-lane-a11y-audit`, `gt-lane-submission-prep`).
+  - 0 worktrees UNSURE.
+- Documented the critical Windows directory junction hazard: worktrees link to `node_modules` and `.venv` via NTFS directory junctions and must NEVER be deleted with recursive deletion (`rm -rf` / `Remove-Item -Recurse`), which traverses junctions and damages the main repo.
+- Documented the safe unlinking procedure (`cmd /c rmdir` on junction paths first, followed by `git worktree remove` and `git branch -D`), and provided a turnkey cleanup script.
+- Strictly adhered to REPORT ONLY, DELETE NOTHING mandate (zero deletions executed).
+- Verification baseline executed:
+  - `npm --prefix frontend test`: 110 test files passed (1518 tests).
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+  - `npm --prefix frontend run build`: 128 modules transformed, clean PWA build.
+  - `backend/.venv/Scripts/python -m pytest backend`: 474 passed, 1 skipped.
+  - `backend/.venv/Scripts/python -m ruff check backend`: Clean.
+  - `backend/.venv/Scripts/python -m ruff format --check backend`: 63 files formatted.
+- Files touched:
+  - `docs/reports/cleanup.md`
+  - `docs/BUILD_LOG.md`
