@@ -1310,5 +1310,12 @@ Format for each entry:
   - `docs/user-test/translation-review.md`
   - `docs/user-test/translation-review.csv`
   - `docs/reports/agy-g4-semantic-voice-report.md`
+## 2026-11-06 — Antigravity (agy, reviewed by Claude) — Lane a1-guide-runtime (Guide runtime audit)
+- Audited "Guide my finger" runtime behaviour on real phones per `docs/briefs/audit-a1-guide-runtime.md` and `docs/briefs/audit-common.md`.
+- Identified 14 confirmed runtime defects across Web Audio lifecycle, dual oscillators, SpeechSynthesis cancellation, Android history popstate navigation, hint spam, and multilingual voice command parsing.
+- Sound areas verified: target coordinate bounds resolution, tolerant Ask response parsing, mathematical geometry bounds, and feature flag/setting gating.
+- Detailed report written to `docs/reports/audit-a1-guide-runtime.md` with concrete failure scenarios, minimal fixes, and proposed test cases.
+- Files touched:
+  - `docs/reports/audit-a1-guide-runtime.md`
   - `docs/BUILD_LOG.md`
 
