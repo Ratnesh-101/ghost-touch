@@ -52,6 +52,7 @@ describe('Vercel SPA rewrite regex', () => {
     '/workbox-835c8c05.js',
     '/manifest.webmanifest',
     // favicons & icons
+    '/favicon-64x64.png',
     '/favicon.svg',
     '/favicon.ico',
     '/apple-touch-icon.png',

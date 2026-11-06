@@ -18,7 +18,8 @@
  *   4. frontend/public/icons/icon-maskable-512.png (512x512)
  *   5. frontend/public/brand/og-image.png (1200x630)
  *   6. frontend/public/favicon.ico (16/32/48 multi-size PNG-in-ICO container)
- *   7. docs/design/screenshots/logo-sizes.png (contact sheet: 16/32/64 favicon & masked icon)
+ *   7. frontend/public/favicon-64x64.png (64x64 transparent standalone favicon)
+ *   8. docs/design/screenshots/logo-sizes.png (contact sheet: 16/32/64 favicon & masked icon)
  */
 
 import fs from 'node:fs';
@@ -281,7 +282,11 @@ async function main() {
     ]);
     fs.writeFileSync(path.join(publicDir, 'favicon.ico'), icoData);
 
-    // 7. Contact sheet: docs/design/screenshots/logo-sizes.png
+    // 7. favicon-64x64.png (64x64 transparent standalone favicon)
+    console.log('[build-brand] Generating favicon-64x64.png (64x64)...');
+    fs.writeFileSync(path.join(publicDir, 'favicon-64x64.png'), fav64Buf);
+
+    // 8. Contact sheet: docs/design/screenshots/logo-sizes.png
     console.log('[build-brand] Generating contact sheet logo-sizes.png...');
     const fav16b64 = fav16Buf.toString('base64');
     const fav32b64 = fav32Buf.toString('base64');
