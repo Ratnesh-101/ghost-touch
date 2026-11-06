@@ -356,3 +356,25 @@ Format for each entry:
   - `frontend/tests/explore.lab.test.tsx` (new)
   - `docs/reports/agy-lab-explore-report.md` (new)
   - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity — Lane lab-capture: Lab Capture Screen (brand first, primary action second)
+- Rebuilt Capture screen per `docs/briefs/lab-spec.md` and `docs/briefs/agy-lab-capture.md`:
+  - Brand-first header: decorative Logo mark (`variant="mark"`, `aria-hidden="true"`, `focusable="false"`) placed beside real text `<h1>{t('app.name')}</h1>` and tagline `<p>{t('app.tagline')}</p>`.
+  - Lab settings consolidation: replaced top toolbar selectors with a single accessible button labelled via `describeSettings(currentLang, currentRate)` (e.g. "Settings: English, 1.0×"). Button opens `<LabSettings>` modal bottom sheet with focus restoration to triggerRef and spoken feedback via `say`. Subscribed to `subscribeLang` and wrapped `drivers.speech.setRate` so label updates dynamically.
+  - Action hierarchy: "Take photo" configured as primary prominent button (`.gt-capture__button--primary`, min-height 64px); "Choose image" and "Saved diagrams" styled as secondary actions with aged copper outline (`.gt-capture__button--secondary`, `.gt-capture__button--saved`, min-height 52px).
+  - Specimen jar cards: upgraded sample diagram grid to larger specimen cards (`.gt-capture__sample-btn`, min-height 108px) rendering decorative `<SpecimenPreview>` above visible short names (`lab.specimen.triangle`, `lab.specimen.sine`, `lab.specimen.bars`) while preserving existing accessible names (`aria-label={t(labelKey)}`).
+  - Lab loading state: while `busy`, renders `<LabLoading title={t('lab.loading.title')} hint={t('lab.loading.hint')} />` with copper charging meter, preserving polite live-region status text, `aria-busy`, and spoken progress tones.
+  - Layout & zoom resilience: implemented safe-area padding (`env(safe-area-inset-*)`), `min-height: 100vh; min-height: 100dvh;`, wrapping flexboxes (`flex-wrap: wrap`) on header row and secondary actions row, no fixed heights, no `white-space: nowrap`, and responsive adjustments for <= 380px viewports.
+  - Test suites: updated `polish.test.ts` and `screens.render.test.ts` assertions from blanket `expect(html).not.toContain('aria-hidden')` to `expect(html).not.toMatch(/<button[^>]*aria-hidden="true"/)` to allow decorative SVGs while strictly guarding interactive controls. Created `frontend/tests/capture.lab.test.tsx` (16 tests).
+- Verification results:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors (clean).
+  - `npm --prefix frontend test`: 54 test files passed, 753 tests passed (clean).
+  - `npm --prefix frontend run build`: client and PWA service worker generated cleanly (22 precache entries, 473.58 KiB).
+- Files touched:
+  - `frontend/src/screens/Capture.tsx`
+  - `frontend/src/styles/global.css`
+  - `frontend/tests/polish.test.ts`
+  - `frontend/tests/screens.render.test.ts`
+  - `frontend/tests/capture.lab.test.tsx` (new)
+  - `docs/reports/agy-lab-capture-report.md` (new)
+  - `docs/BUILD_LOG.md`
