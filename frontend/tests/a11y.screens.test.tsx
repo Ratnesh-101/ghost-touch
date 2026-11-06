@@ -224,6 +224,17 @@ describe('Accessibility validation: all screens in en, hi, gu', () => {
         expect(result.violations).toEqual([]);
         expect(result.h1Count).toBe(1);
         expect(result.interactiveCount).toBeGreaterThanOrEqual(5);
+
+        // Verify finding 1: both hidden file inputs carry a non-empty aria-label
+        const root = parseHtml(html);
+        const hiddenFileInputs = getAllElements(root).filter(
+          (el) => el.tag === 'input' && el.attrs.type === 'file' && 'hidden' in el.attrs,
+        );
+        expect(hiddenFileInputs.length).toBe(2);
+        for (const input of hiddenFileInputs) {
+          expect(input.attrs['aria-label']).toBeDefined();
+          expect(input.attrs['aria-label']?.trim().length).toBeGreaterThan(0);
+        }
       });
 
       it('Explore with triangle sample passes a11y DOM checks', () => {
