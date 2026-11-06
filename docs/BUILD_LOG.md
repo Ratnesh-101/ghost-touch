@@ -1252,3 +1252,22 @@ Format for each entry:
 - Dependency note: `@types/qrcode` was installed then removed because it pulled `@types/node` and broke `@ts-expect-error node:fs` in 31 test files; `share/qrcode.d.ts` declares the module instead.
 - Both features ship OFF: `VITE_FEATURE_GUIDE` / `VITE_FEATURE_SHARE` must be "1" AND the setting on.
 - Numbers: frontend 1420 tests in 105 files; PWA precache 531.6 KiB to 639.4 KiB; core zero-line diff.
+
+## 2026-11-06 — Antigravity — Lane x-ownerdoc (Docs sync & owner checklist)
+- Audited shipped UI and synchronized `docs/PHONE_TEST.md` to real code:
+  - Added LabSettings feature toggles for "Guide my finger" (`lab.settings.guide`, `lab.settings.guideOff`/`On`) and "Teacher tools" (`lab.settings.teacher`, `lab.settings.teacherOff`/`On`).
+  - Documented primary UI route to Teacher Editor ("Open Teacher Editor" button in Settings) and clarified strict gating of `#/teach` by `VITE_FEATURE_SHARE === '1'` AND `gt_teacher_enabled` in `localStorage`.
+  - Corrected directional hints in Guide to match exact strings (`Move left`, `Move right`, `Move up`, `Move down`, `Move up-left`, `Move up-right`, `Move down-left`, `Move down-right`, `You are here`).
+  - Corrected arrival announcement to `"Arrived at {label}."` (`guide.arrived`) accompanied by `[50, 90, 50]` ms corner pattern and success earcon chime.
+  - Aligned voice command targets to valid scene elements (Triangle point C / segment CA, Bar chart Q4/Q1) and noted negative check for "find the peak" on Sine wave (`guide.notFound`).
+  - Clarified Ask "Guide me" is an on-screen button action rather than a standalone voice command, and updated right-angle target to vertex C per `triangle.json` facts.
+  - Corrected shared link entry announcement to single joined utterance and documented "Read note" / "Hide note" toggle behavior for teacher notes.
+  - Corrected damaged share hash error to exact string: `"This shared link is corrupted or incomplete."` (`share.error.badFormat`).
+- Created `docs/OWNER_CHECKLIST.md`: single-page operational punch list grouped into sections A through E (Before phone test, Phone test with links to PHONE_TEST.md, After it passes, Owner-only items, and Submission day deadlines & review queue).
+- Aligned draft beats in `docs/DEMO_SCRIPT.md` (Beat A and Beat B) with real UI flow, button actions, and spoken lines.
+- Files touched:
+  - `docs/OWNER_CHECKLIST.md`
+  - `docs/PHONE_TEST.md`
+  - `docs/DEMO_SCRIPT.md`
+  - `docs/reports/agy-x-ownerdoc-report.md`
+  - `docs/BUILD_LOG.md`
