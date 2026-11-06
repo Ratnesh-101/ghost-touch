@@ -465,3 +465,29 @@ Format for each entry:
   - `frontend/tests/capture.lab.test.tsx` (new)
   - `docs/reports/agy-lab-capture-report.md` (new)
   - `docs/BUILD_LOG.md`
+
+
+## 2026-11-06 — Antigravity — Lane lab-flowbugsa: Navigation, Memory, and Double-Tap Bug Fixes
+- Addressed four mobile flow and driver defects identified in audit findings 3, 4, 9, 16 per `docs/briefs/agy-lab-flowbugsa.md`:
+  - Finding 3 (HIGH): System Back navigation on secondary screens. Added `pushSavedEntry`, `leaveSavedEntry`, `onSavedBack`, `replaceSavedEntry`, `pushCorrectEntry`, `leaveCorrectEntry`, and `onCorrectBack` to `drivers/navigation.ts`. Wired `App.tsx` state machine to listen for system Back popstate on SavedDiagrams and Teacher Correct, returning to Capture and Explore respectively. Opening a saved diagram replaces history state so Back from Explore returns to Capture.
+  - Finding 4 (HIGH): Memory leak from unrevoked photo object URLs. Implemented `createPhotoUrlTracker` in `flow/capture.ts` and integrated into `App.tsx` via `photoTracker.current`. Revokes previous photo blob URLs on replacement, on return from Explore to Capture, on opening saved diagrams, and on App unmount. In `Correct.tsx`, released local image element on unmount while keeping `photoUrl` active for teacher overlays.
+  - Finding 9 (MEDIUM): Double-tap race on Start and sample buttons. Debounced `Start.tsx` `begin()` with `started = useRef(false)`. Synchronously set `busyRef = useRef(false)` in `Capture.tsx`'s `handleSample` and `handleFile` so rapid double-taps immediately hit the busy check, speak `capture.busy`, and prevent duplicate concurrent scene requests.
+  - Finding 16 (LOW): File input cancel handling. Added `handleCancel()` to `Capture.tsx` wired to `onCancel` prop and native DOM `cancel` events, as well as empty-selection handling in `handleFile`. Restores idle state and focuses the "Take photo" button silently.
+- Proving tests:
+  - Created `frontend/tests/nav.back.test.ts` (14 unit tests).
+  - Created `frontend/tests/capture.lifecycle.test.tsx` (7 unit tests).
+- Verification results:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors (clean).
+  - `npm --prefix frontend test`: 61 test files passed, 858 tests passed (clean).
+  - `npm --prefix frontend run build`: client and PWA service worker generated cleanly (22 precache entries, 499.46 KiB).
+- Files touched:
+  - `frontend/src/App.tsx`
+  - `frontend/src/drivers/navigation.ts`
+  - `frontend/src/flow/capture.ts`
+  - `frontend/src/screens/Capture.tsx`
+  - `frontend/src/screens/Correct.tsx`
+  - `frontend/src/screens/Start.tsx`
+  - `frontend/tests/nav.back.test.ts` (new)
+  - `frontend/tests/capture.lifecycle.test.tsx` (new)
+  - `docs/reports/agy-lab-flowbugsa-report.md` (new)
+  - `docs/BUILD_LOG.md`
