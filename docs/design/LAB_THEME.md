@@ -144,6 +144,8 @@ Defined in `frontend/src/styles/global.css`:
 
 ## Logo
 
+> **Owner Approval (2026-11-06)**: The current mark (`frontend/public/brand/logo-mark.svg`) and favicon (`frontend/public/favicon.svg`), alongside the rest of the brand set, were approved by the owner on 2026-11-06. The alternative-logo exploration was cancelled. A 64×64 standalone PNG favicon (`frontend/public/favicon-64x64.png`) is included in the production asset set.
+
 The Ghost Touch logo balances tactile STEM precision with the Frankenstein's Laboratory narrative. The mark embodies the sensory creature: a mobile device chassis perceiving a tactile diagram triangle through haptic vibration waves, grounded by a copper neck bolt electrode and stitched bone seams.
 
 For complete brand guidelines, coordinate maps, asset exports, and character illustrations, see [docs/design/LOGO.md](./LOGO.md).
@@ -174,7 +176,7 @@ To preserve visual prominence and legibility, keep an exclusion zone surrounding
 - No typography, UI boundaries, icons, or illustrations may enter this exclusion zone.
 
 ### 4. Minimum Dimensions
-- **Favicon Variant (`favicon.svg`)**: Minimum readable size is **16 × 16 px**. At scales $\le 32\text{ px}$, delicate suture ticks and vibration arcs are omitted to preserve clarity.
+- **Favicon Variant (`favicon.svg`)**: Minimum readable size is **16 × 16 px**. At scales $\le 32\text{ px}$, delicate suture ticks and vibration arcs are omitted to preserve clarity. Multi-resolution renders are generated into `favicon.ico` (16, 32, 48 px) and the standalone 64×64 PNG favicon (`favicon-64x64.png`).
 - **Logo Mark (`logo-mark.svg`)**: Minimum size **32 × 32 px**.
 - **Full Logo (`logo-full.svg`)**: Minimum width **120 px** (height $\approx 28\text{ px}$). Below 120 px, the wordmark must not be used; use the mark or favicon instead.
 
@@ -185,6 +187,28 @@ To preserve visual prominence and legibility, keep an exclusion zone surrounding
 4. **Do NOT place on low-contrast backgrounds**: Maintain $\ge 7:1$ contrast against surfaces. On light backgrounds, use `logo-mono.svg` (solid `#0b0e0c`).
 5. **Do NOT use the mark as the sole heading**: The logo must never be the only content of an `<h1>` element without accessible text for screen readers.
 6. **Do NOT flip or mirror**: The neck bolt is always mounted on the left chassis edge; vibration waves radiate to the right.
+
+### 6. Approved Final Brand Asset Set
+
+| Asset Path | Format | Size | Description |
+|---|---|---|---|
+| `frontend/public/brand/logo-mark.svg` | SVG | 2.5 KB | Approved full-detail creature mark on transparent background |
+| `frontend/public/brand/logo-full.svg` | SVG | 3.4 KB | Horizontal mark + wordmark with suture accent |
+| `frontend/public/brand/logo-mono.svg` | SVG | 3.0 KB | Monochrome `#0b0e0c` version for light documentation/print |
+| `frontend/public/brand/logo-maskable.svg` | SVG | 2.8 KB | Centered mark inside 80% safe zone with solid `#0b0e0c` bg |
+| `frontend/public/brand/og-image.svg` | SVG | 8.8 KB | 1200×630 OpenGraph / Twitter preview with 3 organ cards |
+| `frontend/public/favicon.svg` | SVG | 0.8 KB | Approved simplified 16 px icon (phone + bolt + triangle) |
+| `frontend/public/favicon.ico` | ICO | 2.7 KB | Multi-size ICO container (16, 32, 48 px PNG frames) |
+| `frontend/public/favicon-64x64.png` | PNG | ~1.5 KB | Standalone 64×64 transparent PNG favicon |
+| `frontend/public/apple-touch-icon.png` | PNG | 5.2 KB | 180×180 iOS home-screen icon |
+| `frontend/public/icons/icon-192.png` | PNG | 5.6 KB | 192×192 standard PWA home-screen icon |
+| `frontend/public/icons/icon-512.png` | PNG | 15.7 KB | 512×512 high-resolution PWA splash icon |
+| `frontend/public/icons/icon-maskable-512.png` | PNG | 15.7 KB | 512×512 Android adaptive maskable icon |
+| `frontend/public/brand/og-image.png` | PNG | 248 KB | 1200×630 production OpenGraph raster image |
+| `docs/design/screenshots/logo-sizes.png` | PNG | 72.9 KB | Contact sheet: 16/32/64 favicon & masked icon |
+| `frontend/src/components/Logo.tsx` | React / TSX | ~4 KB | Accessible inline SVG component (`'full' \| 'mark'`) |
+| `frontend/src/components/Mascot.tsx` | React / TSX | ~3.8 KB | Decorative creature mascot SVG with 2-eyed screen-face and organ triad |
+| `scripts/build-brand.mjs` | Node ESM | ~9 KB | Headless Chromium rasterizer for PNG/ICO & contact sheet |
 
 ---
 
