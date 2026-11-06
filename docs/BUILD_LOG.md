@@ -854,3 +854,9 @@ Format for each entry:
   - `frontend/tests/flow.capture.test.ts`
   - `docs/reports/agy-x-busyretry-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-06 - Claude Code - Review of the agy-built "Kiro-assigned" work and worktree cleanup
+- Tool: Claude Code (reviewer). Kiro credits are unavailable, so this review replaces the Kiro review and is NOT Kiro usage.
+- Reviewed Requirement 14/15, Task 17/18, P18-P20, the three new hooks, the Explore fixes and P21-P30. Report: `docs/reviews/review-agy-kiro-assigned-claude.md` (verdict FIX FIRST: two hook-command defects, one tautological property).
+- Follow-up fixes were handed to agy lane `x-reviewfix` (not yet merged when this was written).
+- Housekeeping: all 60 old `gt-lane-*` worktrees removed (branches kept; 55 uncommitted files archived outside the repo in `gt-archive/`).
