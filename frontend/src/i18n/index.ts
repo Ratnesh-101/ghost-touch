@@ -39,7 +39,7 @@ export function setStoredLang(lang: Lang): void {
 /** English string table. Nested keys read like `t('start.tapToBegin')`. */
 const en: Record<string, string> = {
   'app.name': 'Ghost Touch',
-  'app.tagline': 'Feel diagrams you cannot see.',
+  'app.tagline': "Feel diagrams you can't see.",
   'start.intro': 'Ghost Touch. Tap anywhere to begin.',
   'start.tapToBegin': 'Tap anywhere to begin',
   'start.begin': 'Begin',
@@ -206,6 +206,31 @@ const en: Record<string, string> = {
   'debug.btnBeep': 'Beep',
   'debug.btnSpeak': 'Speak sample',
   'debug.btnListen': 'Listen',
+
+  // Frankenstein Lab theme (Lane lab-i18n)
+  'lab.start.wake': 'Wake the creature',
+  'lab.start.tagline': "Feel diagrams you can't see",
+  'lab.organ.nerves.title': 'Nerves',
+  'lab.organ.nerves.line': 'Feel lines and corners as vibration',
+  'lab.organ.eyes.title': 'Eyes',
+  'lab.organ.eyes.line': 'AI reads your diagram',
+  'lab.organ.voice.title': 'Voice',
+  'lab.organ.voice.line': 'Tones and speech tell you more',
+  'lab.settings.button': 'Settings: {lang}, {rate}',
+  'lab.settings.title': 'Lab settings',
+  'lab.settings.close': 'Close settings',
+  'lab.settings.language': 'Language',
+  'lab.settings.rate': 'Speech speed',
+  'lab.settings.opened': 'Lab settings opened',
+  'lab.settings.closed': 'Lab settings closed',
+  'lab.loading.title': 'The lab is powering up',
+  'lab.loading.hint': 'Reading your diagram…',
+  'lab.raw.notice': "The creature's eyes are blurry — you can still feel the outlines.",
+  'lab.specimen.triangle': 'Right triangle',
+  'lab.specimen.sine': 'Sine wave',
+  'lab.specimen.bars': 'Bar chart',
+  'lab.empty.saved': 'No saved diagrams yet. Take a photo and save one.',
+  'lab.empty.generic': 'Nothing here yet.',
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -378,6 +403,31 @@ const hi: Record<string, string> = {
   'debug.btnBeep': 'बीप',
   'debug.btnSpeak': 'नमूना बोलें',
   'debug.btnListen': 'सुनें',
+
+  // Frankenstein Lab theme (Lane lab-i18n)
+  'lab.start.wake': 'जीव को जगाएं',
+  'lab.start.tagline': 'वे चित्र महसूस करें जो आप देख नहीं सकते',
+  'lab.organ.nerves.title': 'तंत्रिकाएं',
+  'lab.organ.nerves.line': 'रेखाओं और कोनों को कंपन के रूप में महसूस करें',
+  'lab.organ.eyes.title': 'आंखें',
+  'lab.organ.eyes.line': 'एआई आपके चित्र को पढ़ता है',
+  'lab.organ.voice.title': 'आवाज़',
+  'lab.organ.voice.line': 'टोन और आवाज़ आपको अधिक बताते हैं',
+  'lab.settings.button': 'सेटिंग्स: {lang}, {rate}',
+  'lab.settings.title': 'लैब सेटिंग्स',
+  'lab.settings.close': 'सेटिंग्स बंद करें',
+  'lab.settings.language': 'भाषा',
+  'lab.settings.rate': 'बोलने की गति',
+  'lab.settings.opened': 'लैब सेटिंग्स खुली',
+  'lab.settings.closed': 'लैब सेटिंग्स बंद',
+  'lab.loading.title': 'प्रयोगशाला चालू हो रही है',
+  'lab.loading.hint': 'आपके चित्र को पढ़ा जा रहा है…',
+  'lab.raw.notice': 'जीव की आंखें धुंधली हैं — आप अभी भी रूपरेखा महसूस कर सकते हैं।',
+  'lab.specimen.triangle': 'समकोण त्रिभुज',
+  'lab.specimen.sine': 'साइन तरंग',
+  'lab.specimen.bars': 'बार चार्ट',
+  'lab.empty.saved': 'अभी कोई सहेजा गया चित्र नहीं है। एक फोटो लें और सहेजें।',
+  'lab.empty.generic': 'यहाँ अभी कुछ नहीं है।',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -550,6 +600,31 @@ const gu: Record<string, string> = {
   'debug.btnBeep': 'બીપ',
   'debug.btnSpeak': 'નમૂનો બોલો',
   'debug.btnListen': 'સાંભળો',
+
+  // Frankenstein Lab theme (Lane lab-i18n)
+  'lab.start.wake': 'પ્રાણીને જગાડો',
+  'lab.start.tagline': 'જે આકૃતિઓ તમે જોઈ શકતા નથી તેને સ્પર્શથી અનુભવો',
+  'lab.organ.nerves.title': 'ચેતાઓ',
+  'lab.organ.nerves.line': 'રેખાઓ અને ખૂણાઓને વાઇબ્રેશન તરીકે અનુભવો',
+  'lab.organ.eyes.title': 'આંખો',
+  'lab.organ.eyes.line': 'AI તમારી આકૃતિ વાંચે છે',
+  'lab.organ.voice.title': 'અવાજ',
+  'lab.organ.voice.line': 'ટોન અને વાણી તમને વધુ વિગત જણાવે છે',
+  'lab.settings.button': 'સેટિંગ્સ: {lang}, {rate}',
+  'lab.settings.title': 'લેબ સેટિંગ્સ',
+  'lab.settings.close': 'સેટિંગ્સ બંધ કરો',
+  'lab.settings.language': 'ભાષા',
+  'lab.settings.rate': 'વાણી ગતિ',
+  'lab.settings.opened': 'લેબ સેટિંગ્સ ખુલી',
+  'lab.settings.closed': 'લેબ સેટિંગ્સ બંધ',
+  'lab.loading.title': 'લેબ ચાલુ થઈ રહી છે',
+  'lab.loading.hint': 'તમારી આકૃતિ વાંચી રહ્યા છીએ…',
+  'lab.raw.notice': 'પ્રાણીની આંખો ઝાંખી છે — તમે હજી પણ રૂપરેખા અનુભવી શકો છો.',
+  'lab.specimen.triangle': 'કાટકોણ ત્રિકોણ',
+  'lab.specimen.sine': 'સાઇન તરંગ',
+  'lab.specimen.bars': 'સ્તંભ આલેખ',
+  'lab.empty.saved': 'હજી કોઈ સેવ કરેલી આકૃતિ નથી. ફોટો લો અને સેવ કરો.',
+  'lab.empty.generic': 'અહીં હજી કંઈ નથી.',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };
@@ -599,4 +674,48 @@ export function t(key: string): string {
     return enTable[key] ?? key;
   }
   return key;
+}
+
+/**
+ * Format a speech rate multiplier into display string (e.g. '1.0×').
+ */
+export function formatRateMultiplier(rate?: string | number): string {
+  if (!rate || rate === 'normal' || rate === 1 || rate === '1' || rate === '1.0' || rate === '1.0x' || rate === '1.0×') {
+    return '1.0×';
+  }
+  if (rate === 'slow' || rate === 0.8 || rate === '0.8' || rate === '0.8x' || rate === '0.8×') {
+    return '0.8×';
+  }
+  if (rate === 'fast' || rate === 1.25 || rate === '1.25' || rate === '1.25x' || rate === '1.25×') {
+    return '1.25×';
+  }
+  if (typeof rate === 'number') {
+    return `${rate}×`;
+  }
+  if (typeof rate === 'string') {
+    if (rate.endsWith('×')) return rate;
+    if (rate.endsWith('x') || rate.endsWith('X')) return `${rate.slice(0, -1)}×`;
+    return `${rate}×`;
+  }
+  return '1.0×';
+}
+
+/**
+ * Format the settings button label for the current choice (e.g. "Settings: English, 1.0×").
+ * Supports language and speech rate parameters with active i18n translation.
+ */
+export function describeSettings(
+  language: Lang = getLang(),
+  rate: string | number = 'normal',
+): string {
+  const langKey: Lang = language in LANG_NAMES ? language : getLang();
+  const langName = getLang() === 'en'
+    ? LANG_NAMES[langKey]?.english ?? 'English'
+    : LANG_NAMES[langKey]?.native ?? 'English';
+  const rateText = formatRateMultiplier(rate);
+  const template = t('lab.settings.button');
+  if (template.includes('{lang}') && template.includes('{rate}')) {
+    return template.replace('{lang}', langName).replace('{rate}', rateText);
+  }
+  return `${template}: ${langName}, ${rateText}`;
 }
