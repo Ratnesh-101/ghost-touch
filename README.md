@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="frontend/public/brand/logo-full.svg" alt="Ghost Touch" width="400" />
+</p>
+
 # Ghost Touch 👻
 
 [![CI](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/ci.yml/badge.svg)](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/ci.yml)
