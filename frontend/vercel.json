@@ -43,7 +43,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!assets/|samples/|icons/|sw\\.js|manifest\\.webmanifest).*)",
+      "source": "/((?!assets/|samples/|icons/|brand/|mascot/|voice/|sw\\.js|registerSW\\.js|workbox-.*\\.js|manifest\\.webmanifest|favicon\\..*|apple-touch-icon\\.png|robots\\.txt).*)",
       "destination": "/index.html"
     }
   ]
