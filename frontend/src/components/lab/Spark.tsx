@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 
 export interface SparkProps {
   className?: string;
@@ -28,6 +28,9 @@ export function Spark({
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   });
 
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -39,19 +42,18 @@ export function Spark({
   useEffect(() => {
     // If reduced motion is preferred, invoke onDone promptly without animation
     if (reducedMotion) {
-      if (onDone) {
-        const timer = setTimeout(onDone, 50);
-        return () => clearTimeout(timer);
-      }
-      return;
+      const timer = setTimeout(() => {
+        onDoneRef.current?.();
+      }, 50);
+      return () => clearTimeout(timer);
     }
 
     // Normal motion: complete after 950ms (strictly < 1.2s)
-    if (onDone) {
-      const timer = setTimeout(onDone, 950);
-      return () => clearTimeout(timer);
-    }
-  }, [reducedMotion, onDone]);
+    const timer = setTimeout(() => {
+      onDoneRef.current?.();
+    }, 950);
+    return () => clearTimeout(timer);
+  }, [reducedMotion]);
 
   const classes = [
     'gt-spark',
