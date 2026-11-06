@@ -1271,3 +1271,20 @@ Format for each entry:
   - `docs/DEMO_SCRIPT.md`
   - `docs/reports/agy-x-ownerdoc-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity — Lane a2-share-security (Security & Robustness Audit)
+- Audited security and robustness of Teacher verify & share across target files (`share/**`, `hashRoute.ts`, `clipboard.ts`, `App.tsx`, `VerifiedBanner.tsx`, `ShareError.tsx`, `SharePanel.tsx`, `vercel.json`, `vite.config.ts`).
+- Authored comprehensive audit report in `docs/reports/audit-a2-share-security.md` with 15 concrete findings (4 High, 6 Medium, 5 Low), detailed failure scenarios, proposed minimal fixes, proposed tests, validator drift comparison table, and top 5 remediation priorities.
+- What broke / surprising findings:
+  - `decodeShare` prematurely rejects valid 12k-char payloads when wrapped in origin URLs because `hash.length > LIMITS.maxHashChars` counts origin and `#s=`.
+  - `sanitizeString` strips only ASCII C0 controls, leaving Unicode bidirectional overrides (`\u202E`, `\u2066`), isolates, and zero-width spaces intact, enabling visual spoofing on `VerifiedBanner`.
+  - Honesty copy ("Verified means a person reviewed this diagram. It is not cryptographic proof") is completely absent from all recipient surfaces (`VerifiedBanner`, `SharePanel`, spoken announcement).
+  - Severe validator drift: `validate.py` silently repairs out-of-tolerance coordinates by dropping invalid elements; `validateShareScene` rejects the entire diagram with `bad-scene`.
+  - `clearHash()` re-appends trailing `#` and pushes history entries due to redundant `loc.hash = ''` after `replaceState`.
+  - Clipboard copy and Web Share failures are silently swallowed with zero auditory/visual feedback.
+  - Inverted bar coordinates (`x0 > x1`) pass validation but are impossible to hit in `hitTest.ts`.
+  - 2,000-char QR codes produce unscannable 1.15 px/module density on mobile screens.
+- Files touched:
+  - `docs/reports/audit-a2-share-security.md`
+  - `docs/BUILD_LOG.md`
+
