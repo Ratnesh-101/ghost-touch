@@ -1,0 +1,156 @@
+/**
+ * Lab Loading Visual Styles
+ *
+ * Kiroween "Frankenstein's Laboratory" theme:
+ * Indeterminate copper charge meter with sequential glowing cells,
+ * voltage spark glyph, high-contrast accessible typography,
+ * smooth animation under 3 flashes/second (WCAG 2.3.1),
+ * and static half-filled state under prefers-reduced-motion.
+ */
+
+.gt-lab-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--gt-space-lg, 20px);
+  gap: var(--gt-space-md, 16px);
+  background-color: var(--gt-surface-card, #12121b);
+  border: 1px solid var(--gt-copper, var(--gt-green-dim));
+  border-radius: var(--gt-radius-md, 12px);
+  box-shadow: var(--gt-shadow-card, 0 6px 24px rgba(0, 0, 0, 0.6));
+}
+
+.gt-lab-loading__title {
+  margin: 0;
+  font-family: var(--gt-font-sans, system-ui, sans-serif);
+  font-size: var(--gt-text-lg, 1.125rem);
+  font-weight: 600;
+  line-height: var(--gt-line-height-tight, 1.2);
+  color: var(--gt-bone, var(--gt-text-primary, #f5fff8));
+  text-align: center;
+}
+
+.gt-lab-loading__meter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gt-space-sm, 12px);
+  width: 100%;
+  max-width: 320px;
+  box-sizing: border-box;
+}
+
+.gt-lab-loading__track {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  flex: 1;
+  height: 28px;
+  box-sizing: border-box;
+  background-color: var(--gt-surface, #14141e);
+  border: 2px solid var(--gt-copper, var(--gt-green-dim));
+  border-radius: var(--gt-radius-sm, 8px);
+  box-shadow: inset 0 0 8px var(--gt-shadow-inset, rgba(0, 0, 0, 0.7));
+}
+
+.gt-lab-loading__cell {
+  flex: 1;
+  height: 100%;
+  border-radius: 2px;
+  background-color: var(--gt-copper, var(--gt-green-dim));
+  opacity: 0.2;
+  box-shadow: none;
+  animation: gt-charge-pulse 1.8s ease-in-out infinite;
+}
+
+/* Staggered sequential charging across 8 segmented cells */
+.gt-lab-loading__cell--1 { animation-delay: 0s; }
+.gt-lab-loading__cell--2 { animation-delay: 0.15s; }
+.gt-lab-loading__cell--3 { animation-delay: 0.3s; }
+.gt-lab-loading__cell--4 { animation-delay: 0.45s; }
+.gt-lab-loading__cell--5 { animation-delay: 0.6s; }
+.gt-lab-loading__cell--6 { animation-delay: 0.75s; }
+.gt-lab-loading__cell--7 { animation-delay: 0.9s; }
+.gt-lab-loading__cell--8 { animation-delay: 1.05s; }
+
+.gt-lab-loading__spark {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--gt-cyan, var(--gt-green));
+  animation: gt-spark-pulse 1.8s ease-in-out infinite;
+}
+
+.gt-lab-loading__hint {
+  margin: 0;
+  font-family: var(--gt-font-sans, system-ui, sans-serif);
+  font-size: var(--gt-text-sm, 0.875rem);
+  line-height: var(--gt-line-height-normal, 1.5);
+  color: var(--gt-bone, var(--gt-text-secondary, #c2d6cc));
+  text-align: center;
+}
+
+/* Smooth continuous charging loop: brightness changes smoothly, no rapid flash */
+@keyframes gt-charge-pulse {
+  0%, 100% {
+    opacity: 0.2;
+    background-color: var(--gt-copper, var(--gt-green-dim));
+    box-shadow: none;
+  }
+  30%, 70% {
+    opacity: 1;
+    background-color: var(--gt-green);
+    box-shadow: 0 0 8px var(--gt-green-glow, rgba(57, 255, 136, 0.4));
+  }
+}
+
+/* Smooth voltage spark pulse */
+@keyframes gt-spark-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(0.95);
+    filter: none;
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 6px var(--gt-cyan, var(--gt-green)));
+  }
+}
+
+/* Reduced Motion: animations disabled, static half-filled state (4 of 8 cells filled) */
+@media (prefers-reduced-motion: reduce) {
+  .gt-lab-loading__cell,
+  .gt-lab-loading__spark {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* First half of cells (1-4) statically filled */
+  .gt-lab-loading__cell:nth-child(-n+4) {
+    opacity: 1 !important;
+    background-color: var(--gt-copper, var(--gt-green-dim)) !important;
+    box-shadow: none !important;
+  }
+
+  /* Second half of cells (5-8) unfilled */
+  .gt-lab-loading__cell:nth-child(n+5) {
+    opacity: 0.2 !important;
+    background-color: var(--gt-copper, var(--gt-green-dim)) !important;
+    box-shadow: none !important;
+  }
+
+  .gt-lab-loading__spark {
+    opacity: 0.8 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
