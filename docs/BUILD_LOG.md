@@ -1271,3 +1271,44 @@ Format for each entry:
   - `docs/DEMO_SCRIPT.md`
   - `docs/reports/agy-x-ownerdoc-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity (agy, reviewed by Claude Code) — Lane g4-semantic-voice (Semantic voice targets for Guide)
+- What was built:
+  - Pure semantic targets module `frontend/src/guide/semantic.ts` implementing `resolveSemantic(scene, name): ResolvedTarget | null` adhering strictly to `docs/briefs/semantic-targets-spec.md`:
+    - `peak`: polyline vertex with smallest `y` across all polylines; ties: first in document order -> `{ x, y, label: 'peak' }`.
+    - `trough`: polyline vertex with largest `y` across all polylines; ties: first in document order -> `{ x, y, label: 'lowest point' }`.
+    - `origin`: axes crossing when both `x_axis_y` and `y_axis_x` are non-null -> `{ x: y_axis_x, y: x_axis_y, label: 'origin' }`.
+    - `tallestBar`: bar with maximum `value`; ties: first in document order -> resolved element target.
+    - `shortestBar`: bar with minimum `value`; ties: first in document order -> resolved element target.
+    - `rightAngle`: point with exactly two incident segments whose angle at that point is within `90 +/- 3` degrees (scene space); ties: first in document order -> resolved element target.
+    - `longestSide`: segment with maximum Euclidean length; ties: first in document order -> resolved element target.
+    - Total function that never throws on null/undefined/malformed scene data.
+  - Multi-lingual voice phrase matcher `matchSemanticPhrase` and normalizer `normalizeSemanticInput` in `semantic.ts` recognizing all specified English, Hindi, and Gujarati phrases for the 7 semantic targets, supporting standalone phrases and prefixed/suffixed natural phrasing ("find the peak", "take me to the peak", "where is the right angle", "शिखर खोजें", "મને કાટખૂણો શોધો").
+  - Re-exported semantic types and functions from `frontend/src/guide/index.ts`.
+  - Extended pure voice command parser and executor in `frontend/src/flow/commands.ts`:
+    - Gated parsing by `isGuide`: phrases resolve to `guide_semantic` commands only when the guide feature is active. When inactive, phrases fall through to unrecognized command (`unknown`), preserving existing Explore -> Ask backend routing.
+    - In `executeExploreCommand`, executes `guide_semantic` via `resolveSemantic`: on match, speaks `"Guiding to {label}."` (`guide.start`), plays success earcon, and returns `guideTarget` to initiate guidance; on non-match, speaks plain feedback in ONE utterance (`guide.semantic.none.<name>`) with error earcon.
+    - Preserved all existing commands and tests intact.
+  - Added 7 negative-feedback translation keys across English, Hindi, and Gujarati in `frontend/src/i18n/index.ts` maintaining 100% key parity.
+  - Appended Section 20 ("Semantic Targets & Voice Phrases") to `docs/user-test/translation-review.md` and rows to `docs/user-test/translation-review.csv`.
+  - Updated `docs/PHONE_TEST.md` Step 13.5: removed the limitation statement that "find the peak" does not work on sine wave, and added verification instructions for semantic targets across Sine wave, Right triangle, and Bar chart.
+  - Created two new test suites:
+    - `frontend/tests/guide.semantic.unit.test.ts` (19 tests covering bundled fixtures `triangle.json`, `sine.json`, `barchart.json`, custom right-angle triangles, tie-breaking rules, non-matching scenes, en/hi/gu phrase parsing, flag-off fall-through, and single-utterance speech feedback).
+    - `frontend/tests/guide.semantic.prop.test.ts` (7 fast-check property tests >= 200 runs each verifying `peak.y <= every vertex y`, `trough.y >= every vertex y`, `rightAngle` angle within `[87, 93]` degrees with 2 incident segments, `tallestBar` value >= all bars, `shortestBar` value <= all bars, `longestSide` Euclidean length >= all segments, and phrase matcher totality).
+- Verification results:
+  - `npm --prefix frontend test`: 107 test files passed (was 105; +2 test files), 1459 tests passed (was 1420; +39 tests).
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+  - `npm --prefix frontend run build`: cleanly built client and PWA bundle in 182ms (128 modules transformed, 22 precache entries, 651.87 KiB).
+- Files touched:
+  - `frontend/src/guide/semantic.ts` (new)
+  - `frontend/src/guide/index.ts`
+  - `frontend/src/flow/commands.ts`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/tests/guide.semantic.unit.test.ts` (new)
+  - `frontend/tests/guide.semantic.prop.test.ts` (new)
+  - `docs/PHONE_TEST.md`
+  - `docs/user-test/translation-review.md`
+  - `docs/user-test/translation-review.csv`
+  - `docs/reports/agy-g4-semantic-voice-report.md`
+  - `docs/BUILD_LOG.md`
+

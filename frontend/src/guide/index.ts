@@ -35,3 +35,13 @@ export {
   initialGuideState,
   guideStep,
 } from './machine';
+
+export type { SemanticName } from './semantic';
+
+export {
+  SEMANTIC_NAMES,
+  normalizeSemanticInput,
+  matchSemanticPhrase,
+  resolveSemantic,
+} from './semantic';
+
