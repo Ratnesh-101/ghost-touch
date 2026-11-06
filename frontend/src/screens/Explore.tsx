@@ -54,6 +54,64 @@ import {
 
 export { resetAliveForTesting };
 
+export interface PointerPromotionResult {
+  promotedPointerId: number | null;
+  promotedCoords: ScreenPoint | null;
+}
+
+/**
+ * Promotes the oldest surviving pointer to primary when the active primary pointer lifts (Finding 14, Requirement 4.8).
+ * Pure helper for unit testing and screen state tracking.
+ */
+export function promoteOldestPointer(
+  activePointers: Map<number, PointerHistory>,
+  liftedPointerId: number,
+  currentPrimaryId: number | null,
+): PointerPromotionResult {
+  activePointers.delete(liftedPointerId);
+  if (liftedPointerId !== currentPrimaryId) {
+    return { promotedPointerId: currentPrimaryId, promotedCoords: null };
+  }
+  if (activePointers.size === 0) {
+    return { promotedPointerId: null, promotedCoords: null };
+  }
+  const nextEntry = activePointers.entries().next().value as [number, PointerHistory] | undefined;
+  if (!nextEntry) {
+    return { promotedPointerId: null, promotedCoords: null };
+  }
+  const [nextId, history] = nextEntry;
+  return {
+    promotedPointerId: nextId,
+    promotedCoords: { x: history.current.x, y: history.current.y },
+  };
+}
+
+/**
+ * Determines whether the Explore canvas aria-label should be suppressed to prevent
+ * simultaneous speech collisions with Web Speech synthesis (Finding 5, Requirement 13.8).
+ */
+export function shouldSuppressCanvasAriaLabel(
+  canSpeak: boolean,
+  announced?: string | boolean,
+): boolean {
+  return canSpeak && Boolean(announced);
+}
+
+/**
+ * Resolves the accessible label for the Explore canvas, suppressing it when speech
+ * synthesis is active to prevent TalkBack speech collision (Finding 5, Requirement 13.8).
+ */
+export function resolveCanvasAriaLabel(
+  scene: DiagramScene,
+  canSpeak: boolean,
+  announced?: string | boolean,
+): string | undefined {
+  if (shouldSuppressCanvasAriaLabel(canSpeak, announced)) {
+    return undefined;
+  }
+  return canvasAriaLabel(scene);
+}
+
 interface ExploreProps {
   scene: DiagramScene;
   /** The entry announcement spoken aloud and shown in status text. */
@@ -62,9 +120,19 @@ interface ExploreProps {
   onBack: () => void;
   onCorrect?: () => void;
   isRaw?: boolean;
+  /** Optional override to suppress redundant canvas aria-label (Finding 5). */
+  suppressAriaLabel?: boolean;
 }
 
-export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }: ExploreProps): JSX.Element {
+export function Explore({
+  scene,
+  announced,
+  drivers,
+  onBack,
+  onCorrect,
+  isRaw,
+  suppressAriaLabel,
+}: ExploreProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const askButtonRef = useRef<HTMLButtonElement>(null);
   const backButtonRef = useRef<HTMLButtonElement>(null);
@@ -97,6 +165,10 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }:
   const [showTextFallback, setShowTextFallback] = useState(!drivers.speech.canListen);
   const [questionText, setQuestionText] = useState('');
   const [debugText, setDebugText] = useState(() => t('explore.debugWaiting'));
+  const isSpeechActive = drivers.speech.canSpeak && Boolean(announced);
+  const [speechAnnounced, setSpeechAnnounced] = useState(
+    suppressAriaLabel ?? false,
+  );
   const initialAliveRef = useRef<boolean>(shouldPlayAlive(scene));
   const [isAlive, setIsAlive] = useState(initialAliveRef.current);
   const prevSceneRef = useRef<DiagramScene>(scene);
@@ -594,6 +666,11 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }:
       onBackRef.current();
     });
 
+    if (isSpeechActive) {
+      setSpeechAnnounced(true);
+      canvasRef.current?.removeAttribute('aria-label');
+    }
+
     canvasRef.current?.focus();
     updateDimensions();
 
@@ -802,16 +879,55 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }:
 
   const handlePointerLift = (e: PointerEvent<HTMLCanvasElement>): void => {
     clearLongPressTimer();
-    activePointers.current.delete(e.pointerId);
-    if (e.pointerId === primaryPointerId.current) {
-      primaryPointerId.current = null;
-      const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
-      engineState.current = state;
-      runEffects(effects, drivers);
-      scheduleDraw(viewportRef.current, null);
-    }
-    if (activePointers.current.size === 0) {
-      primaryPointerId.current = null;
+    const isPrimaryLift = e.pointerId === primaryPointerId.current;
+    const { promotedPointerId, promotedCoords } = promoteOldestPointer(
+      activePointers.current,
+      e.pointerId,
+      primaryPointerId.current,
+    );
+
+    if (isPrimaryLift) {
+      if (promotedPointerId !== null && promotedCoords !== null) {
+        // Promote oldest surviving pointer to primary (Finding 14, Requirement 4.8)
+        primaryPointerId.current = promotedPointerId;
+        const now = performance.now();
+        const view = viewportRef.current;
+        const lang = LANG_BCP47[getLang()] ?? 'en-IN';
+
+        engineState.current = initialState();
+        const norm = toNorm(promotedCoords, view);
+        axisState.current = seedAxisState(norm, scene.axes);
+
+        const moveResult = processPointerMove(
+          scene,
+          promotedCoords,
+          view,
+          now,
+          engineState.current,
+          centreTickState.current,
+          axisState.current,
+        );
+        engineState.current = moveResult.nextEngineState;
+        centreTickState.current = moveResult.centreCheck.nextState;
+        axisState.current = moveResult.nextAxisState;
+
+        if (moveResult.centreCheck.tick) {
+          drivers.haptics.vibrate(CENTRE_TICK_MS);
+        }
+        for (const axisSpoken of moveResult.axisCrossings) {
+          drivers.speech.speak(axisSpoken, lang);
+          lastSpokenRef.current = axisSpoken;
+        }
+        runEffects(moveResult.effects, drivers, lang);
+        scheduleDraw(view, promotedCoords);
+      } else {
+        // All fingers lifted: silence effects
+        primaryPointerId.current = null;
+        const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
+        engineState.current = state;
+        runEffects(effects, drivers);
+        scheduleDraw(viewportRef.current, null);
+      }
     }
   };
 
@@ -870,7 +986,11 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }:
           className="gt-explore__canvas"
           tabIndex={0}
           role="img"
-          aria-label={canvasAriaLabel(scene)}
+          aria-label={
+            speechAnnounced && drivers.speech.canSpeak
+              ? undefined
+              : canvasAriaLabel(scene)
+          }
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerLift}

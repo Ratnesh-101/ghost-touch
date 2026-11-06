@@ -35,6 +35,11 @@ import {
 } from '../src/drivers/navigation';
 import { t } from '../src/i18n';
 import { MemoryDiagramStore, runEffects } from '../src/drivers';
+import {
+  promoteOldestPointer,
+  resolveCanvasAriaLabel,
+  shouldSuppressCanvasAriaLabel,
+} from '../src/screens/Explore';
 
 describe('Centre reference tick (checkCentreTick)', () => {
   it('fires on a hold at the centre (isNewHold=true, dist <= 24)', () => {
@@ -785,5 +790,122 @@ describe('Pointer cancellation and lift handling (finding 8)', () => {
     runEffects(effects, mockDrivers);
     expect(mockDrivers.haptics.vibrate).toHaveBeenCalledWith(0);
     expect(mockDrivers.audio.setTone).toHaveBeenCalledWith(null);
+  });
+});
+
+describe('Secondary pointer promotion upon primary lift (Finding 14, Requirement 4.8)', () => {
+  it('promotes oldest surviving pointer when primary finger lifts', () => {
+    const activePointers = new Map<number, PointerHistory>();
+    activePointers.set(1, {
+      start: { x: 50, y: 50, t: 100 },
+      current: { x: 55, y: 55, t: 150 },
+    });
+    activePointers.set(2, {
+      start: { x: 120, y: 140, t: 120 },
+      current: { x: 125, y: 145, t: 160 },
+    });
+
+    const res = promoteOldestPointer(activePointers, 1, 1);
+    expect(res.promotedPointerId).toBe(2);
+    expect(res.promotedCoords).toEqual({ x: 125, y: 145 });
+    expect(activePointers.has(1)).toBe(false);
+    expect(activePointers.has(2)).toBe(true);
+  });
+
+  it('promotes pointers in insertion order (FIFO) across successive lifts', () => {
+    const activePointers = new Map<number, PointerHistory>();
+    activePointers.set(10, { start: { x: 10, y: 10, t: 1 }, current: { x: 11, y: 11, t: 2 } });
+    activePointers.set(20, { start: { x: 20, y: 20, t: 3 }, current: { x: 21, y: 21, t: 4 } });
+    activePointers.set(30, { start: { x: 30, y: 30, t: 5 }, current: { x: 31, y: 31, t: 6 } });
+
+    // 1. Primary (10) lifts -> 20 promoted
+    const res1 = promoteOldestPointer(activePointers, 10, 10);
+    expect(res1.promotedPointerId).toBe(20);
+    expect(res1.promotedCoords).toEqual({ x: 21, y: 21 });
+
+    // 2. Next primary (20) lifts -> 30 promoted
+    const res2 = promoteOldestPointer(activePointers, 20, 20);
+    expect(res2.promotedPointerId).toBe(30);
+    expect(res2.promotedCoords).toEqual({ x: 31, y: 31 });
+
+    // 3. Final pointer (30) lifts -> null (all lifted)
+    const res3 = promoteOldestPointer(activePointers, 30, 30);
+    expect(res3.promotedPointerId).toBeNull();
+    expect(res3.promotedCoords).toBeNull();
+    expect(activePointers.size).toBe(0);
+  });
+
+  it('keeps current primary intact when a non-primary secondary pointer lifts', () => {
+    const activePointers = new Map<number, PointerHistory>();
+    activePointers.set(1, { start: { x: 50, y: 50, t: 100 }, current: { x: 55, y: 55, t: 150 } });
+    activePointers.set(2, { start: { x: 120, y: 140, t: 120 }, current: { x: 125, y: 145, t: 160 } });
+
+    // Non-primary finger (2) lifts while finger 1 is exploring
+    const res = promoteOldestPointer(activePointers, 2, 1);
+    expect(res.promotedPointerId).toBe(1);
+    expect(res.promotedCoords).toBeNull();
+    expect(activePointers.has(1)).toBe(true);
+    expect(activePointers.has(2)).toBe(false);
+  });
+
+  it('resumes haptic feedback on promoted pointer without entering dead-zone', () => {
+    const scene: DiagramScene = {
+      kind: 'geometry',
+      points: [
+        { id: 'p1', x: 0.1, y: 0.5 },
+        { id: 'p2', x: 0.9, y: 0.5 },
+      ],
+      segments: [{ id: 's1', a: 'p1', b: 'p2' }],
+    };
+    const view = makeViewport(1000, 1000);
+
+    // Pointer 1 at (100, 100) — off the line (line is at y = 500)
+    // Pointer 2 at (500, 500) — directly on the line segment
+    const activePointers = new Map<number, PointerHistory>();
+    activePointers.set(1, { start: { x: 100, y: 100, t: 10 }, current: { x: 100, y: 100, t: 20 } });
+    activePointers.set(2, { start: { x: 500, y: 500, t: 15 }, current: { x: 500, y: 500, t: 25 } });
+
+    const promotion = promoteOldestPointer(activePointers, 1, 1);
+    expect(promotion.promotedPointerId).toBe(2);
+    expect(promotion.promotedCoords).toEqual({ x: 500, y: 500 });
+
+    // Step the move pipeline at the promoted coordinates
+    const moveResult = processPointerMove(
+      scene,
+      promotion.promotedCoords!,
+      view,
+      30,
+      initialState(),
+      initialCentreTickState(),
+      initialAxisState(),
+    );
+
+    // Finger 2 is on the line: vibration must immediately activate (no dead-zone!)
+    expect(moveResult.effects).toContainEqual({
+      kind: 'vibrate',
+      pattern: DEFAULT_HAPTICS.lineMs,
+    });
+    expect(moveResult.nextEngineState.onLine).toBe(true);
+  });
+});
+
+describe('Announcement coordination and canvas aria-label suppression (Finding 5, Requirement 13.8)', () => {
+  const scene: DiagramScene = { kind: 'geometry', title: 'Triangle' };
+
+  it('suppresses canvas aria-label when speech synthesis is active and prompt has been announced', () => {
+    expect(shouldSuppressCanvasAriaLabel(true, 'Triangle. Double-tap and hold...')).toBe(true);
+    expect(resolveCanvasAriaLabel(scene, true, 'Triangle. Double-tap and hold...')).toBeUndefined();
+  });
+
+  it('preserves canvas aria-label when speech synthesis is unsupported (canSpeak = false)', () => {
+    expect(shouldSuppressCanvasAriaLabel(false, 'Triangle. Double-tap and hold...')).toBe(false);
+    const label = resolveCanvasAriaLabel(scene, false, 'Triangle. Double-tap and hold...');
+    expect(label).toBe('Triangle. Double-tap and hold, then drag to feel the diagram. You start at the centre.');
+  });
+
+  it('preserves canvas aria-label when announced prompt is empty', () => {
+    expect(shouldSuppressCanvasAriaLabel(true, '')).toBe(false);
+    const label = resolveCanvasAriaLabel(scene, true, '');
+    expect(label).toBe('Triangle. Double-tap and hold, then drag to feel the diagram. You start at the centre.');
   });
 });

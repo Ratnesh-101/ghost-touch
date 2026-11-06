@@ -54,6 +54,7 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 5. WHEN a corner pattern starts THEN the system SHALL suppress line vibration for the quiet window, so a corner is never merged with a line buzz.
 6. IF a point lies within both the vertex radius and the line radius THEN the system SHALL treat it as a vertex.
 7. WHEN the finger lifts THEN the system SHALL stop all vibration and tones.
+8. WHEN multiple fingers touch the Explore canvas and the primary finger lifts while another finger remains in contact, the system SHALL immediately promote the oldest remaining active pointer to primary, update cursor tracking, and continue delivering haptic and tone effects without entering a dead-zone. (agy, awaiting Kiro review)
 
 ### Requirement 5: Hear graph height (theremin)
 **User Story:** As a blind student studying functions, I want to hear the curve rise and fall, so that I understand its shape and turning points.
@@ -142,6 +143,9 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 6. THE system SHALL NOT rely on a two-finger gesture as the only way to leave Explore.
 7. WHEN the spoken text of a screen is also shown on screen THEN the system SHALL NOT make the screen reader read it a second time.
 
+8. WHEN entering the Explore screen and the prompt is spoken via speech synthesis, the explore canvas SHALL NOT expose an identical verbose accessible label that triggers concurrent screen reader speech. StatusText SHALL serve as the polite screen reader fallback only when speech synthesis is unsupported. (agy, awaiting Kiro review)
+
+
 ### Requirement 14: Frankenstein's Laboratory theme and sensory aesthetics
 *(Note: Written by Antigravity (agy) on the owner's instruction, awaiting Kiro review; retroactively formalizes the Frankenstein Laboratory visual and sensory theme implemented by Antigravity).*
 
@@ -156,3 +160,14 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 6. **Tactile canvas purity:** WHILE exploring a diagram on the Explore canvas THEN the drawing area SHALL remain pure high-contrast glowing green lines on near-black background (`#0b0e0c`) with NO decorative textures, blueprint grids, stitches, or rivets inside the canvas that could interfere with touch exploration.
 7. **Full internationalization:** Every user-facing string SHALL flow through `t()` with complete parity across `en`, `hi`, and `gu` in `frontend/src/i18n/index.ts`.
 8. **Accessible brand assets:** Brand assets (`logo-mark.svg`, `logo-full.svg`, `Mascot.tsx`) SHALL respect the neck-bolt exclusion zone rule, enforce file size limits (<6 KB for brand icons, <10 KB for og-image), and mark all purely decorative graphics with `aria-hidden="true"`.
+
+### Requirement 15: Backend Security and Resource Robustness (agy, awaiting Kiro review)
+**User Story:** As a visually impaired student using Ghost Touch over mobile networks, I want the backend to remain stable, prevent out-of-memory crashes, respect mobile photo orientations, and securely bound requests.
+
+#### Acceptance Criteria
+1. THE backend SHALL bound simultaneous heavy vision and OpenCV scene extractions using a concurrency semaphore (concurrency <= 2), returning HTTP 429/503 with Retry-After when saturated to prevent container OOM crashes (SEC-01). (agy, awaiting Kiro review)
+2. THE backend SHALL cap image dimensions to at most 12 megapixels before decompression in OpenCV (SEC-02). (agy, awaiting Kiro review)
+3. WHEN a client disconnects during in-flight processing THEN the backend SHALL abort model calls and worker thread tasks promptly (SEC-03). (agy, awaiting Kiro review)
+4. THE backend SHALL account for EXIF orientation metadata when computing diagram coordinates in Raw Mode so orientation matches camera photos (SEC-04). (agy, awaiting Kiro review)
+5. THE backend SHALL enforce element count bounds on `POST /api/v1/validate` (max 500 points, 1000 segments) to prevent resource exhaustion (SEC-06). (agy, awaiting Kiro review)
+6. THE backend SHALL omit interactive OpenAPI documentation (`/docs`, `/redoc`) in production and emit `X-Content-Type-Options: nosniff` and `Cache-Control: no-store` headers (SEC-07, SEC-08). (agy, awaiting Kiro review)

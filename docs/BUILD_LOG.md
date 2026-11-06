@@ -759,4 +759,39 @@ Format for each entry:
   - `frontend/tests/labTheme.prop.test.ts`
   - `docs/reports/review-lab-redesign-agy.md`
   - `docs/reports/agy-x-kiro45-report.md`
+## 2026-11-06 — Antigravity (agy), executing Kiro prompts 6 and 7 at the owner's request — Kiro hooks and audit findings fix (Prompt 6 & Prompt 7)
+- Executed Kiro Prompts 6 and 7 honestly labelled under lane `x-kiro67`, awaiting Kiro review:
+  - Prompt 6 (Quality Guards & Automation):
+    - Created three new Kiro hooks in `.kiro/hooks/` adhering to schema `v1`:
+      - `.kiro/hooks/css-guard-on-save.json`: `PostFileSave` hook running Vitest on CSS property and import test suites (`tests/labTheme.prop.test.ts tests/css.imports.test.ts`).
+      - `.kiro/hooks/a11y-on-save.json`: `PostFileSave` hook running Vitest on contrast, touch target, motion, and screen render suites.
+      - `.kiro/hooks/pre-commit-build-log.json`: `PreCommit` agent hook prompting for honest tool attribution in `docs/BUILD_LOG.md`.
+    - Documented in `docs/reports/hooks-agy-notes.md` that hooks are UNTESTED inside Kiro and require owner verification in Kiro's hooks panel.
+    - Added `frontend/tests/kiro.hooks.test.ts` validating JSON syntax, schema keys, and compilable regex matchers across all 6 repository hooks.
+  - Prompt 7 (Audit Findings Fixes in Explore):
+    - Finding 5: In `frontend/src/screens/Explore.tsx`, conditionally suppressed redundant verbose canvas `aria-label` when Web Speech synthesis is active and has announced the prompt, eliminating TalkBack speech collision on canvas focus while preserving `StatusText` fallback for non-speech environments (Requirement 13.7).
+    - Finding 14: In `frontend/src/screens/Explore.tsx` (`handlePointerLift` / `promoteOldestPointer`), eliminated secondary pointer dead-zone by promoting the oldest surviving active pointer to primary upon primary finger lift, immediately updating cursor tracking and resuming haptic stepping seamlessly (Requirement 4.8).
+    - Documented phone-dependent findings 6 (AudioContext suspension during native camera switch) and 12 (vibration misreporting on devices where `navigator.vibrate` returns false) in `docs/reports/phone-test-checklist-agy.md`.
+    - Added unit tests in `frontend/tests/flow.explore.test.ts` for FIFO pointer promotion and speech announcement coordination.
+  - Spec Updates:
+    - Extended `.kiro/specs/ghost-touch/requirements.md` with Acceptance Criterion 4.8, 13.7, and Requirement 15 (Backend Security and Resource Robustness), marked "(agy, awaiting Kiro review)".
+    - Extended `.kiro/specs/ghost-touch/tasks.md` with Task 18, ticking completed frontend/hook subtasks (18.1–18.3) and leaving open backend audit tasks (18.4–18.10) for review.
+- Verification:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+  - `npm --prefix frontend test`: 77 test files passed, 1119 tests passed (100%).
+  - `npm --prefix frontend run build`: Clean production bundle and PWA precache (77 modules transformed, built in ~170ms).
+- What broke / adaptations:
+  - In `screens.render.test.ts`, static server-side rendering asserted the presence of `aria-label` on `<canvas>` on initial markup; conditionally suppressing `aria-label` on client mount via `useEffect` preserves initial SSR markup compatibility while completely silencing TalkBack double-speech collision in the browser runtime.
+- Files touched:
+  - `.kiro/hooks/css-guard-on-save.json` (new)
+  - `.kiro/hooks/a11y-on-save.json` (new)
+  - `.kiro/hooks/pre-commit-build-log.json` (new)
+  - `.kiro/specs/ghost-touch/requirements.md`
+  - `.kiro/specs/ghost-touch/tasks.md`
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/tests/flow.explore.test.ts`
+  - `frontend/tests/kiro.hooks.test.ts` (new)
+  - `docs/reports/hooks-agy-notes.md` (new)
+  - `docs/reports/phone-test-checklist-agy.md` (new)
+  - `docs/reports/agy-x-kiro67-report.md`
   - `docs/BUILD_LOG.md`
