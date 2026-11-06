@@ -8,7 +8,8 @@
  * text is shown on the next screen. The hidden `#/debug` page (Task 5) shows
  * driver support on a phone.
  */
-import { useCallback, useState, useSyncExternalStore, type JSX } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore, type JSX } from 'react';
+import { warmBackend } from './api/health';
 import type { SceneMode } from './api/scene';
 import type { DiagramScene } from './core/scene';
 import {
@@ -42,6 +43,10 @@ export function App(): JSX.Element {
   const [drivers] = useState<Drivers>(() => createBrowserDrivers());
   const [view, setView] = useState<View>({ screen: 'start' });
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    void warmBackend();
+  }, []);
 
   if (hash === DEBUG_HASH) return <Debug />;
 
