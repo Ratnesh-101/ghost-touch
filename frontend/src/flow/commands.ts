@@ -15,7 +15,13 @@
 import { toScreen, type NormPoint, type ScreenPoint, type Viewport } from '../core/geometry';
 import type { DiagramScene, Point } from '../core/scene';
 import type { SpeechRateSetting } from '../drivers/speech';
-import { resolveTarget, type ResolvedTarget } from '../guide';
+import {
+  resolveTarget,
+  type ResolvedTarget,
+  resolveSemantic,
+  matchSemanticPhrase,
+  type SemanticName,
+} from '../guide';
 import { t } from '../i18n';
 
 export type CommandType =
@@ -26,6 +32,7 @@ export type CommandType =
   | 'help'
   | 'set_rate'
   | 'guide_to'
+  | 'guide_semantic'
   | 'stop'
   | 'unknown';
 
@@ -34,6 +41,7 @@ export interface ParsedCommand {
   readonly raw: string;
   readonly rateSetting?: SpeechRateSetting;
   readonly targetLabel?: string;
+  readonly semanticTarget?: SemanticName;
 }
 
 export interface ExploreCommandContext {
@@ -149,8 +157,18 @@ export function parseExploreCommand(
       return { type: 'stop', raw: transcript };
     }
 
+    // Semantic guide targets (peak, trough, origin, tallestBar, shortestBar, rightAngle, longestSide)
+    const semTarget = matchSemanticPhrase(norm);
+    if (semTarget) {
+      return { type: 'guide_semantic', semanticTarget: semTarget, raw: transcript };
+    }
+
     const targetLabel = extractGuideTargetLabel(norm);
     if (targetLabel && targetLabel.length > 0) {
+      const semFromLabel = matchSemanticPhrase(targetLabel);
+      if (semFromLabel) {
+        return { type: 'guide_semantic', semanticTarget: semFromLabel, raw: transcript };
+      }
       return { type: 'guide_to', targetLabel, raw: transcript };
     }
   }
@@ -478,6 +496,22 @@ export function executeExploreCommand(
       if (!cmd.targetLabel) {
         return { speech: t('commands.unrecognized'), earcon: 'error' };
       }
+      // Check if targetLabel is a semantic target
+      const sem = matchSemanticPhrase(cmd.targetLabel);
+      if (sem) {
+        const resolved = resolveSemantic(scene, sem);
+        if (!resolved) {
+          return {
+            speech: t(`guide.semantic.none.${sem}`),
+            earcon: 'error',
+          };
+        }
+        return {
+          speech: t('guide.start').replace('{label}', resolved.label),
+          guideTarget: resolved,
+          earcon: 'success',
+        };
+      }
       const found = findElementByLabelOrId(scene, cmd.targetLabel);
       if (!found) {
         return {
@@ -489,6 +523,24 @@ export function executeExploreCommand(
       if (!resolved) {
         return {
           speech: t('guide.notFound').replace('{label}', cmd.targetLabel),
+          earcon: 'error',
+        };
+      }
+      return {
+        speech: t('guide.start').replace('{label}', resolved.label),
+        guideTarget: resolved,
+        earcon: 'success',
+      };
+    }
+
+    case 'guide_semantic': {
+      if (!cmd.semanticTarget) {
+        return { speech: t('commands.unrecognized'), earcon: 'error' };
+      }
+      const resolved = resolveSemantic(scene, cmd.semanticTarget);
+      if (!resolved) {
+        return {
+          speech: t(`guide.semantic.none.${cmd.semanticTarget}`),
           earcon: 'error',
         };
       }

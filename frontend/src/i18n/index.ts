@@ -255,6 +255,14 @@ const en: Record<string, string> = {
   'lab.settings.guideOn': 'Finger guidance enabled.',
   'lab.settings.guideOff': 'Finger guidance disabled.',
   'lab.settings.guideHint': 'Tones and vibration guide your finger to targets.',
+  // Semantic voice targets (Lane g4-semantic-voice)
+  'guide.semantic.none.peak': 'There is no peak in this diagram.',
+  'guide.semantic.none.trough': 'There is no lowest point in this diagram.',
+  'guide.semantic.none.origin': 'There is no origin in this diagram.',
+  'guide.semantic.none.tallestBar': 'There is no tallest bar in this diagram.',
+  'guide.semantic.none.shortestBar': 'There is no shortest bar in this diagram.',
+  'guide.semantic.none.rightAngle': 'There is no right angle in this diagram.',
+  'guide.semantic.none.longestSide': 'There is no longest side in this diagram.',
   // Teacher Share & Student Open
   'share.verified': 'Verified',
   'share.verifiedBy': 'Verified by {name}',
@@ -545,6 +553,14 @@ const hi: Record<string, string> = {
   'lab.settings.guideOn': 'उंगली मार्गदर्शन सक्षम किया गया।',
   'lab.settings.guideOff': 'उंगली मार्गदर्शन अक्षम किया गया।',
   'lab.settings.guideHint': 'टोन और कंपन आपकी उंगली को लक्ष्य तक ले जाते हैं।',
+  // Semantic voice targets (Lane g4-semantic-voice)
+  'guide.semantic.none.peak': 'इस आरेख में कोई शिखर नहीं है।',
+  'guide.semantic.none.trough': 'इस आरेख में कोई न्यूनतम बिंदु नहीं है।',
+  'guide.semantic.none.origin': 'इस आरेख में कोई मूल बिंदु नहीं है।',
+  'guide.semantic.none.tallestBar': 'इस आरेख में कोई सबसे ऊँचा बार नहीं है।',
+  'guide.semantic.none.shortestBar': 'इस आरेख में कोई सबसे छोटा बार नहीं है।',
+  'guide.semantic.none.rightAngle': 'इस आरेख में कोई समकोण नहीं है।',
+  'guide.semantic.none.longestSide': 'इस आरेख में कोई सबसे लंबी भुजा नहीं है।',
   // Teacher Share & Student Open
   'share.verified': 'सत्यापित',
   'share.verifiedBy': '{name} द्वारा सत्यापित',
@@ -835,6 +851,14 @@ const gu: Record<string, string> = {
   'lab.settings.guideOn': 'આંગળી માર્ગદર્શન સક્ષમ કર્યું.',
   'lab.settings.guideOff': 'આંગળી માર્ગદર્શન અક્ષમ કર્યું.',
   'lab.settings.guideHint': 'ટોન અને વાઇબ્રેશન તમારી આંગળીને લક્ષ્ય સુધી લઈ જાય છે.',
+  // Semantic voice targets (Lane g4-semantic-voice)
+  'guide.semantic.none.peak': 'આ આકૃતિમાં કોઈ શિખર નથી.',
+  'guide.semantic.none.trough': 'આ આકૃતિમાં કોઈ સૌથી નીચો બિંદુ નથી.',
+  'guide.semantic.none.origin': 'આ આકૃતિમાં કોઈ ઉદ્ભવ બિંદુ નથી.',
+  'guide.semantic.none.tallestBar': 'આ આકૃતિમાં કોઈ સૌથી ઊંચો બાર નથી.',
+  'guide.semantic.none.shortestBar': 'આ આકૃતિમાં કોઈ સૌથી નાનો બાર નથી.',
+  'guide.semantic.none.rightAngle': 'આ આકૃતિમાં કોઈ કાટખૂણો નથી.',
+  'guide.semantic.none.longestSide': 'આ આકૃતિમાં કોઈ સૌથી લાંબી બાજુ નથી.',
   // Teacher Share & Student Open
   'share.verified': 'પ્રમાણિત',
   'share.verifiedBy': '{name} દ્વારા પ્રમાણિત',
