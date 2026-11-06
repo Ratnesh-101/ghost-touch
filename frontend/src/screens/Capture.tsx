@@ -315,6 +315,7 @@ export function Capture({
         accept="image/*"
         capture="environment"
         hidden
+        aria-label={t('capture.takePhoto')}
         onChange={(e) => void handleFile(e, 'camera')}
         onCancel={handleCancel}
       />
@@ -323,6 +324,7 @@ export function Capture({
         type="file"
         accept={`${ACCEPTED_IMAGE_TYPES.join(',')},application/pdf,.pdf`}
         hidden
+        aria-label={t('capture.chooseImage')}
         onChange={(e) => void handleFile(e, 'file')}
         onCancel={handleCancel}
       />
