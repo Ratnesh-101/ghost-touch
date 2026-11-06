@@ -8,57 +8,104 @@
 [![CodeQL](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/codeql.yml/badge.svg)](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/codeql.yml)
 [![Gitleaks](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/gitleaks.yml/badge.svg)](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/gitleaks.yml)
 
-Ghost Touch turns photos of STEM diagrams into tactile graphics that blind and low-vision students explore by touch on an ordinary Android phone. An AI vision pipeline extracts geometric shapes, axes, curves, and labels into a normalized JSON scene, falling back to local edge detection if providers fail. The web shell translates touch gestures into real-time vibrations, theremin pitch variations, and spoken labels so students can perceive visual diagrams without sight.
+Ghost Touch is a Frankenstein creature stitched from spare phone components: an inexpensive notification buzzer for tactile nerves, a vision LLM for eyes, and a Web Audio theremin synthesizer for voice. It turns photos, screenshots, or PDF pages of STEM diagrams into tactile graphics that blind and low-vision students explore by touch on an ordinary Android phone. As students trace shapes on the screen, the phone vibrates along lines, pulses at corners, plays rising tones along curves, and answers spoken questions about the picture.
+
+## Try it
+
+- **Live frontend (PWA):** [https://ghost-touch-iota.vercel.app](https://ghost-touch-iota.vercel.app)
+- **Live backend API:** [https://ghost-touch-api.onrender.com](https://ghost-touch-api.onrender.com)
+- **Target environment:** Android Chrome (iOS does not support web vibration, so iOS is out of scope).
+- **Cold-start notice:** The backend runs on the Render free tier; if idle, the first request takes about 30 seconds to wake up.
+- **Resilience floor:** If AI providers are slow or unconfigured, the pipeline falls back to OpenCV edge detection (Raw Mode) so students are never left with an empty screen.
 
 ## How it feels
 
-- **Lines vibrate:** Tracing a line buzzes continuously at 80 ms pulses every 70 ms.
-- **Corners pulse and speak:** Vertices trigger a distinct [50, 90, 50] ms double-tap pattern and speak point labels.
-- **Graphs sing:** Tracing curves plays a theremin tone (200–1000 Hz) that rises with visual height.
-- **Ask by voice:** Two-finger long press opens speech input; AI answers diagram questions in two spoken sentences.
-- **Raw Mode:** OpenCV edge detection provides a tactile fallback when no AI provider answers (it runs on the backend, so the app still needs to reach the server).
-- **TalkBack works:** Operates with Android screen readers using accessible buttons and double-tap-and-hold relative exploration.
+| Start Screen | Capture & Samples | Tactile Explore | Teacher Correction |
+| :---: | :---: | :---: | :---: |
+| ![Start screen](docs/design/screenshots/after-start-390x844.png) | ![Capture screen](docs/design/screenshots/after-capture-390x844.png) | ![Explore screen](docs/design/screenshots/after-explore-390x844.png) | ![Teacher Correction screen](docs/design/screenshots/after-correct-390x844.png) |
+
+Haptic and auditory feedback is tuned to keep tactile sensations distinct:
+- **Lines vibrate:** Tracing a line buzzes continuously (`vibrate(80)` retriggered every 70 ms).
+- **Corners "bzzzz-tap":** Vertices emit a `vibrate([50, 90, 50])` pattern, speak point labels, and enforce a 450 ms quiet period where line buzz is suppressed.
+- **Curves sing:** Tracing function graphs plays a continuous theremin pitch (200–1000 Hz) that rises with visual height.
+- **TalkBack pass-through:** Supports TalkBack double-tap-and-hold relative dragging, with a 25 ms centre reference tick on touch start.
+- **Voice Q&A:** Ask questions aloud ("How long is AB?") and receive spoken answers grounded in detected diagram facts.
+
+### Tuned haptic vocabulary
+
+| Sensation | Physical Pattern | Sound & Speech | Tuned Purpose |
+|---|---|---|---|
+| Line trace | `vibrate(80)` retriggered every 70 ms | Theremin pitch on curves | Feels continuous |
+| Leaving line | `vibrate(0)` | Pitch silenced | Instant feedback when stepping off an edge |
+| Vertex / corner | `vibrate([50, 90, 50])` | Speaks point label | Distinct "bzzzz-tap" with 450 ms line quiet window |
+| Graph curve | Line buzz retriggered | 200–1000 Hz sine | Higher screen coordinate = higher pitch |
+| Centre reference tick | `vibrate(25)` | Short audio tick | Crisp haptic anchor upon gesture hold start |
+
+Hit radii: vertex 22 CSS px (priority over lines), line 14 CSS px.
 
 ## Architecture
 
 ```text
-Photo / PDF ──> Vision Chain (Gemini ──> OpenAI ──> Nebius ──> Raw Mode)
-                     │
-                     ▼
-             DiagramScene JSON (Normalized [0, 1])
-                     │
-                     ▼
-           Pure Core (geometry, hitTest, hapticEngine, pitch)
-                     │
-                     ▼
-     Drivers (haptics, audio/theremin, speech, camera, pdf, audioElement)
+Photo / PDF ──> FastAPI Backend ──> Vision Chain (OpenAI ──> Gemini ──> Nebius ──> Raw Mode)
+                                           │
+                                           ▼
+                                   DiagramScene JSON (Normalized [0, 1])
+                                           │
+                                           ▼
+                                 Pure Core TypeScript (geometry, hitTest, hapticEngine, pitch, correct)
+                                           │
+                                           ▼
+                             Browser Drivers (vibration, Web Audio, speech, camera, storage)
 ```
+
+- **FastAPI backend (`backend/`):** Orchestrates the multi-provider vision chain (`OpenAI` → `Gemini` → `Nebius` → OpenCV Canny edge detection in `Raw Mode`), validates JSON schema invariants, and provides Q&A endpoints.
+- **Pure core (`frontend/src/core/`):** Pure TypeScript decision logic free of DOM or browser APIs, handling coordinate normalization, letterboxing, hit testing, haptic sequencing, and pitch calculations.
+- **Browser drivers (`frontend/src/drivers/`):** Thin isolation wrappers for `navigator.vibrate`, Web Audio API, Web Speech API, camera, and IndexedDB storage.
 
 ## Project structure
 
 ```text
 ghost-touch/
-├── .github/          # CI, CodeQL, Gitleaks and other workflows, Dependabot config
-├── .kiro/            # Specs (ghost-touch), steering, agent guidelines
-├── backend/          # FastAPI + Pydantic v2, vision pipeline, OpenCV edge detection, pytest
-├── frontend/         # React 18 + Vite + TS (strict), PWA, core geometry/haptics, Vitest
-├── prototypes/       # haptics-test.html device spike
-├── research/         # Vision spike benchmarking, ground truth scoring, and test scripts
+├── .github/          # CI, CodeQL, Gitleaks workflows, Dependabot config
+├── .kiro/            # Specs (requirements, design, tasks), steering docs, hooks
+├── backend/          # FastAPI, multi-provider vision pipeline, OpenCV edge detection, pytest
+├── frontend/         # React 19 + Vite PWA, pure core geometry/haptics, Vitest property suites
+├── prototypes/       # haptics-test.html device reference spike
+├── research/         # Vision benchmarking, ground truth scoring, and test scripts
 ├── scripts/          # setup-dev.ps1, agy-run runner scripts, allowlist settings
 ├── docs/             # Briefs, handoffs, reviews, test kits, BUILD_LOG.md, DEPLOY.md
 └── README.md
 ```
 
-## Local setup
+## Accessibility commitments
 
-Run the idempotent setup script from repo root (installs packages, sets env defaults, runs tests):
+- **48×48 px targets:** Every interactive button and control meets or exceeds 48×48 CSS px for accessible touch.
+- **7:1 contrast (WCAG AAA):** Laboratory color tokens exceed 7:1 contrast on deep charcoal backgrounds (`#0b0e0c`).
+- **Atkinson Hyperlegible:** Self-hosted Braille Institute font optimized for low-vision character distinction.
+- **Spoken state changes:** Every screen transition, coordinate tick, and mode change is announced via speech synthesis and ARIA live regions.
+- **Reduced motion:** Full `prefers-reduced-motion` compliance, disabling glows and animations.
+- **Offline PWA:** Progressive Web App with service worker precaching and built-in sample diagrams that work offline.
+
+## Built with Kiro, Antigravity and Claude Code
+
+Ghost Touch was built collaboratively using three agent tools. Git log history shows 303 commits authored under the repository owner's identity, so commit authorship does not reflect individual tool contributions. See [docs/KIRO_WRITEUP.md](docs/KIRO_WRITEUP.md) and [docs/BUILD_LOG.md](docs/BUILD_LOG.md) for complete verifiable evidence.
+
+| Tool | Role & Contributions | Evidence / Key Files |
+|---|---|---|
+| **Kiro** (IDE & CLI) | **Foundational Architecture, Specs, Pure Core & Invariants:**<br>• Authored EARS `requirements.md`, `design.md` (P1–P15), and `tasks.md` in `.kiro/specs/ghost-touch/`.<br>• Authored architectural steering docs (`tech.md`, `product.md`, `review.md`) and 5 agent hooks (`.kiro/hooks/`).<br>• Built pure core modules: `hapticEngine.ts`, `geometry.ts`, `hitTest.ts`, and `pitch.ts`.<br>• Authored Pydantic schema (`schema.py`) and validator (`validate.py`).<br>• Authored property-based test suites P1–P13 and fixed the P1 generator flake.<br>• Specified Task 13 (Saved Diagrams). *(Credits paused during Task 13; Kiro did not build the Lab redesign).* | `.kiro/specs/`<br>`.kiro/steering/`<br>`.kiro/hooks/`<br>`frontend/src/core/`<br>`docs/kiro-evidence/` |
+| **Antigravity** (agy) | **Lab Redesign, Secondary Core, Drivers & Polish:**<br>• Built the complete Frankenstein Laboratory redesign across parallel lanes (tokens, fonts, brand SVGs, i18n, screens, HUD, previews, PWA precaching).<br>• Built Teacher Correct mode (`core/correct.ts`, `screens/Correct.tsx`, `POST /api/v1/validate`, P16/P17).<br>• Completed Saved Diagrams (`core/savedDiagrams.ts`, P14/P15 suites, IndexedDB driver).<br>• Built browser drivers, screen flows, PDF first-page extraction, and Explore screen with relative cursor.<br>• Implemented backend vision providers (`Gemini`, `OpenAI`, `Nebius`), OpenCV Raw Mode (`raw_mode.py`), and Ask pipeline (`ask.py`). | `docs/BUILD_LOG.md`<br>`frontend/src/`<br>`backend/app/`<br>`docs/reports/` |
+| **Claude Code** (Anthropic) | **Supervision, Orchestration, Review & Integration:**<br>• Supervised all development lanes, authored briefs in `docs/briefs/`, and reviewed all diffs in `docs/reviews/`.<br>• Launched and monitored agy runs via permission-safe runner (`scripts/agy-run.sh`).<br>• Resolved merge conflicts and captured automated headless Brave screenshots.<br>• Verified production builds and live deployments on Vercel and Render. | `docs/briefs/`<br>`docs/reviews/`<br>`scripts/agy-run.sh`<br>`scripts/setup-dev.ps1` |
+
+## Run it locally
+
+Run the idempotent setup script from the repository root:
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\setup-dev.ps1
 ```
 
-Manual commands:
+Or run manual commands:
 ```bash
-# Frontend (React 18 + Vite PWA)
+# Frontend (React 19 + Vite PWA)
 npm --prefix frontend install
 npm --prefix frontend run dev
 
@@ -72,21 +119,21 @@ uvicorn app.main:app --app-dir backend --reload --port 8000
 
 | Variable | Target | Purpose |
 |---|---|---|
-| `GEMINI_API_KEY` | Backend | Google Gemini primary vision API key |
-| `OPENAI_API_KEY` | Backend | OpenAI fallback vision API key |
+| `OPENAI_API_KEY` | Backend | OpenAI primary vision API key |
+| `GEMINI_API_KEY` | Backend | Google Gemini fallback vision API key |
 | `NEBIUS_API_KEY` | Backend | Nebius Token Factory fallback vision API key |
-| `VISION_PROVIDERS` | Backend | Provider fallback order (`gemini,openai,nebius`) |
-| `GEMINI_MODEL` | Backend | Model name (code default: `gemini-3.5-flash-lite`; `render.yaml` sets the same) |
+| `VISION_PROVIDERS` | Backend | Provider fallback order (`openai,gemini,nebius`) |
+| `GEMINI_MODEL` | Backend | Model name (default: `gemini-3.5-flash-lite`) |
 | `GEMINI_THINKING` | Backend | Thinking level budget (default: `minimal`) |
 | `ALLOWED_ORIGINS` | Backend | CORS allowed frontend URLs |
 | `VITE_API_URL` | Frontend | Backend API endpoint URL |
 
 ## Tests
 
-As of 2026-11-06, 1049 frontend tests and 348 backend tests pass.
+Current test suite status: **1109 frontend tests across 76 files** and **348 backend tests** (1 skipped) pass cleanly.
 
 ```bash
-# Frontend: unit and fast-check property tests (1049 tests)
+# Frontend: Vitest and fast-check property tests (1109 tests in 76 files)
 npm --prefix frontend test
 npm --prefix frontend exec -- tsc -p frontend --noEmit
 npm --prefix frontend run build
@@ -97,33 +144,16 @@ backend/.venv/Scripts/python -m ruff check backend
 backend/.venv/Scripts/python -m ruff format --check backend
 ```
 
-## Haptic vocabulary
+## Status and honest limitations
 
-| Meaning | Pattern | Notes |
-|---|---|---|
-| On a line | `vibrate(80)` re-triggered every 70 ms while the finger stays on the line | feels continuous |
-| Leaving a line | `vibrate(0)` | unless a corner pulse is playing |
-| Vertex / corner | `vibrate([50, 90, 50])`, then 450 ms quiet window with no line buzz | felt as "bzzzz-tap" on the test device |
-| Label / point of interest | corner pattern + spoken label | speech is cancelled and replaced on each new target |
-| Graph curve | line buzz + theremin tone, 200–1000 Hz, higher on screen = higher pitch | |
-| Centre reference tick (proposed, pending approval) | `vibrate(25)` | one 25 ms pulse, distinct from line and corner patterns; fires on hold start at centre |
-
-Hit radii: vertex 22 CSS px, line 14 CSS px. Vertex hits take priority over line hits.
-
-## Multi-agent roles
-
-- **Kiro:** Spec-driven development (`.kiro/specs/ghost-touch/`), steering docs, agent hooks, pure core haptic engine (`frontend/src/core/`), Pydantic schema and validator, and property-based tests P1–P13 with the P1 generator fix; credits paused during Task 13 (see [docs/KIRO_WRITEUP.md](docs/KIRO_WRITEUP.md)). Did not build the Lab redesign.
-- **Antigravity (agy):** Autonomous builder run via `scripts/agy-run.sh`: built the complete Frankenstein Laboratory redesign across parallel lanes; browser drivers, screen flows, Raw Mode edge fallback, PDF renderer, Teacher Correct mode (P16/P17), Saved Diagrams completion (P14/P15), UI polish, and resilience lanes (see [docs/BUILD_LOG.md](docs/BUILD_LOG.md)).
-- **Claude Code:** Supervised the build: architectural planning, briefs, independent code reviews, merge conflict resolutions, before/after screenshot audits, test harnesses, vision benchmark scoring, and live deployment verification.
+- **Not yet phone-tested:** Automated test suites and browser emulation pass cleanly, but physical vibration motor strength and live TalkBack drag tracking have not yet been tested on an actual phone by the owner.
+- **Machine-translated Hindi and Gujarati:** Interface text and speech synthesis support English, Hindi (`hi`), and Gujarati (`gu`); Hindi and Gujarati translations are machine-translated and have not yet been reviewed by native speakers.
+- **AI fallback to Raw Mode on free tier:** The Render backend free tier spins down on idle (~30s cold start). If upstream vision providers time out or encounter rate limits, the backend drops into OpenCV edge detection (Raw Mode) so students can still feel the outlines.
+- **Android only:** The application targets Android Chrome because iOS Safari does not support the Web Vibration API.
 
 ## Deployment
 
-See [docs/DEPLOY.md](docs/DEPLOY.md) for Render (backend) and Vercel (frontend PWA) deployment guides.
-
-## Status
-
-- **Built:** Complete monorepo, vision provider chain (Gemini, OpenAI, Nebius), OpenCV Raw Mode fallback, pure geometry and haptic state engine, Web Audio theremin, speech synthesis and voice ask, PWA offline caching, PDF first-page extraction, Frankenstein Laboratory redesign, and 1397 automated tests (1049 frontend in 74 files, 348 backend with 1 skipped).
-- **Untested on a real phone:** TalkBack double-tap-and-hold relative cursor tracking during live exploration, speech recognition accuracy in noisy classrooms, Svara audio slot assets (placeholder only), and physical vibration strength across diverse Android handsets.
+See [docs/DEPLOY.md](docs/DEPLOY.md) for production deployment instructions on Render and Vercel.
 
 ## License
 
