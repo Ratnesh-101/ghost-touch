@@ -125,17 +125,16 @@ function setupMockBrowser(initialHash = ''): {
 describe('Share Open Routing & Flow', () => {
   const origWindow = (globalThis as unknown as { window?: unknown }).window;
   const origHistory = (globalThis as unknown as { history?: unknown }).history;
-  const origEnv = import.meta.env.VITE_FEATURE_SHARE;
 
   beforeEach(() => {
-    import.meta.env.VITE_FEATURE_SHARE = '1';
+    vi.stubEnv('VITE_FEATURE_SHARE', '1');
     setLang('en');
   });
 
   afterEach(() => {
     (globalThis as unknown as { window?: unknown }).window = origWindow;
     (globalThis as unknown as { history?: unknown }).history = origHistory;
-    import.meta.env.VITE_FEATURE_SHARE = origEnv;
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
@@ -181,7 +180,7 @@ describe('Share Open Routing & Flow', () => {
   });
 
   it('flag OFF: gates share route and stays on Start screen', () => {
-    import.meta.env.VITE_FEATURE_SHARE = '0';
+    vi.stubEnv('VITE_FEATURE_SHARE', '0');
 
     const payload: SharePayload = {
       v: 1,
