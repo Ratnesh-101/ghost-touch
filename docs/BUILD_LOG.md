@@ -1046,3 +1046,51 @@ Format for each entry:
   - `frontend/tests/share.roundtrip.prop.test.ts`
   - `docs/reports/agy-t1-share-codec-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity (agy, reviewed by Claude Code) — Lane g2-guide-ui (Guide my finger UI)
+- What was built:
+  - Built `frontend/src/flow/guide.ts`: `GuideController` connecting pointer movement / TalkBack cursor norm and interval ticks (250 ms) to pure `guideStep` state machine, managing 20 s timeout auto-stop, and dispatching driver effects.
+  - Extended `frontend/src/drivers/audio.ts`: added `setGuideTone(hz, pan)` using `StereoPannerNode` (pan in [-1, 1], frequency in [100, 2000] Hz), with fallback to mono (no pan) if `StereoPanner` is unsupported; suppressed existing theremin tone during guidance; ducked and restored guide tone around earcons (`playEarcon`); preserved all tuned parameters and existing earcons.
+  - Extended `frontend/src/drivers/index.ts`: added `runGuideEffects` mapping pulses to haptic vibrate, guide tone start/stop, earcons, and spoken arrival/hints.
+  - Updated `frontend/src/screens/Explore.tsx`: wired `GuideController`, handled TalkBack relative cursor movements, intercepted Back button (stops guidance first without leaving Explore), rendered "Guide me" button on Ask response with target (`data-testid="explore-guide-me"`, >= 48x48 px) and spoken offer, visual indicator on canvas, voice command execution.
+  - Extended `frontend/src/flow/commands.ts`: added voice commands in en, hi, gu ("take me to <label>", "find <label>", "next corner", "stop"); falls through to unrecognized command when guide feature is inactive.
+  - Updated `frontend/src/flow/ask.ts`: propagated optional `target?: GuideTarget` in `AskOutcome`.
+  - Extended `frontend/src/components/LabSettings.tsx`: added guide toggle switch (`role="switch"`, >= 48x48 px, spoken state changes) shown only when `isGuideEnvOn()`, persisting to storage.
+  - Updated `frontend/src/config/features.ts`: added `STORAGE_KEY_GUIDE`, `getStoredGuideSetting`, `setStoredGuideSetting` (with in-memory fallback for node tests), updated `isGuideActive` to default to stored setting while preserving signature.
+  - Updated `frontend/src/i18n/index.ts`: added all 20 guide translation keys across `en`, `hi`, `gu`.
+  - Appended all 20 keys to `docs/user-test/translation-review.md` and `docs/user-test/translation-review.csv`.
+  - Updated `frontend/src/vite-env.d.ts` with `VITE_FEATURE_GUIDE` and `VITE_FEATURE_SHARE`.
+  - Created 4 acceptance test suites:
+    - `frontend/tests/guide.ui.commands.test.ts` (20 tests)
+    - `frontend/tests/guide.ui.audio.test.ts` (11 tests)
+    - `frontend/tests/guide.ui.flow.test.ts` (14 tests)
+    - `frontend/tests/guide.ui.explore.test.tsx` (14 tests)
+- What broke / surprising findings:
+  - Audio driver oscillator count: existing test expects exactly 1 oscillator upon `unlock()`. Resolved by lazily instantiating guide oscillator on first `setGuideTone()`.
+  - Node environment testing: `@testing-library/react` is not installed; tests utilize `renderToStaticMarkup` and pure flow/handler tests matching repo patterns. Added in-memory storage fallback in `features.ts` for Vitest node runner without `localStorage`.
+- Verification results:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+  - `npm --prefix frontend test`: 95 test files passed, 1330 tests passed (+4 test files, +59 tests).
+  - `npm --prefix frontend run build`: Clean build in 162ms; bundle size: JS 392.69 kB (+19.67 kB raw, +5.13 kB gzip), CSS 64.31 kB (0.00 kB delta).
+  - `backend/.venv/Scripts/python -m pytest backend`: 454 passed, 1 skipped.
+  - `backend/.venv/Scripts/python -m ruff check backend`: Clean.
+  - `backend/.venv/Scripts/python -m ruff format --check backend`: Clean.
+- Files touched:
+  - `docs/reports/agy-g2-guide-ui-report.md`
+  - `docs/BUILD_LOG.md`
+  - `docs/user-test/translation-review.csv`
+  - `docs/user-test/translation-review.md`
+  - `frontend/src/components/LabSettings.tsx`
+  - `frontend/src/config/features.ts`
+  - `frontend/src/drivers/audio.ts`
+  - `frontend/src/drivers/index.ts`
+  - `frontend/src/flow/ask.ts`
+  - `frontend/src/flow/commands.ts`
+  - `frontend/src/flow/guide.ts`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/vite-env.d.ts`
+  - `frontend/tests/guide.ui.audio.test.ts`
+  - `frontend/tests/guide.ui.commands.test.ts`
+  - `frontend/tests/guide.ui.explore.test.tsx`
+  - `frontend/tests/guide.ui.flow.test.ts`

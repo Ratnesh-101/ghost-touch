@@ -59,6 +59,8 @@ export interface AudioDriver {
   unlock(): void;
   /** Play a continuous tone at `hz`, or fade out with `null`. No-op before `unlock`. */
   setTone(hz: number | null): void;
+  /** Play a continuous guide tone at `hz` with stereo pan [-1, 1], or fade out with `null`. */
+  setGuideTone?(hz: number | null, pan?: number): void;
   /** Short one-shot cue (progress / listening tones). Never disturbs the main tone. */
   beep(hz: number, ms: number): void;
   /** Play an earcon cue. Temporarily ducks the theremin tone so they never overlap. */
@@ -87,12 +89,18 @@ export interface GainLike {
   connect(destination: unknown): unknown;
   disconnect?(destination?: unknown): void;
 }
+export interface StereoPannerLike {
+  pan: ParamLike;
+  connect(destination: unknown): unknown;
+  disconnect?(destination?: unknown): void;
+}
 export interface AudioContextLike {
   readonly currentTime: number;
   readonly state: string;
   readonly destination: unknown;
   createOscillator(): OscillatorLike;
   createGain(): GainLike;
+  createStereoPanner?(): StereoPannerLike;
   resume(): Promise<void>;
 }
 export type AudioContextFactory = () => AudioContextLike | undefined;
@@ -138,8 +146,13 @@ export class WebAudioDriver implements AudioDriver {
   private ctx: AudioContextLike | undefined;
   private osc: OscillatorLike | undefined;
   private gain: GainLike | undefined;
+  private guideOsc: OscillatorLike | undefined;
+  private guideGain: GainLike | undefined;
+  private guidePanner: StereoPannerLike | undefined;
   private unavailable = false;
   private activeToneHz: number | null = null;
+  private activeGuideHz: number | null = null;
+  private activeGuidePan = 0;
   private earconRestoreAt: number | null = null;
   private listenersAttached = false;
 
@@ -212,6 +225,74 @@ export class WebAudioDriver implements AudioDriver {
     }
   }
 
+  private ensureGuideOsc(): void {
+    if (this.guideOsc !== undefined || this.ctx === undefined) return;
+    const ctx = this.ctx;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    gain.gain.value = 0;
+
+    let panner: StereoPannerLike | undefined;
+    if (typeof ctx.createStereoPanner === 'function') {
+      try {
+        panner = ctx.createStereoPanner();
+        osc.connect(gain);
+        gain.connect(panner);
+        panner.connect(ctx.destination);
+      } catch {
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        panner = undefined;
+      }
+    } else {
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+    }
+    osc.start();
+    this.guideOsc = osc;
+    this.guideGain = gain;
+    this.guidePanner = panner;
+  }
+
+  setGuideTone(hz: number | null, pan = 0): void {
+    this.activeGuideHz = hz !== null && Number.isFinite(hz) ? hz : null;
+    this.activeGuidePan = Number.isFinite(pan) ? Math.max(-1, Math.min(1, pan)) : 0;
+    if (this.ctx === undefined) return;
+    if (this.ctx.state === 'suspended') {
+      this.resumeIfSuspended(this.ctx);
+    }
+    this.ensureGuideOsc();
+    const { ctx, guideOsc, guideGain, guidePanner } = this;
+    if (ctx === undefined || guideOsc === undefined || guideGain === undefined) return;
+
+    const now = ctx.currentTime;
+    guideGain.gain.cancelScheduledValues?.(now);
+    guideOsc.frequency.cancelScheduledValues?.(now);
+    if (guidePanner?.pan?.cancelScheduledValues) {
+      guidePanner.pan.cancelScheduledValues(now);
+    }
+
+    if (this.activeGuideHz !== null) {
+      if (this.earconRestoreAt !== null && now < this.earconRestoreAt) {
+        guideGain.gain.setTargetAtTime(0, now, GAIN_OFF_TIME_CONSTANT);
+        guideOsc.frequency.setTargetAtTime(this.activeGuideHz, this.earconRestoreAt, FREQ_TIME_CONSTANT);
+        guideGain.gain.setTargetAtTime(TONE_GAIN, this.earconRestoreAt, GAIN_ON_TIME_CONSTANT);
+        if (guidePanner) {
+          guidePanner.pan.setTargetAtTime(this.activeGuidePan, this.earconRestoreAt, FREQ_TIME_CONSTANT);
+        }
+      } else {
+        guideOsc.frequency.setTargetAtTime(this.activeGuideHz, now, FREQ_TIME_CONSTANT);
+        guideGain.gain.setTargetAtTime(TONE_GAIN, now, GAIN_ON_TIME_CONSTANT);
+        if (guidePanner) {
+          guidePanner.pan.setTargetAtTime(this.activeGuidePan, now, FREQ_TIME_CONSTANT);
+        }
+      }
+    } else {
+      guideGain.gain.setTargetAtTime(0, now, GAIN_OFF_TIME_CONSTANT);
+    }
+  }
+
   beep(hz: number, ms: number): void {
     const ctx = this.ctx;
     if (ctx === undefined || !Number.isFinite(hz) || !(ms > 0)) return;
@@ -256,15 +337,24 @@ export class WebAudioDriver implements AudioDriver {
     const now = ctx.currentTime;
     let maxEnd = now;
 
-    // Duck the continuous theremin tone while an earcon plays so they never clash
+    // Duck the continuous theremin and guide tones while an earcon plays so they never clash
     if (this.gain !== undefined) {
       this.gain.gain.cancelScheduledValues?.(now);
       if (this.activeToneHz !== null) {
         this.gain.gain.setTargetAtTime(0, now, GAIN_OFF_TIME_CONSTANT);
       }
     }
+    if (this.guideGain !== undefined) {
+      this.guideGain.gain.cancelScheduledValues?.(now);
+      if (this.activeGuideHz !== null) {
+        this.guideGain.gain.setTargetAtTime(0, now, GAIN_OFF_TIME_CONSTANT);
+      }
+    }
     if (this.osc !== undefined) {
       this.osc.frequency.cancelScheduledValues?.(now);
+    }
+    if (this.guideOsc !== undefined) {
+      this.guideOsc.frequency.cancelScheduledValues?.(now);
     }
 
     for (const step of steps) {
@@ -298,11 +388,23 @@ export class WebAudioDriver implements AudioDriver {
     }
 
     // Restore theremin tone after earcon completes if tone is still active
-    if (this.activeToneHz !== null && this.gain !== undefined && this.osc !== undefined) {
+    const hasTheremin = this.activeToneHz !== null && this.gain !== undefined && this.osc !== undefined;
+    const hasGuide = this.activeGuideHz !== null && this.guideGain !== undefined && this.guideOsc !== undefined;
+
+    if (hasTheremin || hasGuide) {
       const restoreAt = maxEnd + 0.05;
       this.earconRestoreAt = restoreAt;
-      this.osc.frequency.setTargetAtTime(this.activeToneHz, restoreAt, FREQ_TIME_CONSTANT);
-      this.gain.gain.setTargetAtTime(TONE_GAIN, restoreAt, GAIN_ON_TIME_CONSTANT);
+      if (hasTheremin && this.gain !== undefined && this.osc !== undefined && this.activeToneHz !== null) {
+        this.osc.frequency.setTargetAtTime(this.activeToneHz, restoreAt, FREQ_TIME_CONSTANT);
+        this.gain.gain.setTargetAtTime(TONE_GAIN, restoreAt, GAIN_ON_TIME_CONSTANT);
+      }
+      if (hasGuide && this.guideGain !== undefined && this.guideOsc !== undefined && this.activeGuideHz !== null) {
+        this.guideOsc.frequency.setTargetAtTime(this.activeGuideHz, restoreAt, FREQ_TIME_CONSTANT);
+        this.guideGain.gain.setTargetAtTime(TONE_GAIN, restoreAt, GAIN_ON_TIME_CONSTANT);
+        if (this.guidePanner) {
+          this.guidePanner.pan.setTargetAtTime(this.activeGuidePan, restoreAt, FREQ_TIME_CONSTANT);
+        }
+      }
     } else {
       this.earconRestoreAt = null;
     }

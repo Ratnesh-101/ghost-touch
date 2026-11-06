@@ -394,3 +394,31 @@ The following spoken strings may be difficult for blind students to follow in a 
 - **`correct.intro`**:
   - Hindi (106 chars): `सुधार मोड। चुनने के लिए तत्वों पर टैप करें, समायोजित करने के लिए बिंदुओं को खींचें, और पूरा होने पर सहेजें।`
   - Gujarati (98 chars): `સુધારણા મોડ. પસંદ કરવા માટે ઘટકો પર ટેપ કરો, ગોઠવવા માટે બિંદુઓને ખેંચો અને પૂર્ણ થાય ત્યારે સાચવો.`
+
+---
+
+## 19. Guide My Finger Strings (`guide.*`, `ask.guide*`, `lab.settings.guide*`)
+
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `guide.start (spoken)` | Guiding to {label}. | {label} का मार्गदर्शन कर रहे हैं। | {label} તરફ માર્ગદર્શન આપી રહ્યા છીએ. | | | | keep {label} |
+| `guide.stopped (spoken)` | Guide stopped. | मार्गदर्शन रोक दिया गया। | માર્ગદર્શન રોકી દીધું. | | | | |
+| `guide.arrived (spoken)` | Arrived at {label}. | {label} पर पहुँच गए। | {label} પર પહોંચી ગયા. | | | | keep {label} |
+| `guide.notFound (spoken)` | Could not find {label} in this diagram. | इस चित्र में {label} नहीं मिला। | આ આકૃતિમાં {label} મળ્યું નથી. | | | | keep {label} |
+| `guide.notGuiding (spoken)` | Not currently guiding. | अभी मार्गदर्शन नहीं किया जा रहा है। | હાલમાં માર્ગદર્શન ચાલુ નથી. | | | | |
+| `guide.hint.left (spoken)` | Move left | बाएँ चलें | ડાબે ખસો | | | | |
+| `guide.hint.right (spoken)` | Move right | दाएँ चलें | જમણે ખસો | | | | |
+| `guide.hint.up (spoken)` | Move up | ऊपर चलें | ઉપર ખસો | | | | |
+| `guide.hint.down (spoken)` | Move down | नीचे चलें | નીચે ખસો | | | | |
+| `guide.hint.up-left (spoken)` | Move up and left | ऊपर और बाएँ चलें | ઉપર અને ડાબે ખસો | | | | |
+| `guide.hint.up-right (spoken)` | Move up and right | ऊपर और दाएँ चलें | ઉપર અને જમણે ખસો | | | | |
+| `guide.hint.down-left (spoken)` | Move down and left | नीचे और बाएँ चलें | નીચે અને ડાબે ખસો | | | | |
+| `guide.hint.down-right (spoken)` | Move down and right | नीचे और दाएँ चलें | નીચે અને જમણે ખસો | | | | |
+| `guide.hint.here (spoken)` | You are here | आप यहाँ हैं | તમે અહીં છો | | | | |
+| `ask.guideMe` | Guide me | मार्गदर्शन करें | માર્ગદર્શન આપો | | | | |
+| `ask.guideOffer (spoken)` | Tap Guide me to feel it. | महसूस करने के लिए मार्गदर्शन करें पर टैप करें। | અનુભવવા માટે માર્ગદર્શન આપો પર ટેપ કરો. | | | | |
+| `lab.settings.guide` | Guide my finger | उंगली मार्गदर्शन | આંગળી માર્ગદર્શન | | | | |
+| `lab.settings.guideOn (spoken)` | Finger guidance enabled. | उंगली मार्गदर्शन सक्षम किया गया। | આંગળી માર્ગદર્શન સક્ષમ કર્યું. | | | | |
+| `lab.settings.guideOff (spoken)` | Finger guidance disabled. | उंगली मार्गदर्शन अक्षम किया गया। | આંગળી માર્ગદર્શન અક્ષમ કર્યું. | | | | |
+| `lab.settings.guideHint` | Tones and vibration guide your finger to targets. | टोन और कंपन आपकी उंगली को लक्ष्य तक ले जाते हैं। | ટોન અને વાઇબ્રેશન તમારી આંગળીને લક્ષ્ય સુધી લઈ જાય છે. | | | | |
+

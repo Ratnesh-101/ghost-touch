@@ -5,8 +5,10 @@
  * effects into driver calls. All decisions live in the engine (core/).
  */
 
-import type { Effect } from '../core/hapticEngine';
+import { DEFAULT_HAPTICS, type Effect } from '../core/hapticEngine';
 import type { DiagramScene } from '../core/scene';
+import type { GuideEffect } from '../guide';
+import { t } from '../i18n';
 import { WebAudioDriver, type AudioDriver } from './audio';
 import { IDBDiagramStore, type DiagramStore } from './diagramStore';
 import { WebHapticDriver, type HapticDriver } from './haptics';
@@ -176,6 +178,41 @@ export function runEffects(
         break;
       default:
         assertUnreachable(effect);
+    }
+  }
+}
+
+export function runGuideEffects(
+  effects: readonly GuideEffect[],
+  drivers: Drivers,
+  lang?: string,
+): void {
+  for (const effect of effects) {
+    switch (effect.type) {
+      case 'pulse':
+        drivers.haptics.vibrate(effect.ms);
+        break;
+      case 'tone':
+        drivers.audio.setGuideTone?.(effect.hz, effect.pan);
+        break;
+      case 'toneOff':
+        drivers.audio.setGuideTone?.(null);
+        break;
+      case 'speak': {
+        let text = t(effect.key);
+        if (effect.label) {
+          text = text.replace('{label}', effect.label);
+        }
+        drivers.speech.speak(text, lang);
+        break;
+      }
+      case 'arrive':
+        drivers.haptics.vibrate(DEFAULT_HAPTICS.cornerPattern);
+        drivers.audio.playEarcon?.('success');
+        break;
+      case 'stopped':
+        drivers.audio.setGuideTone?.(null);
+        break;
     }
   }
 }

@@ -18,6 +18,7 @@
 import {
   useEffect,
   useRef,
+  useState,
   type JSX,
   type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
@@ -25,6 +26,11 @@ import {
 import { AccessibleButton } from './AccessibleButton';
 import { LanguageSelector } from './LanguageSelector';
 import { RateSelector } from './RateSelector';
+import {
+  getStoredGuideSetting,
+  isGuideEnvOn,
+  setStoredGuideSetting,
+} from '../config/features';
 import type { Drivers } from '../drivers';
 import { MemoryDiagramStore } from '../drivers';
 import { describeSettings, t } from '../i18n';
@@ -61,6 +67,7 @@ export function LabSettings({
   const previouslyFocusedElement = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
   const hasSpokenClose = useRef(false);
+  const [guideEnabled, setGuideEnabled] = useState(() => getStoredGuideSetting());
 
   const doSpeak = (text: string): void => {
     if (speak) {
@@ -68,6 +75,14 @@ export function LabSettings({
     } else if (drivers?.speech?.speak) {
       drivers.speech.speak(text);
     }
+  };
+
+  const handleToggleGuide = (): void => {
+    const next = !guideEnabled;
+    setGuideEnabled(next);
+    setStoredGuideSetting(next);
+    const spoken = next ? t('lab.settings.guideOn') : t('lab.settings.guideOff');
+    doSpeak(spoken);
   };
 
   const handleClose = (): void => {
@@ -85,6 +100,7 @@ export function LabSettings({
 
   useEffect(() => {
     if (open) {
+      setGuideEnabled(getStoredGuideSetting());
       hasSpokenClose.current = false;
       if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
         previouslyFocusedElement.current = document.activeElement;
@@ -205,6 +221,44 @@ export function LabSettings({
             </h3>
             <RateSelector drivers={drivers} />
           </section>
+
+          {isGuideEnvOn() && (
+            <section
+              className="gt-lab-settings__section"
+              aria-labelledby="lab-settings-section-guide"
+            >
+              <h3 id="lab-settings-section-guide" className="gt-lab-settings__section-title">
+                {t('lab.settings.guide')}
+              </h3>
+              <p
+                className="gt-lab-settings__hint"
+                style={{
+                  margin: '0 0 var(--gt-space-sm, 8px) 0',
+                  fontSize: '0.9rem',
+                  color: 'var(--gt-bone, #ded6c4)',
+                }}
+              >
+                {t('lab.settings.guideHint')}
+              </p>
+              <AccessibleButton
+                type="button"
+                role="switch"
+                aria-checked={guideEnabled}
+                className={`gt-control gt-btn ${
+                  guideEnabled ? 'gt-btn--primary' : 'gt-btn--secondary'
+                }`}
+                onClick={handleToggleGuide}
+                style={{
+                  minWidth: '48px',
+                  minHeight: '48px',
+                  padding: '12px 20px',
+                  width: '100%',
+                }}
+              >
+                {guideEnabled ? t('lab.settings.guideOn') : t('lab.settings.guideOff')}
+              </AccessibleButton>
+            </section>
+          )}
         </div>
       </div>
     </div>
