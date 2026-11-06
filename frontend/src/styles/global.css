@@ -1,18 +1,38 @@
 @import './tokens.css';
+@import './lab.css';
 
 /*
- * Ghost Touch global styles.
- * Theme: Dark "creature" aesthetic (#0b0b10, glowing green #39ff88 accents, subtle glow).
+ * Ghost Touch global styles — Frankenstein's Laboratory.
+ * Theme: Lab charcoal (#0b0e0c), glowing green #39ff88 accents, voltage cyan, aged copper, bone.
  * Frankenstein pitch: Nerves (buzzer) + Eyes (vision LLM) + Voice (synthesizer).
- * Halloween lives in the creature's feel, never in blindness (product.md).
+ * Halloween lives in the creature's feel and lab, never in blindness (product.md).
  * Accessibility is the product: WCAG AAA contrast, 48px+ touch targets, visible focus.
  */
+
+/* ==========================================================================
+   ATKINSON HYPERLEGIBLE FONT FACES (Requirement: offline, swap, 400 & 700)
+   ========================================================================== */
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/atkinson-hyperlegible-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/atkinson-hyperlegible-latin-700-normal.woff2') format('woff2');
+}
 
 :root {
   /* Retain for test suite regex check (tests/screens.render.test.ts) */
   --gt-target: 48px;
-  --gt-bg: #0b0b10;
-  --gt-surface: #14141e;
+  --gt-bg: #0b0e0c;
+  --gt-surface: #141c17;
   --gt-line: #39ff88;
   --gt-text: #eafff5;
   --gt-text-muted: #a8c5b5;
@@ -36,8 +56,13 @@ body,
 }
 
 body {
-  background: var(--gt-bg);
-  background-image: var(--gt-bg-radial);
+  background-color: var(--gt-bg);
+  background-image:
+    linear-gradient(to right, rgba(0, 240, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 240, 255, 0.035) 1px, transparent 1px),
+    var(--gt-bg-radial);
+  background-size: 24px 24px, 24px 24px, 100% 100%;
+  background-position: 0 0, 0 0, center center;
   background-attachment: fixed;
   color: var(--gt-text);
   font-family: var(--gt-font-sans);
@@ -101,6 +126,139 @@ body {
   cursor: not-allowed;
   transform: none;
   border-color: transparent;
+}
+
+/*
+ * Lab Button Primitives (Frankenstein's Laboratory)
+ * Minimum 48x48 CSS px touch target (Req 12.1), copper borders, life green fill.
+ */
+.gt-btn {
+  min-width: var(--gt-target);
+  min-height: var(--gt-target);
+  padding: 12px 20px;
+  border-radius: var(--gt-radius-md);
+  border: 2px solid var(--gt-border-copper);
+  background: var(--gt-surface);
+  color: var(--gt-text);
+  font-family: var(--gt-font-sans);
+  font-size: var(--gt-text-base);
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gt-space-xs);
+  text-decoration: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--gt-transition-fast),
+    border-color var(--gt-transition-fast),
+    box-shadow var(--gt-transition-fast),
+    transform var(--gt-transition-fast);
+}
+
+.gt-btn:hover {
+  border-color: var(--gt-green);
+  background: var(--gt-surface-hover);
+  box-shadow: var(--gt-shadow-copper);
+}
+
+.gt-btn:active {
+  background: var(--gt-surface-active);
+  transform: scale(0.985);
+}
+
+.gt-btn:focus-visible {
+  border-color: var(--gt-copper-bright);
+  outline: 3px solid var(--gt-cyan);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--gt-bg), 0 0 12px var(--gt-cyan-glow);
+}
+
+.gt-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  border-color: var(--gt-border-subtle);
+}
+
+.gt-btn--primary {
+  min-width: var(--gt-target);
+  min-height: var(--gt-target);
+  background: var(--gt-green);
+  color: var(--gt-text-dark);
+  border-color: var(--gt-border-copper);
+  font-weight: 700;
+  box-shadow: 0 0 12px var(--gt-green-glow);
+}
+
+.gt-btn--primary:hover {
+  background: #4dff95;
+  border-color: var(--gt-copper-bright);
+  box-shadow: var(--gt-shadow-glow-strong);
+}
+
+.gt-btn--primary:active {
+  background: var(--gt-green-dim);
+  transform: scale(0.985);
+}
+
+.gt-btn--primary:focus-visible {
+  outline: 3px solid var(--gt-cyan);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--gt-bg), 0 0 16px var(--gt-cyan-glow-strong);
+}
+
+.gt-btn--secondary {
+  min-width: var(--gt-target);
+  min-height: var(--gt-target);
+  background: var(--gt-surface);
+  color: var(--gt-text);
+  border-color: var(--gt-border-copper);
+}
+
+.gt-btn--secondary:hover {
+  background: var(--gt-surface-hover);
+  border-color: var(--gt-green);
+  box-shadow: var(--gt-shadow-copper);
+}
+
+.gt-btn--secondary:active {
+  background: var(--gt-surface-active);
+  transform: scale(0.985);
+}
+
+.gt-btn--secondary:focus-visible {
+  outline: 3px solid var(--gt-cyan);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--gt-bg), 0 0 12px var(--gt-cyan-glow);
+}
+
+.gt-btn--quiet {
+  min-width: var(--gt-target);
+  min-height: var(--gt-target);
+  background: transparent;
+  color: var(--gt-bone);
+  border-color: transparent;
+}
+
+.gt-btn--quiet:hover {
+  background: var(--gt-surface-hover);
+  border-color: var(--gt-copper-dim);
+  color: var(--gt-text-primary);
+}
+
+.gt-btn--quiet:active {
+  background: var(--gt-surface-active);
+  transform: scale(0.985);
+}
+
+.gt-btn--quiet:focus-visible {
+  outline: 3px solid var(--gt-cyan);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--gt-bg), 0 0 12px var(--gt-cyan-glow);
 }
 
 .gt-visually-hidden {
@@ -915,13 +1073,16 @@ body {
   .gt-capture__status-indicator,
   .gt-capture__progress-bar,
   .gt-mascot,
-  .gt-mascot * {
+  .gt-mascot *,
+  .gt-spark,
+  .gt-spark * {
     animation: none !important;
   }
 
   .gt-start__creature-emblem svg,
   .gt-mascot,
-  .gt-mascot svg {
+  .gt-mascot svg,
+  .gt-spark svg {
     filter: none !important;
     transform: none !important;
   }
@@ -930,16 +1091,22 @@ body {
 /* High Contrast & Forced Colors (Windows High Contrast / assistive themes) */
 @media (forced-colors: active) {
   .gt-control,
+  .gt-btn,
+  .gt-btn--primary,
+  .gt-btn--secondary,
+  .gt-btn--quiet,
   .gt-capture__button,
   .gt-explore__ask,
   .gt-explore__back,
   .gt-explore__send,
   .gt-capture__sample-btn,
-  .gt-start__action-badge {
+  .gt-start__action-badge,
+  .gt-lab-card {
     border: 2px solid ButtonText !important;
   }
 
   .gt-control:focus-visible,
+  .gt-btn:focus-visible,
   .gt-start-surface:focus-visible,
   .gt-explore__canvas:focus-visible,
   .gt-explore__ask-input:focus-visible {
@@ -1016,3 +1183,9 @@ body {
     font-size: 0.72rem;
   }
 }
+
+/* ==========================================================================
+   LAB PRIMITIVES
+   ========================================================================== */
+/* The presentational rules for Seam, Rivets, LabCard, and Spark
+   are loaded via ./lab.css and encapsulated in frontend/src/components/lab/ */
