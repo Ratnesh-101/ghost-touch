@@ -21,7 +21,7 @@ import {
   type SavedDiagram,
 } from './core/savedDiagrams';
 import { createBrowserDrivers, renderSceneThumbnail, type Drivers } from './drivers';
-import { clearHash, DEBUG_HASH, parseShareHash, readHash, subscribeHash } from './drivers/hashRoute';
+import { clearHash, DEBUG_HASH, isTeachHash, parseShareHash, readHash, subscribeHash } from './drivers/hashRoute';
 import {
   leaveCorrectEntry,
   leaveSavedEntry,
@@ -34,6 +34,7 @@ import {
 import { capturePrompt } from './flow/start';
 import { exploreAnnouncement } from './flow/navigation';
 import { createPhotoUrlTracker, type PhotoUrlTracker } from './flow/capture';
+import { isTeacherActive } from './flow/teach';
 import { getLang, LANG_BCP47, subscribeLang, t } from './i18n';
 import { Capture } from './screens/Capture';
 import { Correct } from './screens/Correct';
@@ -42,6 +43,7 @@ import { Explore } from './screens/Explore';
 import { SavedDiagrams } from './screens/SavedDiagrams';
 import { ShareError as ShareErrorScreen, shareErrorMessage } from './screens/ShareError';
 import { Start } from './screens/Start';
+import { Teach } from './screens/Teach';
 import { decodeShare, ShareError, type ShareErrorCode } from './share';
 
 export type ShareRouteResolution =
@@ -154,15 +156,22 @@ type View =
     }
   | { screen: 'correct'; scene: DiagramScene }
   | { screen: 'saved' }
+  | { screen: 'teach'; scene?: DiagramScene }
   | { screen: 'shareError'; code: ShareErrorCode; announced: string };
 
 export function App(): JSX.Element {
   const hash = useSyncExternalStore(subscribeHash, readHash, readHash);
   const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
   const [drivers] = useState<Drivers>(() => createBrowserDrivers());
+  const lastExploreScene = useRef<DiagramScene | null>(null);
   const [view, setView] = useState<View>(() => {
-    const resolution = resolveShareRoute(readHash());
+    const currentHash = readHash();
+    if (isTeachHash(currentHash) && isTeacherActive()) {
+      return { screen: 'teach' };
+    }
+    const resolution = resolveShareRoute(currentHash);
     if (resolution.kind === 'explore') {
+      lastExploreScene.current = resolution.scene;
       return {
         screen: 'explore',
         scene: resolution.scene,
@@ -196,7 +205,7 @@ export function App(): JSX.Element {
   }, []);
 
   useEffect(() => {
-    if (isShareEnvOn() && parseShareHash(readHash()) !== null) {
+    if (isShareEnvOn() && (parseShareHash(readHash()) !== null || isTeachHash(readHash()))) {
       return;
     }
     void warmBackend();
@@ -208,8 +217,20 @@ export function App(): JSX.Element {
     }
     lastProcessedHash.current = hash;
 
+    if (isTeachHash(hash)) {
+      if (isTeacherActive()) {
+        setView((prev) => {
+          if (prev.screen === 'teach') return prev;
+          const scene = prev.screen === 'explore' ? prev.scene : lastExploreScene.current ?? undefined;
+          return { screen: 'teach', scene };
+        });
+      }
+      return;
+    }
+
     const resolution = resolveShareRoute(hash, isShareEnvOn());
     if (resolution.kind === 'explore') {
+      lastExploreScene.current = resolution.scene;
       speakShareAnnouncements(drivers.speech, resolution, LANG_BCP47[currentLang]);
       setView({
         screen: 'explore',
@@ -227,7 +248,11 @@ export function App(): JSX.Element {
       });
     } else if (hash === '' || hash === '#') {
       setView((prev) => {
-        if (prev.screen === 'shareError' || (prev.screen === 'explore' && prev.fromShare)) {
+        if (
+          prev.screen === 'shareError' ||
+          (prev.screen === 'explore' && prev.fromShare) ||
+          prev.screen === 'teach'
+        ) {
           return { screen: 'start' };
         }
         return prev;
@@ -316,6 +341,7 @@ export function App(): JSX.Element {
     source?: 'camera' | 'file' | 'sample',
   ): void => {
     updatePhotoUrl(photo ?? null);
+    lastExploreScene.current = scene;
     const announced = exploreAnnouncement(scene, mode);
     drivers.speech.speak(announced, LANG_BCP47[currentLang]);
     setView({ screen: 'explore', scene, announced });
@@ -386,10 +412,25 @@ export function App(): JSX.Element {
   const handleSavedOpen = (scene: DiagramScene, title: string): void => {
     replaceSavedEntry();
     updatePhotoUrl(null);
+    lastExploreScene.current = scene;
     // Open an offline saved diagram: goes straight to Explore, no network call, no re-save
     const announced = `${title}. ${t('explore.gestureHint')} ${t('explore.backHint')}`;
     drivers.speech.speak(announced, LANG_BCP47[currentLang]);
     setView({ screen: 'explore', scene, announced });
+  };
+
+  const handleTeachBack = (): void => {
+    clearHash();
+    if (lastExploreScene.current) {
+      const scene = lastExploreScene.current;
+      const announced = exploreAnnouncement(scene, 'ai');
+      drivers.speech.speak(announced, LANG_BCP47[currentLang]);
+      setView({ screen: 'explore', scene, announced });
+    } else {
+      const announced = t('start.intro');
+      drivers.speech.speak(announced, LANG_BCP47[currentLang]);
+      setView({ screen: 'start' });
+    }
   };
 
   switch (view.screen) {
@@ -439,6 +480,15 @@ export function App(): JSX.Element {
           speech={drivers.speech}
           onOpen={handleSavedOpen}
           onBack={handleSavedBack}
+        />
+      );
+    case 'teach':
+      return (
+        <Teach
+          initialScene={view.scene ?? lastExploreScene.current ?? undefined}
+          currentExploreScene={lastExploreScene.current}
+          drivers={drivers}
+          onBack={handleTeachBack}
         />
       );
   }

@@ -442,3 +442,63 @@ The following spoken strings may be difficult for blind students to follow in a 
 | `lab.settings.guideOff (spoken)` | Finger guidance disabled. | उंगली मार्गदर्शन अक्षम किया गया। | આંગળી માર્ગદર્શન અક્ષમ કર્યું. | | | | |
 | `lab.settings.guideHint` | Tones and vibration guide your finger to targets. | टोन और कंपन आपकी उंगली को लक्ष्य तक ले जाते हैं। | ટોન અને વાઇબ્રેશન તમારી આંગળીને લક્ષ્ય સુધી લઈ જાય છે. | | | | |
 
+---
+
+## 20. Teacher Editor Strings (`teach.*`, `lab.settings.teacher*`)
+
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `lab.settings.teacher` | Teacher tools | शिक्षक उपकरण | શિક્ષક સાધનો | | | | |
+| `lab.settings.teacherHint` | Enable diagram editing, verification, and sharing tools. | आरेख संपादन, सत्यापन और साझाकरण उपकरण सक्षम करें। | આકૃતિ સંપાદન, ચકાસણી અને શેરિંગ સાધનો સક્ષમ કરો. | | | | |
+| `lab.settings.teacherOn (spoken)` | Teacher tools enabled. | शिक्षक उपकरण सक्षम किए गए। | શિક્ષક સાધનો સક્ષમ કર્યા. | | | | |
+| `lab.settings.teacherOff (spoken)` | Teacher tools disabled. | शिक्षक उपकरण अक्षम किए गए। | શિક્ષક સાધનો અક્ષમ કર્યા. | | | | |
+| `lab.settings.openTeacher` | Open Teacher Editor | शिक्षक संपादक खोलें | શિક્ષક સંપાદક ખોલો | | | | |
+| `teach.title` | Teacher Editor | शिक्षक संपादक | શિક્ષક સંપાદક | | | | |
+| `teach.intro (spoken)` | Teacher editor. Edit diagrams, verify accuracy, and share with students. | शिक्षक संपादक। आरेखों को संपादित करें, सटीकता सत्यापित करें और छात्रों के साथ साझा करें। | શિક્ષક સંપાદક. આકૃતિઓ સંપાદિત કરો, ચોકસાઈ પ્રમાણિત કરો અને વિદ્યાર્થીઓ સાથે શેર કરો. | | | | |
+| `teach.back` | Back | वापस | પાછા | | | | |
+| `teach.load` | Load diagram | आरेख लोड करें | આકૃતિ લોડ કરો | | | | |
+| `teach.loadCurrent` | Current diagram | वर्तमान आरेख | હાલની આકૃતિ | | | | |
+| `teach.loadSaved` | Saved diagrams | सहेजे गए आरेख | સેવ કરેલી આકૃતિઓ | | | | |
+| `teach.loadShareLink` | Paste share link | साझा लिंक पेस्ट करें | શેર લિંક પેસ્ટ કરો | | | | |
+| `teach.loadInputPlaceholder` | Paste link or #s= hash | लिंक या #s= हैश पेस्ट करें | લિંક અથવા #s= હેશ પેસ્ટ કરો | | | | |
+| `teach.loadBtn` | Load | लोड करें | લોડ કરો | | | | |
+| `teach.loadedSuccess (spoken)` | Loaded diagram: {title} | आरेख लोड किया गया: {title} | આકૃતિ લોડ થઈ: {title} | | | | keep {title} |
+| `teach.loadError (spoken)` | Could not load diagram from share link. | साझा लिंक से आरेख लोड नहीं किया जा सका। | શેર લિંક પરથી આકૃતિ લોડ થઈ શકી નથી. | | | | |
+| `teach.noSavedDiagrams` | No saved diagrams available. | कोई सहेजा गया आरेख उपलब्ध नहीं है। | કોઈ સેવ કરેલી આકૃતિઓ ઉપલબ્ધ નથી. | | | | |
+| `teach.closeModal` | Close | बंद करें | બંધ કરો | | | | |
+| `teach.canvasLabel` | Diagram editor canvas. Use arrow keys to move selected point, Delete to remove. | आरेख संपादक कैनवास। चयनित बिंदु को स्थानांतरित करने के लिए तीर कुंजियों का उपयोग करें, हटाने के लिए Delete दबाएं। | આકૃતિ સંપાદક કેનવાસ. પસંદ કરેલા બિંદુને ખસેડવા માટે એરો કી વાપરો, કાઢી નાખવા માટે Delete દબાવો. | | | | |
+| `teach.addVertex` | Add vertex | शीर्ष जोड़ें | બિંદુ ઉમેરો | | | | |
+| `teach.vertexAdded (spoken)` | Added vertex {id} | शीर्ष {id} जोड़ा गया | બિંદુ {id} ઉમેરાયું | | | | keep {id} |
+| `teach.delete` | Delete | हटाएं | કાઢી નાખો | | | | |
+| `teach.undo` | Undo | पूर्ववत करें | પૂર્વવત્ કરો | | | | |
+| `teach.redo` | Redo | फिर से करें | ફરીથી કરો | | | | |
+| `teach.selectedVertex (spoken)` | Selected vertex: {label} | चयनित शीर्ष: {label} | પસંદ કરેલું બિંદુ: {label} | | | | keep {label} |
+| `teach.selectedSegment (spoken)` | Selected segment: {label} | चयनित रेखा खंड: {label} | પસંદ કરેલો રેખાખંડ: {label} | | | | keep {label} |
+| `teach.noSelection (spoken)` | No element selected. | कोई तत्व चयनित नहीं है। | કોઈ ઘટક પસંદ નથી. | | | | |
+| `teach.vertexMoved (spoken)` | Moved vertex {id} | शीर्ष {id} स्थानांतरित किया गया | બિંદુ {id} ખસેડાયું | | | | keep {id} |
+| `teach.label` | Label | लेबल | લેબલ | | | | |
+| `teach.applyLabel` | Apply label | लेबल लागू करें | લેબલ લાગુ કરો | | | | |
+| `teach.labelUpdated (spoken)` | Label updated | लेबल अद्यतन किया गया | લેબલ અપડેટ થયું | | | | |
+| `teach.labelEmpty (spoken)` | Label cannot be empty. | लेबल खाली नहीं हो सकता। | લેબલ ખાલી હોઈ શકે નહીં. | | | | |
+| `teach.axisRanges` | Axis positions (function graph) | अक्ष स्थिति (फ़ंक्शन ग्राफ़) | અક્ષ સ્થાન (વિધેય આલેખ) | | | | |
+| `teach.xAxisY` | X-axis vertical position (0 to 1, empty for none) | X-अक्ष लंबवत स्थिति (0 से 1, या खाली) | X-અક્ષ ઊભી સ્થિતિ (0 થી 1, અથવા ખાલી) | | | | |
+| `teach.yAxisX` | Y-axis horizontal position (0 to 1, empty for none) | Y-अक्ष क्षैतिज स्थिति (0 से 1, या खाली) | Y-અક્ષ આડી સ્થિતિ (0 થી 1, અથવા ખાલી) | | | | |
+| `teach.axisInvalid (spoken)` | Axis coordinate must be between 0 and 1, or empty. | अक्ष निर्देशांक 0 और 1 के बीच होना चाहिए, या खाली। | અક્ષ યામ 0 અને 1 વચ્ચે હોવો જોઈએ, અથવા ખાલી. | | | | |
+| `teach.validationTitle` | Validation status | सत्यापन स्थिति | પ્રમાણીકરણ સ્થિતિ | | | | |
+| `teach.validDiagram` | Diagram is valid and ready to verify. | आरेख मान्य है और सत्यापित करने के लिए तैयार है। | આકૃતિ માન્ય છે અને પ્રમાણિત કરવા માટે તૈયાર છે. | | | | |
+| `teach.invalidDiagram` | Diagram validation issues: {errors} | आरेख सत्यापन त्रुटियां: {errors} | આકૃતિ પ્રમાણીકરણ સમસ્યાઓ: {errors} | | | | keep {errors} |
+| `teach.verifySection` | Verify & Share | सत्यापित करें और साझा करें | પ્રમાણિત કરો અને શેર કરો | | | | |
+| `teach.teacherName` | Teacher name (required) | शिक्षक का नाम (आवश्यक) | શિક્ષકનું નામ (જરૂરી) | | | | |
+| `teach.teacherNamePlaceholder` | Enter your name (max 60 chars) | अपना नाम दर्ज करें (अधिकतम 60 वर्ण) | તમારું નામ દાખલ કરો (મહત્તમ 60 અક્ષર) | | | | |
+| `teach.teacherNote` | Note (optional) | नोट (वैकल्पिक) | નોંધ (વૈકલ્પિક) | | | | |
+| `teach.teacherNotePlaceholder` | Optional guidance note for students (max 280 chars) | छात्रों के लिए वैकल्पिक नोट (अधिकतम 280 वर्ण) | વિદ્યાર્થીઓ માટે વૈકલ્પિક નોંધ (મહત્તમ 280 અક્ષર) | | | | |
+| `teach.markVerified` | Mark verified | सत्यापित चिह्नित करें | પ્રમાણિત તરીકે ચિહ્નિત કરો | | | | |
+| `teach.verifiedSuccess (spoken)` | Diagram verified and share link ready. | आरेख सत्यापित किया गया और साझा लिंक तैयार है। | આકૃતિ પ્રમાણિત થઈ અને શેર લિંક તૈયાર છે. | | | | |
+| `teach.shareLink` | Share link | साझा लिंक | શેર લિંક | | | | |
+| `teach.copyLink` | Copy link | लिंक कॉपी करें | લિંક કોપી કરો | | | | |
+| `teach.linkCopied (spoken)` | Link copied | लिंक कॉपी हो गया | લિંક કોપી થઈ ગઈ | | | | |
+| `teach.share` | Share | साझा करें | શેર કરો | | | | |
+| `teach.qrCodeAlt` | QR code to open this verified diagram | इस सत्यापित आरेख को खोलने के लिए क्यूआर कोड | આ પ્રમાણિત આકૃતિ ખોલવા માટે ક્યુઆર કોડ | | | | |
+| `teach.qrTooLong` | Link too long for a QR code; use Copy link | Link too long for a QR code; use Copy link | Link too long for a QR code; use Copy link | | | | exact contract message |
+| `teach.linkSize` | Size: {chars} characters | आकार: {chars} वर्ण | કદ: {chars} અક્ષરો | | | | keep {chars} |
+

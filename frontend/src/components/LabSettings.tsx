@@ -29,8 +29,14 @@ import { RateSelector } from './RateSelector';
 import {
   getStoredGuideSetting,
   isGuideEnvOn,
+  isShareEnvOn,
   setStoredGuideSetting,
 } from '../config/features';
+import { TEACH_HASH } from '../drivers/hashRoute';
+import {
+  getStoredTeacherSetting,
+  setStoredTeacherSetting,
+} from '../flow/teach';
 import type { Drivers } from '../drivers';
 import { MemoryDiagramStore } from '../drivers';
 import { describeSettings, t } from '../i18n';
@@ -68,6 +74,7 @@ export function LabSettings({
   const wasOpen = useRef(false);
   const hasSpokenClose = useRef(false);
   const [guideEnabled, setGuideEnabled] = useState(() => getStoredGuideSetting());
+  const [teacherEnabled, setTeacherEnabled] = useState(() => getStoredTeacherSetting());
 
   const doSpeak = (text: string): void => {
     if (speak) {
@@ -82,6 +89,14 @@ export function LabSettings({
     setGuideEnabled(next);
     setStoredGuideSetting(next);
     const spoken = next ? t('lab.settings.guideOn') : t('lab.settings.guideOff');
+    doSpeak(spoken);
+  };
+
+  const handleToggleTeacher = (): void => {
+    const next = !teacherEnabled;
+    setTeacherEnabled(next);
+    setStoredTeacherSetting(next);
+    const spoken = next ? t('lab.settings.teacherOn') : t('lab.settings.teacherOff');
     doSpeak(spoken);
   };
 
@@ -101,6 +116,7 @@ export function LabSettings({
   useEffect(() => {
     if (open) {
       setGuideEnabled(getStoredGuideSetting());
+      setTeacherEnabled(getStoredTeacherSetting());
       hasSpokenClose.current = false;
       if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
         previouslyFocusedElement.current = document.activeElement;
@@ -257,6 +273,65 @@ export function LabSettings({
               >
                 {guideEnabled ? t('lab.settings.guideOn') : t('lab.settings.guideOff')}
               </AccessibleButton>
+            </section>
+          )}
+
+          {isShareEnvOn() && (
+            <section
+              className="gt-lab-settings__section"
+              aria-labelledby="lab-settings-section-teacher"
+            >
+              <h3 id="lab-settings-section-teacher" className="gt-lab-settings__section-title">
+                {t('lab.settings.teacher')}
+              </h3>
+              <p
+                className="gt-lab-settings__hint"
+                style={{
+                  margin: '0 0 var(--gt-space-sm, 8px) 0',
+                  fontSize: '0.9rem',
+                  color: 'var(--gt-bone, #ded6c4)',
+                }}
+              >
+                {t('lab.settings.teacherHint')}
+              </p>
+              <AccessibleButton
+                type="button"
+                role="switch"
+                aria-checked={teacherEnabled}
+                className={`gt-control gt-btn ${
+                  teacherEnabled ? 'gt-btn--primary' : 'gt-btn--secondary'
+                }`}
+                onClick={handleToggleTeacher}
+                style={{
+                  minWidth: '48px',
+                  minHeight: '48px',
+                  padding: '12px 20px',
+                  width: '100%',
+                }}
+              >
+                {teacherEnabled ? t('lab.settings.teacherOn') : t('lab.settings.teacherOff')}
+              </AccessibleButton>
+              {teacherEnabled && (
+                <AccessibleButton
+                  type="button"
+                  className="gt-control gt-btn gt-btn--secondary"
+                  onClick={() => {
+                    handleClose();
+                    if (typeof window !== 'undefined') {
+                      window.location.hash = TEACH_HASH;
+                    }
+                  }}
+                  style={{
+                    minWidth: '48px',
+                    minHeight: '48px',
+                    padding: '12px 20px',
+                    width: '100%',
+                    marginTop: 'var(--gt-space-sm, 8px)',
+                  }}
+                >
+                  {t('lab.settings.openTeacher')}
+                </AccessibleButton>
+              )}
             </section>
           )}
         </div>
