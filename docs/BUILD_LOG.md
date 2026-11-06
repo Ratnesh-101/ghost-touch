@@ -261,3 +261,35 @@ Format for each entry:
 - **Not fixable:** `deepmerge` (low) has no patched release (4.3.1 is the latest). Build-time only, not shipped. Dismiss the alert as "no fix available / not used at runtime" on GitHub.
 - **Backend:** pip-audit found only the venv's bundled `setuptools 65.5.0` (not a project dependency); app packages clean.
 - **Gates (clean clone, fresh install):** tsc clean, 473 frontend tests pass, build OK, PWA still emits `sw.js` and `manifest.webmanifest`.
+
+## 2026-11-06 — Antigravity — Lane lab-brand (Ghost Touch Logo, Icons, PWA Manifest, Mascot)
+- Built brand system per `docs/briefs/lab-spec.md` and `docs/briefs/agy-lab-brand.md`:
+  - Created original hand-crafted SVG brand assets in `frontend/public/brand/`: `logo-mark.svg` (<1.8 KB), `logo-full.svg` (<2.5 KB), `logo-mono.svg` (<2.0 KB), `logo-maskable.svg` (<2.2 KB), `og-image.svg` (1200x630, <4.8 KB), and `frontend/public/favicon.svg` (simplified 16 px icon, <0.8 KB). Each SVG includes `<title>` and adheres strictly to size limits (<6 KB for brand icons, <10 KB for og-image).
+  - Implemented `frontend/src/components/Logo.tsx`: inline accessible SVG component supporting `variant: 'full' | 'mark'`, `decorative`, `className`, and `height`, with `role="img"` and `aria-label={t('app.name')}` when informative, and `aria-hidden="true"` / `focusable="false"` when decorative.
+  - Harmonized `frontend/src/components/Mascot.tsx` with lab theme tokens while preserving all existing test assertions.
+  - Added test suite `frontend/tests/logo.test.tsx` (8 tests) and extended `frontend/tests/mascot.test.ts` (+2 tests), bringing total frontend tests to 483 (43 files).
+  - Updated `frontend/index.html` with theme-color `#0b0e0c`, favicon links, apple-touch-icon, OpenGraph, and Twitter Card metadata.
+  - Updated `frontend/vite.config.ts` manifest block: `theme_color: '#0b0e0c'`, `background_color: '#0b0e0c'`, and `purpose: 'maskable'` icon pointing to `icons/icon-maskable-512.png` without touching `globPatterns`.
+  - Added reproducible `scripts/build-brand.mjs` using headless Chromium via `playwright-core`, embedding self-hosted Atkinson Hyperlegible woff2 fonts, custom hand-written PNG-in-ICO builder for `favicon.ico`, and contact sheet generator.
+  - Inserted centered `logo-full.svg` at top of `README.md`.
+  - Authored comprehensive brand identity guidelines in `docs/design/LOGO.md`.
+- Verification results:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: clean.
+  - `npm --prefix frontend test`: 43 test files passed, 483 tests passed.
+  - `npm --prefix frontend run build`: client and PWA service worker generated cleanly (20 precache entries, 400.41 KiB).
+  - `backend/.venv/Scripts/python -m pytest backend`: 346 passed, 1 skipped.
+  - `backend/.venv/Scripts/python -m ruff check backend`: clean.
+  - `backend/.venv/Scripts/python -m ruff format --check backend`: clean (52 files).
+## 2026-11-06 — Antigravity — Lane lab-brand, Pass 2 (Creature Mascot Redraw & Report)
+- Completed Pass 2 redraw of `frontend/src/components/Mascot.tsx`:
+  - Transformed creature into a friendly character with a glowing screen-face featuring two simple optic sensor eyes (`r: 5.5` with white glint reflections), expressive brows, voltage cyan cheek sparks, and friendly stitched smile.
+  - Aligned chassis styling with logo mark: Bone parchment sutures (`#e8dfc8`, dashed `3 2`) with perpendicular cross-ticks, aged copper neck bolts (`#c9803a`), Deep Charcoal body (`#0b0e0c`), and Life Green borders (`#39ff88`).
+  - Preserved all required triad organ components (Nerves tactile buzzer with copper coils, Eyes vision sensor, Voice theremin antenna) and maintained all legacy test assertions.
+- Extended `frontend/tests/mascot.test.ts` with assertion verifying 2-eyed screen face and bone suture palette tokens (+1 test, total 484 passing tests across 43 files).
+- Updated `docs/design/LOGO.md` adding Section 2.3 (Creature Mascot character anatomy) and updated Asset Inventory table.
+- Verified review items from Pass 1: SVGs under size limits with `<title>`, `Logo.tsx` accessibility and props, `index.html` meta tags, `vite.config.ts` maskable manifest and untouched `globPatterns`.
+- Gates:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: clean.
+  - `npm --prefix frontend test`: 43 test files passed, 484 tests passed.
+  - `npm --prefix frontend run build`: clean (401.08 KiB precache, 20 entries).
+- Files touched: `frontend/src/components/Mascot.tsx`, `frontend/tests/mascot.test.ts`, `docs/design/LOGO.md`, `docs/reports/agy-lab-brand-report.md`, `docs/BUILD_LOG.md`.
