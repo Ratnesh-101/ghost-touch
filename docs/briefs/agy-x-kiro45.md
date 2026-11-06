@@ -1,0 +1,12 @@
+# Lane x-kiro45: Kiro prompts 4 and 5, done by Antigravity (agy), honestly labelled
+
+Create `docs/reports/agy-x-kiro45-report.md` FIRST and update as you go. Do NOT run the backend suite or ruff. You may run the frontend test/tsc/build commands.
+
+The owner asked agy to do the work written as Kiro prompts 4 and 5 in `docs/handoffs/kiro-prompts.md` (read both prompts in full, plus `.kiro/steering/*.md` and `.kiro/specs/ghost-touch/*`). Do exactly those prompts, with these HONESTY OVERRIDES (they beat the prompt text):
+1. Nothing you write may claim Kiro did, reviewed, audited or owns anything. Every new requirement/design/task text and every file you create must say it was written by Antigravity (agy) on the owner's instruction, and that Kiro has NOT yet reviewed it. Replace "verified by Kiro" / "owned by Kiro" / "Kiro audited" with "written by Antigravity, awaiting Kiro review".
+2. Prompt 5 (the review): write it to `docs/reports/review-lab-redesign-agy.md` (NOT `docs/kiro-evidence/`), signed "Reviewer: Antigravity (agy)". Do not edit `docs/kiro-evidence/`. It is read-only: no code edits for it. Actually do the four checks by reading code (haptic values vs `.kiro/steering/tech.md`, `frontend/src/core` imports of browser APIs, navigation driver, aria-hidden on Seam/Rivets/Spark, 48 px targets, tokens), cite file:line, and report real findings.
+3. Prompt 4: implement Requirement 14, the design section, Task 17 subtasks, and the property tests P18, P19, P20 in `frontend/tests/labTheme.prop.test.ts` (fast-check; parse the real CSS files). If a property finds a REAL violation, report it plainly instead of silently weakening the test; if you must narrow with an allow-list, document it in the test and the report. Tick `tasks.md` boxes only for subtasks genuinely finished, and annotate them "(agy)".
+4. Do not touch haptic values, `frontend/src/core`, or any file outside `.kiro/specs/ghost-touch/`, `frontend/tests/labTheme.prop.test.ts`, `docs/reports/`, `docs/BUILD_LOG.md`. Add a BUILD_LOG entry with tool = "Antigravity (agy), executing Kiro prompts 4 and 5 at the owner's request".
+5. Another lane (x-kiro67) also edits `.kiro/specs/ghost-touch/requirements.md` and `tasks.md` (Requirements 13.7 and 4.8, an audit task). Add your text in NEW sections at the end of the relevant lists and do not reformat existing text, so a merge is easy.
+
+Run `npm --prefix frontend exec -- tsc -p frontend --noEmit`, `npm --prefix frontend test`, `npm --prefix frontend run build` and report real results. End with **Commit groups** and anything unverified.
