@@ -43,6 +43,12 @@ services:
         value: gemini,openai,nebius
       - key: PROVIDER_TIMEOUT_SECONDS
         value: "8.0"
+      # Number of immediate retries on a transient provider error (429, 503) before falling through
+      - key: PROVIDER_RETRIES
+        value: "1"
+      # Backoff delay in seconds before retrying the same provider on a transient error
+      - key: PROVIDER_RETRY_BACKOFF_SECONDS
+        value: "0.8"
       - key: SCENE_TIMEOUT_SECONDS
         value: "15.0"
       - key: ASK_TIMEOUT_SECONDS

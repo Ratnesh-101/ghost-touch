@@ -130,7 +130,7 @@ class GeminiProvider:
         """
         global _process_disable_thinking
         if not self._client:
-            raise VisionError(self.name, "API key not configured")
+            raise VisionError(self.name, "API key not configured", transient=False)
 
         thinking_cfg = self.get_thinking_config()
         config = types.GenerateContentConfig(
@@ -177,10 +177,15 @@ class GeminiProvider:
                 else:
                     raise
         except TimeoutError as exc:
-            raise VisionError(self.name, f"request timed out after {timeout:.1f}s") from exc
+            raise VisionError(
+                self.name, f"request timed out after {timeout:.1f}s", transient=False
+            ) from exc
         except errors.APIError as exc:
             msg = _redact_secrets(str(exc), self.api_key)
-            raise VisionError(self.name, f"API error ({exc.code}): {msg}") from exc
+            code = getattr(exc, "code", None)
+            raise VisionError(
+                self.name, f"API error ({exc.code}): {msg}", status_code=code
+            ) from exc
         except Exception as exc:
             msg = _redact_secrets(str(exc), self.api_key)
             raise VisionError(self.name, f"call failed: {msg}") from exc
@@ -205,7 +210,7 @@ class GeminiProvider:
         """
         global _process_disable_thinking
         if not self._client:
-            raise VisionError(self.name, "API key not configured")
+            raise VisionError(self.name, "API key not configured", transient=False)
 
         thinking_cfg = self.get_thinking_config()
         config = types.GenerateContentConfig(
@@ -246,10 +251,15 @@ class GeminiProvider:
                 else:
                     raise
         except TimeoutError as exc:
-            raise VisionError(self.name, f"request timed out after {timeout:.1f}s") from exc
+            raise VisionError(
+                self.name, f"request timed out after {timeout:.1f}s", transient=False
+            ) from exc
         except errors.APIError as exc:
             msg = _redact_secrets(str(exc), self.api_key)
-            raise VisionError(self.name, f"API error ({exc.code}): {msg}") from exc
+            code = getattr(exc, "code", None)
+            raise VisionError(
+                self.name, f"API error ({exc.code}): {msg}", status_code=code
+            ) from exc
         except Exception as exc:
             msg = _redact_secrets(str(exc), self.api_key)
             raise VisionError(self.name, f"call failed: {msg}") from exc

@@ -80,7 +80,22 @@ def get_provider_chain() -> ProviderChain:
     """
     global _cached_chain
     if _cached_chain is None:
-        _cached_chain = build_chain_from_env()
+        chain = build_chain_from_env()
+        retries_raw = os.environ.get("PROVIDER_RETRIES", "1")
+        try:
+            r = int(retries_raw)
+            if r >= 0:
+                chain.retries = r
+        except ValueError:
+            pass
+        backoff_raw = os.environ.get("PROVIDER_RETRY_BACKOFF_SECONDS", "0.8")
+        try:
+            b = float(backoff_raw)
+            if b >= 0:
+                chain.retry_backoff = b
+        except ValueError:
+            pass
+        _cached_chain = chain
     return _cached_chain
 
 
@@ -165,6 +180,27 @@ def validate_env_settings() -> None:
         logger.warning(
             "Invalid PROVIDER_TIMEOUT_SECONDS '%s'; using default 8.0s",
             provider_timeout_raw,
+        )
+
+    retries_raw = os.environ.get("PROVIDER_RETRIES", "1")
+    try:
+        val_retries = int(retries_raw)
+        if val_retries < 0:
+            logger.warning("PROVIDER_RETRIES must be non-negative; using default 1")
+    except ValueError:
+        logger.warning("Invalid PROVIDER_RETRIES '%s'; using default 1", retries_raw)
+
+    retry_backoff_raw = os.environ.get("PROVIDER_RETRY_BACKOFF_SECONDS", "0.8")
+    try:
+        val_backoff = float(retry_backoff_raw)
+        if val_backoff < 0:
+            logger.warning(
+                "PROVIDER_RETRY_BACKOFF_SECONDS must be non-negative; using default 0.8s"
+            )
+    except ValueError:
+        logger.warning(
+            "Invalid PROVIDER_RETRY_BACKOFF_SECONDS '%s'; using default 0.8s",
+            retry_backoff_raw,
         )
 
     ask_timeout_raw = os.environ.get("ASK_TIMEOUT_SECONDS", "10.0")

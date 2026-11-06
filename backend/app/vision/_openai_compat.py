@@ -39,14 +39,24 @@ def parse_chat_response(name: str, response: httpx.Response, api_key: str) -> st
     """Map an HTTP response to the reply text, raising VisionError for every failure."""
     status = response.status_code
     if status == 429:
-        raise VisionError(name, "rate limited (429)")
+        raise VisionError(name, "rate limited (429)", status_code=429, transient=True)
     if status in (401, 403):
         snippet = redact_secrets(response.text[:200], api_key)
-        raise VisionError(name, f"authentication failed ({status}): {snippet}")
+        raise VisionError(
+            name,
+            f"authentication failed ({status}): {snippet}",
+            status_code=status,
+            transient=False,
+        )
     if status >= 500:
-        raise VisionError(name, f"server error ({status})")
+        raise VisionError(name, f"server error ({status})", status_code=status, transient=True)
     if status != 200:
-        raise VisionError(name, f"HTTP {status}: {redact_secrets(response.text[:200], api_key)}")
+        raise VisionError(
+            name,
+            f"HTTP {status}: {redact_secrets(response.text[:200], api_key)}",
+            status_code=status,
+            transient=False,
+        )
 
     try:
         data = response.json()
@@ -78,7 +88,7 @@ async def post_chat_completion(
 ) -> str:
     """POST ``body`` to ``{base_url}/chat/completions`` and return the reply text."""
     if not api_key:
-        raise VisionError(name, "API key not configured")
+        raise VisionError(name, "API key not configured", transient=False)
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     url = f"{base_url}/chat/completions"
     http = client or httpx.AsyncClient()
@@ -88,10 +98,24 @@ async def post_chat_completion(
         finally:
             if client is None:
                 await http.aclose()
+    except httpx.ConnectTimeout as exc:
+        raise VisionError(
+            name,
+            f"connect timeout: {redact_secrets(str(exc), api_key)}",
+            transient=True,
+        ) from exc
     except httpx.TimeoutException as exc:
-        raise VisionError(name, f"request timed out after {timeout:.1f}s") from exc
+        raise VisionError(name, f"request timed out after {timeout:.1f}s", transient=False) from exc
+    except (httpx.ConnectError, ConnectionResetError) as exc:
+        raise VisionError(
+            name,
+            f"connection reset: {redact_secrets(str(exc), api_key)}",
+            transient=True,
+        ) from exc
     except httpx.RequestError as exc:
-        raise VisionError(name, f"connection error: {redact_secrets(str(exc), api_key)}") from exc
+        msg = redact_secrets(str(exc), api_key)
+        is_trans = bool(re.search(r"connect|reset|refused", msg, re.IGNORECASE))
+        raise VisionError(name, f"connection error: {msg}", transient=is_trans) from exc
     except Exception as exc:
         raise VisionError(name, f"request failed: {redact_secrets(str(exc), api_key)}") from exc
     return parse_chat_response(name, response, api_key)
