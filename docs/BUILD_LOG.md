@@ -1360,5 +1360,25 @@ Format for each entry:
   - Highlighted Top 5 fixes: Hindi danda unstripped in `is_dont_know`, `facts_lookup` answer length clamp bypass, polyline point limit drift (1000 vs 2000), Point A lookup omission in `facts_lookup`, and non-string `answer` dict output.
 - Files touched:
   - `docs/reports/audit-a4-backend-ask.md`
+## 2026-11-06 — Antigravity — Lane a5-integration (Whole-app regression & integration audit)
+- Scope: Whole-app regression and integration audit for Guide-my-finger (`VITE_FEATURE_GUIDE`) and Teacher-verify-and-share (`VITE_FEATURE_SHARE`). Focus: flags OFF parity, bundle size and lazy loading, service worker precache and offline behavior, history and hardware back button handling, language switch mid-flow, i18n parity, screen accessibility (`a11y.screens`), CSS token conformance, test hygiene, env typing, and CI workflows.
+- What was done:
+  - Full codebase inspection across `App.tsx`, `Explore.tsx`, `Capture.tsx`, `Correct.tsx`, `Teach.tsx`, `LabSettings.tsx`, `hashRoute.ts`, `navigation.ts`, `audio.ts`, `clipboard.ts`, `i18n/`, `vite.config.ts`, `ci.yml`, and all test suites.
+  - Delivered comprehensive audit report at `docs/reports/audit-a5-integration.md` with 15 findings (6 High, 4 Med, 4 Low, 1 Suspected), ranked concrete failure scenarios, minimal fixes, and proposed test cases.
+  - Ranked Top 5 high-priority fixes:
+    1. A5-01 (App.tsx duplicate `warmBackend()` calling health API unconditionally on student share link).
+    2. A5-02 (Explore unmount creating AudioContext oscillator via `setGuideTone(null)` even when flags are OFF).
+    3. A5-03 (Teach stylesheet `teach.css` bypassing Design Token Color Property P20 with >20 bare hex values).
+    4. A5-04 (`Explore.tsx` and `Teach.tsx` missing `subscribeLang` language-switch subscription).
+    5. A5-05 (`ci.yml` using non-existent `@v7` GitHub action tags).
+- Verification results (all whitelisted commands clean):
+  - `npm --prefix frontend test`: 105 test files passed (1420 tests).
+  - `npm --prefix frontend run build`: 0 errors (dist/assets/index-CGrZz_Dw.js 474.16 kB, pdf 430.16 kB, CSS 73.20 kB, precache 22 entries / 639.79 KiB).
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+  - `backend/.venv/Scripts/python -m pytest backend`: 454 passed, 1 skipped.
+  - `backend/.venv/Scripts/python -m ruff check backend`: Clean.
+  - `backend/.venv/Scripts/python -m ruff format --check backend`: Clean (60 files formatted).
+- Files touched:
+  - `docs/reports/audit-a5-integration.md`
   - `docs/BUILD_LOG.md`
 
