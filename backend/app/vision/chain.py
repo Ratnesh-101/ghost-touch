@@ -81,21 +81,10 @@ class ProviderChain:
     ) -> None:
         self.providers: list[VisionProvider] = list(providers)
         self.call_timeout = call_timeout
-        if retries is not None:
-            self.retries = retries
-        elif "PROVIDER_RETRIES" in os.environ:
-            self.retries = parse_provider_retries(os.environ["PROVIDER_RETRIES"])
-        else:
-            self.retries = 0
-
-        if retry_backoff is not None:
-            self.retry_backoff = retry_backoff
-        elif "PROVIDER_RETRY_BACKOFF_SECONDS" in os.environ:
-            self.retry_backoff = parse_provider_retry_backoff(
-                os.environ["PROVIDER_RETRY_BACKOFF_SECONDS"]
-            )
-        else:
-            self.retry_backoff = DEFAULT_PROVIDER_RETRY_BACKOFF_SECONDS
+        self.retries = retries if retries is not None else 0
+        self.retry_backoff = (
+            retry_backoff if retry_backoff is not None else DEFAULT_PROVIDER_RETRY_BACKOFF_SECONDS
+        )
 
         self.min_useful_call_time = min_useful_call_time
         self._sleep = sleep_fn
