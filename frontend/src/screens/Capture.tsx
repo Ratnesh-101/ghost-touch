@@ -2,22 +2,37 @@
  * Capture — take a photo, choose an image (photo or screenshot), or open a
  * bundled sample. Samples never touch the network (Requirement 2.4).
  *
- * Includes accessible language and speech-rate selectors reachable eyes-closed.
+ * Header displays Ghost Touch creature brand mark beside real title text and tagline.
+ * Language and speech-rate selectors are consolidated into a modal Lab Settings sheet
+ * behind a single accessible button describing the current configuration.
+ *
+ * Samples are presented as "specimen jar" cards with real mini previews.
+ * While reading a diagram, renders LabLoading copper power meter.
  * Behaviour lives in `flow/capture.ts`; this component wires controls to it,
  * mirrors every spoken line into a visible `aria-live` status, and moves
  * focus back to "Take photo" after a failure.
  */
-import { useEffect, useRef, useState, type ChangeEvent, type JSX, type RefObject } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ChangeEvent,
+  type JSX,
+  type RefObject,
+} from 'react';
 import { loadSample, type SampleId, type SceneMode } from '../api/scene';
 import { AccessibleButton } from '../components/AccessibleButton';
-import { LanguageSelector } from '../components/LanguageSelector';
-import { RateSelector } from '../components/RateSelector';
+import { LabLoading } from '../components/loading/LabLoading';
+import { LabSettings, describeSettings } from '../components/LabSettings';
+import { Logo } from '../components/Logo';
+import { SpecimenPreview } from '../components/SpecimenPreview';
 import { StatusText } from '../components/StatusText';
 import type { DiagramScene } from '../core/scene';
-import type { Drivers } from '../drivers';
+import type { Drivers, SpeechRateSetting } from '../drivers';
 import { ACCEPTED_IMAGE_TYPES } from '../drivers/camera';
 import { processImageFile, type FileSource } from '../flow/capture';
-import { t } from '../i18n';
+import { getLang, subscribeLang, t } from '../i18n';
 
 interface CaptureProps {
   drivers: Drivers;
@@ -33,10 +48,14 @@ interface CaptureProps {
   onSavedDiagrams?: () => void;
 }
 
-const SAMPLES: ReadonlyArray<{ id: SampleId; labelKey: string }> = [
-  { id: 'triangle', labelKey: 'capture.sampleTriangle' },
-  { id: 'sine', labelKey: 'capture.sampleSine' },
-  { id: 'barchart', labelKey: 'capture.sampleBarchart' },
+const SAMPLES: ReadonlyArray<{
+  id: SampleId;
+  labelKey: string;
+  specimenKey: string;
+}> = [
+  { id: 'triangle', labelKey: 'capture.sampleTriangle', specimenKey: 'lab.specimen.triangle' },
+  { id: 'sine', labelKey: 'capture.sampleSine', specimenKey: 'lab.specimen.sine' },
+  { id: 'barchart', labelKey: 'capture.sampleBarchart', specimenKey: 'lab.specimen.bars' },
 ];
 
 export function Capture({
@@ -47,10 +66,33 @@ export function Capture({
 }: CaptureProps): JSX.Element {
   const [status, setStatus] = useState(initialStatus);
   const [busy, setBusy] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const takeButton = useRef<HTMLButtonElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const lifetime = useRef<AbortController>(new AbortController());
+
+  // Subscribe to i18n language store
+  const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
+
+  // Track speech rate
+  const [currentRate, setCurrentRate] = useState<SpeechRateSetting>(() =>
+    drivers.speech.getRate ? drivers.speech.getRate() : 'normal',
+  );
+
+  useEffect(() => {
+    const originalSetRate = drivers.speech.setRate;
+    drivers.speech.setRate = (newRate: SpeechRateSetting) => {
+      originalSetRate?.call(drivers.speech, newRate);
+      setCurrentRate(newRate);
+    };
+    return () => {
+      drivers.speech.setRate = originalSetRate;
+    };
+  }, [drivers]);
+
+  const activeRate = drivers.speech.getRate ? drivers.speech.getRate() : currentRate;
 
   useEffect(() => {
     takeButton.current?.focus();
@@ -63,6 +105,13 @@ export function Capture({
   const say = (text: string): void => {
     drivers.speech.speak(text);
     setStatus(text);
+  };
+
+  const handleSettingsClose = (): void => {
+    setSettingsOpen(false);
+    if (drivers.speech.getRate) {
+      setCurrentRate(drivers.speech.getRate());
+    }
   };
 
   // Do not open a picker while an upload is running; say why instead of ignoring the tap.
@@ -124,16 +173,27 @@ export function Capture({
 
   return (
     <main className="gt-capture" aria-busy={busy}>
+      {/* Brand-first header with decorative mark beside real heading & tagline */}
       <header className="gt-capture__header">
-        <div className="gt-toolbar">
-          <LanguageSelector drivers={drivers} />
-          <RateSelector drivers={drivers} />
+        <div className="gt-capture__top-row">
+          <div className="gt-capture__brand">
+            <Logo variant="mark" decorative height={48} className="gt-capture__brand-logo" />
+            <div className="gt-capture__brand-text">
+              <h1 className="gt-capture__title">{t('app.name')}</h1>
+              <p className="gt-capture__tagline">{t('app.tagline')}</p>
+            </div>
+          </div>
+          <AccessibleButton
+            ref={settingsButtonRef}
+            type="button"
+            className="gt-control gt-capture__button gt-capture__button--settings"
+            onClick={() => setSettingsOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={settingsOpen}
+          >
+            {describeSettings(currentLang, activeRate)}
+          </AccessibleButton>
         </div>
-        <div className="gt-capture__brand">
-          <span className="gt-capture__brand-dot" />
-          <h1 className="gt-capture__title">{t('app.name')}</h1>
-        </div>
-        <p className="gt-capture__tagline">{t('app.tagline')}</p>
       </header>
 
       {/* Progress & Status Card */}
@@ -145,9 +205,10 @@ export function Capture({
           </StatusText>
         </div>
         {busy && (
-          <div className="gt-capture__progress-track">
-            <div className="gt-capture__progress-bar" />
-          </div>
+          <LabLoading
+            title={t('lab.loading.title')}
+            hint={t('lab.loading.hint')}
+          />
         )}
       </div>
 
@@ -161,38 +222,52 @@ export function Capture({
           {t('capture.takePhoto')}
         </AccessibleButton>
 
-        <AccessibleButton
-          className="gt-capture__button gt-capture__button--secondary"
-          onClick={() => openPicker(fileInput)}
-        >
-          {t('capture.chooseImage')}
-        </AccessibleButton>
+        <div className="gt-capture__secondary-row">
+          <AccessibleButton
+            className="gt-capture__button gt-capture__button--secondary"
+            onClick={() => openPicker(fileInput)}
+          >
+            {t('capture.chooseImage')}
+          </AccessibleButton>
 
-        <AccessibleButton
-          className="gt-capture__button gt-capture__button--saved"
-          aria-label={t('capture.savedDiagrams')}
-          onClick={onSavedDiagrams}
-        >
-          {t('capture.savedDiagrams')}
-        </AccessibleButton>
+          <AccessibleButton
+            className="gt-capture__button gt-capture__button--saved"
+            aria-label={t('capture.savedDiagrams')}
+            onClick={onSavedDiagrams}
+          >
+            {t('capture.savedDiagrams')}
+          </AccessibleButton>
+        </div>
       </div>
 
-      {/* Sample Diagrams Section & Grid */}
-      <section className="gt-capture__samples-section">
-        <h2 className="gt-capture__subtitle">{t('capture.samples')}</h2>
+      {/* Sample Diagrams Section & Grid ("Specimen Jars") */}
+      <section className="gt-capture__samples-section" aria-labelledby="gt-capture-samples-title">
+        <h2 id="gt-capture-samples-title" className="gt-capture__subtitle">
+          {t('capture.samples')}
+        </h2>
         <div className="gt-capture__samples-grid">
-          {SAMPLES.map(({ id, labelKey }) => (
+          {SAMPLES.map(({ id, labelKey, specimenKey }) => (
             <AccessibleButton
               key={id}
               className={`gt-capture__button gt-capture__sample-btn gt-capture__sample-btn--${id}`}
+              aria-label={t(labelKey)}
               onClick={() => void handleSample(id)}
             >
-              <span className={`gt-capture__sample-icon gt-capture__sample-icon--${id}`} />
-              <span>{t(labelKey)}</span>
+              <SpecimenPreview id={id} className="gt-capture__sample-preview" />
+              <span className="gt-capture__sample-name">{t(specimenKey)}</span>
             </AccessibleButton>
           ))}
         </div>
       </section>
+
+      {/* Modal Lab Settings Sheet */}
+      <LabSettings
+        open={settingsOpen}
+        onClose={handleSettingsClose}
+        speak={say}
+        drivers={drivers}
+        triggerRef={settingsButtonRef}
+      />
 
       <input
         ref={photoInput}
