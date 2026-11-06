@@ -943,4 +943,20 @@ Format for each entry:
   - `frontend/src/styles/explore.css`
   - `frontend/tests/labTheme.prop.test.ts`
   - `docs/reports/agy-x0-theme-tokens-report.md`
+## 2026-11-06 — Antigravity (agy, reviewed by Claude) — Lane x-docs (Guide & Share documentation)
+- What was done:
+  - `docs/PHONE_TEST.md`: added Step 13 (Guide My Finger: TalkBack OFF/ON, speaker vs headphones pan, cancel by voice/back/timeout, arrival buzz, "take me to B", "find the peak", "next corner", Ask "Guide me") and Step 14 (Teacher Verify & Share: `#/teach` on laptop/phone, offline `#s=...` decompression via `lz-string`, QR scan from second device, cold open, Airplane Mode offline verification, friendly spoken error for truncated links with "Go to start" button). Updated Time Budget overview table and report template block.
+  - `README.md`: added Guide my finger and Teacher verify & share to feature list under "How it feels", flagged OFF by default (gated by `VITE_FEATURE_GUIDE`, `VITE_FEATURE_SHARE` and Settings toggles), included the verbatim honesty line ("Verified means a person reviewed this diagram. It is not cryptographic proof. Shared links live in the URL fragment and never reach our server."), added env flags to Environment variables table, and updated honest limitations section.
+  - `docs/DEMO_SCRIPT.md`: added draft beats marked `[DRAFT]` for (a) Ask "where is the right angle?" -> "Guide me" -> finger arrives -> buzz and (b) teacher fixes label on laptop -> QR -> student phone opens "Verified by ..."; added cut suggestions totaling 35s to preserve the strict <= 3:00 total runtime limit; updated Section 4 to explicitly state no hardware claims for Guide and Share.
+  - `docs/STEMERGENT_SUBMISSION.md`: added concise feature list sentences for Guide My Finger and Teacher Verify & Share in Section 5 ("How it works"); preserved every single `[FILL]` marker (6 total) without guessing or removing; made no hardware verification claims.
+- Verification & what broke:
+  - Nothing broke (docs only; no tests run per brief).
+  - No hardware claims made.
+  - No code or forbidden files touched.
+- Files touched:
+  - `docs/PHONE_TEST.md`
+  - `README.md`
+  - `docs/DEMO_SCRIPT.md`
+  - `docs/STEMERGENT_SUBMISSION.md`
+  - `docs/reports/agy-x-docs-report.md`
   - `docs/BUILD_LOG.md`

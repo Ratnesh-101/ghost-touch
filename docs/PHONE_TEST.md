@@ -56,7 +56,9 @@
 | **Step 10** | Saved Diagrams under Airplane Mode | 1.5 min | OFF |
 | **Step 11** | Teacher Correct Mode (Drag, Validate, Save) | 1.5 min | OFF |
 | **Step 12** | Hindi & Gujarati TTS Voices | 1.5 min | OFF |
-| **Total** | **End-to-End Phone Evaluation** | **~21.5 min** | |
+| **Step 13** | Guide My Finger (TalkBack OFF & ON, Pan vs Speaker, Cancel, Ask) | 3 min | OFF & ON |
+| **Step 14** | Teacher Verify & Share (Routes `#/teach`, Link Decompression Offline, Bad Links, QR) | 3 min | OFF |
+| **Total** | **End-to-End Phone Evaluation** | **~27.5 min** | |
 
 ---
 
@@ -228,6 +230,45 @@
 
 ---
 
+## Step 13: Guide My Finger (TalkBack OFF & ON, Pan vs Speaker, Cancel, Ask) (3 min)
+
+> [!NOTE]
+> **Prerequisites:** Feature flag `VITE_FEATURE_GUIDE=1` and Settings sheet toggle "Guide my finger" set to **ON** (default is OFF).
+> Open the **Right triangle** sample in Explore.
+
+| # | Do this | Expected | Result (pass / fail / notes) |
+|---|---|---|---|
+| 13.1 | **TalkBack OFF — Voice Target "take me to B":**<br>With TalkBack OFF, tap Voice Command button (or hold 2 fingers) and say: **"take me to B"**. Start moving finger on canvas. | - Guiding starts (`phase: "guiding"`). Normal theremin sound is suppressed.<br>- Target resolves to vertex B.<br>- Pulses accelerate as finger nears B (`pulseIntervalMs` throttled between 600 ms far and 120 ms near).<br>- Dynamic pitch rises as target B is above finger (`pitchFor(dy)`). | |
+| 13.2 | **Speaker vs Headphones (Audio Pan & Spoken Hints):**<br>- **Test A (Phone Speaker):** Listen on built-in phone speaker without headphones.<br>- **Test B (Headphones):** Plug in 3.5 mm / USB-C headphones or connect Bluetooth earbuds. Move finger to the left and right of vertex B. | - **Test A (Speaker):** Phone speaker is mono, so stereo pan is not audible. Verify that spoken directional hints (*"left"*, *"right"*, *"up"*, *"down"*, *"up-right"*, etc.) speak clearly whenever direction changes or every 2.5 s (`hintEveryMs`).<br>- **Test B (Headphones):** Dynamic audio stereo pan is clearly audible: panning to left ear when target is to the left (`panFor(dx) < 0`), centred when aligned, and right ear when target is to the right (`panFor(dx) > 0`). | |
+| 13.3 | **Arrival Buzz:**<br>Move finger directly onto Point B (within arrival radius). | - Phone fires distinct arrival buzz pattern (`arrive` effect) and speaks confirmation (*"Point B"* / arrived announcement).<br>- Phase transitions to `arrived`; pulses and guiding tones cease immediately. | |
+| 13.4 | **TalkBack ON — Pass-Through Guiding:**<br>Turn TalkBack ON (Volume Up + Down). Double-tap and hold on the canvas, then drag. Speak voice command: **"next corner"**. | - Relative cursor pass-through feeds movement to guiding state machine.<br>- Directional pulses throttle and pitch responds smoothly as virtual cursor approaches the target corner.<br>- Upon arrival at corner, arrival buzz fires and corner name is spoken cleanly without TalkBack interrupting. | |
+| 13.5 | **Voice Target "find the peak":**<br>Open **Sine wave** sample in Explore. Trigger voice command and say: **"find the peak"**. | - Target resolves to the local maximum peak of the sine curve in normalized scene space.<br>- Guiding starts with directional audio/haptic cues leading toward the peak coordinates. | |
+| 13.6 | **Ask Integration — Ask then "Guide me":**<br>In Explore, tap Ask button. Speak question: **"where is the right angle?"**.<br>When answer is spoken, tap the **"Guide me"** action button (or speak *"Guide me"*). | - Ask endpoint returns target element (`{elementId: "B"}`).<br>- App offers *"Guide me"* action.<br>- Tapping/saying *"Guide me"* immediately initiates guiding toward vertex B. | |
+| 13.7 | **Cancel by Voice "stop":**<br>Start guiding toward any point. Say clearly: **"stop"**. | - Guiding halts immediately (`stopped`, reason: `"voice"`).<br>- App speaks *"Guide stopped"* (`guide.stopped`) and returns cleanly to standard exploration mode. | |
+| 13.8 | **Cancel by Back Gesture / Button:**<br>Start guiding toward any point. Tap the Back button (or perform Android system Back gesture). | - Guiding halts immediately (`stopped`, reason: `"back"`). | |
+| 13.9 | **Cancel by 20 s Timeout:**<br>Start guiding toward a point, then lift finger and leave phone untouched for 20 seconds. | - At 20 seconds (`timeoutMs = 20000`), timer expires.<br>- App stops guiding (`stopped`, reason: `"timeout"`), speaks *"Guide stopped"*, and returns to idle exploration. | |
+
+---
+
+## Step 14: Teacher Verify & Share (Routes `#/teach`, Link Decompression Offline, Bad Links, QR) (3 min)
+
+> [!NOTE]
+> **Prerequisites:** Feature flag `VITE_FEATURE_SHARE=1` and Settings sheet toggle "Teacher verify & share" set to **ON** (default is OFF).
+> Shared links encode diagram payload into the URL fragment (`#s=...`) using `lz-string`. The hash never reaches the server.
+
+| # | Do this | Expected | Result (pass / fail / notes) |
+|---|---|---|---|
+| 14.1 | **Teacher Route `#/teach` on Laptop:**<br>On a desktop or laptop browser, open `https://ghost-touch-iota.vercel.app/#/teach` (or local dev server). | - Opens Teacher editor reusing the Correct pipeline.<br>- Displays diagram canvas with draggable vertices, labels, and axis-range fields for function graphs.<br>- Displays verification form: Teacher name ($\le 60$ chars), note ($\le 280$ chars).<br>- Displays honesty notice: *"Verified means a person reviewed this diagram. It is not cryptographic proof."* | |
+| 14.2 | **Teacher Route `#/teach` on Phone:**<br>On the OnePlus Nord CE6 in Chrome, open `https://ghost-touch-iota.vercel.app/#/teach`. | - Responsive layout loads with all touch controls $\ge 48 \times 48$ CSS px.<br>- Can drag vertex handles, edit label text, enter teacher name (*"Mrs. Patel"*) and note (*"Verified for Class 9"*). | |
+| 14.3 | **Generate Share Link & QR Code:**<br>In Teacher editor, tap **Verify & Share**. | - Encodes payload into URL fragment (`#s=...`) via `lz-string` compression.<br>- Share panel appears showing generated link, **Copy link** button, and on-screen QR code (rendered via `qrcode` when URL $\le 2000$ chars).<br>- If Web Share API is available on device, shows system share sheet option. | |
+| 14.4 | **QR Scan from a Second Device:**<br>Using a second phone's camera (or QR scanner app), scan the on-screen QR code displayed on the laptop or first phone. | - Second phone opens Chrome and loads the `#s=...` URL.<br>- Client decodes payload, validates scene invariants offline via `validateShareScene`.<br>- Opens Explore screen displaying a visible banner: *"Verified by Mrs. Patel"*, and speaks: *"Verified by Mrs. Patel. Note: Verified for Class 9"* right after the scene-loaded announcement. | |
+| 14.5 | **Cold Open Shared Link on Phone:**<br>Copy the `#s=...` URL. In a freshly opened Chrome tab (or closed/reopened Chrome), paste the link and navigate to it cold. | - URL fragment decodes before network calls.<br>- Validates scene bounds, coordinates, and structure.<br>- Launches directly into Explore with full haptic vibration and speech. | |
+| 14.6 | **Open Shared Link in Airplane Mode (Offline):**<br>Turn **Airplane Mode ON** (disconnect Wi-Fi and mobile data). Open or refresh the `#s=...` URL. | - Diagram loads instantly and completely offline from the URL fragment.<br>- Tracing lines buzzes, corners pulse, and audio works 100% offline with zero server contact. | |
+| 14.7 | **Bad Link / Truncated Hash Handling:**<br>Edit the URL in the address bar to simulate a corrupted/truncated link: delete the last 20 characters of the `#s=...` hash and press Enter. | - Client-side validator catches `ShareError` (`bad-format` or `bad-scene`).<br>- Does not crash or show unhandled error.<br>- Speaks a polite friendly error: *"Could not open shared diagram: invalid or damaged link."*<br>- Shows friendly error message card with accessible **Go to start** button ($\ge 48 \times 48$ px). | |
+| 14.8 | **Restore Connectivity:**<br>Turn Airplane Mode OFF (reconnect Wi-Fi / mobile data). | Network connection restored for future testing. | |
+
+---
+
 ## Paste This Back to the Team
 
 Copy the block below, fill in `PASS` or `FAIL` and your notes, and paste it back into your discussion or issue:
@@ -252,6 +293,8 @@ Tester: Owner
 10 (saved diagrams offline):  PASS/FAIL - <reopened in airplane mode? explored offline?>
 11 (correct mode):            PASS/FAIL - <dragged point? validated & saved?>
 12 (Hindi/Gujarati speech):   PASS/FAIL - <voices present or missing? notice heard? downloaded in TTS settings?>
+13 (guide my finger):          PASS/FAIL - <TalkBack off/on? speaker hints vs headphone pan? cancel voice/back/timeout? arrival buzz? "take me to B"/"find the peak"/Ask "Guide me">
+14 (teacher share & QR):       PASS/FAIL - <cold open #s=? airplane mode offline? bad truncated link spoken error? #/teach on laptop & phone? QR scanned from 2nd device?>
 
 ------------------------------------------------------
 FAILURE / ANOMALY DATA (fill in if any step failed or behaved strangely):

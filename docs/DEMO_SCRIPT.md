@@ -36,6 +36,47 @@
 
 ---
 
+## 2b. DRAFT Beats: Guide & Share Integration (Marked DRAFT)
+
+> [!IMPORTANT]
+> The following two beats are **DRAFT ONLY**. They demonstrate the "Guide my finger" and "Teacher verify & share" features currently implemented behind feature flags (`VITE_FEATURE_GUIDE` and `VITE_FEATURE_SHARE`). Neither feature has been validated on physical hardware; see Section 2c for how to cut existing shots to accommodate them within the strict $\le$ 3:00 ceiling.
+
+| Beat ID | Visual / Action | Screen & Elements | Spoken Narration (Natural Delivery) | Duration |
+|---|---|---|---|---|
+| **Beat A [DRAFT]** | **Ask "Where is the right angle?" → "Guide me" → Finger arrives → Arrival buzz:**<br>In Explore on Right Triangle (with `VITE_FEATURE_GUIDE=1` active). Tap Ask button (or 2-finger long-press). Listening cue sounds. Sighted/student asks: *"Where is the right angle?"*. Status shows *"Thinking..."*. Voice answers: *"The right angle is at Point B, bottom right."* and provides a prominent **"Guide me"** action button. Student taps **"Guide me"** (or speaks *"Guide me"*). Directional guidance begins: the finger traces outward from center; pulse intervals accelerate rapidly as the finger nears vertex B (`pulseIntervalMs` throttling from 600 ms down to 120 ms); on headphones, dynamic stereo audio pans right (`panFor(dx)`); on phone speaker, voice prompts *"right"*, *"down"*, *"here"*. As the finger crosses Point B's arrival radius, a crisp, distinct arrival buzz fires (`vibrate([50, 90, 50])`), guiding tones stop, and the app speaks: *"Point B"*. | Explore screen status card with "Guide me" action button → canvas directional pulses and stereo audio → arrival buzz at vertex B. | *"When a student asks where the right angle is, Ghost Touch doesn't just describe it—it guides their finger directly to it. Tap 'Guide me', and audio and haptics turn into a tactile compass. Pulses accelerate as you get closer, stereo tones pan right, and arriving at Point B triggers a confirming arrival buzz."* | **16s** |
+| **Beat B [DRAFT]** | **Teacher fixes a label on laptop → QR Code → Student phone opens "Verified by...":**<br>Over-the-shoulder split shot: On the left, a sighted teacher on a laptop at `#/teach` inspects an NCERT geometry diagram. The teacher drags a vertex into place and types label *"Point B (90°)"*. In the verification card, teacher enters name *"Mrs. Sharma"* and note *"Verified for Class 9 Geometry"*, then clicks **"Verify & Share"**. The diagram is immediately encoded into a compressed URL fragment hash (`#s=...`) and displays an on-screen QR code (zero server round-trip; no data sent to any cloud). On the right, a student holds an ordinary budget Android phone and points its camera at the laptop screen. The phone scans the QR code and opens Chrome cold. The diagram loads instantly and completely offline, displaying a green specimen-table header banner: *"Verified by Mrs. Sharma"*, and speaks: *"Verified by Mrs. Sharma. Note: Verified for Class 9 Geometry"* followed by the diagram title. | Teacher editor (`#/teach` on laptop) with verification card and on-screen QR code → Student Android phone scanning QR → Explore screen opening with "Verified by Mrs. Sharma" banner. | *"Teachers can verify and distribute diagrams in seconds. On a laptop at hash teach, a teacher adjusts a label, types their name, and generates an instant offline QR code. The student scans it, and the diagram opens directly from the URL hash—completely offline, with zero server storage, announcing 'Verified by Mrs. Sharma'."* | **19s** |
+
+---
+
+## 2c. What to Cut to Stay Under 3:00 (Budget Reconciliation)
+
+The base script in Section 2 is timed to exactly **3 minutes 00 seconds (180s)**. Inserting Beat A (16s) and Beat B (19s) adds **35 seconds**, which would push total runtime to 3:35. To maintain the strict $\le$ 3:00 duration limit, apply the following cuts from the base script:
+
+1. **Cut from Shot 8 (2:15–2:35, Raw Mode): Cut 12 seconds.**  
+   *Current:* 20s showing photo snap, vision fallback notice, and edge tracing.  
+   *Trim to 8s:* Show the photo snap, flash the notice (*"The creature's eyes are blurry, you can still feel the outlines"*), and trace one Canny green edge stroke in 8 seconds. Narration focuses on the one core message: the app never leaves a blind student with an empty screen.  
+   *(Saves: 12s)*
+
+2. **Cut from Shot 4 (0:55–1:15, Capture & Lab Settings): Cut 10 seconds.**  
+   *Current:* 20s detailing Capture buttons, opening settings sheet, switching to Hindi, and closing.  
+   *Trim to 10s:* Tap settings button directly, tap Hindi, hear *"भाषा हिंदी में सेट की गई।"*, and dismiss sheet immediately. Skip extended discussion of language picker layout.  
+   *(Saves: 10s)*
+
+3. **Cut from Shot 3 (0:35–0:55, The Creature & The Lab): Cut 8 seconds.**  
+   *Current:* 20s panning over mascot SVG and narrating the three organ rows (Nerves, Eyes, Voice).  
+   *Trim to 12s:* Focus camera on the big "Wake the creature" button, tap immediately, hear ascending start earcon, and speak: *"We stitched an ordinary buzzer for nerves, vision AI for eyes, and a browser synthesizer for voice."*  
+   *(Saves: 8s)*
+
+4. **Cut from Shot 9 (2:35–2:48, Real-World Focus & Student Testing): Cut 5 seconds.**  
+   *Current:* 13s describing classroom reality and the upcoming BPA Ahmedabad testing protocol.  
+   *Trim to 8s:* Show the phone and hands at the student testing desk with concise voiceover: *"Engineered for budget Android phones, with classroom usability trials at the Blind People's Association in Ahmedabad scheduled next."*  
+   *(Saves: 5s)*
+
+**Total Time Saved:** $12 + 10 + 8 + 5 = 35\text{ seconds}$.  
+**Reconciled Runtime:** $180\text{s} - 35\text{s} + 35\text{s} = \mathbf{180\text{ seconds (2:55 – 3:00)}}$, preserving the hard 3:00 ceiling.
+
+---
+
 ## 3. What Can Go Wrong and the Fallback
 
 | Risk / Failure Scenario | Why It Happens | Live Stage Fallback |
@@ -56,3 +97,4 @@
 4. **Do not fake blind student footage:** Show only footage and quotes collected with full, informed written consent. If field trials are pending, demonstrate the TalkBack pass-through gesture on camera with TalkBack speech clearly audible.
 5. **Do not misattribute tool roles:** Be scrupulously honest: Kiro authored specs, steering, hooks, and property tests; Antigravity built the Lab redesign; Claude Code supervised. Do not claim Kiro built the redesign.
 6. **NO Blindness Tropes:** Never joke about darkness, blindness, or sightlessness; never use novelty blindfolds.
+7. **Do not claim Guide or Share are hardware-verified:** Explicitly treat "Guide my finger" and "Teacher verify & share" as draft preview features tested under browser emulation; do not claim physical on-device haptic validation on video.
