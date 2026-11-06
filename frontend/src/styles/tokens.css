@@ -1,23 +1,25 @@
 /**
- * Ghost Touch Design Tokens
+ * Ghost Touch Design Tokens — Frankenstein's Laboratory
  *
- * Theme: Dark "creature" aesthetic (#0b0b10 bg, #39ff88 glowing accents).
- * Frankenstein pitch: Nerves (buzzer) + Eyes (vision LLM) + Voice (synthesizer).
- * Accessibility is the product: WCAG AAA contrast, 48px+ touch targets, visible focus.
+ * Theme: Frankenstein's Lab charcoal (#0b0e0c) with life green (#39ff88),
+ * voltage cyan (#00f0ff), aged copper/brass (#c88a4b), and bone/parchment (#ded6c4).
+ * Accessibility is the product: WCAG AAA contrast (>= 7:1 for text, >= 4.5:1 for borders/large text),
+ * minimum 48px touch targets, visible focus rings, reduced motion support.
  */
 
 :root {
-  /* --- Colors: Surfaces & Backgrounds --- */
-  --gt-bg: #0b0b10;
-  --gt-bg-elevated: #111119;
-  --gt-bg-radial: radial-gradient(circle at 50% 15%, #13241b 0%, #0b0b10 70%);
-  --gt-surface: #14141e;
-  --gt-surface-hover: #1c1c2a;
-  --gt-surface-active: #242436;
+  /* --- Colors: Surfaces & Backgrounds (Lab Charcoal) --- */
+  --gt-bg: #0b0e0c;
+  --gt-bg-elevated: #111713;
+  --gt-bg-radial: radial-gradient(circle at 50% 15%, #13241b 0%, #0b0e0c 70%);
+  --gt-bg-grid: linear-gradient(to right, rgba(0, 240, 255, 0.035) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 240, 255, 0.035) 1px, transparent 1px);
+  --gt-surface: #141c17;
+  --gt-surface-hover: #1b261f;
+  --gt-surface-active: #223028;
   --gt-surface-subtle: rgba(255, 255, 255, 0.03);
-  --gt-surface-card: #12121b;
+  --gt-surface-card: #121814;
 
-  /* --- Colors: Creature Green Accents --- */
+  /* --- Colors: Creature Life Green Accents --- */
   --gt-green: #39ff88;
   --gt-green-dim: #25a357;
   --gt-green-subtle: rgba(57, 255, 136, 0.08);
@@ -25,25 +27,56 @@
   --gt-green-glow: rgba(57, 255, 136, 0.35);
   --gt-green-glow-strong: rgba(57, 255, 136, 0.6);
 
+  /* --- Colors: Voltage Cyan Accents (Electric Sparks, Arc Discharges) --- */
+  --gt-cyan: #00f0ff;
+  --gt-voltage-cyan: #00f0ff;
+  --gt-cyan-dim: #00a3ad;
+  --gt-cyan-subtle: rgba(0, 240, 255, 0.08);
+  --gt-cyan-surface: rgba(0, 240, 255, 0.12);
+  --gt-cyan-glow: rgba(0, 240, 255, 0.35);
+  --gt-cyan-glow-strong: rgba(0, 240, 255, 0.6);
+
+  /* --- Colors: Aged Copper & Brass (Lab Hardware, Rivets, Button Borders) --- */
+  --gt-copper: #c88a4b;
+  --gt-copper-bright: #e0a96d;
+  --gt-copper-dim: #9e6432;
+  --gt-brass: #d4a359;
+  --gt-hardware: #c88a4b;
+  --gt-copper-subtle: rgba(200, 138, 75, 0.12);
+  --gt-copper-glow: rgba(200, 138, 75, 0.35);
+
+  /* --- Colors: Bone & Parchment (Stitches, Sutures, Secondary Text) --- */
+  --gt-bone: #ded6c4;
+  --gt-parchment: #ded6c4;
+  --gt-bone-dim: #b8b0a0;
+  --gt-stitch: #ded6c4;
+  --gt-stitch-dim: #8c8577;
+
   /* --- Colors: Borders --- */
   --gt-border: rgba(57, 255, 136, 0.22);
-  --gt-border-subtle: #222232;
+  --gt-border-subtle: #233028;
   --gt-border-strong: #39ff88;
+  --gt-border-copper: #c88a4b;
+  --gt-border-cyan: #00f0ff;
+  --gt-border-stitch: #ded6c4;
 
-  /* --- Colors: Text & Readability (WCAG AA/AAA compliant on dark) --- */
-  /* #eafff5 on #0b0b10 has a contrast ratio > 18:1 (exceeds AAA 7:1) */
+  /* --- Colors: Text & Readability (WCAG AAA compliant >= 7:1 on dark) --- */
+  /* #eafff5 on #0b0e0c contrast > 18:1 (exceeds AAA 7:1) */
   --gt-text: #eafff5;
   --gt-text-primary: #f5fff8;
-  /* #c2d6cc on #0b0b10 has a contrast ratio > 10:1 */
-  --gt-text-secondary: #c2d6cc;
-  /* #a8c5b5 on #0b0b10 has a contrast ratio > 10:1 (exceeds AAA 7:1 across all surfaces) */
+  /* #ded6c4 bone/parchment on #0b0e0c contrast > 13:1 */
+  --gt-text-secondary: #ded6c4;
+  /* #a8c5b5 on #0b0e0c contrast > 10:1 (exceeds AAA 7:1 across all surfaces) */
   --gt-text-muted: #a8c5b5;
-  /* Dark text on glowing green background has a contrast ratio > 15:1 */
+  /* Dark text on glowing green background contrast > 15:1 */
   --gt-text-dark: #051309;
+  --gt-text-bone: #ded6c4;
 
   /* --- Backward-compatible aliases --- */
   --gt-line: #39ff88;
   --gt-focus: #39ff88;
+  --gt-focus-cyan: #00f0ff;
+  --gt-focus-copper: #c88a4b;
 
   /* --- Minimum Touch Target (Req 12.1) --- */
   --gt-target: 48px;
@@ -59,10 +92,12 @@
   --gt-space-3xl: 48px;
 
   /* --- Border Radii --- */
+  --gt-radius-xs: 4px;
   --gt-radius-sm: 8px;
   --gt-radius-md: 12px;
   --gt-radius-lg: 16px;
   --gt-radius-xl: 24px;
+  --gt-radius-card: 14px;
   --gt-radius-pill: 9999px;
 
   /* --- Shadows & Glows --- */
@@ -70,9 +105,19 @@
   --gt-shadow-glow: 0 0 18px rgba(57, 255, 136, 0.35);
   --gt-shadow-glow-strong: 0 0 32px rgba(57, 255, 136, 0.55);
   --gt-shadow-inner-glow: inset 0 0 16px rgba(57, 255, 136, 0.08);
+  --gt-shadow-copper: 0 0 14px rgba(200, 138, 75, 0.35);
+  --gt-shadow-cyan: 0 0 18px rgba(0, 240, 255, 0.4);
+  --gt-shadow-spark: 0 0 24px rgba(0, 240, 255, 0.7), 0 0 48px rgba(57, 255, 136, 0.5);
+  --gt-glow-spark: 0 0 16px #00f0ff, 0 0 32px #39ff88;
+
+  /* --- Spark & Arc Tokens --- */
+  --gt-spark-arc: #00f0ff;
+  --gt-spark-glow: rgba(0, 240, 255, 0.45);
+  --gt-pulse-glow: rgba(57, 255, 136, 0.5);
+  --gt-spark-duration: 950ms;
 
   /* --- Typography --- */
-  --gt-font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --gt-font-sans: 'Atkinson Hyperlegible', 'Nirmala UI', 'Noto Sans Devanagari', 'Noto Sans Gujarati', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   --gt-font-mono: ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
   --gt-text-xs: 0.75rem;
   --gt-text-sm: 0.875rem;

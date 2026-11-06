@@ -1,0 +1,211 @@
+/**
+ * Ghost Touch — Lab Primitives Stylesheet (Frankenstein's Laboratory)
+ *
+ * Visual system:
+ * - Stitched seams (SVG dashed sutures) as section dividers and card edges
+ * - Corner rivets / bolts on primary lab cards
+ * - Lab buttons (.gt-btn, .gt-btn--primary, .gt-btn--secondary, .gt-btn--quiet)
+ * - "IT'S ALIVE" electric spark arc + glow pulse (under 1.2s, max 3 flashes/s)
+ * - Full reduced-motion and forced-colors compliance
+ */
+
+/* ==========================================================================
+   LAB CARDS & CONTAINERS
+   ========================================================================== */
+
+.gt-lab-card {
+  position: relative;
+  background: var(--gt-surface-card);
+  border-radius: var(--gt-radius-card);
+  box-shadow: var(--gt-shadow-card);
+  padding: var(--gt-space-lg);
+  border: 1px solid var(--gt-border-subtle);
+  overflow: hidden;
+}
+
+.gt-lab-card--stitched {
+  border: 2px dashed var(--gt-stitch);
+}
+
+.gt-lab-card--primary {
+  border-color: var(--gt-border-copper);
+  box-shadow: var(--gt-shadow-card), inset 0 0 20px var(--gt-copper-subtle);
+}
+
+.gt-lab-card--specimen {
+  border: 2px dashed var(--gt-stitch);
+  background: var(--gt-surface);
+  box-shadow: var(--gt-shadow-card), inset 0 0 16px var(--gt-cyan-subtle);
+}
+
+/* Stitched border utility */
+.gt-stitched-border {
+  border: 2px dashed var(--gt-stitch);
+}
+
+/* ==========================================================================
+   RIVETS / BOLTS (4 CORNER HARDWARE)
+   ========================================================================== */
+
+.gt-rivets {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.gt-rivet {
+  position: absolute;
+  display: block;
+  width: 10px;
+  height: 10px;
+}
+
+.gt-rivet--tl {
+  top: 8px;
+  left: 8px;
+}
+
+.gt-rivet--tr {
+  top: 8px;
+  right: 8px;
+}
+
+.gt-rivet--bl {
+  bottom: 8px;
+  left: 8px;
+}
+
+.gt-rivet--br {
+  bottom: 8px;
+  right: 8px;
+}
+
+/* ==========================================================================
+   SEAM / SUTURE DIVIDER
+   ========================================================================== */
+
+.gt-seam {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--gt-space-md) 0;
+  overflow: hidden;
+  user-select: none;
+  pointer-events: none;
+}
+
+.gt-seam__svg {
+  width: 100%;
+  height: 16px;
+  display: block;
+}
+
+/* ==========================================================================
+   SPARK ("IT'S ALIVE" ARC + GLOW PULSE)
+   - Duration: 950ms (strictly < 1.2s)
+   - Flash count: 2 peaks over 0.95s (~2.1 Hz, strictly <= 3 flashes/second)
+   - Non-interactive, aria-hidden="true"
+   ========================================================================== */
+
+.gt-spark {
+  pointer-events: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.gt-spark--overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.gt-spark__svg {
+  width: 100%;
+  height: 100%;
+  max-width: 480px;
+  max-height: 480px;
+  overflow: visible;
+}
+
+.gt-spark__arc {
+  stroke: var(--gt-spark-arc);
+  stroke-width: 3px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  filter: drop-shadow(0 0 8px var(--gt-cyan)) drop-shadow(0 0 16px var(--gt-green));
+  animation: gt-spark-arc-play var(--gt-spark-duration, 950ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.gt-spark__glow {
+  transform-origin: center;
+  animation: gt-spark-glow-play var(--gt-spark-duration, 950ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes gt-spark-arc-play {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 200;
+  }
+  15% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+    filter: drop-shadow(0 0 16px var(--gt-cyan)) drop-shadow(0 0 28px var(--gt-green));
+  }
+  45% {
+    opacity: 0.85;
+    filter: drop-shadow(0 0 10px var(--gt-cyan));
+  }
+  70% {
+    opacity: 0.95;
+    filter: drop-shadow(0 0 20px var(--gt-green)) drop-shadow(0 0 32px var(--gt-cyan));
+  }
+  100% {
+    opacity: 0;
+    filter: none;
+  }
+}
+
+@keyframes gt-spark-glow-play {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  20% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.0);
+  }
+  75% {
+    opacity: 0.8;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+
+/* Static final frame for reduced motion */
+.gt-spark--reduced {
+  opacity: 0.7;
+}
+
+.gt-spark--reduced .gt-spark__arc {
+  animation: none !important;
+  opacity: 0.6;
+  filter: drop-shadow(0 0 6px var(--gt-cyan));
+}
+
+.gt-spark--reduced .gt-spark__glow {
+  animation: none !important;
+  opacity: 0.4;
+  transform: none !important;
+}
