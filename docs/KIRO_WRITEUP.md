@@ -57,7 +57,7 @@ Kiro's steering files in `.kiro/steering/` enforced technical consistency, produ
 
 | Meaning | Pattern / Timing | Tuned Purpose |
 |---|---|---|
-| Line Buzz | `vibrate(80)` retriggered every 70 ms | Feels continuous without overheating the motor |
+| Line Buzz | `vibrate(80)` retriggered every 70 ms | Feels continuous |
 | Leaving Line | `vibrate(0)` | Immediate silence when stepping off an edge |
 | Vertex / Corner | `vibrate([50, 90, 50])` + 450 ms quiet window | Distinct "bzzzz-tap" sensation with speech pause |
 | Graph Curve | Line buzz + 200–1000 Hz continuous tone | Theremin pitch rising with screen height |
