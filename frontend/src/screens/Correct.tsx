@@ -83,22 +83,29 @@ export function Correct({
     speak(t('correct.intro'));
   }, []);
 
-  // Preload photo if url given
+  // Preload photo if url given; release local image ref on unmount
   useEffect(() => {
     if (!photoUrl) {
       photoImgRef.current = null;
       renderCanvas();
       return;
     }
+    let cancelled = false;
     const img = new Image();
     img.src = photoUrl;
     img.onload = () => {
+      if (cancelled) return;
       photoImgRef.current = img;
       renderCanvas();
     };
     img.onerror = () => {
+      if (cancelled) return;
       photoImgRef.current = null;
       renderCanvas();
+    };
+    return () => {
+      cancelled = true;
+      photoImgRef.current = null;
     };
   }, [photoUrl]);
 
