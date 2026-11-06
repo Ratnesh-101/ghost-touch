@@ -521,7 +521,7 @@ const gu: Record<string, string> = {
   'saved.pin': 'પિન કરો',
   'saved.unpin': 'પિન દૂર કરો',
   'saved.pinned': 'પિન કર્યું',
-  'saved.back': 'Capture પર પાછા',
+  'saved.back': 'કેપ્ચર પર પાછા',
   'saved.opened': '{title} ખોલી રહ્યા છીએ.',
   'saved.deleted': '{title} ભૂંસી નાખ્યું.',
   'saved.pinned.announced': '{title} પિન કર્યું.',
