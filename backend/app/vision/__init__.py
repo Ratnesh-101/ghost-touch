@@ -6,7 +6,11 @@ import logging
 import os
 
 from app.vision.base import VisionError, VisionProvider
-from app.vision.chain import ProviderChain
+from app.vision.chain import (
+    ProviderChain,
+    parse_provider_retries,
+    parse_provider_retry_backoff,
+)
 from app.vision.gemini import GeminiProvider
 from app.vision.nebius import NebiusProvider
 from app.vision.openai_provider import OpenAIProvider
@@ -51,7 +55,15 @@ def build_chain_from_env() -> ProviderChain:
     names_list = ", ".join(p.name for p in providers) or "(none)"
     logger.info("vision providers: %s", names_list)
 
-    return ProviderChain(providers=providers, call_timeout=call_timeout)
+    retries = parse_provider_retries()
+    retry_backoff = parse_provider_retry_backoff()
+
+    return ProviderChain(
+        providers=providers,
+        call_timeout=call_timeout,
+        retries=retries,
+        retry_backoff=retry_backoff,
+    )
 
 
 __all__ = [
