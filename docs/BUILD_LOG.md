@@ -1601,3 +1601,27 @@ Format for each entry:
   - `docs/reports/agy-a11y-audit.md`
   - `docs/BUILD_LOG.md`
 
+
+
+
+## 2026-11-07 — agy, reviewed by Claude — Lane submission-prep (STEMergent Submission & Demo Script Preparation)
+- Prepared submission documentation and video demo script per `docs/briefs/agy-submission-prep.md`:
+  - `docs/STEMERGENT_SUBMISSION.md`: Populated problem, user impact, STEM connection, operational mechanics, honest multi-tool attribution (Kiro, agy, Claude Code), and forward roadmap.
+    - Restricted `[FILL]` tokens strictly to owner-supplied information (names, school session notes, video URL, media links).
+    - Inserted `[RECOUNT]` for all automated test counts and coverage figures to prevent invented numbers.
+    - Explicitly clarified that TalkBack, Guide My Finger, and Teacher Share features have NOT been validated on physical hardware and feature flags default to OFF.
+    - Disclosed Google Gemini as primary multimodal vision model; avoided claims of "bug free" or "secure" while security/bug audit remains in progress.
+  - `docs/DEMO_SCRIPT.md`: Created concise, copy-paste ready Kiroween/STEMergent video script strictly timed to <= 3:00 with timestamps, visual actions, and natural spoken narration. Focused on working features (samples, photo capture, haptic line/corner buzz, theremin sonification, spoken Ask, Raw Mode fallback, machine-translated Hindi/Gujarati). Marked all unverified features (hardware TalkBack, Guide My Finger, Teacher Share) explicitly as OPTIONAL.
+  - Created `docs/reports/agy-submission-prep-report.md`.
+- Verification results:
+  - `npm --prefix frontend test`: 110 passed test files (1518 tests).
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+  - `npm --prefix frontend run build`: 128 modules transformed, clean PWA build.
+  - `backend/.venv/Scripts/python -m pytest backend`: 474 passed, 1 skipped.
+  - `backend/.venv/Scripts/python -m ruff check backend`: Clean (All checks passed).
+  - `backend/.venv/Scripts/python -m ruff format --check backend`: Clean (63 files already formatted).
+- Files touched:
+  - `docs/STEMERGENT_SUBMISSION.md`
+  - `docs/DEMO_SCRIPT.md`
+  - `docs/reports/agy-submission-prep-report.md`
+  - `docs/BUILD_LOG.md`
