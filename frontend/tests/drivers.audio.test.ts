@@ -7,13 +7,33 @@ import {
   type ParamLike,
 } from '../src/drivers/audio';
 
-function fakeParam(): ParamLike & { setTargetAtTime: Mock<ParamLike['setTargetAtTime']> } {
-  return { value: 0, setTargetAtTime: vi.fn<ParamLike['setTargetAtTime']>() };
+function fakeParam(): ParamLike & {
+  setTargetAtTime: Mock<ParamLike['setTargetAtTime']>;
+  cancelScheduledValues: Mock<NonNullable<ParamLike['cancelScheduledValues']>>;
+} {
+  return {
+    value: 0,
+    setTargetAtTime: vi.fn<ParamLike['setTargetAtTime']>(),
+    cancelScheduledValues: vi.fn(),
+  };
 }
 
 interface FakeContext extends AudioContextLike {
-  oscillators: Array<OscillatorLike & { start: Mock<OscillatorLike['start']>; stop: Mock<OscillatorLike['stop']> }>;
-  gains: Array<GainLike & { gain: ReturnType<typeof fakeParam> }>;
+  currentTime: number;
+  oscillators: Array<
+    OscillatorLike & {
+      frequency: ReturnType<typeof fakeParam>;
+      start: Mock<OscillatorLike['start']>;
+      stop: Mock<OscillatorLike['stop']>;
+      disconnect: Mock<NonNullable<OscillatorLike['disconnect']>>;
+    }
+  >;
+  gains: Array<
+    GainLike & {
+      gain: ReturnType<typeof fakeParam>;
+      disconnect: Mock<NonNullable<GainLike['disconnect']>>;
+    }
+  >;
   resume: Mock<AudioContextLike['resume']>;
   state: string;
 }
@@ -31,14 +51,20 @@ function fakeContext(state = 'running'): FakeContext {
         type: '',
         frequency: fakeParam(),
         connect: vi.fn(),
+        disconnect: vi.fn(),
         start: vi.fn<OscillatorLike['start']>(),
         stop: vi.fn<OscillatorLike['stop']>(),
+        onended: null as OscillatorLike['onended'],
       };
       ctx.oscillators.push(osc);
       return osc;
     },
     createGain() {
-      const gain = { gain: fakeParam(), connect: vi.fn() };
+      const gain = {
+        gain: fakeParam(),
+        connect: vi.fn(),
+        disconnect: vi.fn(),
+      };
       ctx.gains.push(gain);
       return gain;
     },
@@ -152,5 +178,60 @@ describe('WebAudioDriver', () => {
     driver.beep(440, 0);
     driver.beep(440, -5);
     expect(ctx.oscillators).toHaveLength(1);
+  });
+
+  it('setTone(hz) and setTone(null) cancel scheduled values (Finding 1)', () => {
+    const ctx = fakeContext();
+    const driver = new WebAudioDriver(() => ctx);
+    driver.unlock();
+
+    driver.setTone(440);
+    expect(ctx.gains[0]?.gain.cancelScheduledValues).toHaveBeenCalledWith(1);
+    expect(ctx.oscillators[0]?.frequency.cancelScheduledValues).toHaveBeenCalledWith(1);
+
+    ctx.currentTime = 2;
+    driver.setTone(null);
+    expect(ctx.gains[0]?.gain.cancelScheduledValues).toHaveBeenCalledWith(2);
+    expect(ctx.oscillators[0]?.frequency.cancelScheduledValues).toHaveBeenCalledWith(2);
+  });
+
+  it('beep disconnects its oscillator and gain when playback ends (Finding 13)', () => {
+    const ctx = fakeContext();
+    const driver = new WebAudioDriver(() => ctx);
+    driver.unlock();
+
+    driver.beep(440, 150);
+    expect(ctx.oscillators).toHaveLength(2);
+    expect(ctx.gains).toHaveLength(2);
+
+    const beepOsc = ctx.oscillators[1]!;
+    const beepGain = ctx.gains[1]!;
+    expect(beepOsc.onended).toBeDefined();
+
+    beepOsc.onended?.(new Event('ended'));
+    expect(beepOsc.disconnect).toHaveBeenCalled();
+    expect(beepGain.disconnect).toHaveBeenCalled();
+    expect(ctx.oscillators[0]!.disconnect).not.toHaveBeenCalled();
+    expect(ctx.gains[0]!.disconnect).not.toHaveBeenCalled();
+  });
+
+  it('setTone, beep, and playEarcon resume a suspended context (Finding 6)', () => {
+    const ctx = fakeContext('suspended');
+    const driver = new WebAudioDriver(() => ctx);
+    driver.unlock();
+
+    ctx.resume.mockClear();
+
+    // Calling setTone on suspended context attempts resume
+    driver.setTone(500);
+    expect(ctx.resume).toHaveBeenCalledTimes(1);
+
+    ctx.resume.mockClear();
+    driver.beep(600, 50);
+    expect(ctx.resume).toHaveBeenCalledTimes(1);
+
+    ctx.resume.mockClear();
+    driver.playEarcon('listening');
+    expect(ctx.resume).toHaveBeenCalledTimes(1);
   });
 });

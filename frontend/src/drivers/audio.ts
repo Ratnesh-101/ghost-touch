@@ -71,17 +71,21 @@ export interface AudioDriver {
 export interface ParamLike {
   value: number;
   setTargetAtTime(target: number, startTime: number, timeConstant: number): void;
+  cancelScheduledValues?(startTime: number): void;
 }
 export interface OscillatorLike {
   type: string;
   frequency: ParamLike;
   connect(destination: unknown): unknown;
+  disconnect?(destination?: unknown): void;
   start(when?: number): void;
   stop(when?: number): void;
+  onended?: ((ev: Event) => unknown) | null;
 }
 export interface GainLike {
   gain: ParamLike;
   connect(destination: unknown): unknown;
+  disconnect?(destination?: unknown): void;
 }
 export interface AudioContextLike {
   readonly currentTime: number;
@@ -92,6 +96,19 @@ export interface AudioContextLike {
   resume(): Promise<void>;
 }
 export type AudioContextFactory = () => AudioContextLike | undefined;
+
+export interface AudioHost {
+  window?: {
+    addEventListener(type: string, listener: (ev: unknown) => void): void;
+    removeEventListener(type: string, listener: (ev: unknown) => void): void;
+  };
+  document?: {
+    addEventListener(type: string, listener: (ev: unknown) => void): void;
+    removeEventListener(type: string, listener: (ev: unknown) => void): void;
+    readonly hidden?: boolean;
+    readonly visibilityState?: string;
+  };
+}
 
 // --- tuned values (prototype) ----------------------------------------------
 /** Tone loudness while on. */
@@ -123,8 +140,13 @@ export class WebAudioDriver implements AudioDriver {
   private gain: GainLike | undefined;
   private unavailable = false;
   private activeToneHz: number | null = null;
+  private earconRestoreAt: number | null = null;
+  private listenersAttached = false;
 
-  constructor(private readonly factory: AudioContextFactory = defaultFactory) {}
+  constructor(
+    private readonly factory: AudioContextFactory = defaultFactory,
+    private readonly host?: AudioHost,
+  ) {}
 
   get state(): string {
     if (this.unavailable) return 'unavailable';
@@ -159,17 +181,33 @@ export class WebAudioDriver implements AudioDriver {
     this.osc = osc;
     this.gain = gain;
     this.resumeIfSuspended(ctx);
+    this.attachLifecycleListeners();
   }
 
   setTone(hz: number | null): void {
     this.activeToneHz = hz !== null && Number.isFinite(hz) ? hz : null;
     const { ctx, osc, gain } = this;
     if (ctx === undefined || osc === undefined || gain === undefined) return;
+    if (ctx.state === 'suspended') {
+      this.resumeIfSuspended(ctx);
+    }
     const now = ctx.currentTime;
+    gain.gain.cancelScheduledValues?.(now);
+    osc.frequency.cancelScheduledValues?.(now);
+
     if (this.activeToneHz !== null) {
-      osc.frequency.setTargetAtTime(this.activeToneHz, now, FREQ_TIME_CONSTANT);
-      gain.gain.setTargetAtTime(TONE_GAIN, now, GAIN_ON_TIME_CONSTANT);
+      if (this.earconRestoreAt !== null && now < this.earconRestoreAt) {
+        // Earcon is currently playing: remain ducked until earcon finishes, then restore at earconRestoreAt
+        gain.gain.setTargetAtTime(0, now, GAIN_OFF_TIME_CONSTANT);
+        osc.frequency.setTargetAtTime(this.activeToneHz, this.earconRestoreAt, FREQ_TIME_CONSTANT);
+        gain.gain.setTargetAtTime(TONE_GAIN, this.earconRestoreAt, GAIN_ON_TIME_CONSTANT);
+      } else {
+        this.earconRestoreAt = null;
+        osc.frequency.setTargetAtTime(this.activeToneHz, now, FREQ_TIME_CONSTANT);
+        gain.gain.setTargetAtTime(TONE_GAIN, now, GAIN_ON_TIME_CONSTANT);
+      }
     } else {
+      this.earconRestoreAt = null;
       gain.gain.setTargetAtTime(0, now, GAIN_OFF_TIME_CONSTANT);
     }
   }
@@ -177,6 +215,9 @@ export class WebAudioDriver implements AudioDriver {
   beep(hz: number, ms: number): void {
     const ctx = this.ctx;
     if (ctx === undefined || !Number.isFinite(hz) || !(ms > 0)) return;
+    if (ctx.state === 'suspended') {
+      this.resumeIfSuspended(ctx);
+    }
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     const now = ctx.currentTime;
@@ -187,6 +228,18 @@ export class WebAudioDriver implements AudioDriver {
     gain.gain.setTargetAtTime(0, end, BEEP_FADE_TIME_CONSTANT);
     osc.connect(gain);
     gain.connect(ctx.destination);
+    osc.onended = () => {
+      try {
+        osc.disconnect?.();
+      } catch {
+        // Ignore errors if already disconnected
+      }
+      try {
+        gain.disconnect?.();
+      } catch {
+        // Ignore errors if already disconnected
+      }
+    };
     osc.start(now);
     osc.stop(end + BEEP_STOP_PADDING_S);
   }
@@ -194,6 +247,9 @@ export class WebAudioDriver implements AudioDriver {
   playEarcon(kind: EarconKind): void {
     const ctx = this.ctx;
     if (ctx === undefined) return;
+    if (ctx.state === 'suspended') {
+      this.resumeIfSuspended(ctx);
+    }
     const steps = getEarconSteps(kind);
     if (steps.length === 0) return;
 
@@ -201,8 +257,14 @@ export class WebAudioDriver implements AudioDriver {
     let maxEnd = now;
 
     // Duck the continuous theremin tone while an earcon plays so they never clash
-    if (this.activeToneHz !== null && this.gain !== undefined) {
-      this.gain.gain.setTargetAtTime(0, now, GAIN_OFF_TIME_CONSTANT);
+    if (this.gain !== undefined) {
+      this.gain.gain.cancelScheduledValues?.(now);
+      if (this.activeToneHz !== null) {
+        this.gain.gain.setTargetAtTime(0, now, GAIN_OFF_TIME_CONSTANT);
+      }
+    }
+    if (this.osc !== undefined) {
+      this.osc.frequency.cancelScheduledValues?.(now);
     }
 
     for (const step of steps) {
@@ -219,6 +281,18 @@ export class WebAudioDriver implements AudioDriver {
       gain.gain.setTargetAtTime(0, endAt, BEEP_FADE_TIME_CONSTANT);
       osc.connect(gain);
       gain.connect(ctx.destination);
+      osc.onended = () => {
+        try {
+          osc.disconnect?.();
+        } catch {
+          // Ignore
+        }
+        try {
+          gain.disconnect?.();
+        } catch {
+          // Ignore
+        }
+      };
       osc.start(startAt);
       osc.stop(endAt + BEEP_STOP_PADDING_S);
     }
@@ -226,8 +300,11 @@ export class WebAudioDriver implements AudioDriver {
     // Restore theremin tone after earcon completes if tone is still active
     if (this.activeToneHz !== null && this.gain !== undefined && this.osc !== undefined) {
       const restoreAt = maxEnd + 0.05;
+      this.earconRestoreAt = restoreAt;
       this.osc.frequency.setTargetAtTime(this.activeToneHz, restoreAt, FREQ_TIME_CONSTANT);
       this.gain.gain.setTargetAtTime(TONE_GAIN, restoreAt, GAIN_ON_TIME_CONSTANT);
+    } else {
+      this.earconRestoreAt = null;
     }
   }
 
@@ -237,5 +314,32 @@ export class WebAudioDriver implements AudioDriver {
       // Resume can be refused outside a user gesture; the next gesture's
       // unlock() tries again, so there is nothing more to do here.
     });
+  }
+
+  private attachLifecycleListeners(): void {
+    if (this.listenersAttached) return;
+    this.listenersAttached = true;
+
+    const win = this.host?.window ?? (typeof window !== 'undefined' ? window : undefined);
+    const doc = this.host?.document ?? (typeof document !== 'undefined' ? document : undefined);
+
+    const onVisible = (): void => {
+      if (doc && (doc.visibilityState === 'visible' || doc.hidden === false)) {
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.resumeIfSuspended(this.ctx);
+        }
+      }
+    };
+
+    const onGesture = (): void => {
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.resumeIfSuspended(this.ctx);
+      }
+    };
+
+    doc?.addEventListener('visibilitychange', onVisible);
+    win?.addEventListener('pointerdown', onGesture);
+    win?.addEventListener('touchstart', onGesture);
+    win?.addEventListener('keydown', onGesture);
   }
 }
