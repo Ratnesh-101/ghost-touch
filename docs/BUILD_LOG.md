@@ -960,3 +960,53 @@ Format for each entry:
   - `docs/STEMERGENT_SUBMISSION.md`
   - `docs/reports/agy-x-docs-report.md`
   - `docs/BUILD_LOG.md`
+## 2026-11-06 — Antigravity (agy, reviewed by Claude) — Lane g3-ask-target (Ask endpoint target validation + client parser)
+- What was done:
+  - Backend `app.ask`:
+    - Extended `AskResponse` with optional `target: AskTarget | None = None` where `AskTarget = ElementTarget | PointTarget`.
+    - Added `ElementTarget` (`elementId: str`, `extra="forbid"`) and `PointTarget` (`x: float`, `y: float` with `ge=0.0, le=1.0`, finite float checks, `extra="forbid"`).
+    - Added `extract_scene_element_ids(scene: DiagramScene) -> list[str]` to gather all unique element IDs in document order across points, segments, polylines, and bars.
+    - Updated `build_ask_prompt`: added a `Scene Element IDs` section listing all element IDs and instructed the model to optionally return `"target"` strictly for navigation/location requests choosing an ID from the list, while preserving the 2-sentence cap, exact "don't know" rule, and delimiters.
+    - Added tolerant model parsing `parse_model_ask_output(ai_text: str)` handling plain text, fenced JSON code blocks, and raw JSON objects.
+    - Added server-side validation `validate_ask_target(raw_target: Any, scene: DiagramScene)`: drops unknown element IDs or coordinates outside [0, 1] / non-finite -> `None`. Never raises.
+    - Updated `answer_question` to validate target on AI completion path and default to `target=None` on facts/unknown paths.
+  - Frontend `src/api/ask.ts`:
+    - Defined `GuideTarget` (`{ kind: 'element', elementId: string } | { kind: 'point', x: number, y: number }`) matching contract.
+    - Added `target?: GuideTarget` to `AskResponse`.
+    - Implemented tolerant helper `parseTarget(raw: unknown)`: maps `{ elementId }` and in-range `{ x, y }`, returns `undefined` for malformed/missing targets without throwing.
+    - Updated `parseAskResponse` to attach parsed target if present.
+  - Tests:
+    - Added `backend/tests/test_ask_target.py`: 10 test functions covering valid element IDs, unknown IDs dropped, in-range points, out-of-range xy dropped, plain-text unchanged, model don't-know without target, facts path without target, malformed target junk, prompt element listing, and direct unit tests.
+    - Added `backend/tests/test_ask_target_props.py`: 3 Hypothesis property-based tests verifying for arbitrary junk/recursive structures that validated target is either None, valid ElementTarget, or in-range PointTarget, and never raises.
+    - Added `frontend/tests/api.ask.target.test.ts`: 14 Vitest unit tests covering valid element/point targets, boundaries, non-finite coords, out-of-bounds coords, missing/empty elementId, target junk tolerance, shape check enforcement, and `requestAsk` fetch integration.
+- Verification & what broke:
+  - `npm --prefix frontend test`: 83 test files passed, 1217 tests passed (all 14 new tests passed).
+  - Pre-existing `tsc` / `npm run build` issue: 31 unused `@ts-expect-error` directives in pre-existing test files (`tests/AccessibleButton.test.tsx`, etc.) due to Node.js `fs` import resolution. Zero errors in `src/` or our new test file.
+  - Backend pytest and ruff not run per runner instructions (reserved for supervisor).
+- Files touched:
+  - `backend/app/ask.py`
+  - `backend/tests/test_ask_target.py`
+  - `backend/tests/test_ask_target_props.py`
+  - `frontend/src/api/ask.ts`
+  - `frontend/tests/api.ask.target.test.ts`
+  - `docs/reports/agy-g3-ask-target-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity (agy, reviewed by Claude) — Lane g3-fix (Supervisor gate fixes for Ask target)
+- What was done:
+  - Added missing `import pytest` in `backend/tests/test_ask_target_props.py` resolving ruff F821 undefined name errors on `pytest.fail`.
+  - Fixed `backend/app/ask.py` `validate_ask_target`:
+    - Enforced exact dict key matching (`set(raw_target.keys()) == {"elementId"}` and `set(raw_target.keys()) == {"x", "y"}`), forbidding spurious/extra keys (resolving junk case 12 `{"elementId": "A", "x": 0.5}` -> `None`).
+    - Enforced exact element ID matching against scene element IDs without `strip()` normalization, dropping padded IDs like `" A "` to `None`.
+    - Preserved exact `elementId` string in `ElementTarget` without stripping.
+  - Updated `backend/tests/test_ask_target.py` with explicit checks for padded element IDs and extra keys rejection.
+  - Updated `docs/reports/agy-g3-ask-target-report.md`.
+- Verification & what broke:
+  - Did not run pytest or ruff per brief instructions (supervisor executes backend gates).
+- Files touched:
+  - `backend/app/ask.py`
+  - `backend/tests/test_ask_target.py`
+  - `backend/tests/test_ask_target_props.py`
+  - `docs/reports/agy-g3-ask-target-report.md`
+  - `docs/BUILD_LOG.md`
+

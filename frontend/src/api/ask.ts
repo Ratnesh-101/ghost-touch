@@ -10,9 +10,14 @@ import type { DiagramScene } from '../core/scene';
 
 export type AskSource = 'ai' | 'facts' | 'unknown';
 
+export type GuideTarget =
+  | { kind: 'element'; elementId: string }
+  | { kind: 'point'; x: number; y: number };
+
 export interface AskResponse {
   answer: string;
   source: AskSource;
+  target?: GuideTarget;
 }
 
 /** Server Ask limit is 10 s; allow 12 s client budget (Requirement 7.2). */
@@ -40,7 +45,45 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** Shape check for `{ answer: string, source: "ai" | "facts" | "unknown" }`. */
+/**
+ * Tolerant parser for optional target in Ask response.
+ *
+ * Maps `{ elementId: string }` -> `{ kind: 'element', elementId }`.
+ * Maps `{ x: number, y: number }` with coordinates in [0, 1] -> `{ kind: 'point', x, y }`.
+ * Returns undefined for missing or malformed targets; never throws.
+ */
+export function parseTarget(raw: unknown): GuideTarget | undefined {
+  if (!isRecord(raw)) return undefined;
+
+  // 1. Element target
+  if (typeof raw['elementId'] === 'string') {
+    const elementId = raw['elementId'].trim();
+    if (elementId.length > 0) {
+      return { kind: 'element', elementId };
+    }
+    return undefined;
+  }
+
+  // 2. Point target (scene coordinates normalized to [0, 1])
+  const rawX = raw['x'];
+  const rawY = raw['y'];
+  if (
+    typeof rawX === 'number' &&
+    typeof rawY === 'number' &&
+    Number.isFinite(rawX) &&
+    Number.isFinite(rawY) &&
+    rawX >= 0 &&
+    rawX <= 1 &&
+    rawY >= 0 &&
+    rawY <= 1
+  ) {
+    return { kind: 'point', x: rawX, y: rawY };
+  }
+
+  return undefined;
+}
+
+/** Shape check for `{ answer: string, source: "ai" | "facts" | "unknown", target?: GuideTarget }`. */
 export function parseAskResponse(data: unknown): AskResponse {
   if (!isRecord(data)) throw new AskRequestError('bad-response');
   const answer = data['answer'];
@@ -51,7 +94,8 @@ export function parseAskResponse(data: unknown): AskResponse {
   ) {
     throw new AskRequestError('bad-response');
   }
-  return { answer, source };
+  const target = parseTarget(data['target']);
+  return target !== undefined ? { answer, source, target } : { answer, source };
 }
 
 function defaultBaseUrl(): string {
