@@ -90,6 +90,12 @@ describe('Kiro Hooks Configuration (.kiro/hooks/*.json)', () => {
         if (hook.action.type === 'command') {
           expect(typeof hook.action.command, `Command hook ${hook.name} missing action.command`).toBe('string');
           expect(hook.action.command?.trim().length).toBeGreaterThan(0);
+          if (hook.action.command?.includes('vitest')) {
+            expect(
+              hook.action.command,
+              `Command hook ${hook.name} in ${file} runs vitest but is missing "--prefix frontend"`,
+            ).toContain('--prefix frontend');
+          }
         } else if (hook.action.type === 'agent') {
           expect(typeof hook.action.prompt, `Agent hook ${hook.name} missing action.prompt`).toBe('string');
           expect(hook.action.prompt?.trim().length).toBeGreaterThan(0);
