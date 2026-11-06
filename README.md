@@ -83,15 +83,15 @@ uvicorn app.main:app --app-dir backend --reload --port 8000
 
 ## Tests
 
-As of 2026-11-04, 473 frontend tests and 347 backend tests pass.
+As of 2026-11-06, 1049 frontend tests and 348 backend tests pass.
 
 ```bash
-# Frontend: unit and fast-check property tests (473 tests)
+# Frontend: unit and fast-check property tests (1049 tests)
 npm --prefix frontend test
 npm --prefix frontend exec -- tsc -p frontend --noEmit
 npm --prefix frontend run build
 
-# Backend: pytest and Hypothesis property tests (347 tests)
+# Backend: pytest and Hypothesis property tests (348 tests)
 backend/.venv/Scripts/python -m pytest backend
 backend/.venv/Scripts/python -m ruff check backend
 backend/.venv/Scripts/python -m ruff format --check backend
@@ -112,9 +112,9 @@ Hit radii: vertex 22 CSS px, line 14 CSS px. Vertex hits take priority over line
 
 ## Multi-agent roles
 
-- **Kiro:** Monorepo scaffolding, pure core engine (`core/`), property-based tests, and schema specifications (see [docs/KIRO_WRITEUP.md](docs/KIRO_WRITEUP.md)).
-- **Antigravity (agy):** Browser drivers, screen flows, Raw Mode edge fallback, PDF renderer, UI polish, and resilience lanes (see [docs/BUILD_LOG.md](docs/BUILD_LOG.md)).
-- **Claude Code:** Architectural planning, test harnesses, vision benchmark scoring, independent code reviews and merges.
+- **Kiro:** Spec-driven development (`.kiro/specs/ghost-touch/`), steering docs, agent hooks, pure core haptic engine (`frontend/src/core/`), Pydantic schema and validator, and property-based tests P1–P13 with the P1 generator fix; credits paused during Task 13 (see [docs/KIRO_WRITEUP.md](docs/KIRO_WRITEUP.md)). Did not build the Lab redesign.
+- **Antigravity (agy):** Autonomous builder run via `scripts/agy-run.sh`: built the complete Frankenstein Laboratory redesign across parallel lanes; browser drivers, screen flows, Raw Mode edge fallback, PDF renderer, Teacher Correct mode (P16/P17), Saved Diagrams completion (P14/P15), UI polish, and resilience lanes (see [docs/BUILD_LOG.md](docs/BUILD_LOG.md)).
+- **Claude Code:** Supervised the build: architectural planning, briefs, independent code reviews, merge conflict resolutions, before/after screenshot audits, test harnesses, vision benchmark scoring, and live deployment verification.
 
 ## Deployment
 
@@ -122,7 +122,7 @@ See [docs/DEPLOY.md](docs/DEPLOY.md) for Render (backend) and Vercel (frontend P
 
 ## Status
 
-- **Built:** Complete monorepo, vision provider chain (Gemini, OpenAI, Nebius), OpenCV Raw Mode fallback, pure geometry and haptic state engine, Web Audio theremin, speech synthesis and voice ask, PWA offline caching, PDF first-page extraction, and 650 automated tests (313 frontend, 337 backend).
+- **Built:** Complete monorepo, vision provider chain (Gemini, OpenAI, Nebius), OpenCV Raw Mode fallback, pure geometry and haptic state engine, Web Audio theremin, speech synthesis and voice ask, PWA offline caching, PDF first-page extraction, Frankenstein Laboratory redesign, and 1397 automated tests (1049 frontend in 74 files, 348 backend with 1 skipped).
 - **Untested on a real phone:** TalkBack double-tap-and-hold relative cursor tracking during live exploration, speech recognition accuracy in noisy classrooms, Svara audio slot assets (placeholder only), and physical vibration strength across diverse Android handsets.
 
 ## License

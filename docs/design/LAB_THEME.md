@@ -185,3 +185,31 @@ To preserve visual prominence and legibility, keep an exclusion zone surrounding
 4. **Do NOT place on low-contrast backgrounds**: Maintain $\ge 7:1$ contrast against surfaces. On light backgrounds, use `logo-mono.svg` (solid `#0b0e0c`).
 5. **Do NOT use the mark as the sole heading**: The logo must never be the only content of an `<h1>` element without accessible text for screen readers.
 6. **Do NOT flip or mirror**: The neck bolt is always mounted on the left chassis edge; vibration waves radiate to the right.
+
+---
+
+## Screenshots
+
+The following before-and-after screenshots capture the Frankenstein's Laboratory redesign across mobile (`390x844`) and desktop (`1440x900`) viewports. (There is no "before" for the settings sheet or Correct, because the settings sheet is new and the Correct screenshot was taken only after the redesign.)
+
+| Screen | Before | After | What changed |
+|---|---|---|---|
+| **Start** | [`before-start-390x844.png`](screenshots/before-start-390x844.png)<br>[`before-start-1440x900.png`](screenshots/before-start-1440x900.png) | [`after-start-390x844.png`](screenshots/after-start-390x844.png)<br>[`after-start-1440x900.png`](screenshots/after-start-1440x900.png) | Logo, mascot, compact organ tiles and "Wake the creature" now fit one phone screen. |
+| **Capture** | [`before-capture-390x844.png`](screenshots/before-capture-390x844.png)<br>[`before-capture-1440x900.png`](screenshots/before-capture-1440x900.png) | [`after-capture-390x844.png`](screenshots/after-capture-390x844.png)<br>[`after-capture-1440x900.png`](screenshots/after-capture-1440x900.png) | One settings button, Take photo primary, specimen cards with previews. |
+| **Settings** | *(None — new sheet)* | [`after-settings-390x844.png`](screenshots/after-settings-390x844.png)<br>[`after-settings-1440x900.png`](screenshots/after-settings-1440x900.png) | New sheet. |
+| **Loading** | [`before-loading-390x844.png`](screenshots/before-loading-390x844.png)<br>[`before-loading-1440x900.png`](screenshots/before-loading-1440x900.png) | [`after-loading-390x844.png`](screenshots/after-loading-390x844.png)<br>[`after-loading-1440x900.png`](screenshots/after-loading-1440x900.png) | "The lab is powering up" meter. |
+| **Explore** | [`before-explore-390x844.png`](screenshots/before-explore-390x844.png)<br>[`before-explore-1440x900.png`](screenshots/before-explore-1440x900.png) | [`after-explore-390x844.png`](screenshots/after-explore-390x844.png)<br>[`after-explore-1440x900.png`](screenshots/after-explore-1440x900.png) | One settings button, full title, canvas fills its frame, stitched frame. |
+| **Ask** | [`before-ask-390x844.png`](screenshots/before-ask-390x844.png)<br>[`before-ask-1440x900.png`](screenshots/before-ask-1440x900.png) | [`after-ask-390x844.png`](screenshots/after-ask-390x844.png)<br>[`after-ask-1440x900.png`](screenshots/after-ask-1440x900.png) | Lab styling and the Raw Mode notice. |
+| **Raw Mode** | [`before-raw-390x844.png`](screenshots/before-raw-390x844.png)<br>[`before-raw-1440x900.png`](screenshots/before-raw-1440x900.png) | [`after-raw-390x844.png`](screenshots/after-raw-390x844.png)<br>[`after-raw-1440x900.png`](screenshots/after-raw-1440x900.png) | Lab styling and the Raw Mode notice. |
+| **Correct** | *(None — redesign only)* | [`after-correct-390x844.png`](screenshots/after-correct-390x844.png) | Canvas fills its frame. |
+
+### Per-Screen Changes Summary
+
+- **Start**: Logo, mascot, compact organ tiles and "Wake the creature" now fit one phone screen.
+- **Capture**: One settings button, Take photo primary, specimen cards with previews.
+- **Settings**: New sheet.
+- **Loading**: "The lab is powering up" meter.
+- **Explore**: One settings button, full title, canvas fills its frame, stitched frame.
+- **Ask and Raw Mode**: Lab styling and the Raw Mode notice.
+- **Correct**: Canvas fills its frame.
+
