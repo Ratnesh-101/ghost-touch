@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SceneResponse } from '../src/api/scene';
+import { SceneRequestError, type SceneResponse } from '../src/api/scene';
 import {
   PROGRESS_BEEP_HZ,
   PROGRESS_BEEP_MS,
   PROGRESS_INTERVAL_MS,
+  captureErrorMessage,
   pdfErrorMessage,
   processImageFile,
   rejectionMessage,
@@ -201,6 +202,24 @@ describe('processImageFile', () => {
     expect(outcome.kind).toBe('failed');
     expect(said).toEqual(['Reading your diagram', 'Something went wrong. Please try again, or pick a sample.']);
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('speaks the busy error when the backend responds with server busy', async () => {
+    const { audio, say, said, controller } = setup();
+    const request = vi.fn().mockRejectedValue(new SceneRequestError('busy', 5));
+    const outcome = await processImageFile(jpeg(), {
+      audio, say, prepare: (file) => Promise.resolve(file), request, signal: controller.signal,
+    });
+    expect(outcome.kind).toBe('failed');
+    expect(said).toEqual(['Reading your diagram', t('capture.errorBusy')]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('maps capture errors to user-friendly messages', () => {
+    expect(captureErrorMessage(new SceneRequestError('busy'))).toBe(t('capture.errorBusy'));
+    expect(captureErrorMessage(new SceneRequestError('http'))).toBe(t('capture.error'));
+    expect(captureErrorMessage(new SceneRequestError('network'))).toBe(t('capture.error'));
+    expect(captureErrorMessage(new Error('unknown'))).toBe(t('capture.error'));
   });
 
   it('speaks the error when the image cannot be prepared', async () => {

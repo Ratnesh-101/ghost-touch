@@ -731,3 +731,25 @@ Format for each entry:
   - `docs/STEMERGENT_SUBMISSION.md`
   - `README.md`
   - `docs/reports/agy-lab-finaldocs-report.md`
+
+## 2026-11-06 — Antigravity (agy) — Handle server busy (HTTP 503 / 429 with Retry-After) (Lane x-busyretry)
+- What was built:
+  - Added distinct error kind `busy` to `SceneFailure` and `SceneRequestError` in `frontend/src/api/scene.ts`.
+  - Implemented `parseRetryAfter` in `frontend/src/api/scene.ts` (parses seconds, ignores HTTP-date and invalid values, clamps to 1..10 s, defaults to 3 s).
+  - Implemented single automatic retry in `requestScene` for HTTP 503 and 429 after waiting for `Retry-After` seconds, respecting overall request timeout and abort signals, and skipping retry if remaining budget is too short.
+  - Added `captureErrorMessage` in `frontend/src/flow/capture.ts` mapping `busy` error to `capture.errorBusy` message.
+  - Added user-facing copy `'capture.errorBusy'` to all three language tables (`en`, `hi`, `gu`) in `frontend/src/i18n/index.ts` maintaining strict key parity.
+  - Extended unit tests in `frontend/tests/api.scene.test.ts` and `frontend/tests/flow.capture.test.ts` covering 503 retry & success, 503 twice surfacing `busy`, 429 retry, invalid header fallback, header clamping, non-busy errors NOT retried, fake timers, and short deadline skipping.
+- Verification & what broke:
+  - Nothing broke. All existing 1109 frontend tests continue passing, plus 13 new unit tests (total 1122 tests passing across 76 test files).
+  - `tsc -p frontend --noEmit` clean with 0 errors.
+  - `npm --prefix frontend run build` clean production bundle with PWA precache.
+  - No backend commands executed.
+- Files touched:
+  - `frontend/src/api/scene.ts`
+  - `frontend/src/flow/capture.ts`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/tests/api.scene.test.ts`
+  - `frontend/tests/flow.capture.test.ts`
+  - `docs/reports/agy-x-busyretry-report.md`
+  - `docs/BUILD_LOG.md`

@@ -25,13 +25,71 @@ export type SampleId = (typeof SAMPLE_IDS)[number];
  */
 export const SCENE_TIMEOUT_MS = 45_000;
 
-export type SceneFailure = 'timeout' | 'network' | 'http' | 'bad-response' | 'aborted';
+export const DEFAULT_RETRY_AFTER_SECONDS = 3;
+export const MIN_RETRY_AFTER_SECONDS = 1;
+export const MAX_RETRY_AFTER_SECONDS = 10;
+
+export type SceneFailure = 'timeout' | 'network' | 'http' | 'bad-response' | 'aborted' | 'busy';
 
 export class SceneRequestError extends Error {
-  constructor(readonly failure: SceneFailure) {
+  constructor(
+    readonly failure: SceneFailure,
+    readonly retryAfterSeconds?: number,
+  ) {
     super(failure);
     this.name = 'SceneRequestError';
   }
+}
+
+/**
+ * Parse Retry-After header value in seconds.
+ * Ignores HTTP-date and invalid values (returning default 3 s).
+ * Clamps valid values to 1..10 seconds.
+ */
+export function parseRetryAfter(headerValue: string | null | undefined): number {
+  if (headerValue === null || headerValue === undefined) {
+    return DEFAULT_RETRY_AFTER_SECONDS;
+  }
+  const trimmed = headerValue.trim();
+  if (!trimmed || !/^\d+(\.\d+)?$/.test(trimmed)) {
+    return DEFAULT_RETRY_AFTER_SECONDS;
+  }
+  const seconds = Math.round(parseFloat(trimmed));
+  if (!Number.isFinite(seconds)) {
+    return DEFAULT_RETRY_AFTER_SECONDS;
+  }
+  return Math.min(MAX_RETRY_AFTER_SECONDS, Math.max(MIN_RETRY_AFTER_SECONDS, seconds));
+}
+
+function isBusyStatus(status: number): boolean {
+  return status === 503 || status === 429;
+}
+
+function getHeader(response: Response, name: string): string | null | undefined {
+  if (!response.headers) return undefined;
+  if (typeof (response.headers as Headers).get === 'function') {
+    return (response.headers as Headers).get(name);
+  }
+  const record = response.headers as unknown as Record<string, string>;
+  return record[name] ?? record[name.toLowerCase()] ?? record[name.toUpperCase()];
+}
+
+function sleep(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(signal.reason ?? new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(signal.reason ?? new DOMException('Aborted', 'AbortError'));
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
 }
 
 export interface SceneRequestOptions {
@@ -78,6 +136,7 @@ export async function requestScene(
   const { baseUrl = defaultBaseUrl(), timeoutMs = SCENE_TIMEOUT_MS, signal, fetchImpl } = options;
   const doFetch = fetchImpl ?? fetch;
   const controller = new AbortController();
+  const startTime = Date.now();
   let timedOut = false;
   const timer = setTimeout(() => {
     timedOut = true;
@@ -87,14 +146,43 @@ export async function requestScene(
   if (signal?.aborted) controller.abort();
   signal?.addEventListener('abort', onExternalAbort);
 
-  try {
+  const createBody = (): FormData => {
     const body = new FormData();
     body.append('image', image, 'diagram.jpg');
-    const response = await doFetch(`${baseUrl}/api/v1/scene`, {
+    return body;
+  };
+
+  try {
+    let response = await doFetch(`${baseUrl}/api/v1/scene`, {
       method: 'POST',
-      body,
+      body: createBody(),
       signal: controller.signal,
     });
+
+    if (isBusyStatus(response.status)) {
+      const retryAfterSec = parseRetryAfter(getHeader(response, 'retry-after'));
+      const waitMs = retryAfterSec * 1000;
+      const elapsedMs = Date.now() - startTime;
+      const remainingMs = timeoutMs - elapsedMs;
+
+      if (remainingMs <= waitMs || controller.signal.aborted) {
+        throw new SceneRequestError('busy', retryAfterSec);
+      }
+
+      await sleep(waitMs, controller.signal);
+
+      response = await doFetch(`${baseUrl}/api/v1/scene`, {
+        method: 'POST',
+        body: createBody(),
+        signal: controller.signal,
+      });
+
+      if (isBusyStatus(response.status)) {
+        const secondRetryAfter = parseRetryAfter(getHeader(response, 'retry-after'));
+        throw new SceneRequestError('busy', secondRetryAfter);
+      }
+    }
+
     if (!response.ok) throw new SceneRequestError('http');
     let data: unknown;
     try {
