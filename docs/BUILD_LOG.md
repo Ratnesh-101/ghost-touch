@@ -899,3 +899,40 @@ Format for each entry:
 - Tool: Claude Code (doc edit, no app code).
 - Added the missing `capture.errorBusy` row (en/hi/gu, copied from `frontend/src/i18n/index.ts`) to `docs/user-test/translation-review.csv` and `.md` so the native-speaker check covers it.
 - Files touched: `docs/user-test/translation-review.csv`, `docs/user-test/translation-review.md`, `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity (agy, reviewed by Claude Code) — Lane t1-share-codec & t1-fix (Share Codec, Validator & QR)
+- What was built:
+  - Built share limits in `frontend/src/share/limits.ts`: constants `SHARE_VERSION = 1` and `LIMITS` with caps for `maxHashChars` (12000), `maxDecompressedChars` (200000), `maxName` (60), `maxNote` (280), `maxLabel` (60), `qrMaxUrlChars` (2000), `maxPoints` (300), `maxSegments` (300), `maxPolylinePoints` (2000), and `maxBars` (60).
+  - Built client-side offline validator and repair helper in `frontend/src/share/validate.ts` (`validateShareScene` and `sanitizeString`), faithfully implementing backend `validate.py` repair rules (clamping coordinates within +/-0.02 of [0, 1], dropping dangling segments, de-duplicating element IDs across points/segments/polylines/bars) and structural invariants (`validateSceneInvariants` from `core/correct.ts`), enforcing caps, rejecting scenes with coordinates > 1.02 (e.g. 5.0) or zero drawable elements, and stripping unknown extra object keys.
+  - Built pure share codec in `frontend/src/share/codec.ts`:
+    - `ShareError` class with typed error codes (`'too-large'`, `'bad-format'`, `'bad-version'`, `'bad-scene'`, `'empty'`).
+    - `encodeShare`: validates scene, sanitizes metadata, serializes JSON, and compresses via `LZString.compressToEncodedURIComponent`, throwing `ShareError('too-large')` if exceeding 12000 characters.
+    - `shareUrl`: constructs canonical origin and `#s=` anchor string (`${origin}/#s=${encoded}`).
+    - `decodeShare`: total function accepting raw hash or `#s=` prefix, performing length check strictly before any decompression (protecting against decompression attacks), capping decompressed length against zip bombs (200000 chars), parsing JSON with prototype pollution key protection (`__proto__`, `constructor`, `prototype`), verifying version 1, sanitizing strings (control characters stripped, lengths capped, inert HTML text preserved), and validating the diagram scene with offline rules. Never throws any exception other than `ShareError`.
+  - Built QR code data URL generator in `frontend/src/share/qr.ts` (`qrDataUrl`): uses `qrcode.toDataURL` to generate base64 PNG data URLs for valid URLs <= 2000 characters, returning `null` when exceeding limit or on invalid input. Contains no DOM/React references.
+  - Added `frontend/src/share/qrcode.d.ts` with minimal typed `declare module 'qrcode'` (no `any`), completely eliminating dependency on `@types/qrcode` and avoiding transitive `@types/node` pollution across the test suite.
+  - Re-exported all contracts in `frontend/src/share/index.ts`.
+  - Created and structured four dedicated test suites per brief requirements:
+    - `frontend/tests/share.contract.test.ts` (unit tests covering `shareUrl`, `encodeShare`, and pure architecture check for absence of window/document/react using `@ts-expect-error` repo pattern).
+    - `frontend/tests/share.hostile.test.ts` (one dedicated test for each of the 16 mandatory acceptance cases: empty string, `#s=`, garbage, truncated payload, wrong version, missing scene, oversized hash rejected before decompress via spy, zip bomb, `<script>` inert text, 10k-char label capped, control chars stripped, 5.0 coords rejected, dangling segment dropped, >300 points rejected, `__proto__` pollution check, `qrDataUrl` short/long limits).
+    - `frontend/tests/share.decode.prop.test.ts` (property-based totality test: 300 runs asserting `decodeShare` throws only `ShareError` for arbitrary hostile strings).
+    - `frontend/tests/share.roundtrip.prop.test.ts` (property-based round-trip tests: 200 runs on random valid scenes plus round-trip testing of public sample fixtures `triangle.json`, `sine.json`, `barchart.json` imported as JSON modules).
+- What broke / surprising findings:
+  - Addressed tsc errors by adding `frontend/src/share/qrcode.d.ts` without `any` and adopting the repo standard `// @ts-expect-error Node runtime fs in Vitest node environment` for `node:fs` alongside ESM `new URL(..., import.meta.url)` and Vite JSON imports, avoiding `node:path` and `__dirname`.
+- Verification results:
+  - `npm --prefix frontend test`: 86 test files passed (was 82; +4 test files), 1242 tests passed (was 1203; +39 tests).
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors across entire codebase.
+  - `npm --prefix frontend run build`: 0 errors (clean Vite production build).
+- Files touched:
+  - `frontend/src/share/limits.ts`
+  - `frontend/src/share/validate.ts`
+  - `frontend/src/share/codec.ts`
+  - `frontend/src/share/qr.ts`
+  - `frontend/src/share/qrcode.d.ts`
+  - `frontend/src/share/index.ts`
+  - `frontend/tests/share.contract.test.ts`
+  - `frontend/tests/share.hostile.test.ts`
+  - `frontend/tests/share.decode.prop.test.ts`
+  - `frontend/tests/share.roundtrip.prop.test.ts`
+  - `docs/reports/agy-t1-share-codec-report.md`
+  - `docs/BUILD_LOG.md`
