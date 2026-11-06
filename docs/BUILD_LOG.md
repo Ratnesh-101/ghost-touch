@@ -1244,3 +1244,11 @@ Format for each entry:
 
 
 
+
+## 2026-11-06 night, Guide my finger and Teacher verify & share (built by agy, reviewed by Claude)
+- Tool: agy built every lane; Claude Code planned (contract `docs/briefs/guide-share-contract.md`), reviewed and merged. Not Kiro work.
+- Lanes: g1-guide-core, g3-ask-target, g2-guide-ui, t1-share-codec, t3-student-open, t2-teach-editor, x-docs, x0-theme-tokens (P20 allow-list emptied). Follow-ups: g3-fix, t1-fix, t3-fix. Reviews in `docs/reviews/agy-*.md`.
+- Review caught: speech cancel losing the scene announcement (T3), failing junk-target test (G3), missing qrcode types (T1).
+- Dependency note: `@types/qrcode` was installed then removed because it pulled `@types/node` and broke `@ts-expect-error node:fs` in 31 test files; `share/qrcode.d.ts` declares the module instead.
+- Both features ship OFF: `VITE_FEATURE_GUIDE` / `VITE_FEATURE_SHARE` must be "1" AND the setting on.
+- Numbers: frontend 1420 tests in 105 files; PWA precache 531.6 KiB to 639.4 KiB; core zero-line diff.
