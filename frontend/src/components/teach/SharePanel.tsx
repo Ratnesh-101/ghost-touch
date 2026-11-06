@@ -10,7 +10,7 @@
  * - 48x48 px touch targets, labelled controls
  */
 
-import { useState, type JSX } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
 import { AccessibleButton } from '../AccessibleButton';
 import { canWebShare, copyToClipboard, shareViaWebShare } from '../../drivers/clipboard';
 import { t } from '../../i18n';
@@ -29,7 +29,16 @@ export function SharePanel({
   diagramTitle,
 }: SharePanelProps): JSX.Element {
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const webShareSupported = canWebShare();
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleCopy = async (): Promise<void> => {
     const success = await copyToClipboard(url);
@@ -37,7 +46,10 @@ export function SharePanel({
       setCopied(true);
       const confirmation = t('teach.linkCopied');
       onSpeak?.(confirmation);
-      setTimeout(() => setCopied(false), 2500);
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2500);
     }
   };
 
@@ -54,6 +66,10 @@ export function SharePanel({
       <h2 id="gt-teach-share-heading" className="gt-teach__section-heading">
         {t('teach.shareLink')}
       </h2>
+
+      <p className="gt-teach__honesty-notice" role="note">
+        {t('share.honesty')}
+      </p>
 
       <div className="gt-teach__share-meta">
         <span className="gt-teach__char-count">

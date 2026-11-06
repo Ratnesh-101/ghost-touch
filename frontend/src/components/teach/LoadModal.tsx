@@ -20,6 +20,7 @@ import type { DiagramScene } from '../../core/scene';
 import type { SavedDiagram } from '../../core/savedDiagrams';
 import type { Drivers } from '../../drivers';
 import { loadSceneFromShareInput } from '../../flow/teach';
+import type { SharePayload } from '../../share';
 import { t } from '../../i18n';
 
 export interface LoadModalProps {
@@ -27,7 +28,7 @@ export interface LoadModalProps {
   currentScene?: DiagramScene | null;
   drivers: Drivers;
   onClose: () => void;
-  onLoadScene: (scene: DiagramScene, sourceTitle: string) => void;
+  onLoadScene: (scene: DiagramScene, sourceTitle: string, payload?: SharePayload) => void;
 }
 
 export function LoadModal({
@@ -85,7 +86,7 @@ export function LoadModal({
     const res = loadSceneFromShareInput(shareInput);
     if (res.ok && res.scene) {
       const title = res.scene.title ?? t('teach.loadShareLink');
-      onLoadScene(res.scene, title);
+      onLoadScene(res.scene, title, res.payload);
       onClose();
     } else {
       setShareError(res.error ?? t('teach.loadError'));
@@ -96,6 +97,31 @@ export function LoadModal({
     if (e.key === 'Escape') {
       e.preventDefault();
       onClose();
+      return;
+    }
+
+    if (e.key === 'Tab') {
+      if (!dialogRef.current) return;
+      const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first || !dialogRef.current.contains(document.activeElement)) {
+          e.preventDefault();
+          last?.focus();
+        }
+      } else {
+        if (document.activeElement === last || !dialogRef.current.contains(document.activeElement)) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
     }
   };
 

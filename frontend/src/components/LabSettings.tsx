@@ -100,10 +100,13 @@ export function LabSettings({
     doSpeak(spoken);
   };
 
-  const handleClose = (): void => {
+  const handleClose = (silent?: boolean | unknown): void => {
+    const isSilent = silent === true;
     if (!hasSpokenClose.current) {
       hasSpokenClose.current = true;
-      doSpeak(t('lab.settings.closed'));
+      if (!isSilent) {
+        doSpeak(t('lab.settings.closed'));
+      }
     }
     onClose();
     if (triggerRef?.current) {
@@ -316,7 +319,7 @@ export function LabSettings({
                   type="button"
                   className="gt-control gt-btn gt-btn--secondary"
                   onClick={() => {
-                    handleClose();
+                    handleClose(true);
                     if (typeof window !== 'undefined') {
                       window.location.hash = TEACH_HASH;
                     }

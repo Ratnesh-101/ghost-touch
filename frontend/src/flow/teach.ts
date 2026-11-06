@@ -63,10 +63,20 @@ export function isTeacherActive(settingOn: boolean = getStoredTeacherSetting()):
 
 /**
  * Generate a new unique vertex point ID not already present in the scene.
+ * Accepts either a DiagramScene or an array of Points for backward-compatibility.
+ * Checks points, segments, polylines, and bars to avoid duplicate ID collisions.
  */
-export function generateUniquePointId(existingPoints: Point[] = []): string {
-  const ids = new Set(existingPoints.map((p) => p.id));
-  let counter = existingPoints.length + 1;
+export function generateUniquePointId(sceneOrPoints: DiagramScene | Point[] = []): string {
+  const ids = new Set<string>();
+  if (Array.isArray(sceneOrPoints)) {
+    for (const p of sceneOrPoints) ids.add(p.id);
+  } else {
+    for (const p of sceneOrPoints.points ?? []) ids.add(p.id);
+    for (const s of sceneOrPoints.segments ?? []) ids.add(s.id);
+    for (const poly of sceneOrPoints.polylines ?? []) ids.add(poly.id);
+    for (const b of sceneOrPoints.bars ?? []) ids.add(b.id);
+  }
+  let counter = ids.size + 1;
   while (ids.has(`p${counter}`) || ids.has(`p_${counter}`)) {
     counter++;
   }
@@ -83,9 +93,15 @@ export function addVertex(
   label?: string,
 ): { scene: DiagramScene; newPointId: string } {
   const currentPoints = scene.points ?? [];
-  const pointId = id && !currentPoints.some((p) => p.id === id)
+  const allIds = new Set<string>();
+  for (const p of currentPoints) allIds.add(p.id);
+  for (const s of scene.segments ?? []) allIds.add(s.id);
+  for (const poly of scene.polylines ?? []) allIds.add(poly.id);
+  for (const b of scene.bars ?? []) allIds.add(b.id);
+
+  const pointId = id && !allIds.has(id)
     ? id
-    : generateUniquePointId(currentPoints);
+    : generateUniquePointId(scene);
 
   const x = coords ? clamp01(coords.x) : 0.5;
   const y = coords ? clamp01(coords.y) : 0.5;
@@ -107,6 +123,7 @@ export function addVertex(
 
 /**
  * Nudge a point's position by dx and dy, clamping to [0, 1].
+ * Returns original scene if coordinates do not change (e.g. clamped at boundary).
  */
 export function nudgeVertex(
   scene: DiagramScene,
@@ -116,7 +133,12 @@ export function nudgeVertex(
 ): DiagramScene {
   const pt = (scene.points ?? []).find((p) => p.id === pointId);
   if (!pt) return scene;
-  return movePoint(scene, pointId, pt.x + dx, pt.y + dy);
+  const newX = clamp01(pt.x + dx);
+  const newY = clamp01(pt.y + dy);
+  if (newX === pt.x && newY === pt.y) {
+    return scene;
+  }
+  return movePoint(scene, pointId, newX, newY);
 }
 
 /**

@@ -407,7 +407,7 @@ describe('Requirement 14: Frankenstein Laboratory Theme Property Tests (agy, awa
       return occurrences;
     }
 
-    const screenStylesheets = ['lab.css', 'explore.css', 'correct.css', 'saved.css', 'settings.css', 'global.css'];
+    const screenStylesheets = ['lab.css', 'explore.css', 'correct.css', 'saved.css', 'settings.css', 'global.css', 'teach.css'];
 
     it('extracts hex color occurrences from all screen and component stylesheets', () => {
       let totalOccurrences = 0;

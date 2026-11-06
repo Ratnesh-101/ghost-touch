@@ -1460,3 +1460,46 @@ Format for each entry:
   - `docs/BUILD_LOG.md`
 
 
+## 2026-11-06 — Antigravity (agy, reviewed by Claude) — Lane f3-fix-teach (Teacher Editor & Whole-App Integration Fixes)
+- Fixed all confirmed High and Medium findings from `docs/reports/audit-a3-teach-editor.md` and `docs/reports/audit-a5-integration.md` (Teach scope):
+  - Stale share link/QR after editing teacher name or note (Finding 1): clear `shareData` on name/note edit.
+  - Async verification race condition (Finding 2): added `isVerifying` loading state, disabled verify button during in-flight generation, and guarded against scene mutation during QR creation.
+  - Missing Tab key focus trap in `LoadModal` (Finding 3): added circular focus trap cycling between first and last focusable modal controls.
+  - Focus loss on modal close and control disable (Finding 4): restored focus to Load button on modal dismissal; shifted focus to Add vertex button when Delete is pressed or Undo empties history.
+  - Invalid axis fields in `function_graph` (Finding 5): updated `isValidDiagram = validationResult.ok && !axisError` to block verification.
+  - Unsaved edits data loss (Finding 6): added `isDirty` tracking, `beforeunload` listener, and confirmation dialog on Back.
+  - Missing Hindi and Gujarati translations for `teach.qrTooLong` (Finding 7): localized `teach.qrTooLong` in Hindi and Gujarati; updated translation review sheets.
+  - ID collisions in `generateUniquePointId` (Finding 8): expanded to check segments, polylines, and bars.
+  - Disappearing axes/bars/polylines during canvas drag (Finding 9): unified `renderCanvas` to draw all elements during drag.
+  - Boundary nudge duplicate history & false announcements (Finding 10): prevented duplicate history push and announcements when clamped at boundaries.
+  - Dropped verifier name and note on load (Finding 11): passed `SharePayload` through `onLoadScene` to restore teacher name and note.
+  - Back-to-back speech cutoff on "Open Teacher Editor" (Finding 12): added silent close option to `handleClose` in `LabSettings.tsx`.
+  - Bare hex literals in `teach.css` (A5-03): converted all bare hex literals to `var(--gt-*)` tokens and added `teach.css` to Property P20 test scan list in `labTheme.prop.test.ts`.
+  - Language switch desynchronization (A5-04): subscribed `Teach.tsx` to `subscribeLang` via `useSyncExternalStore` for TTS voice and status text.
+  - Honesty disclosure in `SharePanel`: added `<p className="gt-teach__honesty-notice">{t('share.honesty')}</p>`.
+  - Low findings: localized toolbar and axis labels (Finding 13), timer cleanup on unmount in `SharePanel` (Finding 14), dedicated teacher selection announcements (Finding 15), clipboard fallback textarea cleanup in finally block (Finding 17).
+- DoD verification:
+  - `npm --prefix frontend test`: 108 test files passed (1479 tests).
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+  - `npm --prefix frontend run build`: 128 modules transformed, clean PWA build (655.13 KiB).
+  - `backend/.venv/Scripts/python -m pytest backend`: 454 passed, 1 skipped in 41.17s.
+  - `backend/.venv/Scripts/python -m ruff check backend`: Clean (All checks passed).
+  - `backend/.venv/Scripts/python -m ruff format --check backend`: Clean (60 files formatted).
+- Files touched:
+  - `frontend/src/screens/Teach.tsx`
+  - `frontend/src/components/teach/VerifyForm.tsx`
+  - `frontend/src/components/teach/SharePanel.tsx`
+  - `frontend/src/components/teach/LoadModal.tsx`
+  - `frontend/src/components/teach/TeachCanvas.tsx`
+  - `frontend/src/flow/teach.ts`
+  - `frontend/src/drivers/clipboard.ts`
+  - `frontend/src/components/LabSettings.tsx`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/styles/teach.css`
+  - `frontend/tests/labTheme.prop.test.ts`
+  - `frontend/tests/fix.teach.editor.test.tsx`
+  - `docs/user-test/translation-review.md`
+  - `docs/user-test/translation-review.csv`
+  - `docs/reports/agy-f3-fix-teach-report.md`
+  - `docs/BUILD_LOG.md`
+

@@ -32,9 +32,10 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   }
 
   // Fallback for older browsers or headless DOM environments
-  try {
-    if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
-      const textarea = document.createElement('textarea');
+  if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
+    let textarea: HTMLTextAreaElement | null = null;
+    try {
+      textarea = document.createElement('textarea');
       textarea.value = text;
       textarea.setAttribute('readonly', '');
       textarea.style.position = 'fixed';
@@ -45,11 +46,14 @@ export async function copyToClipboard(text: string): Promise<boolean> {
       textarea.focus();
       textarea.select();
       const success = document.execCommand('copy');
-      document.body.removeChild(textarea);
       return success;
+    } catch {
+      // Fallback failed
+    } finally {
+      if (textarea && textarea.parentNode) {
+        textarea.parentNode.removeChild(textarea);
+      }
     }
-  } catch {
-    // Fallback failed
   }
 
   return false;

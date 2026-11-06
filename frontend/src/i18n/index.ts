@@ -332,6 +332,9 @@ const en: Record<string, string> = {
   'teach.qrCodeAlt': 'QR code to open this verified diagram',
   'teach.qrTooLong': 'Link too long for a QR code; use Copy link',
   'teach.linkSize': 'Size: {chars} characters',
+  'teach.toolbar': 'Editing toolbar',
+  'teach.verifyError': 'Verification failed',
+  'teach.confirmLeave': 'You have unsaved changes. Are you sure you want to leave?',
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -630,6 +633,9 @@ const hi: Record<string, string> = {
   'teach.qrCodeAlt': 'इस सत्यापित आरेख को खोलने के लिए क्यूआर कोड',
   'teach.qrTooLong': 'क्यूआर कोड के लिए लिंक बहुत लंबा है; लिंक कॉपी करें का उपयोग करें',
   'teach.linkSize': 'आकार: {chars} वर्ण',
+  'teach.toolbar': 'संपादन उपकरण पट्टी',
+  'teach.verifyError': 'सत्यापन विफल रहा',
+  'teach.confirmLeave': 'आपके पास बिना सहेजे गए परिवर्तन हैं। क्या आप वाकई छोड़ना चाहते हैं?',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -928,6 +934,9 @@ const gu: Record<string, string> = {
   'teach.qrCodeAlt': 'આ પ્રમાણિત આકૃતિ ખોલવા માટે ક્યુઆર કોડ',
   'teach.qrTooLong': 'ક્યુઆર કોડ માટે લિંક ખૂબ લાંબી છે; લિંક કોપી કરો વાપરો',
   'teach.linkSize': 'કદ: {chars} અક્ષરો',
+  'teach.toolbar': 'સંપાદન ટૂલબાર',
+  'teach.verifyError': 'પ્રમાણીકરણ નિષ્ફળ રહ્યું',
+  'teach.confirmLeave': 'તમારી પાસે સેવ ન કરેલા ફેરફારો છે. શું તમે ખરેખર બહાર નીકળવા માંગો છો?',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };

@@ -500,7 +500,11 @@ The following spoken strings may be difficult for blind students to follow in a 
 | `teach.share` | Share | साझा करें | શેર કરો | | | | |
 | `teach.qrCodeAlt` | QR code to open this verified diagram | इस सत्यापित आरेख को खोलने के लिए क्यूआर कोड | આ પ્રમાણિત આકૃતિ ખોલવા માટે ક્યુઆર કોડ | | | | |
 | `teach.qrTooLong` | Link too long for a QR code; use Copy link | क्यूआर कोड के लिए लिंक बहुत लंबा है; लिंक कॉपी करें का उपयोग करें | ક્યુઆર કોડ માટે લિંક ખૂબ લાંબી છે; લિંક કોપી કરો વાપરો | | | | |
+| `teach.qrTooLong` | Link too long for a QR code; use Copy link | क्यूआर कोड के लिए लिंक बहुत लंबा है; लिंक कॉपी करें का उपयोग करें | ક્યુઆર કોડ માટે લિંક ખૂબ લાંબી છે; લિંક કોપી કરો વાપરો | | | | exact contract message |
 | `teach.linkSize` | Size: {chars} characters | आकार: {chars} वर्ण | કદ: {chars} અક્ષરો | | | | keep {chars} |
+| `teach.toolbar` | Editing toolbar | संपादन उपकरण पट्टी | સંપાદન ટૂલબાર | | | | |
+| `teach.verifyError` | Verification failed | सत्यापन विफल रहा | પ્રમાણીકરણ નિષ્ફળ રહ્યું | | | | |
+| `teach.confirmLeave` | You have unsaved changes. Are you sure you want to leave? | आपके पास बिना सहेजे गए परिवर्तन हैं। क्या आप वाकई छोड़ना चाहते हैं? | તમારી પાસે સેવ ન કરેલા ફેરફારો છે. શું તમે ખરેખર બહાર નીકળવા માંગો છો? | | | | |
 
 ---
 

@@ -19,6 +19,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type FormEvent,
   type JSX,
 } from 'react';
@@ -51,16 +52,16 @@ import {
 } from '../flow/teach';
 import {
   getSelectedLabel,
-  getSelectionAnnouncement,
   type CorrectSelection,
 } from '../flow/correct';
 import {
   encodeShare,
   qrDataUrl,
   shareUrl,
+  type SharePayload,
 } from '../share';
 import { validateShareScene } from '../share/validate';
-import { getLang, LANG_BCP47, t } from '../i18n';
+import { getLang, LANG_BCP47, subscribeLang, t } from '../i18n';
 import '../styles/teach.css';
 
 export interface TeachProps {
@@ -92,9 +93,14 @@ export function Teach({
   drivers,
   onBack,
 }: TeachProps): JSX.Element {
+  const activeLang = useSyncExternalStore(subscribeLang, getLang, getLang);
+
   const [history, setHistory] = useState<HistoryState>(() =>
     createHistory(initialScene ?? DEFAULT_SCENE),
   );
+  const historyRef = useRef(history);
+  historyRef.current = history;
+
   const [selection, setSelection] = useState<CorrectSelection>(null);
   const [labelText, setLabelText] = useState('');
   const [statusMessage, setStatusMessage] = useState(() => t('teach.intro'));
@@ -113,14 +119,18 @@ export function Teach({
   const [teacherName, setTeacherName] = useState('');
   const [teacherNote, setTeacherNote] = useState('');
   const [shareData, setShareData] = useState<{ url: string; qrUrl: string | null } | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // Load modal state
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
+  const wasLoadModalOpen = useRef(isLoadModalOpen);
 
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const loadBtnRef = useRef<HTMLButtonElement>(null);
+  const addVertexBtnRef = useRef<HTMLButtonElement>(null);
 
   const speak = (text: string): void => {
-    drivers.speech.speak(text, LANG_BCP47[getLang()]);
+    drivers.speech.speak(text, LANG_BCP47[activeLang]);
   };
 
   const sayAndStatus = (text: string, isErr = false): void => {
@@ -134,6 +144,53 @@ export function Teach({
     headingRef.current?.focus();
     speak(t('teach.intro'));
   }, []);
+
+  // Update intro status message when language changes
+  useEffect(() => {
+    setStatusMessage((prev) => {
+      if (
+        prev.startsWith('Teacher editor') ||
+        prev.startsWith('शिक्षक संपादक') ||
+        prev.startsWith('શિક્ષક સંપાદક')
+      ) {
+        return t('teach.intro');
+      }
+      return prev;
+    });
+  }, [activeLang]);
+
+  // Restore focus to load button when LoadModal closes
+  useEffect(() => {
+    if (wasLoadModalOpen.current && !isLoadModalOpen) {
+      loadBtnRef.current?.focus();
+    }
+    wasLoadModalOpen.current = isLoadModalOpen;
+  }, [isLoadModalOpen]);
+
+  // Unsaved changes tracking & beforeunload protection
+  const isDirty =
+    canUndo(history) || teacherName.trim().length > 0 || teacherNote.trim().length > 0;
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  const handleBack = (): void => {
+    if (isDirty) {
+      const confirmed =
+        typeof window !== 'undefined' && typeof window.confirm === 'function'
+          ? window.confirm(t('teach.confirmLeave'))
+          : true;
+      if (!confirmed) return;
+    }
+    onBack();
+  };
 
   // Sync label input when selection changes
   useEffect(() => {
@@ -160,16 +217,23 @@ export function Teach({
     setShareData(null);
   };
 
-  // Check validation on current scene
+  // Check validation on current scene - invalid axis positions block verification
   const validationResult = validateShareScene(history.present);
-  const isValidDiagram = validationResult.ok;
+  const isValidDiagram = validationResult.ok && !axisError;
 
   // Handlers for canvas interactions
   const handleSelect = (sel: CorrectSelection): void => {
     setSelection(sel);
     if (sel) {
-      const announcement = getSelectionAnnouncement(history.present, sel);
-      sayAndStatus(announcement);
+      if (sel.kind === 'point') {
+        const pt = (history.present.points ?? []).find((p) => p.id === sel.id);
+        const label = pt?.label ?? pt?.id ?? sel.id;
+        sayAndStatus(t('teach.selectedVertex').replace('{label}', label));
+      } else if (sel.kind === 'segment') {
+        const seg = (history.present.segments ?? []).find((s) => s.id === sel.id);
+        const label = seg?.label ?? seg?.id ?? sel.id;
+        sayAndStatus(t('teach.selectedSegment').replace('{label}', label));
+      }
     } else {
       sayAndStatus(t('teach.noSelection'));
     }
@@ -185,8 +249,10 @@ export function Teach({
 
   const handleNudgePoint = (pointId: string, dx: number, dy: number): void => {
     const updated = nudgeVertex(history.present, pointId, dx, dy);
-    applySceneEdit(updated);
-    sayAndStatus(t('teach.vertexMoved').replace('{id}', pointId));
+    if (updated !== history.present) {
+      applySceneEdit(updated);
+      sayAndStatus(t('teach.vertexMoved').replace('{id}', pointId));
+    }
   };
 
   const handleAddVertex = (): void => {
@@ -212,10 +278,14 @@ export function Teach({
       setSelection(null);
       sayAndStatus(`${t('teach.delete')}: ${id}`);
     }
+    addVertexBtnRef.current?.focus();
   };
 
   const handleUndo = (): void => {
     if (!canUndo(history)) return;
+    if (history.past.length <= 1) {
+      addVertexBtnRef.current?.focus();
+    }
     setHistory((h) => undo(h));
     setSelection(null);
     setShareData(null);
@@ -271,9 +341,12 @@ export function Teach({
   };
 
   const handleVerify = async (): Promise<void> => {
+    if (isVerifying) return;
+    setIsVerifying(true);
+    const sceneSnapshot = history.present;
     try {
       const payload = createSharePayload(
-        history.present,
+        sceneSnapshot,
         teacherName,
         teacherNote,
         new Date().toISOString(),
@@ -283,18 +356,34 @@ export function Teach({
       const url = shareUrl(origin, encoded);
       const qrUrl = await qrDataUrl(url);
 
-      setShareData({ url, qrUrl });
-      sayAndStatus(t('teach.verifiedSuccess'));
+      if (historyRef.current.present === sceneSnapshot) {
+        setShareData({ url, qrUrl });
+        sayAndStatus(t('teach.verifiedSuccess'));
+      }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Verification failed';
+      const message = err instanceof Error ? err.message : t('teach.verifyError');
       sayAndStatus(message, true);
+    } finally {
+      setIsVerifying(false);
     }
   };
 
-  const handleLoadScene = (newScene: DiagramScene, sourceTitle: string): void => {
+  const handleLoadScene = (
+    newScene: DiagramScene,
+    sourceTitle: string,
+    payload?: SharePayload,
+  ): void => {
     setHistory(createHistory(newScene));
     setSelection(null);
     setShareData(null);
+    if (payload) {
+      if (typeof payload.verifiedBy === 'string') {
+        setTeacherName(payload.verifiedBy);
+      }
+      if (typeof payload.note === 'string') {
+        setTeacherNote(payload.note);
+      }
+    }
     const msg = t('teach.loadedSuccess').replace('{title}', sourceTitle);
     sayAndStatus(msg);
   };
@@ -308,6 +397,7 @@ export function Teach({
         </h1>
         <div className="gt-teach__header-actions">
           <AccessibleButton
+            ref={loadBtnRef}
             type="button"
             className="gt-control gt-btn gt-btn--secondary"
             onClick={() => setIsLoadModalOpen(true)}
@@ -317,7 +407,7 @@ export function Teach({
           <AccessibleButton
             type="button"
             className="gt-control gt-btn gt-btn--secondary"
-            onClick={onBack}
+            onClick={handleBack}
           >
             {t('teach.back')}
           </AccessibleButton>
@@ -367,8 +457,9 @@ export function Teach({
           />
 
           {/* Action Toolbar */}
-          <div className="gt-teach__toolbar" role="toolbar" aria-label="Editing toolbar">
+          <div className="gt-teach__toolbar" role="toolbar" aria-label={t('teach.toolbar')}>
             <AccessibleButton
+              ref={addVertexBtnRef}
               type="button"
               className="gt-control gt-btn gt-btn--secondary"
               onClick={handleAddVertex}
@@ -487,9 +578,16 @@ export function Teach({
             name={teacherName}
             note={teacherNote}
             isValidDiagram={isValidDiagram}
-            onNameChange={setTeacherName}
-            onNoteChange={setTeacherNote}
+            onNameChange={(name) => {
+              setTeacherName(name);
+              setShareData(null);
+            }}
+            onNoteChange={(note) => {
+              setTeacherNote(note);
+              setShareData(null);
+            }}
             onVerify={() => void handleVerify()}
+            disabled={isVerifying}
           />
 
           {shareData && (
