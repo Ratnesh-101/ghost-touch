@@ -1,0 +1,5 @@
+# Follow-up lane g3-fix (agy), continue in this worktree
+Supervisor ran the backend gates on your G3 work. Fix these, touching only the G3 files you already own:
+1. `backend/tests/test_ask_target_props.py` uses `pytest.fail` but never imports pytest (ruff F821, 2 places). Add `import pytest`. Run no ruff yourself; the supervisor will.
+2. `backend/tests/test_ask_target.py::test_ask_target_junk_tolerated[junk_target12]` fails: `assert data["target"] is None` got `{'elementId': 'A'}`. Find which junk value case 12 is. Decide by the contract (server drops any elementId NOT present in the scene; a padded id like " A " is not an exact scene id): make `validate_ask_target` match ids EXACTLY (no strip-then-accept) unless the case is genuinely valid. Make implementation and test agree with the contract, and say which you changed and why in the report.
+3. Do not run pytest or ruff (supervisor runs them). Update your report with these fixes. Edit only: backend/app/ask.py, backend/tests/test_ask_target*.py, your report.
