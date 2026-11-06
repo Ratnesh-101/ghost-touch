@@ -75,6 +75,16 @@ export function askErrorMessage(error: unknown): string {
     }
   }
 
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes('timeout')) {
+      return t('ask.errorTimeout');
+    }
+    if (msg.includes('network') || msg.includes('offline') || msg.includes('fetch')) {
+      return t('ask.errorOffline');
+    }
+  }
+
   return t('ask.errorFailed');
 }
 
@@ -91,6 +101,10 @@ export class AskManager {
     return this.busy;
   }
 
+  setActiveSpeech(speech: SpeechDriver | null): void {
+    this.activeSpeech = speech;
+  }
+
   /**
    * Run the voice ask flow:
    * 1. Cue beep / listening earcon
@@ -100,14 +114,26 @@ export class AskManager {
    */
   async startVoiceAsk(deps: AskDeps): Promise<AskOutcome> {
     if (this.busy) {
-      deps.say(t('ask.busy'));
+      try {
+        deps.say(t('ask.busy'));
+      } catch {
+        // speech error is non-fatal
+      }
       return { kind: 'busy' };
     }
 
     if (!deps.speech.canListen) {
       const message = t('ask.errorUnsupported');
-      deps.say(message);
-      deps.onFallbackNeeded?.();
+      try {
+        deps.say(message);
+      } catch {
+        // speech error is non-fatal
+      }
+      try {
+        deps.onFallbackNeeded?.();
+      } catch {
+        // non-fatal
+      }
       return { kind: 'failed', message, error: new ListenError('unsupported') };
     }
 
@@ -118,9 +144,21 @@ export class AskManager {
 
     try {
       // Stop any TTS first so the microphone does not transcribe it as the question.
-      deps.speech.stopSpeaking?.();
-      deps.audio.beep(LISTENING_BEEP_HZ, LISTENING_BEEP_MS);
-      deps.onStatusChange?.(t('ask.listening'));
+      try {
+        deps.speech.stopSpeaking?.();
+      } catch {
+        // non-fatal
+      }
+      try {
+        deps.audio.beep(LISTENING_BEEP_HZ, LISTENING_BEEP_MS);
+      } catch {
+        // non-fatal
+      }
+      try {
+        deps.onStatusChange?.(t('ask.listening'));
+      } catch {
+        // non-fatal
+      }
 
       const activeLang = deps.lang ?? LANG_BCP47[getLang()] ?? 'en-IN';
       const question = await deps.speech.listen(activeLang);
@@ -129,10 +167,18 @@ export class AskManager {
         return { kind: 'cancelled' };
       }
 
-      deps.onStatusChange?.(t('ask.thinking'));
+      try {
+        deps.onStatusChange?.(t('ask.thinking'));
+      } catch {
+        // non-fatal
+      }
       // One spoken cue so a blind user is never left in silence while the request runs;
       // the answer's speak() cancels it. The microphone is already closed here.
-      deps.say(t('ask.thinking'));
+      try {
+        deps.say(t('ask.thinking'));
+      } catch {
+        // non-fatal
+      }
       const doRequest =
         deps.request ?? ((sc, q, l, sig) => requestAsk(sc, q, l, { signal: sig }));
       const response = await doRequest(deps.scene, question, activeLang, controller.signal);
@@ -141,8 +187,16 @@ export class AskManager {
         return { kind: 'cancelled' };
       }
 
-      deps.audio.playEarcon?.('success');
-      deps.say(response.answer);
+      try {
+        deps.audio.playEarcon?.('success');
+      } catch {
+        // non-fatal
+      }
+      try {
+        deps.say(response.answer);
+      } catch {
+        // non-fatal
+      }
       return { kind: 'success', answer: response.answer, source: response.source };
     } catch (err: unknown) {
       if (
@@ -151,10 +205,22 @@ export class AskManager {
       ) {
         return { kind: 'cancelled' };
       }
-      deps.audio.playEarcon?.('error');
+      try {
+        deps.audio.playEarcon?.('error');
+      } catch {
+        // non-fatal
+      }
       const message = askErrorMessage(err);
-      deps.say(message);
-      deps.onFallbackNeeded?.();
+      try {
+        deps.say(message);
+      } catch {
+        // non-fatal
+      }
+      try {
+        deps.onFallbackNeeded?.();
+      } catch {
+        // non-fatal
+      }
       return { kind: 'failed', message, error: err };
     } finally {
       // Only the active call may clear state; an aborted call must not clobber a newer ask.
@@ -171,14 +237,22 @@ export class AskManager {
    */
   async submitTextAsk(question: string, deps: AskDeps): Promise<AskOutcome> {
     if (this.busy) {
-      deps.say(t('ask.busy'));
+      try {
+        deps.say(t('ask.busy'));
+      } catch {
+        // non-fatal
+      }
       return { kind: 'busy' };
     }
 
     const trimmed = question.trim();
     if (trimmed.length === 0) {
       const message = t('ask.errorEmpty');
-      deps.say(message);
+      try {
+        deps.say(message);
+      } catch {
+        // non-fatal
+      }
       return { kind: 'empty' };
     }
 
@@ -187,8 +261,16 @@ export class AskManager {
     this.activeController = controller;
 
     try {
-      deps.onStatusChange?.(t('ask.thinking'));
-      deps.say(t('ask.thinking'));
+      try {
+        deps.onStatusChange?.(t('ask.thinking'));
+      } catch {
+        // non-fatal
+      }
+      try {
+        deps.say(t('ask.thinking'));
+      } catch {
+        // non-fatal
+      }
       const activeLang = deps.lang ?? LANG_BCP47[getLang()] ?? 'en-IN';
       const doRequest =
         deps.request ?? ((sc, q, l, sig) => requestAsk(sc, q, l, { signal: sig }));
@@ -198,8 +280,16 @@ export class AskManager {
         return { kind: 'cancelled' };
       }
 
-      deps.audio.playEarcon?.('success');
-      deps.say(response.answer);
+      try {
+        deps.audio.playEarcon?.('success');
+      } catch {
+        // non-fatal
+      }
+      try {
+        deps.say(response.answer);
+      } catch {
+        // non-fatal
+      }
       return { kind: 'success', answer: response.answer, source: response.source };
     } catch (err: unknown) {
       if (
@@ -208,9 +298,22 @@ export class AskManager {
       ) {
         return { kind: 'cancelled' };
       }
-      deps.audio.playEarcon?.('error');
+      try {
+        deps.audio.playEarcon?.('error');
+      } catch {
+        // non-fatal
+      }
       const message = askErrorMessage(err);
-      deps.say(message);
+      try {
+        deps.say(message);
+      } catch {
+        // non-fatal
+      }
+      try {
+        deps.onFallbackNeeded?.();
+      } catch {
+        // non-fatal
+      }
       return { kind: 'failed', message, error: err };
     } finally {
       // Only the active call may clear state; an aborted call must not clobber a newer ask.
@@ -230,7 +333,11 @@ export class AskManager {
       this.activeController.abort();
       this.activeController = null;
     }
-    this.activeSpeech?.cancelListen?.();
+    try {
+      this.activeSpeech?.cancelListen?.();
+    } catch {
+      // non-fatal
+    }
     this.activeSpeech = null;
     this.busy = false;
   }
