@@ -1,0 +1,42 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Ghost Touch Maskable Icon</title>
+
+  <!-- Solid Background (Deep Charcoal #0b0e0c) -->
+  <rect width="512" height="512" fill="#0b0e0c" />
+
+  <!-- Mark scaled & positioned strictly inside the 80% safe zone -->
+  <g transform="translate(64, 76) scale(3.6)">
+    <!-- Frankenstein Neck Bolt -->
+    <rect x="20" y="44" width="8" height="12" rx="2" fill="#c9803a" stroke="#9a5a1f" stroke-width="1.5" />
+    <rect x="16" y="42" width="5" height="16" rx="2" fill="#d9904a" stroke="#9a5a1f" stroke-width="1.5" />
+    <line x1="18.5" y1="46" x2="18.5" y2="54" stroke="#783c0c" stroke-width="1.5" stroke-linecap="round" />
+
+    <!-- Phone Chassis Body -->
+    <rect x="28" y="16" width="46" height="68" rx="10" fill="#0b0e0c" stroke="#39ff88" stroke-width="3" />
+    <line x1="47" y1="20" x2="55" y2="20" stroke="#39ff88" stroke-width="1.5" stroke-linecap="round" opacity="0.6" />
+
+    <!-- Screen Bezel & Display -->
+    <rect x="34" y="24" width="34" height="46" rx="5" fill="#070a08" stroke="#39ff88" stroke-opacity="0.35" stroke-width="1.5" />
+
+    <!-- Glowing Diagram (Triangle with Vertex Nodes) -->
+    <polygon points="51,32 40,58 62,58" fill="#39ff88" fill-opacity="0.15" stroke="#39ff88" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+    <circle cx="51" cy="32" r="2.5" fill="#39ff88" />
+    <circle cx="40" cy="58" r="2.5" fill="#39ff88" />
+    <circle cx="62" cy="58" r="2.5" fill="#39ff88" />
+
+    <!-- Stitched Seams (Bone Sutures Across Chassis) -->
+    <path d="M58 16 L74 32" stroke="#e8dfc8" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.9" />
+    <line x1="60" y1="16" x2="63" y2="21" stroke="#e8dfc8" stroke-width="1.5" stroke-linecap="round" />
+    <line x1="65" y1="21" x2="68" y2="26" stroke="#e8dfc8" stroke-width="1.5" stroke-linecap="round" />
+    <line x1="70" y1="26" x2="73" y2="31" stroke="#e8dfc8" stroke-width="1.5" stroke-linecap="round" />
+
+    <path d="M28 72 L40 84" stroke="#e8dfc8" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.9" />
+    <line x1="30" y1="73" x2="33" y2="78" stroke="#e8dfc8" stroke-width="1.5" stroke-linecap="round" />
+    <line x1="35" y1="78" x2="38" y2="83" stroke="#e8dfc8" stroke-width="1.5" stroke-linecap="round" />
+
+    <!-- Tactile Vibration Arcs -->
+    <path d="M79 38 A 14 14 0 0 1 79 62" stroke="#39ff88" stroke-width="2.5" stroke-linecap="round" />
+    <path d="M85 32 A 22 22 0 0 1 85 68" stroke="#39ff88" stroke-width="2" stroke-linecap="round" opacity="0.8" />
+    <path d="M91 26 A 30 30 0 0 1 91 74" stroke="#39ff88" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round" opacity="0.55" />
+  </g>
+</svg>
