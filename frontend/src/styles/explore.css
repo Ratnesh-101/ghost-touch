@@ -86,7 +86,7 @@
 .gt-lab-specimen-table:focus-within {
   border-color: var(--gt-cyan, var(--gt-line, #39ff88));
   box-shadow:
-    0 0 0 2px var(--gt-bg, #0b0b10),
+    0 0 0 2px var(--gt-bg, #0b0e0c),
     0 0 0 4px var(--gt-focus, #39ff88),
     0 10px 30px rgba(0, 0, 0, 0.85);
 }
@@ -354,7 +354,7 @@
   border-color: var(--gt-focus, #39ff88);
   outline: 3px solid var(--gt-focus, #39ff88);
   outline-offset: 2px;
-  box-shadow: 0 0 0 3px var(--gt-bg, #0b0b10), 0 0 0 5px var(--gt-focus, #39ff88);
+  box-shadow: 0 0 0 3px var(--gt-bg, #0b0e0c), 0 0 0 5px var(--gt-focus, #39ff88);
 }
 
 /* ==========================================================================
