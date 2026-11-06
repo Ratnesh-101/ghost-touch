@@ -23,7 +23,7 @@ import { createBrowserDrivers, renderSceneThumbnail, type Drivers } from './driv
 import { DEBUG_HASH, readHash, subscribeHash } from './drivers/hashRoute';
 import { capturePrompt } from './flow/start';
 import { exploreAnnouncement } from './flow/navigation';
-import { getLang, LANG_BCP47, t } from './i18n';
+import { getLang, LANG_BCP47, subscribeLang, t } from './i18n';
 import { Capture } from './screens/Capture';
 import { Correct } from './screens/Correct';
 import { Debug } from './screens/Debug';
@@ -40,6 +40,7 @@ type View =
 
 export function App(): JSX.Element {
   const hash = useSyncExternalStore(subscribeHash, readHash, () => '');
+  const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
   const [drivers] = useState<Drivers>(() => createBrowserDrivers());
   const [view, setView] = useState<View>({ screen: 'start' });
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -65,7 +66,7 @@ export function App(): JSX.Element {
       try {
         const listResult = await drivers.diagramStore.list();
         if (!listResult.ok) {
-          drivers.speech.speak(t('saved.errorStorageUnavailable'), LANG_BCP47[getLang()]);
+          drivers.speech.speak(t('saved.errorStorageUnavailable'), LANG_BCP47[currentLang]);
           return;
         }
 
@@ -74,7 +75,7 @@ export function App(): JSX.Element {
         const newEntry: SavedDiagram = {
           id: makeId(Date.now(), Math.random),
           createdAt: Date.now(),
-          title: savedTitle(scene, getLang()),
+          title: savedTitle(scene, currentLang),
           thumbnailDataUrl,
           scene,
           pinned: false,
@@ -82,7 +83,7 @@ export function App(): JSX.Element {
 
         const decision = applyAdd(existing, newEntry, SAVED_DIAGRAMS_CAP);
         if (!decision.ok) {
-          drivers.speech.speak(t('saved.errorAllPinned'), LANG_BCP47[getLang()]);
+          drivers.speech.speak(t('saved.errorAllPinned'), LANG_BCP47[currentLang]);
           return;
         }
 
@@ -92,13 +93,13 @@ export function App(): JSX.Element {
 
         const putResult = await drivers.diagramStore.put(newEntry);
         if (!putResult.ok) {
-          drivers.speech.speak(t('saved.errorSave'), LANG_BCP47[getLang()]);
+          drivers.speech.speak(t('saved.errorSave'), LANG_BCP47[currentLang]);
         }
       } catch {
-        drivers.speech.speak(t('saved.errorSave'), LANG_BCP47[getLang()]);
+        drivers.speech.speak(t('saved.errorSave'), LANG_BCP47[currentLang]);
       }
     },
-    [drivers],
+    [drivers, currentLang],
   );
 
   const handleScene = (
@@ -109,7 +110,7 @@ export function App(): JSX.Element {
   ): void => {
     setPhotoUrl(photo ?? null);
     const announced = exploreAnnouncement(scene, mode);
-    drivers.speech.speak(announced, LANG_BCP47[getLang()]);
+    drivers.speech.speak(announced, LANG_BCP47[currentLang]);
     setView({ screen: 'explore', scene, announced });
     if (source !== 'sample') {
       void saveDiagram(scene);
@@ -119,20 +120,20 @@ export function App(): JSX.Element {
   // Coming back from Explore: just the prompt, not the one-time vibration warning.
   const handleBack = (): void => {
     const announced = t('capture.prompt');
-    drivers.speech.speak(announced, LANG_BCP47[getLang()]);
+    drivers.speech.speak(announced, LANG_BCP47[currentLang]);
     setView({ screen: 'capture', announced });
   };
 
   const handleCorrect = (): void => {
     if (view.screen !== 'explore') return;
     const intro = t('correct.intro');
-    drivers.speech.speak(intro, LANG_BCP47[getLang()]);
+    drivers.speech.speak(intro, LANG_BCP47[currentLang]);
     setView({ screen: 'correct', scene: view.scene });
   };
 
   const handleSaveCorrect = (scene: DiagramScene): void => {
     const announced = exploreAnnouncement(scene, 'ai');
-    drivers.speech.speak(announced, LANG_BCP47[getLang()]);
+    drivers.speech.speak(announced, LANG_BCP47[currentLang]);
     setView({ screen: 'explore', scene, announced });
   };
 
@@ -144,20 +145,20 @@ export function App(): JSX.Element {
 
   const openSaved = (): void => {
     const msg = t('saved.heading');
-    drivers.speech.speak(msg, LANG_BCP47[getLang()]);
+    drivers.speech.speak(msg, LANG_BCP47[currentLang]);
     setView({ screen: 'saved' });
   };
 
   const handleSavedBack = (): void => {
     const announced = t('capture.prompt');
-    drivers.speech.speak(announced, LANG_BCP47[getLang()]);
+    drivers.speech.speak(announced, LANG_BCP47[currentLang]);
     setView({ screen: 'capture', announced });
   };
 
   const handleSavedOpen = (scene: DiagramScene, title: string): void => {
     // Open an offline saved diagram: goes straight to Explore, no network call, no re-save
     const announced = `${title}. ${t('explore.gestureHint')} ${t('explore.backHint')}`;
-    drivers.speech.speak(announced, LANG_BCP47[getLang()]);
+    drivers.speech.speak(announced, LANG_BCP47[currentLang]);
     setView({ screen: 'explore', scene, announced });
   };
 

@@ -23,7 +23,7 @@ import {
 import type { DiagramScene } from '../core/scene';
 import { runEffects, type Drivers } from '../drivers';
 import { leaveExploreEntry, onBack as subscribeBack, pushExploreEntry } from '../drivers/navigation';
-import { askErrorMessage, AskManager, LISTENING_BEEP_HZ, LISTENING_BEEP_MS } from '../flow/ask';
+import { askErrorMessage, AskManager, LISTENING_BEEP_HZ, LISTENING_BEEP_MS, type AskOutcome } from '../flow/ask';
 import { executeExploreCommand, parseExploreCommand } from '../flow/commands';
 import {
   CENTRE_TICK_MS,
@@ -151,6 +151,12 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }:
   const handleExit = (): void => {
     if (leaving.current) return;
     leaving.current = true;
+    try {
+      drivers.speech.cancelListen?.();
+    } catch {
+      // ignore
+    }
+    askManager.current.abort();
     drivers.audio.playEarcon?.('back');
     clearLongPressTimer();
     activePointers.current.clear();
@@ -165,127 +171,228 @@ export function Explore({ scene, announced, drivers, onBack, onCorrect, isRaw }:
 
     const lang = LANG_BCP47[getLang()] ?? 'en-IN';
 
-    // Stop TTS and play listening earcon / beep
-    drivers.speech.stopSpeaking?.();
-    if (drivers.audio.playEarcon) {
-      drivers.audio.playEarcon('listening');
-    } else {
-      drivers.audio.beep(LISTENING_BEEP_HZ, LISTENING_BEEP_MS);
-    }
-    setStatusMessage(t('ask.listening'));
-
-    let transcript = '';
     try {
-      transcript = await drivers.speech.listen(lang);
-    } catch (err: unknown) {
-      drivers.audio.playEarcon?.('error');
-      const msg = askErrorMessage(err);
-      setStatusMessage(msg);
-      drivers.speech.speak(msg, lang);
-      lastSpokenRef.current = msg;
-      setIsBusy(false);
-      focusAfterRender(askButtonRef);
-      return;
-    }
+      if (!drivers.speech.canListen || typeof drivers.speech.listen !== 'function') {
+        const msg = t('ask.errorUnsupported');
+        setStatusMessage(msg);
+        try {
+          drivers.speech.speak(msg, lang);
+        } catch {
+          // ignore
+        }
+        lastSpokenRef.current = msg;
+        setShowTextFallback(true);
+        return;
+      }
 
-    // Check if recognized phrase is an Explore voice command
-    const cmd = parseExploreCommand(transcript);
-    if (cmd.type !== 'unknown') {
-      const currentNorm = pendingCursor.current
-        ? toNorm(pendingCursor.current, viewportRef.current)
-        : null;
-      const currentRate = drivers.speech.getRate ? drivers.speech.getRate() : 'normal';
-      const result = executeExploreCommand(cmd, {
+      // Stop TTS and play listening earcon / beep
+      try {
+        drivers.speech.stopSpeaking?.();
+        if (drivers.audio.playEarcon) {
+          drivers.audio.playEarcon('listening');
+        } else {
+          drivers.audio.beep(LISTENING_BEEP_HZ, LISTENING_BEEP_MS);
+        }
+      } catch {
+        // audio cues are best-effort
+      }
+      setStatusMessage(t('ask.listening'));
+
+      askManager.current.setActiveSpeech(drivers.speech);
+
+      let transcript = '';
+      try {
+        transcript = await drivers.speech.listen(lang);
+      } catch (err: unknown) {
+        if (leaving.current) return;
+        try {
+          drivers.audio.playEarcon?.('error');
+        } catch {
+          // ignore
+        }
+        const msg = askErrorMessage(err);
+        setStatusMessage(msg);
+        try {
+          drivers.speech.speak(msg, lang);
+        } catch {
+          // ignore
+        }
+        lastSpokenRef.current = msg;
+        setShowTextFallback(true);
+        return;
+      } finally {
+        askManager.current.setActiveSpeech(null);
+      }
+
+      if (leaving.current) return;
+
+      // Check if recognized phrase is an Explore voice command
+      const cmd = parseExploreCommand(transcript);
+      if (cmd.type !== 'unknown') {
+        const currentNorm = pendingCursor.current
+          ? toNorm(pendingCursor.current, viewportRef.current)
+          : null;
+        const currentRate = drivers.speech.getRate ? drivers.speech.getRate() : 'normal';
+        const result = executeExploreCommand(cmd, {
+          scene,
+          view: viewportRef.current,
+          cursorNorm: currentNorm,
+          lastSpoken: lastSpokenRef.current,
+          currentCornerIndex: cornerIndexRef.current,
+          currentRate,
+        });
+
+        if (result.nextCornerIndex !== undefined) {
+          cornerIndexRef.current = result.nextCornerIndex;
+        }
+        if (result.nextCursor) {
+          pendingCursor.current = result.nextCursor;
+          scheduleDraw(viewportRef.current, result.nextCursor);
+        }
+        if (result.nextRate) {
+          drivers.speech.setRate?.(result.nextRate);
+        }
+        if (result.earcon) {
+          try {
+            drivers.audio.playEarcon?.(result.earcon);
+          } catch {
+            // ignore
+          }
+        }
+
+        setStatusMessage(result.speech);
+        try {
+          drivers.speech.speak(result.speech, lang);
+        } catch {
+          // ignore
+        }
+        lastSpokenRef.current = result.speech;
+        return;
+      }
+
+      // If not a local command, submit to Ask backend
+      setStatusMessage(t('ask.thinking'));
+      try {
+        drivers.speech.speak(t('ask.thinking'), lang);
+      } catch {
+        // ignore
+      }
+
+      const outcome = await askManager.current.submitTextAsk(transcript, {
+        audio: drivers.audio,
+        speech: drivers.speech,
         scene,
-        view: viewportRef.current,
-        cursorNorm: currentNorm,
-        lastSpoken: lastSpokenRef.current,
-        currentCornerIndex: cornerIndexRef.current,
-        currentRate,
+        lang,
+        say: (text: string) => {
+          setStatusMessage(text);
+          try {
+            drivers.speech.speak(text, lang);
+          } catch {
+            // ignore
+          }
+          lastSpokenRef.current = text;
+        },
+        onStatusChange: (status: string) => {
+          setStatusMessage(status);
+        },
+        onFallbackNeeded: () => {
+          setShowTextFallback(true);
+        },
       });
 
-      if (result.nextCornerIndex !== undefined) {
-        cornerIndexRef.current = result.nextCornerIndex;
-      }
-      if (result.nextCursor) {
-        pendingCursor.current = result.nextCursor;
-        scheduleDraw(viewportRef.current, result.nextCursor);
-      }
-      if (result.nextRate) {
-        drivers.speech.setRate?.(result.nextRate);
-      }
-      if (result.earcon) {
-        drivers.audio.playEarcon?.(result.earcon);
-      }
-
-      setStatusMessage(result.speech);
-      drivers.speech.speak(result.speech, lang);
-      lastSpokenRef.current = result.speech;
-      setIsBusy(false);
-      focusAfterRender(askButtonRef);
-      return;
-    }
-
-    // If not a local command, submit to Ask backend
-    setStatusMessage(t('ask.thinking'));
-    drivers.speech.speak(t('ask.thinking'), lang);
-
-    const outcome = await askManager.current.submitTextAsk(transcript, {
-      audio: drivers.audio,
-      speech: drivers.speech,
-      scene,
-      lang,
-      say: (text: string) => {
-        setStatusMessage(text);
-        drivers.speech.speak(text, lang);
-        lastSpokenRef.current = text;
-      },
-      onStatusChange: (status: string) => {
-        setStatusMessage(status);
-      },
-      onFallbackNeeded: () => {
+      if (leaving.current) return;
+      if (outcome.kind === 'failed') {
         setShowTextFallback(true);
-      },
-    });
-
-    if (outcome.kind === 'busy' || outcome.kind === 'cancelled') return;
-    setIsBusy(false);
-    focusAfterRender(askButtonRef);
+      }
+    } catch (err: unknown) {
+      if (leaving.current) return;
+      try {
+        drivers.audio.playEarcon?.('error');
+      } catch {
+        // ignore
+      }
+      const msg = askErrorMessage(err);
+      setStatusMessage(msg);
+      try {
+        drivers.speech.speak(msg, lang);
+      } catch {
+        // ignore
+      }
+      lastSpokenRef.current = msg;
+      setShowTextFallback(true);
+    } finally {
+      if (!leaving.current) {
+        setIsBusy(false);
+        focusAfterRender(askButtonRef);
+      }
+    }
   };
 
   const handleTextSubmit = async (): Promise<void> => {
     if (!questionText.trim()) {
       const msg = t('ask.errorEmpty');
       setStatusMessage(msg);
-      drivers.speech.speak(msg, LANG_BCP47[getLang()]);
+      try {
+        drivers.speech.speak(msg, LANG_BCP47[getLang()]);
+      } catch {
+        // ignore
+      }
       lastSpokenRef.current = msg;
       return;
     }
     setIsBusy(true);
     const q = questionText;
     const lang = LANG_BCP47[getLang()] ?? 'en-IN';
-    const outcome = await askManager.current.submitTextAsk(q, {
-      audio: drivers.audio,
-      speech: drivers.speech,
-      scene,
-      lang,
-      say: (text: string) => {
-        setStatusMessage(text);
-        drivers.speech.speak(text, lang);
-        lastSpokenRef.current = text;
-      },
-      onStatusChange: (status: string) => {
-        setStatusMessage(status);
-      },
-    });
-    if (outcome.kind === 'busy' || outcome.kind === 'cancelled') return;
-    setIsBusy(false);
-    if (outcome.kind === 'success') {
-      setQuestionText('');
-      focusAfterRender(askButtonRef);
-    } else {
-      // Keep the typed question so it can be retried; return focus to the input.
-      focusAfterRender(textInputRef);
+    let outcome: AskOutcome | null = null;
+    try {
+      outcome = await askManager.current.submitTextAsk(q, {
+        audio: drivers.audio,
+        speech: drivers.speech,
+        scene,
+        lang,
+        say: (text: string) => {
+          setStatusMessage(text);
+          try {
+            drivers.speech.speak(text, lang);
+          } catch {
+            // ignore
+          }
+          lastSpokenRef.current = text;
+        },
+        onStatusChange: (status: string) => {
+          setStatusMessage(status);
+        },
+        onFallbackNeeded: () => {
+          setShowTextFallback(true);
+        },
+      });
+    } catch (err: unknown) {
+      if (leaving.current) return;
+      try {
+        drivers.audio.playEarcon?.('error');
+      } catch {
+        // ignore
+      }
+      const msg = askErrorMessage(err);
+      setStatusMessage(msg);
+      try {
+        drivers.speech.speak(msg, lang);
+      } catch {
+        // ignore
+      }
+      lastSpokenRef.current = msg;
+      outcome = { kind: 'failed', message: msg, error: err };
+    } finally {
+      if (!leaving.current) {
+        setIsBusy(false);
+        if (outcome?.kind === 'success') {
+          setQuestionText('');
+          focusAfterRender(askButtonRef);
+        } else {
+          // Keep the typed question so it can be retried; return focus to the input.
+          focusAfterRender(textInputRef.current ? textInputRef : askButtonRef);
+        }
+      }
     }
   };
 
