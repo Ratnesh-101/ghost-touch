@@ -61,6 +61,14 @@ services:
         value: "40"
       - key: RATE_LIMIT_SCENE_PER_MIN
         value: "20"
+      - key: RATE_LIMIT_VALIDATE_PER_MIN
+        value: "40"
+      - key: SCENE_MAX_CONCURRENCY
+        value: "2"
+      - key: SCENE_QUEUE_WAIT_SECONDS
+        value: "6.0"
+      - key: ENVIRONMENT
+        value: production
       # Replace this with the deployed Vercel frontend URL (no trailing slash)
       - key: ALLOWED_ORIGINS
         value: https://ghost-touch-iota.vercel.app
