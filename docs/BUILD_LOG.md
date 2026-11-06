@@ -1333,3 +1333,19 @@ Format for each entry:
   - `docs/reports/audit-a2-share-security.md`
   - `docs/BUILD_LOG.md`
 
+## 2026-11-06 — Antigravity — Lane a3-teach-editor: Audit of Teacher Editor (`#/teach`)
+- Audited functional, accessibility, and failure paths in the Teacher Editor (`#/teach`) per `docs/briefs/audit-a3-teach-editor.md` and `docs/briefs/audit-common.md` (audit only, no code changes).
+- Catalogued 17 confirmed findings (7 High, 5 Med, 5 Low) and 1 suspected finding in `docs/reports/audit-a3-teach-editor.md`:
+  - High: Stale share link/QR code after editing teacher name/note post-verification (Finding 1).
+  - High: Race condition in async QR generation allowing out-of-sync scene sharing (Finding 2).
+  - High: Missing Tab key focus trap in `LoadModal` dialog (Finding 3).
+  - High: Focus lost to `document.body` on `LoadModal` dismissal and disabling controls like Delete button (Finding 4).
+  - High: Invalid axis coordinates in `function_graph` do not block "Mark verified" (Finding 5).
+  - High: Silent data loss when clicking Back or closing tab with unsaved edits (Finding 6).
+  - High: Untranslated English fallback strings for `teach.qrTooLong` in Hindi and Gujarati tables (Finding 7).
+  - Med/Low: ID collisions with non-point scene elements (Finding 8), disappearing axes/bars/polylines during canvas drag (Finding 9), boundary nudge pushing duplicate history and false speech (Finding 10), dropping original verifier/note on loading existing share links (Finding 11), back-to-back speech cutoff from LabSettings navigation (Finding 12), hardcoded English strings (Finding 13), uncleaned timer in SharePanel (Finding 14), dead i18n keys (Finding 15), silent browser back navigation (Finding 16), clipboard fallback DOM leak (Finding 17).
+  - Confirmed sound: Web Share API detection & graceful abort, QR URL cap enforcement (2000 chars), 48x48 px touch targets, 390/1440 px responsive layouts, canvas letterboxing mathematics, zero `any` / zero `console.log`, and strict text-child rendering without `dangerouslySetInnerHTML`.
+- Gates: frontend `npm test` 105 files passed (1420 passed), `tsc` clean (0 errors), `npm run build` clean (PWA 22 precache entries, 639.79 KiB), backend pytest 454 passed (1 skipped), ruff check clean, ruff format clean.
+- Files touched:
+  - `docs/reports/audit-a3-teach-editor.md`
+  - `docs/BUILD_LOG.md`
