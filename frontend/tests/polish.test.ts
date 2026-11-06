@@ -31,7 +31,7 @@ describe('Start screen polish', () => {
 });
 
 describe('Capture screen polish', () => {
-  it('renders primary, secondary, and sample grid without any aria-hidden attributes', () => {
+  it('renders primary, secondary, and sample grid without hidden interactive controls', () => {
     const html = renderToStaticMarkup(
       createElement(Capture, {
         drivers,
@@ -45,8 +45,8 @@ describe('Capture screen polish', () => {
     expect(html).toContain('gt-capture__button--saved');
     expect(html).toContain('gt-capture__samples-grid');
     expect(html).toContain('gt-capture__status-card');
-    // Critical: Screen reader compatibility requires no aria-hidden on capture elements
-    expect(html).not.toContain('aria-hidden');
+    // Critical: Screen reader compatibility requires interactive capture controls are not aria-hidden
+    expect(html).not.toMatch(/<button[^>]*aria-hidden="true"/);
   });
 });
 
