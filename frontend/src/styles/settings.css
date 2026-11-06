@@ -1,0 +1,147 @@
+/*
+ * Ghost Touch — Lab Settings Sheet
+ * Modal bottom sheet (centred panel on wide screens) wrapping language & speech rate controls.
+ * Uses tokens from tokens.css with Frankenstein lab accents.
+ * Accessible: WCAG AAA contrast, >= 48px touch targets, visible focus rings.
+ */
+
+.gt-lab-settings {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.gt-lab-settings__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.gt-lab-settings__sheet {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  background: var(--gt-surface-card, #12121b);
+  border: 2px solid var(--gt-copper, var(--gt-green-dim, #25a357));
+  border-bottom: none;
+  border-radius: var(--gt-radius-xl, 24px) var(--gt-radius-xl, 24px) 0 0;
+  box-shadow: var(--gt-shadow-card, 0 6px 24px rgba(0, 0, 0, 0.6)),
+              0 0 20px var(--gt-green-subtle, rgba(57, 255, 136, 0.08));
+  padding: var(--gt-space-lg, 20px) var(--gt-space-lg, 20px) var(--gt-space-2xl, 32px);
+  color: var(--gt-text, #eafff5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-lg, 20px);
+}
+
+@media (min-width: 600px) {
+  .gt-lab-settings {
+    align-items: center;
+    padding: var(--gt-space-md, 16px);
+  }
+
+  .gt-lab-settings__sheet {
+    border-bottom: 2px solid var(--gt-copper, var(--gt-green-dim, #25a357));
+    border-radius: var(--gt-radius-xl, 24px);
+  }
+}
+
+.gt-lab-settings__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gt-space-md, 16px);
+  padding-bottom: var(--gt-space-sm, 12px);
+  border-bottom: 1px dashed var(--gt-border, rgba(57, 255, 136, 0.22));
+}
+
+.gt-lab-settings__title {
+  margin: 0;
+  font-size: var(--gt-text-xl, 1.25rem);
+  font-weight: 700;
+  color: var(--gt-text-primary, #f5fff8);
+  letter-spacing: 0.02em;
+}
+
+.gt-lab-settings__close {
+  min-width: var(--gt-target, 48px);
+  min-height: var(--gt-target, 48px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gt-surface, #14141e);
+  color: var(--gt-text, #eafff5);
+  border: 1px solid var(--gt-copper, var(--gt-border, rgba(57, 255, 136, 0.22)));
+  border-radius: var(--gt-radius-md, 12px);
+  font-size: var(--gt-text-sm, 0.875rem);
+  font-weight: 600;
+  padding: var(--gt-space-xs, 8px) var(--gt-space-sm, 12px);
+  cursor: pointer;
+  transition: background var(--gt-transition-fast, 150ms ease),
+              border-color var(--gt-transition-fast, 150ms ease);
+}
+
+.gt-lab-settings__close:hover {
+  background: var(--gt-surface-hover, #1c1c2a);
+  border-color: var(--gt-copper, var(--gt-green, #39ff88));
+}
+
+.gt-lab-settings__close:focus-visible {
+  outline: 3px solid var(--gt-copper, var(--gt-focus, #39ff88));
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px var(--gt-copper, var(--gt-focus, #39ff88));
+}
+
+.gt-lab-settings__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-lg, 20px);
+}
+
+.gt-lab-settings__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-xs, 8px);
+}
+
+.gt-lab-settings__section-title {
+  margin: 0;
+  font-size: var(--gt-text-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--gt-bone, var(--gt-text-secondary, #c2d6cc));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .gt-lab-settings__sheet,
+  .gt-lab-settings__close {
+    animation-duration: 0.001ms !important;
+    animation-play-state: paused !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Forced colors / high-contrast mode */
+@media (forced-colors: active) {
+  .gt-lab-settings__sheet {
+    border: 2px solid ButtonText !important;
+  }
+
+  .gt-lab-settings__close {
+    border: 2px solid ButtonText !important;
+  }
+
+  .gt-lab-settings__close:focus-visible {
+    outline: 3px solid Highlight !important;
+  }
+}
