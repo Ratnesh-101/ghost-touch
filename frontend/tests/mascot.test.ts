@@ -82,6 +82,31 @@ describe('creature mascot component (Mascot.tsx & Task 4)', () => {
     expect(mascotSvg).toContain('aria-hidden="true"');
     expect(mascotSvg).not.toContain('<text');
   });
+
+  it('honours custom size and className props', () => {
+    const custom = renderToStaticMarkup(createElement(Mascot, { size: 144, className: 'lab-mascot-glow' }));
+    expect(custom).toContain('width="144"');
+    expect(custom).toContain('height="144"');
+    expect(custom).toContain('class="gt-mascot lab-mascot-glow"');
+    expect(custom).toContain('focusable="false"');
+    expect(custom).toContain('data-testid="gt-creature-mascot"');
+  });
+
+  it('features a friendly glowing two-eyed screen face matching brand palette', () => {
+    // Both left and right pupils
+    expect(rendered).toContain('cx="51" cy="50"');
+    expect(rendered).toContain('cx="69" cy="50"');
+    // Bone parchment sutures matching logo mark
+    expect(rendered).toContain('stroke="#e8dfc8"');
+  });
+
+  it('includes chassis mounting electrodes and friendly stitched smile', () => {
+    // Mounting electrodes / bolts
+    expect(rendered).toContain('rect x="25" y="56"');
+    expect(rendered).toContain('rect x="88" y="56"');
+    // Stitched smile
+    expect(rendered).toContain('d="M51 72 Q60 80 69 72"');
+  });
 });
 
 describe('mascot usage constraints', () => {
