@@ -1,7 +1,14 @@
 # Facilitator Checklist: Pre-Session, In-Session & Teardown
 
 > **Purpose:**  
-> Operational checklist for conducting smooth, respectful, and reliable user testing sessions with blind and low-vision students using the Ghost Touch prototype.
+> Operational checklist for conducting smooth, respectful, and reliable user testing sessions with blind and low-vision students using the Ghost Touch prototype.  
+> **Updated:** 2026-11-06 for the Frankenstein's Laboratory redesign.  
+>
+> **Facilitator Notice on Languages:**  
+> Ghost Touch supports English, Hindi, and Gujarati. **Hindi and Gujarati are machine-translated and have not yet been validated by a native speaker.** Participant and teacher feedback on wording, pronunciation, and clarity is an explicit objective of testing.  
+>
+> **Device Notice:**  
+> The application has not yet undergone official physical device motor calibration; this session provides the primary real-world motor and screen-reader evaluation.
 
 ---
 
@@ -32,14 +39,15 @@ Perform these steps on **both** the primary phone and the spare phone:
 ### A. Network & HTTPS Verification
 - [ ] **HTTPS Live:** Open Chrome and navigate to the Ghost Touch deployment URL.  
   *(Note: Chrome strictly requires a valid HTTPS origin or localhost for the Web Vibration API to function).*
+- [ ] **Backend Pre-Warmup:** Open `https://ghost-touch-api.onrender.com/api/v1/health` and wait for `{"ok":true}` so the Render container is awake.
 - [ ] **PWA Precache:** Refresh once to ensure the Service Worker installs and caches application assets.
 - [ ] **Offline Mode Test:**  
   1. Turn on Android **Airplane Mode**.  
   2. Refresh the app.  
-  3. Verify the Start screen loads.  
-  4. Tap "Tap anywhere to begin" to reach Capture.  
-  5. Tap the Triangle, Sine, and Bar chart sample cards.  
-  6. Confirm all 3 diagrams load into Explore with working vibration and audio without an internet connection.  
+  3. Verify the Start screen loads (shows mascot, organ rows Nerves/Eyes/Voice).  
+  4. Tap the full-screen **"Wake the creature"** button to reach Capture.  
+  5. Tap the **Right triangle**, **Sine wave**, and **Bar chart** specimen cards.  
+  6. Confirm all 3 diagrams load into Explore with working vibration, theremin tones, and speech without an internet connection.  
   7. Turn Airplane Mode back off (or leave on if testing purely offline).
 
 ### B. Android System & Accessibility Settings
@@ -58,18 +66,20 @@ Perform these steps on **both** the primary phone and the spare phone:
 ### C. Live Gesture Smoke-Test (Facilitator Test)
 - [ ] **TalkBack ON Test:**  
   1. Turn TalkBack ON.  
-  2. Double-tap the Start screen to enter Capture.  
-  3. Double-tap the Triangle sample card to enter Explore.  
-  4. Perform the Explore gesture: **Double-tap, hold on the second tap, and drag**.  
-  5. Verify:  
-     - App speaks "Centre." with a subtle 25 ms tick when placed.  
-     - Continuous vibration buzzes when crossing triangle lines.  
-     - Sharp pulse triggers and corner label speaks ("Point A", "Point B") at vertices.  
-  6. Test Exit: perform the TalkBack Back gesture (or press Android Back); confirm return to Capture.
+  2. Double-tap the Start screen **"Wake the creature"** button to enter Capture.  
+  3. On Capture, observe the single **"Settings: English, 1.0×"** button and specimen cards.  
+  4. Double-tap the **Right triangle** specimen card to enter Explore.  
+  5. Observe the brief spark arc on loading into the stitched specimen-table frame.  
+  6. Perform the Explore gesture: **Double-tap, hold on the second tap, and drag**.  
+  7. Verify:  
+     - App speaks *"Centre."* with a subtle 25 ms tick when placed.  
+     - Continuous vibration buzzes when crossing triangle lines (`vibrate(80)` every 70 ms).  
+     - Sharp pulse triggers and corner label speaks (*"Point A"*, *"Point B. Right angle."*) at vertices with a 450 ms quiet period.  
+  8. Test Exit: double-tap the accessible **Back** button (or perform Android Back gesture); confirm return to Capture.
 - [ ] **TalkBack OFF Test:**  
   1. Turn TalkBack OFF.  
-  2. Touch and drag directly across lines on the screen; verify identical haptics and pitch.  
-  3. Perform the two-finger swipe down gesture; verify clean return to Capture.
+  2. Touch and drag directly across lines on the screen; verify identical haptics and theremin pitch.  
+  3. Test returning to Capture via Back button.
 
 ---
 
@@ -87,25 +97,30 @@ Perform these steps on **both** the primary phone and the spare phone:
   - Confirm student verbal assent and teacher/guardian consent.  
   - Record chosen media option: Notes Only OR Hands-and-Phone Only.
 - [ ] **Step 2: Gesture Practice (2 min):**  
-  - Demonstrate double-tap-and-hold drag.  
+  - Double-tap Start screen to "Wake the creature".  
+  - Demonstrate double-tap-and-hold drag on the Right triangle specimen card.  
   - Count attempts until independent execution.
 - [ ] **Step 3: Baseline Comparison (2 min):**  
   - If Participant is odd (P1, P3): do baseline verbal description first.  
   - If Participant is even (P2, P4): do Ghost Touch app first.
 - [ ] **Step 4: Task Execution (10 min):**  
-  - Task 1: Find 3 corners of Triangle (time in seconds, corners 0–3).  
+  - Task 1: Find 3 corners of Right Triangle specimen (time in seconds, corners 0–3).  
   - Task 2: Identify Right Angle (correct Y/N, seconds).  
-  - Task 3: Count Sine Wave peaks (correct Y/N, theremin tone clarity).  
-  - Task 4: Identify Tallest Bar (correct Y/N, pitch comparison).  
-  - Task 5: Ask voice question (record question, answer clarity, latency).
-- [ ] **Step 5: Post-Session Spoken Survey (3 min):**  
+  - Task 3: Count Sine Wave peaks from Sine specimen card (correct Y/N, theremin tone clarity).  
+  - Task 4: Identify Tallest Bar from Bar chart specimen card (correct Y/N, pitch comparison).  
+  - Task 5: Ask question via "Ask" button (record question, answer clarity, latency).
+- [ ] **Step 5: Language & Settings Check (Optional, 2 min):**  
+  - If participant understands Hindi or Gujarati, open Lab settings sheet (*"Settings: English, 1.0×"*).  
+  - Switch to Hindi or Gujarati; gather feedback on terminology naturalness and pronunciation.  
+  - Note: Hindi and Gujarati are machine-translated and feedback directly aids revision.
+- [ ] **Step 6: Post-Session Spoken Survey (3 min):**  
   - Read aloud Q1–Q5 (1–5 scale).  
   - Ask qualitative questions (confusing parts, homework use, hard diagrams).  
   - Thank student warmly and offer a small gesture of appreciation / certificate.
 
 ### Teacher Interview (5 Min at Conclusion of Session)
 - [ ] Ask teacher about most challenging STEM diagrams in current curriculum.
-- [ ] Ask about 1-minute AI correction workflow feasibility.
+- [ ] Demonstrate Teacher Correct mode: ask if 1-minute AI vertex correction workflow is feasible.
 - [ ] Request feedback on TalkBack integration and classroom utility.
 
 ---
