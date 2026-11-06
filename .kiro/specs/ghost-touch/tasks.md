@@ -100,3 +100,14 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [~] 16.3 Blog post mentioning Kiroween 2026; social post starting with `#KiroweenHackathon26`
   - [~] 16.4 Confirm `/.kiro` is committed, license visible in GitHub About, repo public
   - [~] 16.5 Submit before **Dec 5, 3:30 am IST**; request Kiro credits before **Dec 1**
+- [ ] 18. Audit findings resolution (agy, awaiting Kiro review)
+  - [x] 18.1 Frontend Finding 5: Suppress redundant canvas aria-label during speech synthesis to prevent TalkBack speech collision (Requirement 13.7) (agy, awaiting Kiro review)
+  - [x] 18.2 Frontend Finding 14: Eliminate secondary pointer dead-zone by promoting oldest active pointer upon primary lift (Requirement 4.8) (agy, awaiting Kiro review)
+  - [x] 18.3 Kiro hooks: Add CSS guard, accessibility guard, and pre-commit build log hooks in `.kiro/hooks/` with schema and regex validation tests (agy, awaiting Kiro review)
+  - [x] 18.4 Backend SEC-01: Wrap `/api/v1/scene` in concurrency semaphore `asyncio.Semaphore(2)` with HTTP 503/429 retry headers (already implemented and merged by agy lane x-hardening; verify against the code)
+  - [x] 18.5 Backend SEC-02: Lower `MAX_IMAGE_PIXELS` from 40 MP to 12 MP in `backend/app/image_utils.py` to prevent memory exhaustion (already implemented and merged by agy lane x-hardening; verify against the code)
+  - [x] 18.6 Backend SEC-03: Add `await request.is_disconnected()` cancellation checks before provider dispatch and Raw Mode worker threads (already implemented and merged by agy lane x-hardening; verify against the code)
+  - [x] 18.7 Backend SEC-04: Parse EXIF orientation tag in OpenCV Raw Mode to prevent 90° rotated diagram geometry (already implemented and merged by agy lane x-hardening; verify against the code)
+  - [x] 18.8 Backend SEC-06: Apply scene element count and size bounds on `POST /api/v1/validate` (already implemented and merged by agy lane x-hardening; verify against the code)
+  - [x] 18.9 Backend SEC-07 & SEC-08: Add security headers (`X-Content-Type-Options: nosniff`, `Cache-Control: no-store`) and disable OpenAPI docs in production (already implemented and merged by agy lane x-hardening; verify against the code)
+  - [x] 18.10 Backend SEC-09: Align `docs/DEPLOY.md` model configuration with `render.yaml` (`gemini-3.5-flash-lite`) (already implemented and merged by agy lane x-hardening; verify against the code)
