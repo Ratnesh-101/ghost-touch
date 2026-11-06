@@ -13,7 +13,13 @@
 
 import { safeGet, safeSet } from './storage';
 
-export type ListenFailure = 'unsupported' | 'timeout' | 'no-speech' | 'denied' | 'failed';
+export type ListenFailure =
+  | 'unsupported'
+  | 'timeout'
+  | 'no-speech'
+  | 'denied'
+  | 'failed'
+  | 'cancelled';
 
 /** Rejection type of `listen`; `message` and `reason` hold the failure code. */
 export class ListenError extends Error {
@@ -100,11 +106,22 @@ export interface RecognitionLike {
   onend: (() => void) | null;
   start(): void;
   stop(): void;
+  abort?(): void;
 }
 export interface SpeechHost {
   synth?: SynthesisLike;
   createUtterance?: (text: string) => UtteranceLike;
   createRecognition?: () => RecognitionLike;
+  window?: {
+    addEventListener(type: string, listener: (ev: unknown) => void): void;
+    removeEventListener(type: string, listener: (ev: unknown) => void): void;
+  };
+  document?: {
+    addEventListener(type: string, listener: (ev: unknown) => void): void;
+    removeEventListener(type: string, listener: (ev: unknown) => void): void;
+    readonly hidden?: boolean;
+    readonly visibilityState?: string;
+  };
 }
 
 export const DEFAULT_SPEECH_LANG = 'en-IN';
@@ -176,7 +193,7 @@ function failureFor(error: string): ListenFailure {
 
 export class WebSpeechDriver implements SpeechDriver {
   /** Ends the listen session in progress, if any (only one at a time). */
-  private endActive: (() => void) | undefined;
+  private cancelActive: ((reason?: ListenFailure, aborted?: boolean) => void) | undefined;
   private rateSetting: SpeechRateSetting = getStoredSpeechRate();
   private lastSpokenText = '';
   private warnedMissingLangs = new Set<string>();
@@ -269,7 +286,7 @@ export class WebSpeechDriver implements SpeechDriver {
   }
 
   cancelListen(): void {
-    this.endActive?.();
+    this.cancelActive?.('cancelled');
   }
 
   listen(lang: string = DEFAULT_SPEECH_LANG): Promise<string> {
@@ -278,28 +295,58 @@ export class WebSpeechDriver implements SpeechDriver {
       return Promise.reject(new ListenError('unsupported'));
     }
     // A second call (for example a double-tap) replaces the first session.
-    this.endActive?.();
+    this.cancelActive?.('failed', false);
+
+    const win = this.host.window ?? (typeof window !== 'undefined' ? window : undefined);
+    const doc = this.host.document ?? (typeof document !== 'undefined' ? document : undefined);
+
     return new Promise<string>((resolve, reject) => {
       const recognition = createRecognition();
       let settled = false;
       let timer: ReturnType<typeof setTimeout> | undefined;
 
-      const finish = (outcome: { text: string } | { failure: ListenFailure }): void => {
+      const cleanupListeners = (): void => {
+        win?.removeEventListener('pagehide', onPageHide);
+        doc?.removeEventListener('visibilitychange', onVisibilityChange);
+      };
+
+      const finish = (
+        outcome: { text: string } | { failure: ListenFailure },
+        aborted = false,
+      ): void => {
         if (settled) return;
         settled = true;
-        this.endActive = undefined;
+        this.cancelActive = undefined;
         if (timer !== undefined) clearTimeout(timer);
+        cleanupListeners();
         recognition.onresult = null;
         recognition.onerror = null;
         recognition.onend = null;
         try {
-          recognition.stop();
+          if (aborted && typeof recognition.abort === 'function') {
+            recognition.abort();
+          } else {
+            recognition.stop();
+          }
         } catch {
-          // stop() throws if recognition already ended; nothing left to stop.
+          // stop() or abort() throws if recognition already ended; nothing left to stop.
         }
         if ('text' in outcome) resolve(outcome.text);
         else reject(new ListenError(outcome.failure));
       };
+
+      const onPageHide = (): void => {
+        finish({ failure: 'cancelled' }, true);
+      };
+
+      const onVisibilityChange = (): void => {
+        if (doc && (doc.hidden === true || doc.visibilityState === 'hidden')) {
+          finish({ failure: 'cancelled' }, true);
+        }
+      };
+
+      win?.addEventListener('pagehide', onPageHide);
+      doc?.addEventListener('visibilitychange', onVisibilityChange);
 
       recognition.lang = lang;
       recognition.interimResults = false;
@@ -312,7 +359,8 @@ export class WebSpeechDriver implements SpeechDriver {
       recognition.onerror = (event) => finish({ failure: failureFor(event.error) });
       recognition.onend = () => finish({ failure: 'no-speech' });
       timer = setTimeout(() => finish({ failure: 'timeout' }), LISTEN_TIMEOUT_MS);
-      this.endActive = () => finish({ failure: 'failed' });
+      this.cancelActive = (reason = 'cancelled', aborted = true) =>
+        finish({ failure: reason }, aborted);
       try {
         recognition.start();
       } catch {

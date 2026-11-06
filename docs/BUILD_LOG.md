@@ -509,4 +509,26 @@ Format for each entry:
   - `frontend/tests/api.health.test.ts`
   - `frontend/vitest.config.ts`
   - `docs/reports/agy-lab-testenv-report.md`
+
+## 2026-11-06 — Antigravity — Lane lab-bugsaudio (Audio & Speech Driver Bug Hunt Fixes)
+- Fixed audio and speech driver defects identified in audit (Findings 1, 2, 6, 13) per `docs/briefs/agy-lab-bugsaudio.md`:
+  - Finding 1 (HIGH): Fixed stuck theremin tone after earcon ducking by invoking `cancelScheduledValues(now)` in `WebAudioDriver.setTone` and `playEarcon`, tracking `earconRestoreAt`, and cancelling future restorations when finger lifts during playback.
+  - Finding 2 (HIGH): Resolved orphaned speech recognition sessions by adding idempotent `cancelListen()` in `WebSpeechDriver` (calling `recognition.abort()` and rejecting with `ListenError('cancelled')`) and wiring automatic abort handlers for `pagehide` and `visibilitychange` (hidden).
+  - Finding 6 (HIGH): Fixed silent AudioContext after camera switch by registering `visibilitychange` and user gesture listeners (`pointerdown`, `touchstart`, `keydown`) and calling `resumeIfSuspended` on `setTone`, `playEarcon`, and `beep`. Never creates duplicate contexts and produces no tone while idle.
+  - Finding 13 (MEDIUM): Disconnected Web Audio cue nodes by adding `osc.onended` callbacks in `beep()` and `playEarcon()` steps, releasing oscillators and gains from `ctx.destination` upon completion.
+  - Locked `getEarconSteps` pure definitions (frequencies, durations, delays, gains) with regression assertions.
+- Added comprehensive unit test suites `tests/drivers.audio.lifecycle.test.ts` and `tests/drivers.speech.cancel.test.ts`, and extended existing audio and speech driver test suites.
+- Verification results:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: clean (0 type errors).
+  - `npm --prefix frontend test`: 57 passed (57 files), 814 passed (+28 tests over 786 baseline), 0 failed.
+  - `npm --prefix frontend run build`: clean client bundle & PWA service worker generation.
+- Files touched:
+  - `frontend/src/drivers/audio.ts`
+  - `frontend/src/drivers/speech.ts`
+  - `frontend/tests/drivers.audio.test.ts`
+  - `frontend/tests/drivers.audio.earcons.test.ts`
+  - `frontend/tests/drivers.speech.test.ts`
+  - `frontend/tests/drivers.audio.lifecycle.test.ts` (new)
+  - `frontend/tests/drivers.speech.cancel.test.ts` (new)
+  - `docs/reports/agy-lab-bugsaudio-report.md` (new)
   - `docs/BUILD_LOG.md`

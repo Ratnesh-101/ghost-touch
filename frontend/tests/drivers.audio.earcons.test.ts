@@ -9,13 +9,33 @@ import {
   type ParamLike,
 } from '../src/drivers/audio';
 
-function fakeParam(): ParamLike & { setTargetAtTime: Mock<ParamLike['setTargetAtTime']> } {
-  return { value: 0, setTargetAtTime: vi.fn<ParamLike['setTargetAtTime']>() };
+function fakeParam(): ParamLike & {
+  setTargetAtTime: Mock<ParamLike['setTargetAtTime']>;
+  cancelScheduledValues: Mock<NonNullable<ParamLike['cancelScheduledValues']>>;
+} {
+  return {
+    value: 0,
+    setTargetAtTime: vi.fn<ParamLike['setTargetAtTime']>(),
+    cancelScheduledValues: vi.fn(),
+  };
 }
 
 interface FakeContext extends AudioContextLike {
-  oscillators: Array<OscillatorLike & { start: Mock<OscillatorLike['start']>; stop: Mock<OscillatorLike['stop']> }>;
-  gains: Array<GainLike & { gain: ReturnType<typeof fakeParam> }>;
+  currentTime: number;
+  oscillators: Array<
+    OscillatorLike & {
+      frequency: ReturnType<typeof fakeParam>;
+      start: Mock<OscillatorLike['start']>;
+      stop: Mock<OscillatorLike['stop']>;
+      disconnect: Mock<NonNullable<OscillatorLike['disconnect']>>;
+    }
+  >;
+  gains: Array<
+    GainLike & {
+      gain: ReturnType<typeof fakeParam>;
+      disconnect: Mock<NonNullable<GainLike['disconnect']>>;
+    }
+  >;
   resume: Mock<AudioContextLike['resume']>;
   state: string;
 }
@@ -33,14 +53,20 @@ function fakeContext(state = 'running'): FakeContext {
         type: '',
         frequency: fakeParam(),
         connect: vi.fn(),
+        disconnect: vi.fn(),
         start: vi.fn<OscillatorLike['start']>(),
         stop: vi.fn<OscillatorLike['stop']>(),
+        onended: null as OscillatorLike['onended'],
       };
       ctx.oscillators.push(osc);
       return osc;
     },
     createGain() {
-      const gain = { gain: fakeParam(), connect: vi.fn() };
+      const gain = {
+        gain: fakeParam(),
+        connect: vi.fn(),
+        disconnect: vi.fn(),
+      };
       ctx.gains.push(gain);
       return gain;
     },
@@ -74,6 +100,29 @@ describe('getEarconSteps (pure definitions)', () => {
     const steps = getEarconSteps('error');
     expect(steps.length).toBe(2);
     expect(steps[1]!.hz).toBeLessThan(steps[0]!.hz);
+  });
+
+  it('locks earcon frequencies, durations, delays and gains (regression lock)', () => {
+    expect(getEarconSteps('start')).toEqual([
+      { hz: 440, durationMs: 120, delayMs: 0, gain: 0.08 },
+      { hz: 660, durationMs: 160, delayMs: 130, gain: 0.09 },
+    ]);
+    expect(getEarconSteps('success')).toEqual([
+      { hz: 523, durationMs: 80, delayMs: 0, gain: 0.07 },
+      { hz: 659, durationMs: 80, delayMs: 90, gain: 0.07 },
+      { hz: 784, durationMs: 140, delayMs: 180, gain: 0.08 },
+    ]);
+    expect(getEarconSteps('error')).toEqual([
+      { hz: 320, durationMs: 140, delayMs: 0, gain: 0.09 },
+      { hz: 220, durationMs: 180, delayMs: 150, gain: 0.09 },
+    ]);
+    expect(getEarconSteps('listening')).toEqual([
+      { hz: 660, durationMs: 150, delayMs: 0, gain: 0.08 },
+    ]);
+    expect(getEarconSteps('back')).toEqual([
+      { hz: 660, durationMs: 100, delayMs: 0, gain: 0.07 },
+      { hz: 440, durationMs: 140, delayMs: 110, gain: 0.07 },
+    ]);
   });
 });
 
@@ -144,5 +193,98 @@ describe('WebAudioDriver.playEarcon', () => {
     driver.playEarcon('back');
     // When tone is inactive, no ducking or restoring calls happen on theremin gain
     expect(thereminGain.setTargetAtTime).not.toHaveBeenCalledWith(0.15, expect.any(Number), expect.any(Number));
+  });
+
+  it('cancels scheduled restoration when finger is lifted (setTone(null)) during earcon playback (Finding 1)', () => {
+    const ctx = fakeContext();
+    const driver = new WebAudioDriver(() => ctx);
+    driver.unlock();
+
+    const thereminGain = ctx.gains[0]!.gain;
+    const thereminOsc = ctx.oscillators[0]!.frequency;
+
+    // 1. User is touching: 440 Hz tone playing
+    driver.setTone(440);
+    expect(thereminGain.setTargetAtTime).toHaveBeenCalledWith(0.15, 1.0, 0.02);
+    thereminGain.setTargetAtTime.mockClear();
+
+    // 2. Earcon fires and ducks tone, scheduling restore
+    driver.playEarcon('listening');
+    expect(thereminGain.setTargetAtTime).toHaveBeenCalledWith(0, 1.0, 0.03);
+    expect(thereminGain.cancelScheduledValues).toHaveBeenCalledWith(1.0);
+
+    // 3. User lifts finger while earcon is still playing (t = 1.05)
+    ctx.currentTime = 1.05;
+    thereminGain.setTargetAtTime.mockClear();
+    thereminGain.cancelScheduledValues.mockClear();
+    thereminOsc.cancelScheduledValues.mockClear();
+
+    driver.setTone(null);
+
+    // setTone(null) must cancel scheduled restore values and fade to 0
+    expect(thereminGain.cancelScheduledValues).toHaveBeenCalledWith(1.05);
+    expect(thereminOsc.cancelScheduledValues).toHaveBeenCalledWith(1.05);
+    expect(thereminGain.setTargetAtTime).toHaveBeenCalledWith(0, 1.05, 0.03);
+
+    // Verify no subsequent restore call was made
+    expect(thereminGain.setTargetAtTime).not.toHaveBeenCalledWith(0.15, expect.any(Number), expect.any(Number));
+  });
+
+  it('reschedules restoration to new pitch when setTone(newHz) is called during earcon (Finding 1)', () => {
+    const ctx = fakeContext();
+    const driver = new WebAudioDriver(() => ctx);
+    driver.unlock();
+
+    const thereminGain = ctx.gains[0]!.gain;
+    const thereminOsc = ctx.oscillators[0]!.frequency;
+
+    driver.setTone(440);
+    driver.playEarcon('listening'); // restoreAt = 1.0 + 0.15 + 0.05 = 1.20
+
+    ctx.currentTime = 1.05;
+    thereminGain.setTargetAtTime.mockClear();
+    thereminOsc.setTargetAtTime.mockClear();
+
+    // Finger moves to new pitch while earcon is playing
+    driver.setTone(550);
+
+    // Tone must stay ducked at now (1.05) and restore to 550 at 1.20
+    expect(thereminGain.cancelScheduledValues).toHaveBeenCalledWith(1.05);
+    expect(thereminOsc.cancelScheduledValues).toHaveBeenCalledWith(1.05);
+    expect(thereminGain.setTargetAtTime).toHaveBeenCalledWith(0, 1.05, 0.03);
+    expect(thereminOsc.setTargetAtTime).toHaveBeenCalledWith(550, 1.2, 0.02);
+    expect(thereminGain.setTargetAtTime).toHaveBeenCalledWith(0.15, 1.2, 0.02);
+  });
+
+  it('disconnects earcon oscillators and gains when each step ends (Finding 13)', () => {
+    const ctx = fakeContext();
+    const driver = new WebAudioDriver(() => ctx);
+    driver.unlock();
+
+    driver.playEarcon('start'); // 2 steps -> oscillators[1] and oscillators[2]
+    expect(ctx.oscillators).toHaveLength(3);
+    expect(ctx.gains).toHaveLength(3);
+
+    const step1Osc = ctx.oscillators[1]!;
+    const step1Gain = ctx.gains[1]!;
+    const step2Osc = ctx.oscillators[2]!;
+    const step2Gain = ctx.gains[2]!;
+
+    expect(step1Osc.onended).toBeDefined();
+    expect(step2Osc.onended).toBeDefined();
+
+    // Trigger onended for step 1
+    step1Osc.onended?.(new Event('ended'));
+    expect(step1Osc.disconnect).toHaveBeenCalled();
+    expect(step1Gain.disconnect).toHaveBeenCalled();
+
+    // Trigger onended for step 2
+    step2Osc.onended?.(new Event('ended'));
+    expect(step2Osc.disconnect).toHaveBeenCalled();
+    expect(step2Gain.disconnect).toHaveBeenCalled();
+
+    // Theremin oscillator and gain must not be disconnected
+    expect(ctx.oscillators[0]!.disconnect).not.toHaveBeenCalled();
+    expect(ctx.gains[0]!.disconnect).not.toHaveBeenCalled();
   });
 });
