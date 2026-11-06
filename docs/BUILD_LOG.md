@@ -261,3 +261,16 @@ Format for each entry:
 - **Not fixable:** `deepmerge` (low) has no patched release (4.3.1 is the latest). Build-time only, not shipped. Dismiss the alert as "no fix available / not used at runtime" on GitHub.
 - **Backend:** pip-audit found only the venv's bundled `setuptools 65.5.0` (not a project dependency); app packages clean.
 - **Gates (clean clone, fresh install):** tsc clean, 473 frontend tests pass, build OK, PWA still emits `sw.js` and `manifest.webmanifest`.
+
+
+## 2026-11-06 — Antigravity — Lane lab-foundation (Frankenstein's Laboratory visual system)
+- Built design tokens in `frontend/src/styles/tokens.css` (lab charcoal `#0b0e0c`, creature life green `#39ff88`, voltage cyan `#00f0ff`, aged copper/brass `#c88a4b`, bone/parchment `#ded6c4`, radii, glow, shadows). Verified WCAG AAA (>= 7:1 for text, >= 4.5:1 for UI borders/large text).
+- Integrated self-hosted Atkinson Hyperlegible 400 and 700 `.woff2` fonts with `font-display: swap` in `global.css`, configured PWA precaching in `frontend/vite.config.ts`, and established font stack with Indian language fallbacks (`Nirmala UI`, `Noto Sans Devanagari`, `Noto Sans Gujarati`).
+- Polished global base: body blueprint grid with CSS gradients, visible focus rings, full `prefers-reduced-motion: reduce` and `forced-colors: active` support.
+- Built lab primitives in `frontend/src/components/lab/`: `Seam` (SVG dashed suture divider), `Rivets` (4 corner bolts), `LabCard` (wrapper composing stitched edge + rivets, children untouched), and `Spark` (one-shot "IT'S ALIVE" electric arc + glow pulse under 1.2s, max 3 flashes/s, static frame under reduced motion).
+- Created interactive button styles in `global.css` (`.gt-btn`, `.gt-btn--primary`, `.gt-btn--secondary`, `.gt-btn--quiet`) with minimum 48×48 px targets and copper/green styling.
+- Authored comprehensive design system document in `docs/design/LAB_THEME.md` (tokens table, components, do/don't list, accessibility rationale, and `## Logo` placeholder).
+- Added 119 new frontend tests across 3 new test files (`tests/lab.tokens.test.ts`, `tests/lab.fonts.test.ts`, `tests/lab.primitives.test.tsx`).
+- DoD results: `npm test` 45 files, 592 passed; `tsc --noEmit` clean; `vite build` clean with 16 precache entries (420.01 KiB) including both woff2 fonts; backend pytest (346 passed, 1 skipped) and ruff clean.
+- What broke: Initial nested CSS comment in `global.css` caused a PostCSS build syntax error, and raw import of tokens.css in Vitest was empty; both quickly diagnosed and resolved.
+- Files touched: `frontend/src/styles/tokens.css`, `frontend/src/styles/global.css`, `frontend/src/styles/lab.css`, `frontend/vite.config.ts`, `frontend/src/components/lab/Seam.tsx`, `frontend/src/components/lab/Rivets.tsx`, `frontend/src/components/lab/LabCard.tsx`, `frontend/src/components/lab/Spark.tsx`, `frontend/src/components/lab/index.ts`, `frontend/tests/lab.tokens.test.ts`, `frontend/tests/lab.fonts.test.ts`, `frontend/tests/lab.primitives.test.tsx`, `docs/design/LAB_THEME.md`, `docs/BUILD_LOG.md`.
