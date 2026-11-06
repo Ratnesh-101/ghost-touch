@@ -731,3 +731,21 @@ Format for each entry:
   - `docs/STEMERGENT_SUBMISSION.md`
   - `README.md`
   - `docs/reports/agy-lab-finaldocs-report.md`
+
+## 2026-11-06 — Antigravity — Lane x-i18nsheet: Native-speaker review sheet for Hindi and Gujarati
+- What was done:
+  - Produced `docs/user-test/translation-review.md` containing non-technical reviewer instructions emphasizing spoken phrasing over literal translation for blind students, 17 screen/component tables covering all 183 keys across English, Hindi, and Gujarati with exact source string copying, dynamic placeholder preservation notes (`keep {n}`), `(spoken)` annotations on all keys read aloud by the speech driver, and an automated analysis section flagging suspicious translations (untranslated strings, Latin script in Indic tables, terminology inconsistencies, fraction reading hurdles, and long spoken sentences).
+  - Produced `docs/user-test/translation-review.csv` with matching UTF-8 quoted fields and header row for spreadsheet review.
+  - Verified total key counts and confirmed 100% parity across English (183), Hindi (183), and Gujarati (183).
+  - Wrote lane report `docs/reports/agy-x-i18nsheet-report.md`.
+- What broke / surprising findings:
+  - `lang.changedEn` was left untranslated as `"Language set to English."` in both Hindi and Gujarati tables.
+  - Hindi alternates between `चित्र` (general picture) and `आरेख` (diagram), while Gujarati uses pure Gujarati `સાચવો` for saving edits but transliterated `સેવ` for saved diagram files, and `ભૂંસો` (erase) for deleting diagrams vs `કાઢી નાખો` for deleting points/lines.
+  - In `commands.cornerAnnounce`, English uses `"Corner {index} of {total}:"`, whereas Hindi/Gujarati use slash fraction notation `"{index}/{total}"`, which speech engines read awkwardly as "slash".
+  - No tests were run per brief specification ("Run no tests").
+- Files touched:
+  - `docs/user-test/translation-review.md`
+  - `docs/user-test/translation-review.csv`
+  - `docs/reports/agy-x-i18nsheet-report.md`
+  - `docs/BUILD_LOG.md`
+
