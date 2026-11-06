@@ -10,7 +10,7 @@ import struct
 
 from fastapi import HTTPException
 
-MAX_IMAGE_PIXELS = 40_000_000  # 40 megapixels
+MAX_IMAGE_PIXELS = 12_000_000  # 12 megapixels (SEC-02)
 
 
 def sniff_image_format(data: bytes) -> str | None:
