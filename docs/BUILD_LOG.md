@@ -1503,3 +1503,54 @@ Format for each entry:
   - `docs/reports/agy-f3-fix-teach-report.md`
   - `docs/BUILD_LOG.md`
 
+## 2026-11-06 — agy, reviewed by Claude — Lane g5-semantic-ask (Semantic targets for Ask endpoint)
+- Built deterministic semantic target resolution for the Ask endpoint per `docs/briefs/agy-g5-semantic-ask.md` and `docs/briefs/semantic-targets-spec.md`.
+- Implemented `backend/app/semantic.py` (pure Python module):
+  - Target calculations for `peak` (min y vertex across polylines), `trough` (max y vertex across polylines), `origin` (axes intersection at (y_axis_x, x_axis_y)), `tallest_bar` (max value), `shortest_bar` (min value), `right_angle` (vertex with exactly 2 incident segments at 90 +/- 3 degrees), `longest_side` (max Euclidean length segment), with strict document-order tie breaking.
+  - Natural question phrase matching with whole-word regex boundaries in English, Hindi, and Gujarati.
+  - Spoken coarse position descriptions in English, Hindi, and Gujarati across a 3x3 normalized scene grid.
+  - Plain language explanation (e.g. "There is no peak in this diagram.") with target None when a feature does not exist or does not apply to the scene.
+- Integrated into `answer_question` in `backend/app/ask.py`:
+  - Intercepts query BEFORE calling LLM provider chain.
+  - For semantic questions, validates target with `validate_ask_target` and returns immediately with `source: "facts"` without calling vision/language models.
+  - Non-semantic questions continue to execute via model chain and `facts_lookup`.
+- Created tests:
+  - `backend/tests/test_semantic.py`: Unit and integration tests covering all features on `sine_scene`, `barchart_scene`, `triangle_scene`, a custom triangle variant with right angle at B and longest side AC, missing feature handling, Hindi and Gujarati translations, and assertions that `fake.call_count == 0` for semantic questions.
+  - `backend/tests/test_semantic_props.py`: Hypothesis property-based tests verifying peak y <= every vertex y, trough y >= every vertex y, tallest/shortest bar value invariants, and target validation.
+- Files touched:
+  - `backend/app/semantic.py`
+  - `backend/app/ask.py`
+  - `backend/tests/test_semantic.py`
+  - `backend/tests/test_semantic_props.py`
+  - `docs/reports/agy-g5-semantic-ask-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — agy, reviewed by Claude — Lane g5-fix (Break circular import between semantic.py and ask.py)
+- Resolved module-level circular import `ImportError: cannot import name 'AskTarget' from partially initialized module 'app.ask'`:
+  - Removed all imports from `app.ask` in `backend/app/semantic.py`.
+  - Defined frozen dataclass `SemanticResult(name, target_kind, element_id, x, y, label)` in `backend/app/semantic.py`.
+  - Updated `backend/app/ask.py` to import `SemanticResult` from `app.semantic` and convert it to `ElementTarget` / `PointTarget` via `semantic_to_ask_target`.
+  - Added direct support for `SemanticResult` in `validate_ask_target`.
+  - Updated `backend/tests/test_semantic.py` and `backend/tests/test_semantic_props.py` to test both pure `SemanticResult` instances and converted `AskTarget` models.
+- Files touched:
+  - `backend/app/semantic.py`
+  - `backend/app/ask.py`
+  - `backend/tests/test_semantic.py`
+  - `backend/tests/test_semantic_props.py`
+  - `docs/reports/agy-g5-semantic-ask-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — agy, reviewed by Claude — Lane g5-fix2 (Fix semantic matcher Unicode/punctuation and non-semantic point test)
+- Resolved 3 test failures from supervisor run per `docs/briefs/agy-g5-fix2.md`:
+  - `backend/tests/test_ask_target.py::test_ask_target_valid_point_kept`: Changed test question from semantic "Where is the right angle?" to non-semantic "Where is the centroid?", allowing the query to reach the fake AI model and verifying preservation of `PointTarget(x=0.25, y=0.85)` with `source="ai"`.
+  - `backend/tests/test_semantic.py::test_match_semantic_feature_hindi_and_gujarati` & `test_hindi_and_gujarati_answers`:
+    - Replaced `[^\w\s°]` in `_clean_question` with `normalize_semantic_text` in `backend/app/semantic.py`. In Python 3, `\w` excluded Unicode combining marks (`M*`), which stripped all Indic matras, chandrabindu, and anusvara.
+    - Implemented Unicode NFKC normalization, case folding, chandrabindu to anusvara normalization (`ँ`/`ઁ` -> `ं`/`ં`), nukta stripping (NFD -> remove `\u093c`/`\u0abc` -> NFC), punctuation removal (Devanagari danda `।`, double danda `॥`, question marks `?`, `？`, `؟`, etc.), and whitespace collapsing.
+    - Pre-normalized all phrase definitions and sorted by length descending.
+    - Added comprehensive variant tests for danda, question marks, nuktas, chandrabindu, extra spaces, and Unicode NFC/NFD/NFKC forms.
+- Files touched:
+  - `backend/app/semantic.py`
+  - `backend/tests/test_ask_target.py`
+  - `backend/tests/test_semantic.py`
+  - `docs/reports/agy-g5-semantic-ask-report.md`
+  - `docs/BUILD_LOG.md`

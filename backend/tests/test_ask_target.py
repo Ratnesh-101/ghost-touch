@@ -183,7 +183,7 @@ def test_ask_target_unknown_element_id_dropped(client: TestClient, triangle: Dia
 def test_ask_target_valid_point_kept(client: TestClient, triangle: DiagramScene) -> None:
     model_output = json.dumps(
         {
-            "answer": "The right angle is at the bottom left.",
+            "answer": "The centroid is at the bottom left.",
             "target": {"x": 0.25, "y": 0.85},
         }
     )
@@ -195,7 +195,7 @@ def test_ask_target_valid_point_kept(client: TestClient, triangle: DiagramScene)
             "/api/v1/ask",
             json={
                 "scene": triangle.model_dump(),
-                "question": "Where is the right angle?",
+                "question": "Where is the centroid?",
                 "lang": "en",
             },
         )

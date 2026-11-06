@@ -19,6 +19,15 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schema import DiagramScene
+from app.semantic import (
+    SemanticResult,
+)
+from app.semantic import (
+    semantic_ask as _semantic_ask,
+)
+from app.semantic import (
+    semantic_target as _resolve_semantic_target,
+)
 from app.vision.base import VisionError
 from app.vision.chain import ProviderChain
 
@@ -519,6 +528,41 @@ AskPointTarget = PointTarget
 AskTarget = ElementTarget | PointTarget
 
 
+def semantic_to_ask_target(result: SemanticResult | None) -> AskTarget | None:
+    """Convert a plain SemanticResult from app.semantic into ElementTarget or PointTarget."""
+    if result is None:
+        return None
+    if result.target_kind == "element":
+        if not result.element_id:
+            return None
+        return ElementTarget(elementId=result.element_id)
+    if result.target_kind == "point":
+        if result.x is None or result.y is None:
+            return None
+        return PointTarget(x=result.x, y=result.y)
+    return None
+
+
+semantic_result_to_ask_target = semantic_to_ask_target
+
+
+def semantic_target(scene: DiagramScene, question: str, lang: str = "en") -> AskTarget | None:
+    """Resolve semantic target converted to AskTarget (ElementTarget or PointTarget)."""
+    res = _resolve_semantic_target(scene, question, lang)
+    return semantic_to_ask_target(res)
+
+
+def semantic_ask(
+    scene: DiagramScene, question: str, lang: str = "en"
+) -> tuple[str, AskTarget | None] | None:
+    """Resolve semantic question and return (spoken_answer, AskTarget | None) or None."""
+    res = _semantic_ask(scene, question, lang)
+    if res is None:
+        return None
+    spoken_answer, sem_result = res
+    return spoken_answer, semantic_to_ask_target(sem_result)
+
+
 class AskResponse(BaseModel):
     """Response model for POST /api/v1/ask."""
 
@@ -582,6 +626,12 @@ def validate_ask_target(raw_target: Any, scene: DiagramScene) -> AskTarget | Non
 
     try:
         valid_ids = set(extract_scene_element_ids(scene))
+
+        # Plain SemanticResult instance from app.semantic
+        if isinstance(raw_target, SemanticResult):
+            raw_target = semantic_to_ask_target(raw_target)
+            if raw_target is None:
+                return None
 
         # Already an ElementTarget instance
         if isinstance(raw_target, ElementTarget):
@@ -649,6 +699,26 @@ async def answer_question(
         total_budget = timeout
 
     used_provider = "none"
+
+    # Deterministic semantic target check before invoking models (Lane g5)
+    sem_check = _semantic_ask(request.scene, request.question, request.lang)
+    if sem_check is not None:
+        spoken_ans, sem_target = sem_check
+        ask_target = semantic_to_ask_target(sem_target)
+        validated_target = validate_ask_target(ask_target, request.scene)
+        elapsed_ms = int((time.monotonic() - start_time) * 1000)
+        logger.info(
+            "ask processed: provider=none source=facts semantic=true question_len=%d "
+            "scene_points=%d elapsed_ms=%d",
+            len(request.question),
+            len(request.scene.points),
+            elapsed_ms,
+        )
+        return AskResponse(
+            answer=spoken_ans,
+            source="facts",
+            target=validated_target,
+        )
 
     if chain.providers:
         prompt = build_ask_prompt(request.scene, request.question, request.lang)
