@@ -129,3 +129,39 @@ export async function processImageFile(
     stopTone();
   }
 }
+
+/**
+ * Manages raw photo object URL lifecycle to prevent memory leaks on mobile devices.
+ * Revokes any previous photo blob URL when a new photo is set or on screen disposal,
+ * while allowing the active photo URL to remain valid for Teacher Correct overlays.
+ */
+export interface PhotoUrlTracker {
+  getCurrent(): string | null;
+  update(newUrl: string | null): void;
+  dispose(): void;
+}
+
+export function createPhotoUrlTracker(
+  revoke: (url: string) => void = (url) => {
+    if (typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+      URL.revokeObjectURL(url);
+    }
+  },
+): PhotoUrlTracker {
+  let activeUrl: string | null = null;
+  return {
+    getCurrent: () => activeUrl,
+    update: (newUrl: string | null) => {
+      if (activeUrl !== null && activeUrl !== newUrl) {
+        revoke(activeUrl);
+      }
+      activeUrl = newUrl;
+    },
+    dispose: () => {
+      if (activeUrl !== null) {
+        revoke(activeUrl);
+        activeUrl = null;
+      }
+    },
+  };
+}

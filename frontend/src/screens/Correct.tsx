@@ -195,6 +195,7 @@ export function Correct({
 
     return () => {
       cancelled = true;
+      photoImgRef.current = null;
     };
   }, [photoUrl]);
 

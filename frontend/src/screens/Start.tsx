@@ -27,6 +27,7 @@ interface StartProps {
 
 export function Start({ drivers, onBegin }: StartProps): JSX.Element {
   const surface = useRef<HTMLButtonElement>(null);
+  const started = useRef(false);
 
   useEffect(() => {
     // Chrome may refuse to speak before the first tap; the tap speaks again.
@@ -35,6 +36,8 @@ export function Start({ drivers, onBegin }: StartProps): JSX.Element {
   }, [drivers]);
 
   const begin = (): void => {
+    if (started.current) return;
+    started.current = true;
     handleStartTap(drivers);
     onBegin();
   };

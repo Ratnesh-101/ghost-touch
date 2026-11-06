@@ -19,8 +19,15 @@ import {
   useSyncExternalStore,
   type ChangeEvent,
   type JSX,
+  type ReactEventHandler,
   type RefObject,
 } from 'react';
+
+declare module 'react' {
+  interface InputHTMLAttributes<T> extends HTMLAttributes<T> {
+    onCancel?: ReactEventHandler<T> | undefined;
+  }
+}
 import { loadSample, type SampleId, type SceneMode } from '../api/scene';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { LabLoading } from '../components/loading/LabLoading';
@@ -66,6 +73,7 @@ export function Capture({
 }: CaptureProps): JSX.Element {
   const [status, setStatus] = useState(initialStatus);
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const takeButton = useRef<HTMLButtonElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
@@ -98,8 +106,16 @@ export function Capture({
     takeButton.current?.focus();
     const controller = new AbortController();
     lifetime.current = controller;
+    const photoEl = photoInput.current;
+    const fileEl = fileInput.current;
+    photoEl?.addEventListener('cancel', handleCancel);
+    fileEl?.addEventListener('cancel', handleCancel);
     // Leaving the screen cancels an upload and silences its progress tone.
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      photoEl?.removeEventListener('cancel', handleCancel);
+      fileEl?.removeEventListener('cancel', handleCancel);
+    };
   }, []);
 
   const say = (text: string): void => {
@@ -116,8 +132,14 @@ export function Capture({
 
   // Do not open a picker while an upload is running; say why instead of ignoring the tap.
   const openPicker = (picker: RefObject<HTMLInputElement | null>): void => {
-    if (busy) say(t('capture.busy'));
+    if (busy || busyRef.current) say(t('capture.busy'));
     else picker.current?.click();
+  };
+
+  const handleCancel = (): void => {
+    busyRef.current = false;
+    setBusy(false);
+    takeButton.current?.focus();
   };
 
   const handleFile = async (
@@ -127,15 +149,23 @@ export function Capture({
     const input = event.target;
     const file = input.files?.[0];
     input.value = ''; // lets the same file be chosen again
-    if (file === undefined) return;
-    if (busy) {
+    if (file === undefined) {
+      handleCancel();
+      return;
+    }
+    if (busy || busyRef.current) {
       say(t('capture.busy'));
       return;
     }
     const signal = lifetime.current.signal;
+    busyRef.current = true;
     setBusy(true);
     const outcome = await processImageFile(file, { audio: drivers.audio, say, signal, source });
-    if (signal.aborted) return;
+    if (signal.aborted) {
+      busyRef.current = false;
+      return;
+    }
+    busyRef.current = false;
     setBusy(false);
     if (outcome.kind === 'scene') {
       drivers.audio.playEarcon?.('success');
@@ -155,19 +185,29 @@ export function Capture({
   };
 
   const handleSample = async (id: SampleId): Promise<void> => {
-    if (busy) {
+    if (busy || busyRef.current) {
       say(t('capture.busy'));
       return;
     }
+    busyRef.current = true;
+    setBusy(true);
     let scene: DiagramScene;
     try {
       scene = await loadSample(id);
       drivers.audio.playEarcon?.('success');
     } catch {
+      busyRef.current = false;
+      setBusy(false);
       drivers.audio.playEarcon?.('error');
       say(t('capture.errorSample'));
       return;
     }
+    if (lifetime.current.signal.aborted) {
+      busyRef.current = false;
+      return;
+    }
+    busyRef.current = false;
+    setBusy(false);
     onScene(scene, 'ai', undefined, 'sample');
   };
 
@@ -276,6 +316,7 @@ export function Capture({
         capture="environment"
         hidden
         onChange={(e) => void handleFile(e, 'camera')}
+        onCancel={handleCancel}
       />
       <input
         ref={fileInput}
@@ -283,6 +324,7 @@ export function Capture({
         accept={`${ACCEPTED_IMAGE_TYPES.join(',')},application/pdf,.pdf`}
         hidden
         onChange={(e) => void handleFile(e, 'file')}
+        onCancel={handleCancel}
       />
     </main>
   );
