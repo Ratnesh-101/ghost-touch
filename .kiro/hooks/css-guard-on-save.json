@@ -8,7 +8,7 @@
       "matcher": "frontend[\\\\/]src[\\\\/]styles[\\\\/].*\\.css$",
       "action": {
         "type": "command",
-        "command": "npx vitest run tests/labTheme.prop.test.ts tests/css.imports.test.ts --reporter=dot"
+        "command": "npm --prefix frontend exec -- vitest run tests/labTheme.prop.test.ts tests/css.imports.test.ts --reporter=dot"
       },
       "enabled": true
     }

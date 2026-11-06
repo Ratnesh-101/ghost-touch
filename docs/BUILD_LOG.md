@@ -860,3 +860,21 @@ Format for each entry:
 - Reviewed Requirement 14/15, Task 17/18, P18-P20, the three new hooks, the Explore fixes and P21-P30. Report: `docs/reviews/review-agy-kiro-assigned-claude.md` (verdict FIX FIRST: two hook-command defects, one tautological property).
 - Follow-up fixes were handed to agy lane `x-reviewfix` (not yet merged when this was written).
 - Housekeeping: all 60 old `gt-lane-*` worktrees removed (branches kept; 55 uncommitted files archived outside the repo in `gt-archive/`).
+## 2026-11-06 — Antigravity (agy) — Lane x-reviewfix (fixes from a Claude Code review)
+- What was built:
+  - Fix 1: Updated `.kiro/hooks/css-guard-on-save.json` and `.kiro/hooks/a11y-on-save.json` command strings to execute with `npm --prefix frontend exec -- vitest ...` avoiding execution failures from root directory. Added an assertion to `frontend/tests/kiro.hooks.test.ts` ensuring all command hooks mentioning `vitest` contain `--prefix frontend`.
+  - Fix 2: Rewrote `.kiro/hooks/prop-tests-on-save.json` command to remove hard-coded workspace path (`c:/Users/Admin/Documents/ghost-touch`) and `py -3.11`, replacing with relative paths from the workspace root: backend case runs `backend/.venv/Scripts/python -m pytest backend/tests/test_validate_props.py -q --tb=short` and frontend case runs `npm --prefix frontend exec -- vitest run tests/hapticEngine.prop.test.ts tests/pitch.prop.test.ts tests/hitTest.prop.test.ts --reporter=dot`. Preserved matcher, exit code 2 on failure, and file-path JSON extraction. (Kiro-authored hook edited by agy).
+  - Fix 3: Replaced the static, partly tautological `aliveAnimations` table in `frontend/tests/labTheme.prop.test.ts` (P18) with values dynamically parsed from `frontend/src/styles/lab.css`, `frontend/src/styles/explore.css`, and `frontend/src/styles/tokens.css`. Resolves `--gt-spark-duration` through `tokens.css`, extracts keyframe stops, derives visual intensity (opacity, box-shadow glow blur radius), and identifies pulse peaks as local maxima higher than both neighbours. Preserved the temporal-sampling fast-check property over arbitrary 1.0s intervals. Found 0 real CSS violations; no stylesheets were edited.
+- Verification & findings:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+  - `npm --prefix frontend test`: 82 test files passed, 1203 tests passed.
+  - `npm --prefix frontend run build`: client and PWA bundle cleanly built (22 precache entries, 531.54 KiB).
+  - No backend commands run per brief instruction.
+- Files touched:
+  - `.kiro/hooks/css-guard-on-save.json`
+  - `.kiro/hooks/a11y-on-save.json`
+  - `.kiro/hooks/prop-tests-on-save.json`
+  - `frontend/tests/kiro.hooks.test.ts`
+  - `frontend/tests/labTheme.prop.test.ts`
+  - `docs/reports/agy-x-reviewfix-report.md`
+  - `docs/BUILD_LOG.md`

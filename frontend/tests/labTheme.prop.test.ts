@@ -43,38 +43,188 @@ describe('Requirement 14: Frankenstein Laboratory Theme Property Tests (agy, awa
       durationMs: number;
       pulseCount: number;
       keyframePercentages: number[];
+      peakPercentages: number[];
     }
 
-    const aliveAnimations: AliveAnimationSpec[] = [
-      {
-        name: 'gt-spark-arc-play',
-        sourceFile: 'lab.css',
-        durationMs: 950,
-        pulseCount: 2, // Peaks at 15% and 70%
-        keyframePercentages: [0, 15, 45, 70, 100],
-      },
-      {
-        name: 'gt-spark-glow-play',
-        sourceFile: 'lab.css',
-        durationMs: 950,
-        pulseCount: 2, // Peaks at 20% and 75%
-        keyframePercentages: [0, 20, 50, 75, 100],
-      },
-      {
-        name: 'gt-alive-border-pulse',
-        sourceFile: 'explore.css',
-        durationMs: 950,
-        pulseCount: 2, // Peaks at 20% and 75%
-        keyframePercentages: [0, 20, 50, 75, 100],
-      },
-      {
-        name: 'gt-alive-hud-pulse',
-        sourceFile: 'explore.css',
-        durationMs: 950,
-        pulseCount: 2, // Peaks at 20% and 75%
-        keyframePercentages: [0, 20, 50, 75, 100],
-      },
-    ];
+    interface KeyframeStop {
+      percentage: number;
+      intensity: number;
+    }
+
+    // Helper: parse custom properties declared in tokens.css
+    function parseTokens(tokensCss: string): Record<string, string> {
+      const clean = stripCssComments(tokensCss);
+      const tokenMap: Record<string, string> = {};
+      const tokenRegex = /(--gt-[a-zA-Z0-9_-]+)\s*:\s*([^;]+);/g;
+      let match: RegExpExecArray | null;
+      while ((match = tokenRegex.exec(clean)) !== null) {
+        tokenMap[match[1]!] = match[2]!.trim();
+      }
+      return tokenMap;
+    }
+
+    // Helper: resolve duration in ms from duration expression (supporting var(--token, fallback) and direct ms/s values)
+    function parseDurationMs(rawDuration: string, tokens: Record<string, string>): number {
+      let val = rawDuration.trim();
+      const varMatch = val.match(/var\(\s*(--[a-zA-Z0-9_-]+)(?:\s*,\s*([^)]+))?\)/);
+      if (varMatch) {
+        const varName = varMatch[1]!;
+        const fallback = varMatch[2];
+        if (tokens[varName]) {
+          val = tokens[varName]!.trim();
+        } else if (fallback) {
+          val = fallback.trim();
+        }
+      }
+
+      const msMatch = val.match(/(\d+(?:\.\d+)?)\s*ms/);
+      if (msMatch) {
+        return Number(msMatch[1]);
+      }
+      const sMatch = val.match(/(\d+(?:\.\d+)?)\s*s/);
+      if (sMatch) {
+        return Number(sMatch[1]) * 1000;
+      }
+      throw new Error(`Could not parse duration: "${rawDuration}" (resolved: "${val}")`);
+    }
+
+    // Helper: find animation / animation-duration rule using animationName and resolve its duration
+    function findAnimationDuration(animationName: string, css: string, tokens: Record<string, string>): number {
+      const clean = stripCssComments(css);
+      const animRegex = new RegExp(`animation\\s*:\\s*([^;]*\\b${animationName}\\b[^;]*);`);
+      const animMatch = animRegex.exec(clean);
+      if (animMatch) {
+        const decl = animMatch[1]!;
+        const durVarMatch = decl.match(/var\(\s*--gt-[a-zA-Z0-9_-]+(?:\s*,\s*[^)]+)?\)/);
+        if (durVarMatch) {
+          return parseDurationMs(durVarMatch[0], tokens);
+        }
+        const directDurMatch = decl.match(/\b\d+(?:\.\d+)?(?:ms|s)\b/);
+        if (directDurMatch) {
+          return parseDurationMs(directDurMatch[0], tokens);
+        }
+      }
+
+      const blockRegex = /\{([^}]+)\}/g;
+      let blockMatch: RegExpExecArray | null;
+      while ((blockMatch = blockRegex.exec(clean)) !== null) {
+        const block = blockMatch[1]!;
+        if (block.includes(animationName)) {
+          const durMatch = block.match(/animation-duration\s*:\s*([^;]+);/);
+          if (durMatch) {
+            return parseDurationMs(durMatch[1]!, tokens);
+          }
+        }
+      }
+
+      throw new Error(`Could not find animation declaration using ${animationName}`);
+    }
+
+    // Helper: parse keyframe stops and extract visual intensity (opacity, glow box-shadow)
+    function parseKeyframeStops(animationName: string, css: string): KeyframeStop[] {
+      const clean = stripCssComments(css);
+      const kfHeaderRegex = new RegExp(`@keyframes\\s+${animationName}\\s*\\{`);
+      const kfHeaderMatch = kfHeaderRegex.exec(clean);
+      if (!kfHeaderMatch) {
+        throw new Error(`@keyframes ${animationName} not found`);
+      }
+
+      const startIndex = kfHeaderMatch.index + kfHeaderMatch[0].length;
+      let braceCount = 1;
+      let endIndex = startIndex;
+      while (endIndex < clean.length && braceCount > 0) {
+        if (clean[endIndex] === '{') braceCount++;
+        else if (clean[endIndex] === '}') braceCount--;
+        endIndex++;
+      }
+      const kfBody = clean.slice(startIndex, endIndex - 1);
+
+      const stopRegex = /(from|to|\d+(?:\.\d+)?%)\s*\{([^}]*)\}/g;
+      let stopMatch: RegExpExecArray | null;
+      const stops: KeyframeStop[] = [];
+
+      while ((stopMatch = stopRegex.exec(kfBody)) !== null) {
+        const rawPct = stopMatch[1]!;
+        const body = stopMatch[2]!;
+
+        let percentage = 0;
+        if (rawPct === 'from') percentage = 0;
+        else if (rawPct === 'to') percentage = 100;
+        else percentage = parseFloat(rawPct.replace('%', ''));
+
+        let intensity = 0;
+        const opacityMatch = body.match(/opacity\s*:\s*([0-9.]+)/);
+        if (opacityMatch) {
+          intensity = parseFloat(opacityMatch[1]!);
+        } else if (body.includes('box-shadow')) {
+          const shadowMatch = body.match(/box-shadow\s*:\s*([^;]+);/);
+          if (shadowMatch) {
+            const shadowVal = shadowMatch[1]!.trim();
+            if (shadowVal === 'none') {
+              intensity = 0;
+            } else {
+              // Extract glow blur radius from 0 0 (\d+)px
+              const glowMatches = [...shadowVal.matchAll(/0\s+0\s+(\d+)px/g)];
+              if (glowMatches.length > 0) {
+                intensity = Math.max(...glowMatches.map((m) => Number(m[1])));
+              } else {
+                intensity = 0;
+              }
+            }
+          }
+        }
+
+        stops.push({ percentage, intensity });
+      }
+
+      stops.sort((a, b) => a.percentage - b.percentage);
+      return stops;
+    }
+
+    // Dynamically parse all alive animations from stylesheets and tokens
+    function parseAliveAnimations(): AliveAnimationSpec[] {
+      const labCss = loadStylesheet('lab.css');
+      const exploreCss = loadStylesheet('explore.css');
+      const tokensCss = loadStylesheet('tokens.css');
+      const tokens = parseTokens(tokensCss);
+
+      const targets = [
+        { name: 'gt-spark-arc-play', sourceFile: 'lab.css', css: labCss },
+        { name: 'gt-spark-glow-play', sourceFile: 'lab.css', css: labCss },
+        { name: 'gt-alive-border-pulse', sourceFile: 'explore.css', css: exploreCss },
+        { name: 'gt-alive-hud-pulse', sourceFile: 'explore.css', css: exploreCss },
+      ];
+
+      return targets.map(({ name, sourceFile, css }) => {
+        const durationMs = findAnimationDuration(name, css, tokens);
+        const stops = parseKeyframeStops(name, css);
+        const keyframePercentages = stops.map((s) => s.percentage);
+
+        // Derive peaks: a peak is a stop where the animated opacity/box-shadow glow value
+        // is strictly higher than both neighbours (local maximum). This matches the visual
+        // pulse energy peaks and counts the non-zero interior pulse stops.
+        const peakPercentages: number[] = [];
+        for (let i = 1; i < stops.length - 1; i++) {
+          const prev = stops[i - 1]!.intensity;
+          const curr = stops[i]!.intensity;
+          const next = stops[i + 1]!.intensity;
+          if (curr > prev && curr > next) {
+            peakPercentages.push(stops[i]!.percentage);
+          }
+        }
+
+        return {
+          name,
+          sourceFile,
+          durationMs,
+          pulseCount: peakPercentages.length,
+          keyframePercentages,
+          peakPercentages,
+        };
+      });
+    }
+
+    const aliveAnimations: AliveAnimationSpec[] = parseAliveAnimations();
 
     it('asserts that parsed CSS animation durations in explore.css and lab.css are <= 1.2s', () => {
       const labCss = loadStylesheet('lab.css');
@@ -123,14 +273,14 @@ describe('Requirement 14: Frankenstein Laboratory Theme Property Tests (agy, awa
             const animDurationSec = anim.durationMs / 1000;
 
             // Count peaks that fall within [windowStartSec, windowEndSec]
-            // Keyframe peaks occur at keyframePercentages / 100 * animDurationSec
-            // In each animation, peaks are at index 1 and index 3
-            const peak1Sec = (anim.keyframePercentages[1]! / 100) * animDurationSec;
-            const peak2Sec = (anim.keyframePercentages[3]! / 100) * animDurationSec;
-
+            // Keyframe peaks occur at peakPercentages / 100 * animDurationSec
             let flashesInWindow = 0;
-            if (peak1Sec >= windowStartSec && peak1Sec <= windowEndSec) flashesInWindow++;
-            if (peak2Sec >= windowStartSec && peak2Sec <= windowEndSec) flashesInWindow++;
+            for (const peakPct of anim.peakPercentages) {
+              const peakSec = (peakPct / 100) * animDurationSec;
+              if (peakSec >= windowStartSec && peakSec <= windowEndSec) {
+                flashesInWindow++;
+              }
+            }
 
             expect(flashesInWindow).toBeLessThanOrEqual(3);
             return flashesInWindow <= 3;
