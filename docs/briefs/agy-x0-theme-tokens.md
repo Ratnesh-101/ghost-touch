@@ -1,0 +1,6 @@
+# Lane x0-theme-tokens (agy)
+Goal: migrate the legacy bare-hex colours in the CSS to `var(--gt-*)` tokens and empty the allow-list in P20.
+Context: `frontend/tests/labTheme.prop.test.ts` (around line 369-380) holds `legacyBareHexAllowList` (8 entries such as `global.css:#20202e`, `global.css:#050508`) pointing at `frontend/src/styles/global.css` and `explore.css`. Read the test first so you understand how P20 counts occurrences.
+Allowed files: `frontend/src/styles/*.css`, the token definitions file (wherever `--gt-*` are declared, add tokens ONLY if no existing token has the same value; prefer existing), `frontend/tests/labTheme.prop.test.ts` (ONLY to remove migrated entries from the allow-list; never weaken any assertion; this file was agy-authored, not Kiro), `docs/reports/agy-x0-theme-tokens-report.md`, `docs/BUILD_LOG.md`.
+Forbidden: `frontend/src/core/**`, `.kiro/**`, `.env*`, any visual change: every replaced colour must resolve to the identical value. Do not touch the green `#39ff88` or the tuned look.
+Acceptance: allow-list is empty (or each remaining entry justified in the report); P20 passes; `a11y.contrast`, `css.imports`, `lab.tokens` tests pass; `npm --prefix frontend test`, tsc, and build pass; list each hex -> token mapping in the report.
