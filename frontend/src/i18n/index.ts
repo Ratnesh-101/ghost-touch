@@ -210,6 +210,7 @@ const en: Record<string, string> = {
   // Frankenstein Lab theme (Lane lab-i18n)
   'lab.start.wake': 'Wake the creature',
   'lab.start.tagline': "Feel diagrams you can't see",
+  'lab.start.subhint': 'TalkBack & touch ready',
   'lab.organ.nerves.title': 'Nerves',
   'lab.organ.nerves.line': 'Feel lines and corners as vibration',
   'lab.organ.eyes.title': 'Eyes',
@@ -407,6 +408,7 @@ const hi: Record<string, string> = {
   // Frankenstein Lab theme (Lane lab-i18n)
   'lab.start.wake': 'जीव को जगाएं',
   'lab.start.tagline': 'वे चित्र महसूस करें जो आप देख नहीं सकते',
+  'lab.start.subhint': 'टॉकबैक और स्पर्श तैयार',
   'lab.organ.nerves.title': 'तंत्रिकाएं',
   'lab.organ.nerves.line': 'रेखाओं और कोनों को कंपन के रूप में महसूस करें',
   'lab.organ.eyes.title': 'आंखें',
@@ -604,6 +606,7 @@ const gu: Record<string, string> = {
   // Frankenstein Lab theme (Lane lab-i18n)
   'lab.start.wake': 'પ્રાણીને જગાડો',
   'lab.start.tagline': 'જે આકૃતિઓ તમે જોઈ શકતા નથી તેને સ્પર્શથી અનુભવો',
+  'lab.start.subhint': 'ટોકબેક અને સ્પર્શ તૈયાર',
   'lab.organ.nerves.title': 'ચેતાઓ',
   'lab.organ.nerves.line': 'રેખાઓ અને ખૂણાઓને વાઇબ્રેશન તરીકે અનુભવો',
   'lab.organ.eyes.title': 'આંખો',
