@@ -27,6 +27,7 @@ import {
   undo,
   type HistoryState,
 } from '../core/correct';
+import { makeViewport, toScreen, type Viewport } from '../core/geometry';
 import type { DiagramScene, Point } from '../core/scene';
 import type { Drivers } from '../drivers';
 import {
@@ -34,9 +35,13 @@ import {
   getSelectedLabel,
   getSelectionAnnouncement,
   hitTestCorrect,
-  pointerToNorm,
   type CorrectSelection,
 } from '../flow/correct';
+import {
+  isPdfSource,
+  pointerToHitTestCoords,
+  pointerToScene,
+} from '../flow/correctCanvas';
 import { getLang, LANG_BCP47, t } from '../i18n';
 import '../styles/correct.css';
 
@@ -62,11 +67,13 @@ export function Correct({
   const [isSaving, setIsSaving] = useState(false);
   const [hasError, setHasError] = useState(false);
 
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const photoImgRef = useRef<HTMLImageElement | null>(null);
   const isDraggingRef = useRef(false);
   const dragPointIdRef = useRef<string | null>(null);
   const dragSceneRef = useRef<DiagramScene>(scene);
+  const viewportRef = useRef<Viewport>(makeViewport(600, 400));
 
   const speak = (text: string): void => {
     drivers.speech.speak(text, LANG_BCP47[getLang()]);
@@ -78,27 +85,116 @@ export function Correct({
     speak(text);
   };
 
-  // Announce intro on mount
+  // Announce intro on mount and move focus to screen heading (Finding 8)
   useEffect(() => {
+    headingRef.current?.focus();
     speak(t('correct.intro'));
   }, []);
 
-  // Preload photo if url given
+  // Update canvas bitmap dimensions to match real CSS box and device pixel ratio (BUG-02)
+  const updateDimensions = (): Viewport => {
+    const canvas = canvasRef.current;
+    if (!canvas) return viewportRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(1, Math.round(rect.width));
+    const height = Math.max(1, Math.round(rect.height));
+    const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    const view = makeViewport(width, height);
+    viewportRef.current = view;
+    renderCanvas(view);
+    return view;
+  };
+
+  // Sizing effect with ResizeObserver and window resize listener
+  useEffect(() => {
+    updateDimensions();
+
+    const handleResize = (): void => {
+      updateDimensions();
+    };
+    window.addEventListener('resize', handleResize);
+
+    const canvas = canvasRef.current;
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && canvas) {
+      observer = new ResizeObserver(() => {
+        updateDimensions();
+      });
+      observer.observe(canvas);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      observer?.disconnect();
+    };
+  }, []);
+
+  // Preload photo if url given, guarding against PDF blobs / URLs (Finding 17)
   useEffect(() => {
     if (!photoUrl) {
       photoImgRef.current = null;
       renderCanvas();
       return;
     }
-    const img = new Image();
-    img.src = photoUrl;
-    img.onload = () => {
-      photoImgRef.current = img;
-      renderCanvas();
+
+    let cancelled = false;
+
+    const checkAndLoad = async (): Promise<void> => {
+      // Synchronous guard for PDF extension / data URI
+      if (isPdfSource(photoUrl)) {
+        photoImgRef.current = null;
+        renderCanvas();
+        return;
+      }
+
+      // Asynchronous guard for blob: URLs
+      if (photoUrl.startsWith('blob:') && typeof fetch !== 'undefined') {
+        try {
+          const res = await fetch(photoUrl);
+          const blob = await res.blob();
+          if (blob.type === 'application/pdf' || (blob.type && !blob.type.startsWith('image/'))) {
+            if (!cancelled) {
+              photoImgRef.current = null;
+              renderCanvas();
+            }
+            return;
+          }
+        } catch {
+          // Fall back to Image decoding check
+        }
+      }
+
+      if (cancelled) return;
+
+      const img = new Image();
+      img.src = photoUrl;
+      img.onload = () => {
+        if (!cancelled) {
+          photoImgRef.current = img;
+          renderCanvas();
+        }
+      };
+      img.onerror = () => {
+        if (!cancelled) {
+          photoImgRef.current = null;
+          renderCanvas();
+        }
+      };
     };
-    img.onerror = () => {
-      photoImgRef.current = null;
-      renderCanvas();
+
+    void checkAndLoad();
+
+    return () => {
+      cancelled = true;
     };
   }, [photoUrl]);
 
@@ -117,26 +213,26 @@ export function Correct({
     renderCanvas();
   }, [history.present, selection]);
 
-  const renderCanvas = (): void => {
+  const renderCanvas = (view: Viewport = viewportRef.current): void => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
+    const { canvasWidth: width, canvasHeight: height } = view;
     ctx.clearRect(0, 0, width, height);
 
-    // Draw photo background if available
+    // Canvas background
+    ctx.fillStyle = '#0b0e0c';
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw photo background if available, letterboxed into the diagram unit square
     const img = photoImgRef.current;
     if (img && img.complete && img.naturalWidth > 0) {
-      ctx.drawImage(img, 0, 0, width, height);
+      ctx.drawImage(img, view.offsetX, view.offsetY, view.scale, view.scale);
       // Dark semi-transparent scrim for overlay readability
       ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-      ctx.fillRect(0, 0, width, height);
-    } else {
-      ctx.fillStyle = '#0d1117';
-      ctx.fillRect(0, 0, width, height);
+      ctx.fillRect(view.offsetX, view.offsetY, view.scale, view.scale);
     }
 
     const curScene = dragSceneRef.current;
@@ -150,18 +246,21 @@ export function Correct({
       const pB = pointMap.get(seg.b);
       if (!pA || !pB) continue;
 
+      const sA = toScreen(pA, view);
+      const sB = toScreen(pB, view);
+
       const isSel = selection?.kind === 'segment' && selection.id === seg.id;
       ctx.beginPath();
-      ctx.moveTo(pA.x * width, pA.y * height);
-      ctx.lineTo(pB.x * width, pB.y * height);
+      ctx.moveTo(sA.x, sA.y);
+      ctx.lineTo(sB.x, sB.y);
       ctx.strokeStyle = isSel ? '#58a6ff' : '#3fb950';
       ctx.lineWidth = isSel ? 6 : 4;
       ctx.stroke();
 
       // Segment label
       if (seg.label) {
-        const midX = ((pA.x + pB.x) / 2) * width;
-        const midY = ((pA.y + pB.y) / 2) * height;
+        const midX = (sA.x + sB.x) / 2;
+        const midY = (sA.y + sB.y) / 2;
         drawLabelPill(ctx, seg.label, midX, midY - 10, isSel);
       }
     }
@@ -169,11 +268,12 @@ export function Correct({
     // Draw polylines
     for (const poly of curScene.polylines ?? []) {
       if (poly.points.length < 2) continue;
+      const start = toScreen({ x: poly.points[0]![0], y: poly.points[0]![1] }, view);
       ctx.beginPath();
-      ctx.moveTo(poly.points[0]![0] * width, poly.points[0]![1] * height);
+      ctx.moveTo(start.x, start.y);
       for (let i = 1; i < poly.points.length; i++) {
-        const pt = poly.points[i]!;
-        ctx.lineTo(pt[0] * width, pt[1] * height);
+        const pt = toScreen({ x: poly.points[i]![0], y: poly.points[i]![1] }, view);
+        ctx.lineTo(pt.x, pt.y);
       }
       ctx.strokeStyle = '#2ea043';
       ctx.lineWidth = 3;
@@ -183,11 +283,10 @@ export function Correct({
     // Draw points
     for (const pt of points) {
       const isSel = selection?.kind === 'point' && selection.id === pt.id;
-      const sx = pt.x * width;
-      const sy = pt.y * height;
+      const sp = toScreen(pt, view);
 
       ctx.beginPath();
-      ctx.arc(sx, sy, isSel ? 12 : 8, 0, 2 * Math.PI);
+      ctx.arc(sp.x, sp.y, isSel ? 12 : 8, 0, 2 * Math.PI);
       ctx.fillStyle = isSel ? '#58a6ff' : '#3fb950';
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
@@ -196,7 +295,7 @@ export function Correct({
 
       // Point label
       const displayLabel = pt.label ?? pt.id;
-      drawLabelPill(ctx, displayLabel, sx, sy - 18, isSel);
+      drawLabelPill(ctx, displayLabel, sp.x, sp.y - 18, isSel);
     }
   };
 
@@ -231,10 +330,11 @@ export function Correct({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const px = e.clientX - rect.left;
-    const py = e.clientY - rect.top;
+    const view = viewportRef.current;
 
-    const hit = hitTestCorrect(history.present, px, py, rect.width, rect.height);
+    // Convert pointer to letterbox-relative coordinates for hit testing (BUG-02)
+    const { px, py } = pointerToHitTestCoords(e.clientX, e.clientY, rect, view);
+    const hit = hitTestCorrect(history.present, px, py, view.scale, view.scale);
     setSelection(hit);
 
     if (hit) {
@@ -258,13 +358,15 @@ export function Correct({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const px = e.clientX - rect.left;
-    const py = e.clientY - rect.top;
+    const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+    const view = viewportRef.current;
+    const bitmapSize = { width: canvas.width, height: canvas.height };
 
-    const norm = pointerToNorm(px, py, rect.width, rect.height);
+    // Convert pointer to normalized scene point using the same Viewport (BUG-02)
+    const norm = pointerToScene(e.clientX, e.clientY, rect, bitmapSize, dpr, view);
     const updated = movePoint(dragSceneRef.current, dragPointIdRef.current, norm.x, norm.y);
     dragSceneRef.current = updated;
-    renderCanvas();
+    renderCanvas(view);
   };
 
   const handlePointerUp = (e: PointerEvent<HTMLCanvasElement>): void => {
@@ -391,7 +493,9 @@ export function Correct({
   return (
     <main className="gt-correct">
       <header className="gt-correct__header">
-        <h1 className="gt-correct__title">{t('correct.title')}</h1>
+        <h1 className="gt-correct__title" tabIndex={-1} ref={headingRef}>
+          {t('correct.title')}
+        </h1>
         <AccessibleButton
           className="gt-correct__btn"
           onClick={onCancel}
@@ -416,8 +520,6 @@ export function Correct({
         <canvas
           ref={canvasRef}
           className="gt-correct__canvas"
-          width={600}
-          height={400}
           tabIndex={0}
           role="img"
           aria-label={t('correct.photoOverlay')}

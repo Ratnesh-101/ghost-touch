@@ -97,7 +97,7 @@ describe('Correct Screen: Lab Style markup & elements', () => {
       }),
     );
 
-    expect(html).toContain('<h1 class="gt-correct__title">');
+    expect(html).toContain('<h1 class="gt-correct__title" tabindex="-1">');
     expect(html).toContain(t('correct.title'));
   });
 
@@ -220,5 +220,25 @@ describe('Correct CSS: 48x48 targets, focus-visible & token conformance', () => 
   it('respects prefers-reduced-motion with no animation', () => {
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
     expect(css).not.toContain('@keyframes');
+  });
+
+  it('BUG-02: eliminates object-fit: contain on .gt-correct__canvas to prevent letterbox desynchronization', () => {
+    const canvasRule = rules.find((r) => r.selectors.includes('.gt-correct__canvas'));
+    expect(canvasRule).toBeDefined();
+    expect(canvasRule?.declarations['object-fit']).toBeUndefined();
+  });
+
+  it('BUG-06: provides safe-area insets on .gt-correct', () => {
+    expect(css).toMatch(/\.gt-correct\s*\{[^}]*env\(safe-area-inset-top/);
+    expect(css).toMatch(/\.gt-correct\s*\{[^}]*env\(safe-area-inset-bottom/);
+  });
+
+  it('BUG-07: prevents forced 280px min-height in landscape with clamp and landscape rule', () => {
+    const containerRule = rules.find((r) => r.selectors.includes('.gt-correct__canvas-container'));
+    expect(containerRule).toBeDefined();
+    expect(containerRule?.declarations['min-height']).toMatch(/clamp\(160px,\s*40vh,\s*280px\)/);
+
+    // Landscape media query rule exists
+    expect(css).toMatch(/@media[^{]*orientation:\s*landscape[^{]*\{[\s\S]*?\.gt-correct__canvas-container[\s\S]*?min-height:\s*160px/);
   });
 });
