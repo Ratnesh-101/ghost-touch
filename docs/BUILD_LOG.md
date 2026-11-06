@@ -1178,4 +1178,69 @@ Format for each entry:
   - `docs/reports/agy-t3-student-open-report.md`
   - `docs/BUILD_LOG.md`
 
+## 2026-11-06 — Antigravity (agy, reviewed by Claude Code) — Lane t2-teach-editor (Sighted Teacher Editor Mode)
+- What was built:
+  - Created `frontend/src/screens/Teach.tsx` implementing the sighted Teacher Editor mode accessible at route `#/teach`.
+  - Built component suite in `frontend/src/components/teach/`:
+    - `TeachCanvas.tsx`: live interactive diagram preview canvas supporting pointer dragging of vertices with pointer capture, selection, keyboard arrow key nudging, and responsive letterboxing via `makeViewport`.
+    - `VerifyForm.tsx`: teacher name (required, <= 60 chars) and note (optional, <= 280 chars) verification form displaying the honesty copy banner ("Verified means a person reviewed this diagram. It is not cryptographic proof."), with "Mark verified" button disabled until diagram is valid and non-empty.
+    - `SharePanel.tsx`: presentation panel displaying generated share URL, character size count, "Copy link" button with spoken confirmation ("Link copied"), Web Share API button when available, and QR code via `qrDataUrl` with "Link too long for a QR code; use Copy link" fallback.
+    - `LoadModal.tsx`: modal dialog allowing the teacher to load diagrams from the current Explore diagram, saved diagrams in IndexedDB, or pasted share links.
+  - Built pure flow logic in `frontend/src/flow/teach.ts`:
+    - Feature flag and user setting gating (`isTeacherActive`, `STORAGE_KEY_TEACHER`).
+    - Vertex operations (`addVertex`, `nudgeVertex`).
+    - Function graph axis ranges validation (`validateAxisCoord`, `updateSceneAxes`).
+    - Verification form and share payload creation (`validateVerifyForm`, `createSharePayload`).
+    - Share link decoding (`loadSceneFromShareInput`).
+    - Round-trip helper (`roundTripShare`).
+  - Built drivers in `frontend/src/drivers/clipboard.ts`:
+    - `copyToClipboard`: copies text to system clipboard via `navigator.clipboard.writeText` with fallback.
+    - `canWebShare` and `shareViaWebShare`: wraps Web Share API with graceful abort handling.
+    - `getShareOrigin`: resolves base origin prioritizing `VITE_SITE_URL` then `window.location.origin`.
+  - Extended `frontend/src/drivers/hashRoute.ts` with `TEACH_HASH` and `isTeachHash`.
+  - Integrated `App.tsx` routing:
+    - Route resolution for `#/teach` gated by `isTeacherActive()`.
+    - State management for Explore scene handoff and back navigation.
+  - Added teacher-tools setting toggle in `frontend/src/components/LabSettings.tsx` gated by `isShareEnvOn()`.
+  - Added responsive high-contrast stylesheet in `frontend/src/styles/teach.css` enforcing Design Token Color Property P20 and 48x48 px touch targets.
+  - Added 53 i18n keys across English, Hindi, and Gujarati with 100% parity, and updated `translation-review.md` and `translation-review.csv`.
+  - Added 6 test suites with 53 new tests (total 105 test files, 1420 tests passing):
+    - `frontend/tests/teach.flow.test.ts`
+    - `frontend/tests/teach.verify.test.tsx`
+    - `frontend/tests/teach.share.test.tsx`
+    - `frontend/tests/teach.routing.test.tsx`
+    - `frontend/tests/teach.editor.test.tsx`
+    - `frontend/tests/teach.a11y.test.tsx`
+- What broke / surprising findings:
+  - React's `renderToStaticMarkup` preserves camelCase `maxLength="60"` on `<input>` and escapes `&` as `&amp;` in headings (`Verify &amp; Share`).
+  - In Node.js 21+, `globalThis.navigator` has only a getter; mocked clipboard and share APIs in tests using `Object.defineProperty(globalThis.navigator, ...)` instead of reassigning the property.
+- Verification results:
+  - `npm --prefix frontend test`: 105 test files passed (105), 1420 tests passed (1420).
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+  - `npm --prefix frontend run build`: 0 errors (clean production build with PWA precache, 127 modules transformed in 169ms).
+- Files touched:
+  - `frontend/src/screens/Teach.tsx`
+  - `frontend/src/components/teach/TeachCanvas.tsx`
+  - `frontend/src/components/teach/VerifyForm.tsx`
+  - `frontend/src/components/teach/SharePanel.tsx`
+  - `frontend/src/components/teach/LoadModal.tsx`
+  - `frontend/src/flow/teach.ts`
+  - `frontend/src/drivers/clipboard.ts`
+  - `frontend/src/drivers/hashRoute.ts`
+  - `frontend/src/App.tsx`
+  - `frontend/src/components/LabSettings.tsx`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/styles/teach.css`
+  - `frontend/tests/teach.flow.test.ts`
+  - `frontend/tests/teach.verify.test.tsx`
+  - `frontend/tests/teach.share.test.tsx`
+  - `frontend/tests/teach.routing.test.tsx`
+  - `frontend/tests/teach.editor.test.tsx`
+  - `frontend/tests/teach.a11y.test.tsx`
+  - `docs/user-test/translation-review.md`
+  - `docs/user-test/translation-review.csv`
+  - `docs/reports/agy-t2-teach-editor-report.md`
+  - `docs/BUILD_LOG.md`
+
+
 

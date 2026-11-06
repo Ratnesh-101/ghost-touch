@@ -8,6 +8,19 @@
 
 export const DEBUG_HASH = '#/debug';
 export const SHARE_HASH_PREFIX = '#s=';
+export const TEACH_HASH = '#/teach';
+
+/** Checks whether a hash string represents the teacher editor route (`#/teach`). */
+export function isTeachHash(hash: string): boolean {
+  if (typeof hash !== 'string') return false;
+  const trimmed = hash.trim();
+  return (
+    trimmed === TEACH_HASH ||
+    trimmed === `/${TEACH_HASH}` ||
+    trimmed.startsWith(`${TEACH_HASH}?`) ||
+    trimmed.startsWith(`${TEACH_HASH}/`)
+  );
+}
 
 /** Current `location.hash`, or '' outside a browser. */
 export function readHash(): string {
