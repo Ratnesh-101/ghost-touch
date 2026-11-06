@@ -366,3 +366,36 @@ Format for each entry:
 - Findings / Broken during run: SSR `renderToStaticMarkup` without an event loop does not trigger `useEffect` in Node, so static markup for async loaded states is tested via component structure and CSS inspection. Multi-line declarations in CSS parsed by declaration maps instead of raw line splits.
 - Verification results: `tsc` clean, 522 frontend tests passed (473 baseline + 49 new), build clean, pytest 348 passed, ruff clean.
 - Files touched: `frontend/src/screens/SavedDiagrams.tsx`, `frontend/src/styles/saved.css`, `frontend/src/styles/correct.css`, `frontend/tests/saved.lab.test.tsx`, `frontend/tests/correct.lab.test.tsx`, `docs/reports/agy-lab-saved-report.md`, `docs/BUILD_LOG.md`.
+
+## 2026-11-06 — Antigravity — Lane lab-correct2 (Correct Canvas & Saved/Correct Layout & Focus)
+- Resolved BUG-02, BUG-05, BUG-06, BUG-07, Finding 8, and Finding 17 per `docs/briefs/agy-lab-correct2.md`:
+  - `frontend/src/flow/correctCanvas.ts` (new): Implemented pure coordinate conversion helpers `pointerToScene(clientX, clientY, rect, bitmapSize, dpr, viewport)` and `pointerToHitTestCoords(clientX, clientY, rect, viewport)` mapping pointer coordinates to normalized [0, 1] scene coordinates using the same letterboxed `Viewport` used for drawing; implemented `isPdfSource` guard.
+  - `frontend/src/screens/Correct.tsx`: Sized canvas bitmap dynamically to its real CSS box via `ResizeObserver` and window resize listeners with DPR scaling; unified letterboxed `Viewport` (`makeViewport`) for drawing (`toScreen`), hit-testing, and pointer-to-scene dragging; guarded photo overlay against PDF blobs and URLs; moved initial focus to screen heading (`tabIndex={-1}`) in mount effect.
+  - `frontend/src/screens/SavedDiagrams.tsx`: Added heading ref and moved initial focus to heading (`tabIndex={-1}`) in mount effect for TalkBack / keyboard navigation without altering spoken entry messages.
+  - `frontend/src/styles/correct.css`: Removed `object-fit: contain;` from `.gt-correct__canvas` to eliminate letterbox desynchronization; updated `.gt-correct__canvas-container` to `min-height: clamp(160px, 40vh, 280px);` with `@media (orientation: landscape) { min-height: 160px; }`; added safe-area insets (`env(safe-area-inset-*)`).
+  - `frontend/src/styles/saved.css`: Added `flex-wrap: wrap;` on `.gt-saved__header` to prevent heading / Back button collision on 320 px viewports / 200% zoom; added safe-area insets (`env(safe-area-inset-*)`).
+  - `frontend/tests/correct.canvas.test.ts` (new): Added 44 unit tests covering corners, edge midpoints, wide/tall letterboxing, DPR 1-3, border clamping, exact same-viewport mathematical inverse, and `isPdfSource`.
+  - `frontend/tests/saved.focus.test.tsx` (new): Added 6 tests verifying mount focus and spoken message preservation on SavedDiagrams and Correct.
+  - Extended `frontend/tests/correct.lab.test.tsx` and `frontend/tests/saved.lab.test.tsx` with assertions for BUG-02, BUG-05, BUG-06, and BUG-07.
+- What broke / findings:
+  - Initial `tabIndex={-1}` placed before `className` in JSX caused `renderToStaticMarkup` to emit `tabindex` before `class`, which clashed with strict substring expectation in legacy test; resolved by placing `className` first on the JSX elements.
+  - Unused `dpr` variable in `correctCanvas.ts` caught by TypeScript `noUnusedLocals`; resolved with `void dpr;`.
+  - Type import of `Point` from `flow/correct` was a local type; re-pointed to `core/scene`.
+- Verification results:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors (clean).
+  - `npm --prefix frontend test`: 57 test files passed, 841 passed (786 baseline + 55 new/extended).
+  - `npm --prefix frontend run build`: client and PWA service worker generated cleanly (22 precache entries, 459.72 KiB); confirmed presence of new CSS rules in `frontend/dist/assets/index-*.css`.
+  - Zero backend commands executed per brief instructions.
+- Files touched:
+  - `frontend/src/flow/correctCanvas.ts`
+  - `frontend/src/screens/Correct.tsx`
+  - `frontend/src/screens/SavedDiagrams.tsx`
+  - `frontend/src/styles/correct.css`
+  - `frontend/src/styles/saved.css`
+  - `frontend/tests/correct.canvas.test.ts`
+  - `frontend/tests/saved.focus.test.tsx`
+  - `frontend/tests/correct.lab.test.tsx`
+  - `frontend/tests/saved.lab.test.tsx`
+  - `docs/reports/agy-lab-correct2-report.md`
+  - `docs/BUILD_LOG.md`
+
