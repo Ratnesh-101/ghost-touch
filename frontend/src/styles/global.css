@@ -744,7 +744,7 @@ body {
   min-height: 64px;
   font-size: var(--gt-text-xl);
   font-weight: 700;
-  background: linear-gradient(180deg, #183324 0%, #12241b 100%);
+  background: linear-gradient(180deg, var(--gt-btn-gradient-start, #183324) 0%, var(--gt-btn-gradient-end, #12241b) 100%);
   border: 2px solid var(--gt-line);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6), 0 0 16px var(--gt-green-glow);
 }
@@ -1027,7 +1027,7 @@ body {
   min-height: clamp(220px, 55dvh, 100%);
   border-radius: var(--gt-radius-lg);
   overflow: hidden;
-  border: 2px solid #20202e;
+  border: 2px solid var(--gt-border-canvas, #20202e);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), inset 0 0 24px rgba(0, 0, 0, 0.6);
   background: var(--gt-bg, #0b0e0c);
 }
@@ -1080,7 +1080,7 @@ body {
   font-size: var(--gt-text-base);
   border: 2px solid var(--gt-border-subtle);
   border-radius: var(--gt-radius-md);
-  background: #050508;
+  background: var(--gt-surface-input, #050508);
   color: var(--gt-text);
   outline: none;
   transition: border-color var(--gt-transition-fast), box-shadow var(--gt-transition-fast);
@@ -1102,7 +1102,7 @@ body {
   font-weight: 700;
   border-radius: var(--gt-radius-md);
   border: 2px solid var(--gt-line);
-  background: linear-gradient(180deg, #183324 0%, #12241b 100%);
+  background: linear-gradient(180deg, var(--gt-btn-gradient-start, #183324) 0%, var(--gt-btn-gradient-end, #12241b) 100%);
   color: var(--gt-text);
 }
 
@@ -1149,7 +1149,7 @@ body {
   font-weight: 700;
   border-radius: var(--gt-radius-lg);
   border: 2px solid var(--gt-line);
-  background: linear-gradient(180deg, #183324 0%, #12241b 100%);
+  background: linear-gradient(180deg, var(--gt-btn-gradient-start, #183324) 0%, var(--gt-btn-gradient-end, #12241b) 100%);
   color: var(--gt-text);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5), 0 0 14px var(--gt-green-glow);
 }
@@ -1278,7 +1278,7 @@ body {
   border-color: var(--gt-line);
   background: var(--gt-green-surface);
   box-shadow: 0 0 10px var(--gt-green-glow);
-  color: #ffffff;
+  color: var(--gt-text-active, #ffffff);
 }
 
 .gt-lang-selector__native,

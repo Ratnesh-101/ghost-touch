@@ -367,23 +367,10 @@ describe('Requirement 14: Frankenstein Laboratory Theme Property Tests (agy, awa
 
     /**
      * Documented allow-list of legacy bare hex literals identified during retroactive spec audit.
-     * Per brief instructions: if a property finds a real violation, report it plainly instead of
-     * silently weakening the test, documenting the allow-list in the test and the report.
-     *
-     * These legacy instances in global.css and explore.css should be migrated to var(--gt-*) tokens.
+     * All 8 legacy instances in global.css and explore.css have been migrated to var(--gt-*) tokens
+     * (Lane x0-theme-tokens). Allow-list is now empty.
      */
-    const legacyBareHexAllowList = new Set<string>([
-      // global.css button gradients and dark borders from early prototype
-      'global.css:#183324', // button dark green gradient start
-      'global.css:#12241b', // button dark green gradient end
-      'global.css:#20202e', // explore canvas container legacy border
-      'global.css:#050508', // ask input legacy dark background
-      'global.css:#ffffff', // high contrast active text
-      'global.css:#e8ffe8', // canvas vertex text
-      // explore.css canvas container focus fallback
-      'explore.css:#0b0b10', // focus ring offset fallback
-      'explore.css:#080a09', // ask input background fallback
-    ]);
+    const legacyBareHexAllowList = new Set<string>();
 
     function extractHexOccurrences(fileName: string): HexOccurrence[] {
       const raw = loadStylesheet(fileName);

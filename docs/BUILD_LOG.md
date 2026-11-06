@@ -899,3 +899,21 @@ Format for each entry:
 - Tool: Claude Code (doc edit, no app code).
 - Added the missing `capture.errorBusy` row (en/hi/gu, copied from `frontend/src/i18n/index.ts`) to `docs/user-test/translation-review.csv` and `.md` so the native-speaker check covers it.
 - Files touched: `docs/user-test/translation-review.csv`, `docs/user-test/translation-review.md`, `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity (agy, reviewed by Claude) — Lane x0-theme-tokens (Theme Tokens Migration)
+- What was built:
+  - Migrated legacy bare hex literals in `frontend/src/styles/` (`global.css`, `explore.css`) to `var(--gt-*)` tokens.
+  - Added new tokens to `frontend/src/styles/tokens.css` with identical values: `--gt-surface-input: #050508;`, `--gt-lab-charcoal: #080a09;`, `--gt-btn-gradient-start: #183324;`, `--gt-btn-gradient-end: #12241b;`, `--gt-border-canvas: #20202e;`, `--gt-text-active: #ffffff;`, `--gt-text-white: #ffffff;`, `--gt-text-vertex: #e8ffe8;`.
+  - Replaced button gradient start/end (`#183324` and `#12241b`), canvas container border (`#20202e`), ask input background (`#050508`), and active text (`#ffffff`) in `global.css` with `var(--gt-*)` wrappers.
+  - Aligned focus ring offset fallbacks in `explore.css` to `var(--gt-bg, #0b0e0c)` matching `--gt-bg: #0b0e0c`.
+  - Emptied `legacyBareHexAllowList` in `frontend/tests/labTheme.prop.test.ts` (0 remaining entries).
+- Verification & findings:
+  - `npm --prefix frontend test`: 82 test files passed, 1203 tests passed, 0 failed. P20 design token color conformance, `a11y.contrast`, `css.imports`, and `lab.tokens` all pass.
+  - Pre-existing TS2578 (`Unused '@ts-expect-error' directive`) across 31 test files noted during `tsc --noEmit` and `npm run build` due to `@types/node` installed with `@types/qrcode`. Left untouched per AGENTS.md rules; 0 errors in `src/`.
+- Files touched:
+  - `frontend/src/styles/tokens.css`
+  - `frontend/src/styles/global.css`
+  - `frontend/src/styles/explore.css`
+  - `frontend/tests/labTheme.prop.test.ts`
+  - `docs/reports/agy-x0-theme-tokens-report.md`
+  - `docs/BUILD_LOG.md`

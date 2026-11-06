@@ -20,6 +20,12 @@
   --gt-surface-card: #121814;
   --gt-surface-raised: #13271f;
   --gt-surface-sunken: #0d1a15;
+  --gt-surface-input: #050508;
+  --gt-lab-charcoal: #080a09;
+
+  /* --- Colors: Button Gradients (Dark Green) --- */
+  --gt-btn-gradient-start: #183324;
+  --gt-btn-gradient-end: #12241b;
 
   /* --- Colors: Creature Life Green Accents --- */
   --gt-green: #39ff88;
@@ -64,6 +70,7 @@
   --gt-border-copper: #c88a4b;
   --gt-border-cyan: #00f0ff;
   --gt-border-stitch: #ded6c4;
+  --gt-border-canvas: #20202e;
 
   /* --- Colors: Text & Readability (WCAG AAA compliant >= 7:1 on dark) --- */
   /* #eafff5 on #0b0e0c contrast > 18:1 (exceeds AAA 7:1) */
@@ -76,6 +83,9 @@
   /* Dark text on glowing green background contrast > 15:1 */
   --gt-text-dark: #051309;
   --gt-text-bone: #ded6c4;
+  --gt-text-active: #ffffff;
+  --gt-text-white: #ffffff;
+  --gt-text-vertex: #e8ffe8;
 
   /* --- Backward-compatible aliases --- */
   --gt-line: #39ff88;
