@@ -810,5 +810,26 @@ Format for each entry:
   - `docs/user-test/translation-review.md`
   - `docs/user-test/translation-review.csv`
   - `docs/reports/agy-x-i18nsheet-report.md`
+
+## 2026-11-06 — Antigravity — Lane x-testgaps (unit tests for four untested frontend modules)
+- Added comprehensive unit test suites for four previously untested frontend modules:
+  - `frontend/src/components/AccessibleButton.tsx` -> `frontend/tests/AccessibleButton.test.tsx` (19 tests: accessible names, visible text vs aria-label vs aria-labelledby precedence, 48×48 px minimum touch target tokens and `.gt-control` CSS rules, keyboard and click handling, disabled state and focusability, ref forwarding, button type overrides, and ARIA attribute pass-through).
+  - `frontend/src/components/RateSelector.tsx` -> `frontend/tests/RateSelector.test.tsx` (19 tests: WAI-ARIA `role="group"` semantics, localized labels, 48×48 px touch targets, state resolution from `drivers.speech.getRate()` with fallback, selection and focus spoken feedback, graceful behavior when `setRate` is undefined, and full localization in Hindi and Gujarati).
+  - `frontend/src/drivers/audioElement.ts` -> `frontend/tests/audioElement.test.ts` (15 tests: `isAudioSupported`, `createAudioElement`, `defaultAudioHost`, unsupported paths outside browser, timer scheduling and `clearTimeout` cleanup, audio playback resolution, autoplay rejection, `pause()` cleanup, and `onended`/`onerror` handlers).
+  - `frontend/src/drivers/hashRoute.ts` -> `frontend/tests/hashRoute.test.ts` (12 tests: `DEBUG_HASH`, `readHash`, `subscribeHash`, cleanup on unsubscribe, multi-subscriber isolation, SSR unsupported paths, and 4 property-based tests with `fast-check` covering route parse/format round-trip, SSR invariance, subscription cutoff, and `DEBUG_HASH` matching).
+- What broke / findings:
+  - Ghost Touch uses `LANG_BCP47['en'] = 'en-IN'` (Indian English) for NCERT/BPA target audience; unit test expected arguments were updated to use `LANG_BCP47['en']`.
+  - Calling `new Audio()` in node environment requires a real constructor class rather than an arrow-function mock.
+  - Strict TypeScript check (`tsc`) caught uncast synthetic mock event shapes in `AccessibleButton.test.tsx` and an unused `beforeEach` import in `audioElement.test.ts`, both resolved.
+- Verification results:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+  - `npm --prefix frontend test`: 80 test files passed (was 76), 1174 tests passed (was 1109; +65 tests).
+  - `npm --prefix frontend run build`: cleanly built client and PWA (22 precache entries, 529.13 KiB).
+- Files touched:
+  - `frontend/tests/AccessibleButton.test.tsx`
+  - `frontend/tests/RateSelector.test.tsx`
+  - `frontend/tests/audioElement.test.ts`
+  - `frontend/tests/hashRoute.test.ts`
+  - `docs/reports/agy-x-testgaps-report.md`
   - `docs/BUILD_LOG.md`
 
