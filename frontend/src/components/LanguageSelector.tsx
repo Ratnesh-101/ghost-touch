@@ -6,7 +6,7 @@
  * Checks for system voice availability and speaks a notice if no voice exists.
  */
 
-import { useState, useSyncExternalStore, type JSX } from 'react';
+import { useSyncExternalStore, type JSX } from 'react';
 import { AccessibleButton } from './AccessibleButton';
 import type { Drivers } from '../drivers';
 import {
@@ -27,10 +27,8 @@ interface LanguageSelectorProps {
 
 export function LanguageSelector({ drivers, className = '' }: LanguageSelectorProps): JSX.Element {
   const currentLang = useSyncExternalStore(subscribeLang, getLang, () => 'en' as Lang);
-  const [active, setActive] = useState<Lang>(currentLang);
 
   const handleSelect = (lang: Lang): void => {
-    setActive(lang);
     setLang(lang);
     const targetBcp47 = LANG_BCP47[lang];
 
@@ -56,7 +54,7 @@ export function LanguageSelector({ drivers, className = '' }: LanguageSelectorPr
       role="group"
     >
       {SUPPORTED_LANGS.map((lang) => {
-        const isSelected = active === lang;
+        const isSelected = currentLang === lang;
         const info = LANG_NAMES[lang];
         return (
           <AccessibleButton
