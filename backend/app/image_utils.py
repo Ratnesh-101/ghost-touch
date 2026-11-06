@@ -27,6 +27,37 @@ def sniff_image_format(data: bytes) -> str | None:
     return None
 
 
+def _parse_exif_orientation(data: bytes, offset: int, length: int) -> int | None:
+    """Parse EXIF orientation tag (0x0112) from APP1 segment (SEC-04)."""
+    if length < 14 or data[offset + 2 : offset + 8] != b"Exif\x00\x00":
+        return None
+    tiff_start = offset + 8
+    endian_flag = data[tiff_start : tiff_start + 2]
+    if endian_flag == b"II":
+        endian = "<"
+    elif endian_flag == b"MM":
+        endian = ">"
+    else:
+        return None
+    try:
+        first_ifd_offset = struct.unpack(endian + "I", data[tiff_start + 4 : tiff_start + 8])[0]
+        ifd_pos = tiff_start + first_ifd_offset
+        if ifd_pos + 2 > offset + length:
+            return None
+        num_entries = struct.unpack(endian + "H", data[ifd_pos : ifd_pos + 2])[0]
+        entry_pos = ifd_pos + 2
+        for _ in range(num_entries):
+            if entry_pos + 12 > offset + length:
+                break
+            tag = struct.unpack(endian + "H", data[entry_pos : entry_pos + 2])[0]
+            if tag == 0x0112:  # Orientation tag
+                return struct.unpack(endian + "H", data[entry_pos + 8 : entry_pos + 10])[0]
+            entry_pos += 12
+    except Exception:
+        return None
+    return None
+
+
 def sniff_image_dimensions(data: bytes) -> tuple[int, int] | None:
     """Extract (width, height) in pixels from the image header without full decode.
 
@@ -73,6 +104,7 @@ def sniff_image_dimensions(data: bytes) -> tuple[int, int] | None:
     # JPEG: Walk markers to Start Of Frame (SOF)
     if data.startswith(b"\xff\xd8\xff"):
         offset = 2
+        orientation: int | None = None
         try:
             while offset < len(data) - 1:
                 if data[offset] != 0xFF:
@@ -82,6 +114,13 @@ def sniff_image_dimensions(data: bytes) -> tuple[int, int] | None:
                 while marker == 0xFF and offset < len(data):
                     marker = data[offset]
                     offset += 1
+                if marker == 0xE1:
+                    if offset + 2 > len(data):
+                        return None
+                    seg_len = struct.unpack(">H", data[offset : offset + 2])[0]
+                    orientation = _parse_exif_orientation(data, offset, seg_len)
+                    offset += seg_len
+                    continue
                 # SOF0 through SOF15 except DHT/JPG/DAC
                 if marker in (
                     0xC0,
@@ -101,6 +140,8 @@ def sniff_image_dimensions(data: bytes) -> tuple[int, int] | None:
                     if offset + 7 > len(data):
                         return None
                     height, width = struct.unpack(">HH", data[offset + 3 : offset + 7])
+                    if orientation in (5, 6, 7, 8):
+                        width, height = height, width
                     return (width, height)
                 elif marker in (0xD9, 0xDA):  # EOI or SOS (Scan starts, SOF missing)
                     return None
