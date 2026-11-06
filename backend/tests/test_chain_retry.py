@@ -349,9 +349,11 @@ def test_retry_logging_safe_contents(caplog: pytest.LogCaptureFixture) -> None:
 
 
 def test_chain_picks_up_env_retries_when_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.vision import build_chain_from_env
+
     monkeypatch.setenv("PROVIDER_RETRIES", "2")
     monkeypatch.setenv("PROVIDER_RETRY_BACKOFF_SECONDS", "1.2")
-    chain = ProviderChain([])
+    chain = build_chain_from_env()
     assert chain.retries == 2
     assert chain.retry_backoff == 1.2
 
@@ -383,11 +385,19 @@ def test_main_get_provider_chain_retry_env_propagation(monkeypatch: pytest.Monke
 def test_main_validate_env_settings_retry_warnings(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    from app.main import validate_env_settings
+    from app.vision import build_chain_from_env
 
     monkeypatch.setenv("PROVIDER_RETRIES", "-1")
     monkeypatch.setenv("PROVIDER_RETRY_BACKOFF_SECONDS", "not_a_number")
     with caplog.at_level(logging.WARNING):
-        validate_env_settings()
-    assert any("PROVIDER_RETRIES must be non-negative" in r.message for r in caplog.records)
-    assert any("Invalid PROVIDER_RETRY_BACKOFF_SECONDS" in r.message for r in caplog.records)
+        chain = build_chain_from_env()
+    assert chain.retries == 1
+    assert chain.retry_backoff == 0.8
+    retries_warnings = [
+        r for r in caplog.records if "PROVIDER_RETRIES must be non-negative" in r.message
+    ]
+    backoff_warnings = [
+        r for r in caplog.records if "Invalid PROVIDER_RETRY_BACKOFF_SECONDS" in r.message
+    ]
+    assert len(retries_warnings) == 1
+    assert len(backoff_warnings) == 1
