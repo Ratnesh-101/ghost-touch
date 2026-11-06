@@ -19,6 +19,8 @@
  * 8. Reduced-motion suppresses animations
  */
 
+// @ts-expect-error Node.js runtime fs module in Vitest node environment
+import fs from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -26,6 +28,9 @@ import { MemoryDiagramStore, type Drivers } from '../src/drivers';
 import { setLang, t } from '../src/i18n';
 import { Start } from '../src/screens/Start';
 import globalCss from '../src/styles/global.css?raw';
+
+const startCssPath = new URL('../src/styles/start.css', import.meta.url);
+const startCss = fs.readFileSync(startCssPath, 'utf-8') as string;
 
 function makeMockDrivers(): {
   drivers: Drivers;
@@ -293,6 +298,35 @@ describe('Start screen (Frankenstein Lab redesign)', () => {
       const matchSubhint = /\.gt-start__subhint\s*\{([^}]+)\}/.exec(globalCss);
       expect(matchSubhint?.[1]).toContain('white-space: normal');
       expect(matchSubhint?.[1]).not.toMatch(/(?<!line-)height:\s*\d+/);
+    });
+
+    it('prevents Start Logo flexbox collapse on narrow screens via flex-shrink: 0 and aspect-ratio', () => {
+      const matchLogo = /\.gt-start__logo\s*\{([^}]+)\}/.exec(globalCss);
+      expect(matchLogo).not.toBeNull();
+      const logoBody = matchLogo?.[1] ?? '';
+
+      expect(logoBody).toMatch(/flex-shrink:\s*0/);
+      expect(logoBody).toMatch(/aspect-ratio:\s*340\s*\/\s*80/);
+    });
+
+    it('provides compact horizontal row layout for organ tiles on narrow screens in start.css', () => {
+      const mqIdx = startCss.search(/@media\s*\(\s*max-width:\s*640px\s*\)/);
+      const baseIdx = startCss.search(/\.gt-organ-tile\s*\{/);
+      expect(mqIdx).toBeGreaterThan(-1);
+      expect(baseIdx).toBeGreaterThan(-1);
+      expect(mqIdx).toBeGreaterThan(baseIdx);
+
+      expect(startCss).toMatch(/\.gt-organ-tile\s*\{[^}]*flex-direction:\s*row/);
+      expect(startCss).toMatch(/\.gt-organ-tile\s*\{[^}]*min-height:\s*64px/);
+    });
+
+    it('compacts hero elements under @media (max-width: 640px) so the Start screen fits 390x844 without scrolling', () => {
+      const mqMatch = /@media\s*\(\s*max-width:\s*640px\s*\)\s*\{([\s\S]+?)\n\}/.exec(globalCss);
+      expect(mqMatch).not.toBeNull();
+      const mqBody = mqMatch?.[1] ?? '';
+
+      expect(mqBody).toMatch(/\.gt-start__creature-emblem\s*\{[^}]*width:\s*68px/);
+      expect(mqBody).toMatch(/\.gt-start__hero\s*\{[^}]*gap:\s*var\(--gt-space-xs/);
     });
   });
 });

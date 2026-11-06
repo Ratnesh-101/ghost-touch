@@ -624,3 +624,24 @@ Format for each entry:
   - `frontend/tests/ask.errors.test.tsx` (new)
   - `docs/reports/agy-lab-flowbugsb-report.md` (new)
   - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity — Lane lab-polish: Visual Fixes (Start on phones, Capture labels)
+- Diagnosed and resolved layout and sizing issues identified during real-device screenshot review (Brave, 390x844 and 1440x900):
+  - Problem 1 (Start Logo visibility at 390px): Identified root cause as flexbox shrink collapse. In `.gt-start__hero` (flex column), `.gt-start__logo` had `flex-shrink: 1` (default) and `height: auto` without explicit `aspect-ratio` or `flex-shrink: 0`. When content overflowed the 844px height, `.gt-start__creature-emblem` (which had `flex-shrink: 0`) and text elements resisted shrinking, causing flexbox to collapse `.gt-start__logo` to 0 height. Fixed by adding `aspect-ratio: 340 / 80;` and `flex-shrink: 0;` to `.gt-start__logo` in `frontend/src/styles/global.css`.
+  - Problem 2 (Start organ tiles on narrow screens): Identified CSS cascade bug in `frontend/src/styles/start.css` where `@media (max-width: 640px)` was declared before the base `.gt-organ-tile` rule, allowing the base `flex-direction: column` to override `flex-direction: row`. Moved the media query after the base rule and tuned narrow-screen layout to a compact horizontal row (`min-height: 64px`, `padding: 8px 16px`, `gap: 12px`, `icon-wrapper: 38px`), allowing the entire Start hero to fit in 390x844 without scrolling. Preserved multiline text wrapping for Hindi and Gujarati scripts and top-origin scrolling at 200% zoom.
+  - Problem 3 (Capture specimen card labels): Increased font size on `.gt-capture__sample-name` and `.gt-capture__sample-btn` from `var(--gt-text-xs)` (11-12px) to `var(--gt-text-sm, 0.875rem)` (14px) with `line-height: var(--gt-line-height-normal, 1.4)`. In `@media (max-width: 380px)`, replaced the `0.72rem` rule with `var(--gt-text-sm, 0.875rem)`. Maintained touch targets at min-height 108px (>= 48px standard).
+  - Problem 4: Preserved all accessible names, spoken strings, handlers, and logic without modification.
+- Added comprehensive verification test suite `frontend/tests/polish.start.test.tsx` (12 tests) and extended `frontend/tests/start.lab.test.tsx` (3 new tests) and `frontend/tests/capture.lab.test.tsx` (2 new tests).
+- Verification results:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors (clean).
+  - `npm --prefix frontend test`: 60 test files passed, 854 tests passed (0 regressions).
+  - `npm --prefix frontend run build`: client and PWA service worker generated cleanly; new CSS rules verified present in `dist/assets/index-*.css`.
+- Files touched:
+  - `frontend/src/styles/global.css`
+  - `frontend/src/styles/start.css`
+  - `frontend/tests/polish.start.test.tsx` (new)
+  - `frontend/tests/start.lab.test.tsx`
+  - `frontend/tests/capture.lab.test.tsx`
+  - `docs/reports/agy-lab-polish-report.md` (new)
+  - `docs/BUILD_LOG.md`
+

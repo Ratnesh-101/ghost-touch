@@ -332,6 +332,8 @@ body {
   max-width: 100%;
   width: min(340px, 85vw);
   height: auto;
+  aspect-ratio: 340 / 80;
+  flex-shrink: 0;
   display: block;
   filter: drop-shadow(0 0 12px var(--gt-green-glow));
   transition: filter var(--gt-transition-normal), transform var(--gt-transition-normal);
@@ -477,6 +479,49 @@ body {
   overflow-wrap: break-word;
   word-break: normal;
   white-space: normal;
+}
+
+/* Narrow viewports (<= 640px) Start hero compact rhythm */
+@media (max-width: 640px) {
+  .gt-start-surface {
+    padding-top: max(var(--gt-space-md, 16px), var(--gt-safe-top, env(safe-area-inset-top, 0px)));
+    padding-bottom: max(var(--gt-space-md, 16px), var(--gt-safe-bottom, env(safe-area-inset-bottom, 0px)));
+    padding-left: max(var(--gt-space-md, 16px), var(--gt-safe-left, env(safe-area-inset-left, 0px)));
+    padding-right: max(var(--gt-space-md, 16px), var(--gt-safe-right, env(safe-area-inset-right, 0px)));
+  }
+
+  .gt-start__hero {
+    gap: var(--gt-space-xs, 8px);
+  }
+
+  .gt-start__creature-emblem {
+    width: 68px;
+    height: 68px;
+    margin-bottom: 0;
+  }
+
+  .gt-start__seam {
+    margin: 2px 0;
+  }
+
+  .gt-start__triad {
+    margin-top: 0;
+  }
+
+  .gt-start__action-badge {
+    margin-top: var(--gt-space-xs, 8px);
+    padding: 14px 28px;
+  }
+
+  .gt-start__hint,
+  .gt-start__wake {
+    font-size: var(--gt-text-lg, 1.125rem);
+  }
+
+  .gt-start__subhint {
+    margin-top: 2px;
+    font-size: var(--gt-text-xs, 0.75rem);
+  }
 }
 
 @keyframes creature-pulse {
@@ -798,13 +843,13 @@ body {
   min-height: 108px;
   min-width: var(--gt-target);
   padding: var(--gt-space-sm) var(--gt-space-xs);
-  font-size: var(--gt-text-xs);
+  font-size: var(--gt-text-sm, 0.875rem);
   font-weight: 600;
   text-align: center;
   background: var(--gt-surface-card);
   border: 1px solid var(--gt-border-subtle);
   border-radius: var(--gt-radius-md);
-  line-height: 1.35;
+  line-height: var(--gt-line-height-normal, 1.4);
   transition: all var(--gt-transition-fast);
   box-shadow: var(--gt-shadow-card);
 }
@@ -823,10 +868,13 @@ body {
 
 .gt-capture__sample-name {
   display: block;
-  font-size: var(--gt-text-xs);
+  font-family: var(--gt-font-sans);
+  font-size: var(--gt-text-sm, 0.875rem);
+  line-height: var(--gt-line-height-normal, 1.4);
   color: var(--gt-text-secondary);
   word-break: normal;
   overflow-wrap: break-word;
+  white-space: normal;
   max-width: 100%;
 }
 
@@ -1364,7 +1412,7 @@ body {
 
   .gt-capture__sample-btn {
     padding: 8px 4px;
-    font-size: 0.72rem;
+    font-size: var(--gt-text-sm, 0.875rem);
   }
 }
 
