@@ -894,3 +894,8 @@ Format for each entry:
   - `docs/KIRO_WRITEUP.md`
   - `docs/BUILD_LOG.md`
   - `docs/reports/agy-x-fillurls-report.md`
+
+## 2026-11-06 evening, Claude Code: translation sheet row
+- Tool: Claude Code (doc edit, no app code).
+- Added the missing `capture.errorBusy` row (en/hi/gu, copied from `frontend/src/i18n/index.ts`) to `docs/user-test/translation-review.csv` and `.md` so the native-speaker check covers it.
+- Files touched: `docs/user-test/translation-review.csv`, `docs/user-test/translation-review.md`, `docs/BUILD_LOG.md`

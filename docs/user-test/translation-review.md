@@ -63,6 +63,7 @@ Thank you for helping review the translations for Ghost Touch!
 | `capture.errorSizeCamera (spoken)` | That photo is too large to open. Please try again. | वह फोटो बहुत बड़ी है। कृपया पुन: प्रयास करें। | તે ફોટો ખૂબ મોટો છે. કૃપા કરીને ફરી પ્રયાસ કરો. | | | | |
 | `capture.busy (spoken)` | Still reading your diagram. Please wait. | चित्र अभी भी पढ़ा जा रहा है। कृपया प्रतीक्षा करें। | હજુ તમારી આકૃતિ વાંચી રહ્યા છીએ. કૃપા કરીને રાહ જુઓ. | | | | |
 | `capture.errorEmpty (spoken)` | That file is empty. Please choose another image. | वह फ़ाइल खाली है। कृपया दूसरी छवि चुनें। | તે ફાઇલ ખાલી છે. કૃપા કરીને બીજી ઇમેજ પસંદ કરો. | | | | |
+| `capture.errorBusy (spoken)` | The server is busy right now. Please try again in a moment. | सर्वर अभी व्यस्त है। कृपया थोड़ी देर में पुन: प्रयास करें। | સર્વર અત્યારે વ્યસ્ત છે. કૃપા કરીને થોડીવારમાં ફરી પ્રયાસ કરો. | | | | |
 | `capture.firstPagePdf (spoken)` | Using the first page of the PDF. | पीडीएफ के पहले पृष्ठ का उपयोग कर रहे हैं। | પીડીએફના પ્રથમ પાનાનો ઉપયોગ કરી રહ્યા છીએ. | | | | |
 | `capture.errorPdfPassword (spoken)` | That PDF is password protected. | वह पीडीएफ पासवर्ड से सुरक्षित है। | તે પીડીએફ પાસવર્ડ સુરક્ષિત છે. | | | | |
 | `capture.errorPdfInvalid (spoken)` | I couldn't open that PDF. Try a screenshot of the page. | मैं उस पीडीएफ को नहीं खोल सका। पृष्ठ का स्क्रीनशॉट आज़माएं। | હું તે પીડીએફ ખોલી શક્યો નથી. પાનાનો સ્ક્રીનશોટ અજમાવો. | | | | |
