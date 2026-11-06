@@ -1271,3 +1271,17 @@ Format for each entry:
   - `docs/DEMO_SCRIPT.md`
   - `docs/reports/agy-x-ownerdoc-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity — Lane a4-backend-ask (Backend Ask Audit)
+- Audited `POST /api/v1/ask` pipeline, target resolution, and security invariants:
+  - Reviewed prompt injection vectors, delimiter escaping, and `Scene Element IDs` JSON formatting.
+  - Inspected model output parsing (`parse_model_ask_output`) and target validation (`validate_ask_target`).
+  - Evaluated size limits across `/ask`, `/scene`, and Teacher Share contract (`docs/briefs/guide-share-contract.md`).
+  - Evaluated Hindi/Gujarati language handling, facts lookup tokenization, and spoken answer clamping.
+- Findings:
+  - Recorded 11 confirmed findings (3 High, 4 Medium, 4 Low) in `docs/reports/audit-a4-backend-ask.md`.
+  - Highlighted Top 5 fixes: Hindi danda unstripped in `is_dont_know`, `facts_lookup` answer length clamp bypass, polyline point limit drift (1000 vs 2000), Point A lookup omission in `facts_lookup`, and non-string `answer` dict output.
+- Files touched:
+  - `docs/reports/audit-a4-backend-ask.md`
+  - `docs/BUILD_LOG.md`
+
