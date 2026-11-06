@@ -6,7 +6,7 @@ Drafted by Claude Code on 2026-11-01 from the repository, `docs/WIN_PLAN.md` and
 - [ ] Pathway: **Hackathon**
 - [ ] Description below, edited into your own words
 - [ ] AI disclosure (section 6) kept as is, or made more specific
-- [ ] Screenshots or GIFs, demo video (under 3 min), repo link, live URL `[FILL: owner to provide media and deployment links]`
+- [ ] Screenshots or GIFs, demo video (under 3 min), repo link, live URL (repo link and live URL done) `[FILL: owner to provide media (screenshots/GIFs and demo video)]`
 - [ ] Team details, at most 4 people `[FILL: owner to provide team member names, roles, and student details]`
 
 ## 1. Title and one line
@@ -46,9 +46,9 @@ Each tool's work is logged in `docs/BUILD_LOG.md`. Reviews are in `docs/reviews/
 | Done and tested in code | Not done or not yet verified |
 |---|---|
 | **Full Pure Core & Haptic Engine:** Complete and passing all property tests: letterboxed coordinate mapping, hit-testing with bar-edge hits, state machine sequencing, theremin pitch mapping. | **Physical Phone Verification:** End-to-end testing with physical vibration and gestures on an actual OnePlus Nord CE6 device (interactive TalkBack gestures, motor vibration strength, and Web Speech mic input). |
-| **All 17 Correctness Properties:** P1–P17 implemented and passing using fast-check (frontend) and Hypothesis (backend). | **Real Textbook Accuracy:** Accuracy measured on real textbook photos under varied classroom lighting (synthetic benchmarks complete in `docs/research/vision-spike.md`). |
+| **All 30 Correctness Properties:** P1–P30 implemented and passing using fast-check (frontend) and Hypothesis (backend); P18–P30 were written by Antigravity and await Kiro review. | **Real Textbook Accuracy:** Accuracy measured on real textbook photos under varied classroom lighting (synthetic benchmarks complete in `docs/research/vision-spike.md`). |
 | **Teacher Correction Mode:** Interactive canvas overlay for sighted teachers to adjust points, edit labels, and delete elements with undo/redo and live backend validation (`core/correct.ts`, `screens/Correct.tsx`, `POST /api/v1/validate`, P16/P17). | **Field Testing:** Testing with blind students at BPA Ahmedabad `[FILL: school session observation and quotes pending live session]`; testing on a wide range of budget hardware. |
-| **Offline Diagram Storage (Task 13):** Client-side IndexedDB diagram storage, Saved Diagrams screen with specimen cards, and P14/P15 property tests implemented and passing. | **Live Deployment:** Production deployment `[FILL: owner to provide deployed URLs after running deploy pipeline]`. |
+| **Offline Diagram Storage (Task 13):** Client-side IndexedDB diagram storage, Saved Diagrams screen with specimen cards, and P14/P15 property tests implemented and passing. | **Live Deployment:** Frontend https://ghost-touch-iota.vercel.app and backend https://ghost-touch-api.onrender.com are deployed and the API health check returns ok (checked 2026-11-06); an end-to-end test on the phone is still pending. |
 | **Localization & Voice:** Hindi and Gujarati interface strings, speech synthesis, language selector, earcons, and Explore voice commands (Task 12; machine-translated strings require native-speaker review). | **Native-Speaker Review:** Hindi and Gujarati translations are machine-translated and require review by native speakers. |
 | **Accessibility & Presentation:** WCAG AAA tokens, creature mascot SVG, 48px+ touch targets, `prefers-reduced-motion` compliance (Task 14). | |
 | **Frankenstein Laboratory Redesign:** Accessible visual theme (tokens, self-hosted Atkinson Hyperlegible fonts, brand assets, specimen table canvas frame, specimen preview cards, settings sheet, 'IT'S ALIVE' spark, and PWA offline precaching) built by Antigravity under Claude Code supervision. | |
@@ -62,7 +62,7 @@ Each tool's work is logged in `docs/BUILD_LOG.md`. Reviews are in `docs/reviews/
 Test with students at the Blind People's Association (BPA) in Ahmedabad and fix whatever confuses them first; conduct native-speaker review of Hindi and Gujarati translations; complete offline saved diagrams (Task 13); and evaluate an optional Capacitor native app wrapper if budget device motors benefit from native amplitude controls.
 
 ## 9. Links
-- **Repository:** `[FILL: GitHub repository URL]`
-- **Live App:** `[FILL: Vercel deployment URL]`
+- **Repository:** https://github.com/Ratnesh-101/ghost-touch
+- **Live App:** https://ghost-touch-iota.vercel.app
 - **Demo Video:** `[FILL: YouTube demo video URL (under 3 minutes)]`
 - **Testing Instructions:** Complete testing instructions for sighted users and TalkBack users are documented in `docs/DEPLOY.md`.

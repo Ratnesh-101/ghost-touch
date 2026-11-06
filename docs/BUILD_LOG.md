@@ -878,3 +878,19 @@ Format for each entry:
   - `frontend/tests/labTheme.prop.test.ts`
   - `docs/reports/agy-x-reviewfix-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity (agy) — Lane x-fillurls (fill known [FILL] markers)
+- What was done:
+  - Replaced repository URL (`https://github.com/Ratnesh-101/ghost-touch`) and live app URL (`https://ghost-touch-iota.vercel.app`) in `docs/STEMERGENT_SUBMISSION.md` (Repository and Live App bullets).
+  - Updated checklist item in `docs/STEMERGENT_SUBMISSION.md` to note repo link and live URL are done while preserving `[FILL]` for missing media (screenshots/GIFs, demo video).
+  - Replaced `[FILL: repo or live URL]` markers in `docs/SOCIAL.md` with repo URL for codebase/repo lines, live app URL for try-the-app line, and both for the repo & live demo line, leaving video URL placeholders untouched.
+  - Updated `Submission Day Verification` marker in `docs/KIRO_WRITEUP.md` with verified test counts from main on 2026-11-06 (1203 frontend tests in 82 files, 422 backend tests, clean passes for tsc, ruff check, ruff format --check, and production build) annotated with "(re-run before submitting)".
+  - Preserved all other `[FILL]` placeholders (demo video, screenshots/GIFs, team details, BPA Ahmedabad session, TalkBack hardware verification).
+- Verification & what broke:
+  - Nothing broke (docs only; no tests run per brief).
+- Files touched:
+  - `docs/STEMERGENT_SUBMISSION.md`
+  - `docs/SOCIAL.md`
+  - `docs/KIRO_WRITEUP.md`
+  - `docs/BUILD_LOG.md`
+  - `docs/reports/agy-x-fillurls-report.md`
