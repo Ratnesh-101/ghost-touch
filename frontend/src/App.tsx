@@ -8,7 +8,7 @@
  * text is shown on the next screen. The hidden `#/debug` page (Task 5) shows
  * driver support on a phone.
  */
-import { useCallback, useEffect, useState, useSyncExternalStore, type JSX } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type JSX } from 'react';
 import { warmBackend } from './api/health';
 import type { SceneMode } from './api/scene';
 import type { DiagramScene } from './core/scene';
@@ -21,8 +21,18 @@ import {
 } from './core/savedDiagrams';
 import { createBrowserDrivers, renderSceneThumbnail, type Drivers } from './drivers';
 import { DEBUG_HASH, readHash, subscribeHash } from './drivers/hashRoute';
+import {
+  leaveCorrectEntry,
+  leaveSavedEntry,
+  onCorrectBack,
+  onSavedBack,
+  pushCorrectEntry,
+  pushSavedEntry,
+  replaceSavedEntry,
+} from './drivers/navigation';
 import { capturePrompt } from './flow/start';
 import { exploreAnnouncement } from './flow/navigation';
+import { createPhotoUrlTracker, type PhotoUrlTracker } from './flow/capture';
 import { getLang, LANG_BCP47, t } from './i18n';
 import { Capture } from './screens/Capture';
 import { Correct } from './screens/Correct';
@@ -43,6 +53,35 @@ export function App(): JSX.Element {
   const [drivers] = useState<Drivers>(() => createBrowserDrivers());
   const [view, setView] = useState<View>({ screen: 'start' });
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const photoTracker = useRef<PhotoUrlTracker>(createPhotoUrlTracker());
+
+  const updatePhotoUrl = useCallback((newUrl: string | null): void => {
+    photoTracker.current.update(newUrl);
+    setPhotoUrl(newUrl);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      photoTracker.current.dispose();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (view.screen === 'saved') {
+      return onSavedBack(() => {
+        const announced = t('capture.prompt');
+        drivers.speech.speak(announced, LANG_BCP47[getLang()]);
+        setView({ screen: 'capture', announced });
+      });
+    }
+    if (view.screen === 'correct') {
+      const scene = view.scene;
+      return onCorrectBack(() => {
+        const announced = exploreAnnouncement(scene, 'ai');
+        setView({ screen: 'explore', scene, announced });
+      });
+    }
+  }, [view, drivers]);
 
   useEffect(() => {
     void warmBackend();
@@ -107,7 +146,7 @@ export function App(): JSX.Element {
     photo?: string,
     source?: 'camera' | 'file' | 'sample',
   ): void => {
-    setPhotoUrl(photo ?? null);
+    updatePhotoUrl(photo ?? null);
     const announced = exploreAnnouncement(scene, mode);
     drivers.speech.speak(announced, LANG_BCP47[getLang()]);
     setView({ screen: 'explore', scene, announced });
@@ -118,6 +157,7 @@ export function App(): JSX.Element {
 
   // Coming back from Explore: just the prompt, not the one-time vibration warning.
   const handleBack = (): void => {
+    updatePhotoUrl(null);
     const announced = t('capture.prompt');
     drivers.speech.speak(announced, LANG_BCP47[getLang()]);
     setView({ screen: 'capture', announced });
@@ -125,12 +165,14 @@ export function App(): JSX.Element {
 
   const handleCorrect = (): void => {
     if (view.screen !== 'explore') return;
+    pushCorrectEntry();
     const intro = t('correct.intro');
     drivers.speech.speak(intro, LANG_BCP47[getLang()]);
     setView({ screen: 'correct', scene: view.scene });
   };
 
   const handleSaveCorrect = (scene: DiagramScene): void => {
+    leaveCorrectEntry();
     const announced = exploreAnnouncement(scene, 'ai');
     drivers.speech.speak(announced, LANG_BCP47[getLang()]);
     setView({ screen: 'explore', scene, announced });
@@ -138,23 +180,28 @@ export function App(): JSX.Element {
 
   const handleCancelCorrect = (): void => {
     if (view.screen !== 'correct') return;
+    leaveCorrectEntry();
     const announced = exploreAnnouncement(view.scene, 'ai');
     setView({ screen: 'explore', scene: view.scene, announced });
   };
 
   const openSaved = (): void => {
+    pushSavedEntry();
     const msg = t('saved.heading');
     drivers.speech.speak(msg, LANG_BCP47[getLang()]);
     setView({ screen: 'saved' });
   };
 
   const handleSavedBack = (): void => {
+    leaveSavedEntry();
     const announced = t('capture.prompt');
     drivers.speech.speak(announced, LANG_BCP47[getLang()]);
     setView({ screen: 'capture', announced });
   };
 
   const handleSavedOpen = (scene: DiagramScene, title: string): void => {
+    replaceSavedEntry();
+    updatePhotoUrl(null);
     // Open an offline saved diagram: goes straight to Explore, no network call, no re-save
     const announced = `${title}. ${t('explore.gestureHint')} ${t('explore.backHint')}`;
     drivers.speech.speak(announced, LANG_BCP47[getLang()]);
