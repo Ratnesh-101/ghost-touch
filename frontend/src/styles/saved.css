@@ -1,20 +1,28 @@
 /**
- * Styles for Saved Diagrams screen (Task 13, Requirement 11).
+ * Styles for Saved Diagrams screen in Frankenstein Lab Theme.
  *
- * Implements accessible, high-contrast dark theme list view.
- * Every interactive target meets or exceeds 48×48 CSS px (Requirement 12.1).
+ * Visual system:
+ * - Specimen cards with copper borders, stitched seams, and corner rivets.
+ * - Voltage cyan / creature green accents for primary actions.
+ * - Bone / parchment muted tones for secondary details.
+ * - All colours use CSS custom properties with fallbacks.
+ * - Every interactive target meets or exceeds 48×48 CSS px (Requirement 12.1).
+ * - Visible focus rings (copper / cyan) on all interactive elements.
+ * - Reduced motion: no animations.
  */
 
 .gt-saved {
   display: flex;
   flex-direction: column;
-  gap: var(--gt-space-lg, 16px);
-  max-width: 480px;
+  gap: var(--gt-space-lg, 20px);
+  max-width: 520px;
   width: 100%;
   margin: 0 auto;
   padding: var(--gt-space-xl, 24px) var(--gt-space-md, 16px) var(--gt-space-3xl, 48px);
   min-height: 100dvh;
   box-sizing: border-box;
+  background-color: var(--gt-bg, #0b0e0c);
+  color: var(--gt-text, #eafff5);
 }
 
 .gt-saved__header {
@@ -22,13 +30,16 @@
   justify-content: space-between;
   align-items: center;
   gap: var(--gt-space-sm, 12px);
+  padding-bottom: var(--gt-space-sm, 12px);
+  border-bottom: 1px dashed var(--gt-bone, var(--gt-border-subtle, #30363d));
 }
 
 .gt-saved__heading {
   margin: 0;
   font-size: var(--gt-text-2xl, 1.75rem);
+  font-family: inherit;
   font-weight: 800;
-  color: var(--gt-line, #39ff88);
+  color: var(--gt-line, var(--gt-green, #39ff88));
   text-shadow: 0 0 14px var(--gt-green-glow, rgba(57, 255, 136, 0.4));
   letter-spacing: -0.01em;
 }
@@ -36,35 +47,80 @@
 .gt-saved__back {
   min-width: var(--gt-target, 48px);
   min-height: var(--gt-target, 48px);
-  padding: 10px 16px;
+  padding: 10px 18px;
   font-size: var(--gt-text-base, 1rem);
+  font-family: inherit;
   font-weight: 600;
-  border-radius: var(--gt-radius-md, 8px);
-  border: 1px solid var(--gt-border-subtle, #30363d);
+  border-radius: var(--gt-radius-md, 12px);
+  border: 1px solid var(--gt-copper, var(--gt-border-subtle, #30363d));
   background: var(--gt-surface, #14141e);
-  color: var(--gt-text, #eafff5);
+  color: var(--gt-text-primary, var(--gt-text, #eafff5));
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.gt-saved__back:hover {
+  border-color: var(--gt-copper, var(--gt-green-dim, #25a357));
+  background: var(--gt-surface-hover, #1c1c2a);
+}
+
+.gt-saved__back:focus,
+.gt-saved__back:focus-visible {
+  outline: 3px solid var(--gt-focus, var(--gt-cyan, var(--gt-green, #39ff88)));
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px var(--gt-bg, #0b0e0c), 0 0 0 6px var(--gt-copper, var(--gt-green-dim, #25a357));
 }
 
 .gt-saved__status-row {
-  background: var(--gt-surface, #14141e);
-  border: 1px solid var(--gt-border-subtle, #30363d);
-  border-radius: var(--gt-radius-md, 8px);
-  padding: 10px 14px;
+  position: relative;
+  background: var(--gt-surface-card, var(--gt-surface, #14141e));
+  border: 1px solid var(--gt-copper, var(--gt-border-subtle, #30363d));
+  border-radius: var(--gt-radius-md, 12px);
+  padding: 12px 16px;
+  box-shadow: var(--gt-shadow-card, 0 4px 12px rgba(0, 0, 0, 0.5));
 }
 
 .gt-saved__status {
   font-size: var(--gt-text-base, 1rem);
-  line-height: 1.45;
-  color: var(--gt-text, #eafff5);
+  line-height: var(--gt-line-height-normal, 1.5);
+  color: var(--gt-text-primary, var(--gt-text, #eafff5));
   margin: 0;
 }
 
-.gt-saved__empty {
-  font-size: var(--gt-text-lg, 1.15rem);
-  color: var(--gt-text-muted, #a8c5b5);
+.gt-saved__empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  margin: 40px 0;
+  margin: var(--gt-space-3xl, 48px) auto;
+  padding: var(--gt-space-2xl, 32px) var(--gt-space-xl, 24px);
+  gap: var(--gt-space-md, 16px);
+  max-width: 360px;
+  width: 100%;
+  background: var(--gt-surface-card, var(--gt-surface, #14141e));
+  border: 1px dashed var(--gt-bone, var(--gt-border-subtle, #30363d));
+  border-radius: var(--gt-radius-lg, 16px);
+  box-sizing: border-box;
+}
+
+.gt-saved__mascot {
+  color: var(--gt-line, var(--gt-green, #39ff88));
+  opacity: 0.9;
+  filter: drop-shadow(0 0 12px var(--gt-green-glow, rgba(57, 255, 136, 0.35)));
+}
+
+.gt-saved__empty {
+  font-size: var(--gt-text-lg, 1.125rem);
+  color: var(--gt-bone, var(--gt-text-muted, #a8c5b5));
+  line-height: var(--gt-line-height-normal, 1.5);
+  text-align: center;
+  margin: 0;
 }
 
 .gt-saved__list {
@@ -73,95 +129,187 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--gt-space-md, 16px);
+  gap: var(--gt-space-lg, 20px);
 }
 
 .gt-saved__item {
-  background: var(--gt-surface, #14141e);
-  border: 1px solid var(--gt-border-subtle, #30363d);
-  border-radius: var(--gt-radius-lg, 12px);
-  padding: 16px;
+  position: relative;
+  background:
+    radial-gradient(circle 3px at 8px 8px, var(--gt-copper, var(--gt-green-dim, #25a357)) 100%, transparent 100%),
+    radial-gradient(circle 3px at calc(100% - 8px) 8px, var(--gt-copper, var(--gt-green-dim, #25a357)) 100%, transparent 100%),
+    radial-gradient(circle 3px at 8px calc(100% - 8px), var(--gt-copper, var(--gt-green-dim, #25a357)) 100%, transparent 100%),
+    radial-gradient(circle 3px at calc(100% - 8px) calc(100% - 8px), var(--gt-copper, var(--gt-green-dim, #25a357)) 100%, transparent 100%),
+    var(--gt-surface-card, var(--gt-surface, #14141e));
+  border: 2px solid var(--gt-copper, var(--gt-green-dim, #25a357));
+  border-radius: var(--gt-radius-lg, 16px);
+  padding: var(--gt-space-lg, 20px);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  box-shadow: var(--gt-shadow-card, 0 4px 12px rgba(0, 0, 0, 0.5));
+  gap: var(--gt-space-sm, 14px);
+  box-shadow: var(--gt-shadow-card, 0 6px 24px rgba(0, 0, 0, 0.6));
+}
+
+/* Stitched edge seam inside card */
+.gt-saved__item::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px dashed var(--gt-bone, var(--gt-text-secondary, rgba(194, 214, 204, 0.4)));
+  border-radius: calc(var(--gt-radius-lg, 16px) - 4px);
+  pointer-events: none;
+  opacity: 0.6;
 }
 
 .gt-saved__thumb {
   width: 100%;
   max-height: 140px;
   object-fit: contain;
-  background: #0b0b10;
-  border-radius: var(--gt-radius-sm, 6px);
-  border: 1px solid #222;
+  background: var(--gt-bg, #0b0e0c);
+  border-radius: var(--gt-radius-sm, 8px);
+  border: 1px solid var(--gt-border-subtle, #222232);
 }
 
 .gt-saved__title-row {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--gt-space-xs, 8px);
 }
 
 .gt-saved__title {
-  font-size: var(--gt-text-lg, 1.15rem);
+  font-size: var(--gt-text-lg, 1.125rem);
   font-weight: 700;
-  color: var(--gt-text, #eafff5);
+  color: var(--gt-text-primary, var(--gt-text, #eafff5));
   word-break: break-word;
 }
 
 .gt-saved__pin-badge {
   font-size: 1rem;
-  color: var(--gt-line, #39ff88);
+  color: var(--gt-cyan, var(--gt-line, #39ff88));
 }
 
 .gt-saved__controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
+  gap: var(--gt-space-xs, 8px);
+  margin-top: var(--gt-space-2xs, 4px);
 }
 
 .gt-saved__btn {
   min-width: var(--gt-target, 48px);
   min-height: var(--gt-target, 48px);
-  border-radius: var(--gt-radius-md, 8px);
+  border-radius: var(--gt-radius-md, 12px);
   font-size: var(--gt-text-base, 1rem);
+  font-family: inherit;
   font-weight: 600;
-  padding: 10px 16px;
+  padding: 10px 18px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  text-decoration: none;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.gt-saved__btn:focus,
+.gt-saved__btn:focus-visible {
+  outline: 3px solid var(--gt-focus, var(--gt-cyan, var(--gt-green, #39ff88)));
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px var(--gt-bg, #0b0e0c), 0 0 0 6px var(--gt-copper, var(--gt-green-dim, #25a357));
 }
 
 .gt-saved__btn--open {
-  background: linear-gradient(180deg, #183324 0%, #12241b 100%);
-  border: 2px solid var(--gt-line, #39ff88);
-  color: var(--gt-text, #eafff5);
-  box-shadow: 0 0 10px var(--gt-green-glow, rgba(57, 255, 136, 0.3));
+  min-width: var(--gt-target, 48px);
+  min-height: var(--gt-target, 48px);
+  background: linear-gradient(180deg, var(--gt-surface-active, #183324) 0%, var(--gt-surface, #12241b) 100%);
+  border: 2px solid var(--gt-cyan, var(--gt-line, #39ff88));
+  color: var(--gt-text-primary, var(--gt-text, #eafff5));
+  box-shadow: 0 0 12px var(--gt-green-glow, rgba(57, 255, 136, 0.35));
+}
+
+.gt-saved__btn--open:hover {
+  background: var(--gt-surface-hover, #1c1c2a);
+}
+
+.gt-saved__btn--open:focus,
+.gt-saved__btn--open:focus-visible {
+  outline: 3px solid var(--gt-cyan, var(--gt-green, #39ff88));
+  outline-offset: 2px;
 }
 
 .gt-saved__btn--pin {
+  min-width: var(--gt-target, 48px);
+  min-height: var(--gt-target, 48px);
   background: var(--gt-surface, #14141e);
-  border: 1px solid var(--gt-border-subtle, #30363d);
+  border: 1px solid var(--gt-copper, var(--gt-green-dim, #25a357));
   color: var(--gt-text, #eafff5);
+}
+
+.gt-saved__btn--pin:hover {
+  background: var(--gt-surface-hover, #1c1c2a);
+}
+
+.gt-saved__btn--pin:focus,
+.gt-saved__btn--pin:focus-visible {
+  outline: 3px solid var(--gt-copper, var(--gt-cyan, #39ff88));
+  outline-offset: 2px;
 }
 
 .gt-saved__btn--delete {
-  background: #241418;
-  border: 1px solid #da3633;
-  color: #ff7b72;
+  min-width: var(--gt-target, 48px);
+  min-height: var(--gt-target, 48px);
+  background: var(--gt-danger-bg, #241418);
+  border: 1px solid var(--gt-danger-border, #da3633);
+  color: var(--gt-danger, #ff7b72);
+}
+
+.gt-saved__btn--delete:hover {
+  background: var(--gt-danger-bg-strong, #3d1217);
+}
+
+.gt-saved__btn--delete:focus,
+.gt-saved__btn--delete:focus-visible {
+  outline: 3px solid var(--gt-danger, #ff7b72);
+  outline-offset: 2px;
 }
 
 .gt-saved__btn--confirm {
-  background: #3d1217;
-  border: 2px solid #f85149;
-  color: #ff7b72;
+  min-width: var(--gt-target, 48px);
+  min-height: var(--gt-target, 48px);
+  background: var(--gt-danger-bg-strong, #3d1217);
+  border: 2px solid var(--gt-danger-border-strong, #f85149);
+  color: var(--gt-danger, #ff7b72);
   font-weight: 700;
 }
 
+.gt-saved__btn--confirm:focus,
+.gt-saved__btn--confirm:focus-visible {
+  outline: 3px solid var(--gt-danger, #f85149);
+  outline-offset: 2px;
+}
+
 .gt-saved__btn--cancel {
+  min-width: var(--gt-target, 48px);
+  min-height: var(--gt-target, 48px);
   background: var(--gt-surface, #14141e);
-  border: 1px solid var(--gt-border-subtle, #30363d);
+  border: 1px solid var(--gt-bone, var(--gt-border-subtle, #30363d));
   color: var(--gt-text, #eafff5);
+}
+
+.gt-saved__btn--cancel:hover {
+  background: var(--gt-surface-hover, #1c1c2a);
+}
+
+.gt-saved__btn--cancel:focus,
+.gt-saved__btn--cancel:focus-visible {
+  outline: 3px solid var(--gt-bone, var(--gt-text-secondary, #c2d6cc));
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gt-saved,
+  .gt-saved * {
+    animation: none !important;
+    transition: none !important;
+  }
 }
