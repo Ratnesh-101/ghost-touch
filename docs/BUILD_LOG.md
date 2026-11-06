@@ -899,3 +899,32 @@ Format for each entry:
 - Tool: Claude Code (doc edit, no app code).
 - Added the missing `capture.errorBusy` row (en/hi/gu, copied from `frontend/src/i18n/index.ts`) to `docs/user-test/translation-review.csv` and `.md` so the native-speaker check covers it.
 - Files touched: `docs/user-test/translation-review.csv`, `docs/user-test/translation-review.md`, `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity (agy, reviewed by Claude) — Lane g1-guide-core (Guide Core Module)
+- What was built:
+  - Pure Guide core module under `frontend/src/guide/` adhering strictly to `docs/briefs/guide-share-contract.md` and `docs/briefs/agy-g1-guide-core.md`:
+    - `config.ts`: `GuideConfig` interface and `DEFAULT_GUIDE` (farMs: 600, nearMs: 120, arriveRadius: 0.05, hintEveryMs: 2500, timeoutMs: 20000, pitchLoHz: 200, pitchHiHz: 800).
+    - `geometry.ts`: `NormPoint`, `GuideTarget`, `ResolvedTarget`, `HintKey`, `resolveTarget` (supporting points, segments midpoint, polylines nearest-to-centroid, bars centre, bounds-checked), `vectorTo`, `pulseIntervalMs` (monotone non-decreasing in dist, strictly bounded within [nearMs, farMs]), `pitchFor` (target above dy<0 gives higher pitch within [pitchLoHz, pitchHiHz]), `panFor` ([-1, 1], sign matching dx), `directionHint` (dead-zone => 'here', 8 compass sectors), and `hasArrived`.
+    - `machine.ts`: `GuideState`, `GuideInput`, `GuideEffect`, `initialGuideState`, and pure state machine `guideStep` (hint spoken on direction change or every hintEveryMs; arrive emitted exactly once; tick after timeoutMs => stopped; cancel for each reason => toneOff + stopped; lift => toneOff with phase staying guiding; terminal phases stopped/arrived emit no effects).
+    - `index.ts`: single clean re-export surface.
+  - Test suites:
+    - `frontend/tests/guide.geometry.prop.test.ts` (10 fast-check property tests, >= 200 runs each).
+    - `frontend/tests/guide.machine.prop.test.ts` (6 fast-check property tests, >= 200 runs each).
+    - `frontend/tests/guide.unit.test.ts` (10 tests verifying target resolutions, scripted finger walk trace with shrinking pulse intervals and arrival, and pure module import isolation).
+- What broke / findings:
+  - Pre-existing `@ts-expect-error` directives in 31 unrelated frontend test files trigger TS2578 (`Unused '@ts-expect-error' directive`) when run under environments where `@types/node` is resolved. Per strict ownership and lane boundary rules ("Edit only the files your task names"), those pre-existing test files were not edited. All new guide files and test files are 100% clean of TypeScript errors.
+- Verification:
+  - `npm --prefix frontend test`: 85 test files passed, 1229 tests passed (including all 26 new guide tests and property tests).
+  - Backend `pytest`: 421 passed, 1 skipped.
+  - Backend `ruff check backend`: all checks passed.
+  - Backend `ruff format --check backend`: 58 files already formatted.
+- Files touched:
+  - `frontend/src/guide/config.ts`
+  - `frontend/src/guide/geometry.ts`
+  - `frontend/src/guide/machine.ts`
+  - `frontend/src/guide/index.ts`
+  - `frontend/tests/guide.geometry.prop.test.ts`
+  - `frontend/tests/guide.machine.prop.test.ts`
+  - `frontend/tests/guide.unit.test.ts`
+  - `docs/reports/agy-g1-guide-core-report.md`
+  - `docs/BUILD_LOG.md`
