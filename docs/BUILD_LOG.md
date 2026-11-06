@@ -465,3 +465,36 @@ Format for each entry:
   - `frontend/tests/capture.lab.test.tsx` (new)
   - `docs/reports/agy-lab-capture-report.md` (new)
   - `docs/BUILD_LOG.md`
+
+## 2026-11-06 — Antigravity — Lane lab-flowbugsb: language, Ask and TalkBack audit bug fixes & investigation
+- Fixed Finding 10 (MEDIUM): Language changes did not update active screen labels.
+  - Subscribed `App.tsx` to `subscribeLang` via `useSyncExternalStore(subscribeLang, getLang, getLang)`. When the user switches language in `LanguageSelector` or `LabSettings`, the screen tree immediately re-renders all labels into the active language (`en`, `hi`, `gu`).
+  - Updated `LanguageSelector.tsx` to derive selected button state reactively from `useSyncExternalStore(subscribeLang, getLang)` rather than local state.
+  - Replaced static `getLang()` calls in `App.tsx` handlers with reactive `currentLang`.
+  - Added test suite `frontend/tests/lang.rerender.test.tsx` (3 tests).
+- Fixed Finding 11 (MEDIUM): Unhandled promise rejections in Explore Screen Ask flow.
+  - Wrapped all async execution paths in `handleVoiceAsk` and `handleTextSubmit` inside `try / catch / finally` in `Explore.tsx`.
+  - On error, plays error earcon, displays error status message, speaks localized message via `askErrorMessage(err)`, and opens text fallback. Never silence.
+  - In `finally`, unconditionally resets `isBusy(false)` and restores focus.
+  - Registered `setActiveSpeech` in `AskManager` and ensured `cancelListen?.()` and `abort()` run on screen exit and unmount.
+  - Guarded callbacks in `flow/ask.ts` (`startVoiceAsk` and `submitTextAsk`) against throwing exceptions.
+  - Added test suite `frontend/tests/ask.errors.test.tsx` (7 tests).
+- Investigated Finding 5 (HIGH): TalkBack Double Announcement on Explore Canvas.
+  - Verified real conflict between `App.tsx` Web Speech announcement and TalkBack reading the focused canvas `aria-label`.
+  - Analyzed minimal fix, high risk to TalkBack users without Web Speech, and recommended owner decide after Android phone test.
+- Investigated Finding 14 (MEDIUM): Secondary pointer dead-zone after primary finger lift.
+  - Verified real drop of secondary pointer events after primary pointer lift due to `primaryPointerId = null`.
+  - Analyzed minimal fix, very high risk of disrupting tuned tactile exploration and relative cursor orientation, and recommended keeping clean single-finger re-hold behavior.
+- Verification results:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors (clean).
+  - `npm --prefix frontend test`: 61 test files passed, 847 tests passed (10 new tests, 0 regressions).
+  - `npm --prefix frontend run build`: client and PWA service worker generated cleanly (22 precache entries, 498.45 KiB).
+- Files touched:
+  - `frontend/src/App.tsx`
+  - `frontend/src/components/LanguageSelector.tsx`
+  - `frontend/src/flow/ask.ts`
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/tests/lang.rerender.test.tsx` (new)
+  - `frontend/tests/ask.errors.test.tsx` (new)
+  - `docs/reports/agy-lab-flowbugsb-report.md` (new)
+  - `docs/BUILD_LOG.md`
