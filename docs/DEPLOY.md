@@ -47,6 +47,8 @@ The repository root contains `render.yaml`, an infrastructure-as-code Blueprint 
    - `NEBIUS_BASE_URL`: `https://api.tokenfactory.nebius.com/v1`
    - `VISION_PROVIDERS`: `gemini,openai,nebius`
    - `PROVIDER_TIMEOUT_SECONDS`: `8.0`
+   - `PROVIDER_RETRIES`: `1` (number of immediate retries on transient 429/5xx errors before fallback)
+   - `PROVIDER_RETRY_BACKOFF_SECONDS`: `0.8` (backoff delay in seconds before retrying the same provider)
    - `SCENE_TIMEOUT_SECONDS`: `15.0`
    - `ASK_TIMEOUT_SECONDS`: `10.0`
    - `SCENE_CACHE_SIZE`: `64`
