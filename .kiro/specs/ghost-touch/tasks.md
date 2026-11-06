@@ -100,3 +100,10 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [~] 16.3 Blog post mentioning Kiroween 2026; social post starting with `#KiroweenHackathon26`
   - [~] 16.4 Confirm `/.kiro` is committed, license visible in GitHub About, repo public
   - [~] 16.5 Submit before **Dec 5, 3:30 am IST**; request Kiro credits before **Dec 1**
+- [ ] 17. Frankenstein's Laboratory theme, retroactive spec verification, and CSS correctness properties (Requirement 14, P18–P20)
+  - UI components and stylesheets implemented by Antigravity; specification, design, and property tests written by Antigravity, awaiting Kiro review.
+  - [x] 17.1 Retroactive spec & design documentation for Frankenstein Lab theme in requirements.md and design.md (agy)
+  - [x] 17.2 Property test P18: Alive animation bound and flash frequency (fast-check in frontend/tests/labTheme.prop.test.ts) (agy)
+  - [x] 17.3 Property test P19: CSS @import ordering and stylesheet integrity (fast-check in frontend/tests/labTheme.prop.test.ts) (agy)
+  - [x] 17.4 Property test P20: Design token color conformance and bare hex literal detection (fast-check in frontend/tests/labTheme.prop.test.ts) (agy)
+  - [x] 17.5 Verification pass: full frontend test suite (vitest), TypeScript compilation (tsc), and Vite production build (agy)
