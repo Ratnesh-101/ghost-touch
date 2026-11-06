@@ -1,0 +1,7 @@
+# Fix lanes: common rules
+Read AGENTS.md and `docs/briefs/guide-share-contract.md` first. Audit reports are in `docs/reports/audit-a1..a5-*.md`.
+For EVERY finding assigned to you: (1) re-verify it in the current code. If it is not real, write "NOT REPRODUCED" with why and skip it. (2) Fix the root cause with the smallest change. (3) Add a regression test that fails without the fix (new test file or an added case; never weaken an existing assertion; do not edit existing `*.prop.test.ts` except where a brief says so). (4) List it in your report as FIXED / NOT REPRODUCED / SKIPPED with the reason.
+Scope: fix every CONFIRMED high and medium finding in your area, then low ones only if trivial. Stay inside your allowed files; if a fix needs another lane's file, write it under "Needs from planner".
+Forbidden for all fix lanes: `frontend/src/core/**`, `.kiro/**`, `.env*`, `backend/app/schema.py`, `backend/app/validate.py`, `.github/workflows/**`, the tuned haptic values and the theremin/earcon tuning in `drivers/audio.ts`.
+The speech driver cancels the previous utterance on every `speak`: never call it twice back to back; join text into one utterance.
+Frontend lanes: run `npm --prefix frontend test`, `npm --prefix frontend run build`, and tsc if allowed; record real numbers. Create your report first (`docs/reports/agy-<lane>-report.md`), add a `docs/BUILD_LOG.md` entry (tool = "agy, reviewed by Claude"). New i18n keys: en, hi and gu, and append them to `docs/user-test/translation-review.md` and `.csv`.
