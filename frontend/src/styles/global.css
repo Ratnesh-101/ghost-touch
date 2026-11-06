@@ -1016,3 +1016,7 @@ body {
     font-size: 0.72rem;
   }
 }
+
+
+/* Lane lab-explore: specimen table frame and HUD around Explore canvas */
+@import './explore.css';
