@@ -471,3 +471,157 @@
     box-shadow: none !important;
   }
 }
+
+/* ==========================================================================
+   TEACHER VERIFIED BANNER (Student Open)
+   ========================================================================== */
+
+.gt-verified-banner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-xs, 8px);
+  width: 100%;
+  margin-bottom: var(--gt-space-xs, 8px);
+  padding: var(--gt-space-xs, 8px) var(--gt-space-sm, 12px);
+  background: var(--gt-charcoal-light, #1c211e);
+  border: 1px solid var(--gt-cyan, #00f0ff);
+  border-radius: var(--gt-radius-md, 8px);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+  box-sizing: border-box;
+}
+
+.gt-verified-banner__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gt-space-xs, 8px);
+  width: 100%;
+}
+
+.gt-verified-banner__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--gt-cyan, #00f0ff);
+  color: var(--gt-charcoal, #0b0e0c);
+  font-weight: 900;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.gt-verified-banner__by {
+  font-size: var(--gt-text-sm, 0.875rem);
+  font-weight: 700;
+  color: var(--gt-bone, #f5ecd8);
+  flex-grow: 1;
+  word-break: break-word;
+}
+
+.gt-verified-banner__note-btn {
+  min-width: 48px;
+  min-height: 48px;
+  padding: var(--gt-space-xs, 8px) var(--gt-space-sm, 12px);
+  font-size: var(--gt-text-sm, 0.875rem);
+  font-weight: 700;
+  color: var(--gt-cyan, #00f0ff);
+  background: transparent;
+  border: 1px solid var(--gt-cyan, #00f0ff);
+  border-radius: var(--gt-radius-sm, 4px);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.gt-verified-banner__note-btn:focus-visible {
+  outline: 2px solid var(--gt-bone, #f5ecd8);
+  outline-offset: 2px;
+}
+
+.gt-verified-banner__note-body {
+  padding: var(--gt-space-xs, 8px);
+  background: rgba(0, 0, 0, 0.35);
+  border-left: 3px solid var(--gt-copper, #c88a4b);
+  border-radius: var(--gt-radius-xs, 2px);
+}
+
+.gt-verified-banner__note-text {
+  margin: 0;
+  font-size: var(--gt-text-sm, 0.875rem);
+  color: var(--gt-bone, #f5ecd8);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* ==========================================================================
+   SHARE ERROR SCREEN
+   ========================================================================== */
+
+.gt-share-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--gt-space-lg, 24px);
+  box-sizing: border-box;
+  text-align: center;
+  gap: var(--gt-space-lg, 24px);
+}
+
+.gt-share-error__header {
+  width: 100%;
+}
+
+.gt-share-error__title {
+  margin: 0;
+  font-size: var(--gt-text-2xl, 1.5rem);
+  font-weight: 800;
+  color: var(--gt-copper, #c88a4b);
+}
+
+.gt-share-error__card {
+  width: 100%;
+  padding: var(--gt-space-md, 16px);
+  background: var(--gt-charcoal-light, #1c211e);
+  border: 1px solid var(--gt-copper, #c88a4b);
+  border-radius: var(--gt-radius-md, 8px);
+  box-sizing: border-box;
+}
+
+.gt-share-error__message {
+  margin: 0;
+  font-size: var(--gt-text-base, 1rem);
+  color: var(--gt-bone, #f5ecd8);
+  line-height: 1.5;
+}
+
+.gt-share-error__footer {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.gt-share-error__start-btn {
+  min-width: 160px;
+  min-height: 48px;
+  padding: var(--gt-space-sm, 12px) var(--gt-space-lg, 24px);
+  font-size: var(--gt-text-base, 1rem);
+  font-weight: 700;
+  color: var(--gt-charcoal, #0b0e0c);
+  background: var(--gt-line, #39ff88);
+  border: none;
+  border-radius: var(--gt-radius-md, 8px);
+  cursor: pointer;
+}
+
+.gt-share-error__start-btn:focus-visible {
+  outline: 3px solid var(--gt-cyan, #00f0ff);
+  outline-offset: 2px;
+}
+
