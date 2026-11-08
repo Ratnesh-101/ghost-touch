@@ -1741,3 +1741,26 @@ Format for each entry:
   - `docs/reports/agy-h5-privacy-docs-report.md`
   - `docs/BUILD_LOG.md`
 
+
+## 2026-11-08 — agy, reviewed by Claude — Lane h6-nav-fixes (Navigation & Hardware Back Fixes)
+- Tool: **Antigravity (agy)**, reviewed by Claude.
+- Fixed navigation and hardware Back audit findings R3-01 to R3-04 and R3-07 from `docs/reports/audit-r3-navigation.md`:
+  - R3-01 / R3-07: In `App.tsx` and `Teach.tsx`, speaks `teach.confirmLeave` before opening `window.confirm`. On cancellation or suppressed dialog (confirm returning false), speaks `teach.stayingInEditor` ("Still in the editor.") and restores focus to the editor heading (`.gt-teach__title`). Avoids back-to-back speech cancellations.
+  - R3-02: Computed `isDirty` against a clean baseline ref (`scene`, `name`, `note`) established at mount, diagram load, or successful verify/share. Reset `isDirty` and notified `onDirtyChange(false)` upon share/save, preventing spurious unsaved change dialogs on subsequent Back or Exit.
+  - R3-03: Added `hasScene` to `BackContext` in `flow/navigation.ts`. Hardware Back from `#/teach` with an existing Explore scene now returns to Explore with that scene and speaks `exploreAnnouncement`, matching in-app Exit (`handleTeachBack`).
+  - R3-04: Documented `leaveByBack` in `flow/navigation.ts` as the central navigation policy table. Added exhaustive table test across every `ScreenName` validating `announceKey` resolution across `en`, `hi`, and `gu`.
+  - Added new i18n key `teach.stayingInEditor` across `en`, `hi`, and `gu` in `frontend/src/i18n/index.ts`, and updated `docs/user-test/translation-review.md` and `.csv`.
+- Verification results:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+  - `npm --prefix frontend test`: 119 passed test files (1600 tests passed, +15 tests).
+  - `npm --prefix frontend run build`: 129 modules transformed, clean production build (662.23 KiB precache).
+- Files touched:
+  - `frontend/src/App.tsx`
+  - `frontend/src/screens/Teach.tsx`
+  - `frontend/src/flow/navigation.ts`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/tests/h6.nav.test.ts`
+  - `docs/user-test/translation-review.md`
+  - `docs/user-test/translation-review.csv`
+  - `docs/reports/agy-h6-nav-fixes-report.md`
+  - `docs/BUILD_LOG.md`
