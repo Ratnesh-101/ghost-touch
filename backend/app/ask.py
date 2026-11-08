@@ -352,7 +352,8 @@ def clamp_answer(text: str) -> str:
     sentences = SENTENCE_END_PATTERN.split(sanitized.strip())
     clamped = " ".join(sentences[:MAX_ANSWER_SENTENCES])
     if len(clamped) > MAX_ANSWER_CHARS:
-        clamped = clamped[:MAX_ANSWER_CHARS].rsplit(" ", 1)[0].rstrip(",;:") + "."
+        # Reserve one character for the closing full stop so the result never exceeds the cap.
+        clamped = clamped[: MAX_ANSWER_CHARS - 1].rsplit(" ", 1)[0].rstrip(",;:") + "."
     return clamped
 
 

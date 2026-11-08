@@ -37,20 +37,20 @@ Contract decisions A2 SEC-01, A2 SEC-04 and A5-05 were not touched. No haptic co
 | A6-10 | med | 25 | FIXED | Reproduced by test: 8 simultaneous improve passes put 8 provider calls in flight. `run_improve_pass` now takes a slot from a semaphore (`IMPROVE_MAX_CONCURRENCY`, default 1) and skips when none is free, because the pass is best effort. Mutation (no cap) fails both tests. |
 | A6-15 | med (suspected) | 25 | FIXED | Reproduced, but the symptom differs from the audit: a streamed body over the limit returned HTTP 400, not 500, because FastAPI turns any `Exception` raised while reading the body into a 400. `_BodyTooLarge` is now a `BaseException` so the guard can answer 413. Test: 640 KB streamed without Content-Length gives 413. Mutation (plain Exception) fails. |
 | A6-11, A6-12, A6-13, A6-14, A6-16 | low | 25 | OPEN | not requested; decision recorded at the end |
-| CORE-01 | high | 26 | OPEN | |
-| CORE-02 | high | 26 | OPEN | |
-| CORE-03 | high | 26 | OPEN | |
-| CORE-07 | med | 26 | OPEN | |
-| CORE-08 | med | 26 | OPEN | |
-| CORE-09 | med | 26 | OPEN | |
-| CORE-10 | med | 26 | OPEN | |
+| CORE-01 | high | 26 | FIXED | Back from `#/teach`, a shared diagram and the share error screen now goes through `leaveByBack` (flow/navigation.ts): it always speaks the destination and asks `window.confirm` before discarding unsaved Teacher edits (App.tsx). Properties P43 (round2.navigation.prop.test.ts). Finished by Claude Code after Kiro was shut off. |
+| CORE-02 | high | 26 | FIXED | `mergeAnnouncements` (flow/explore.ts) joins axis crossings and the vertex announcement into one utterance in the three move paths of Explore.tsx. Property P44 (round2.announce.prop.test.ts). |
+| CORE-03 | high | 26 | FIXED | `loadSavedList` (flow/saved.ts) takes an `isActive` check; SavedDiagrams cleans up on unmount so a late read neither speaks nor sets state (round2.saved.test.ts). |
+| CORE-07 | med | 26 | FIXED | Delete speaks one combined message (`deletedAnnouncement`) and keeps focus on the heading (SavedDiagrams.tsx). |
+| CORE-08 | med | 26 | FIXED | `setPointerCapture` is wrapped in try/catch in Explore.tsx so a refused capture (TalkBack pass-through) no longer swallows the touch. Not proven on a phone with TalkBack: UNVERIFIED on hardware. |
+| CORE-09 | med | 26 | OPEN | Lost pointer capture handling: no change found in the T26 diff. Not done. |
+| CORE-10 | med | 26 | FIXED | The missing-voice notice now comes from `speech.noVoiceNotice` in en, hi and gu (speech.ts). Hindi and Gujarati wording still needs native review. |
 | CORE-13 | med | 25 | FIXED | Duplicate of A6-01 and A6-02 (same code); see those rows. |
-| NEEDS-KIRO-01 | high | 26 | OPEN | |
-| NEEDS-KIRO-02 | med | 26 | OPEN | |
+| NEEDS-KIRO-01 | high | 26 | FIXED | `hitTest` treats a non-finite distance as a miss (`closerVertex` and the line variant, core/hitTest.ts); property tests in hitTest.nan.prop.test.ts. |
+| NEEDS-KIRO-02 | med | 26 | OPEN | `hapticEngine.ts:132` (core): not addressed in T26. See docs/reports for the finding text. |
 | CORE-14, CORE-15, CORE-16 | low | 26 | OPEN | not requested; decision recorded at the end |
 
 ## New findings from Kiro's own checks
 
 | ID | Severity | Task | Status | Evidence / reason |
 |---|---|---|---|---|
-| K2-01 | high | 26 | OPEN | Opening #/debug while the app runs crashes React with error #300 (App returned <Debug /> before a later useCallback). Found by the CSP browser check. |
+| K2-01 | high | 26 | FIXED | Opening #/debug while the app runs crashes React with error #300 (App returned <Debug /> before a later useCallback). Found by the CSP browser check. |
