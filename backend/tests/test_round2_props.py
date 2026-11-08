@@ -76,6 +76,31 @@ def test_p40_entries_left_of_the_trusted_hops_are_never_read(
     assert len(client_key(peer, forged_header, hops)) <= MAX_CLIENT_KEY_CHARS
 
 
+long_entry = st.text(
+    alphabet=string.ascii_letters + string.digits + ".:-_", min_size=65, max_size=140
+)
+
+
+@PROPS
+@given(
+    peer=long_entry, entries=st.lists(long_entry, min_size=1, max_size=4), hops=st.integers(0, 4)
+)
+def test_p40_key_length_is_always_bounded(peer: str, entries: list[str], hops: int) -> None:
+    key = client_key(peer, ", ".join(entries), hops)
+    assert 0 < len(key) <= MAX_CLIENT_KEY_CHARS
+
+
+@PROPS
+@given(peer=ip_text, entries=st.lists(ip_text, max_size=3), extra=st.integers(1, 3))
+def test_p40_too_few_entries_or_no_header_falls_back_to_the_peer(
+    peer: str, entries: list[str], extra: int
+) -> None:
+    hops = len(entries) + extra  # more trusted hops than the header has entries
+    assert client_key(peer, ", ".join(entries) or None, hops) == peer
+    assert client_key(peer, None, hops) == peer
+    assert client_key(peer, "", hops) == peer
+
+
 # ---------------------------------------------------------------------------
 # P41: limiter state stays bounded
 # ---------------------------------------------------------------------------
