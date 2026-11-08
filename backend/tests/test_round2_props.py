@@ -332,3 +332,31 @@ def test_p46_exact_dont_know_phrases_ignore_trailing_punctuation(phrase: str, tr
 @given(trailer=TRAILERS)
 def test_p46_punctuation_does_not_turn_an_answer_into_dont_know(trailer: str) -> None:
     assert is_dont_know("AB = 3 centimetres" + trailer) is False
+
+
+@PROPS
+@given(
+    phrase=st.sampled_from([*EXACT_PHRASES, DONT_KNOW_RESPONSES["en"].rstrip(".")]),
+    trailer=TRAILERS,
+    curly=st.sampled_from(["’", "‘"]),
+)
+def test_p46_curly_apostrophes_are_treated_like_straight_ones(
+    phrase: str, trailer: str, curly: str
+) -> None:
+    # Phones and keyboards type a typographic apostrophe; it must not defeat the check.
+    assert is_dont_know(phrase.replace("'", curly) + trailer) is True
+
+
+NOT_DONT_KNOW = [
+    "The unknown angle is 30 degrees",
+    "AB = 3 centimetres",
+    "Nobody knows? The right angle is at B",
+    "The peak is at the top left",
+    "Not mentioned in the title, but BC = 4 cm",
+]
+
+
+@PROPS
+@given(text=st.sampled_from(NOT_DONT_KNOW), trailer=TRAILERS)
+def test_p46_real_answers_are_never_dont_know(text: str, trailer: str) -> None:
+    assert is_dont_know(text + trailer) is False
