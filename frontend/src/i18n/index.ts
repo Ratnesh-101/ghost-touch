@@ -335,6 +335,7 @@ const en: Record<string, string> = {
   'teach.toolbar': 'Editing toolbar',
   'teach.verifyError': 'Verification failed',
   'teach.confirmLeave': 'You have unsaved changes. Are you sure you want to leave?',
+  'teach.stayingInEditor': 'Still in the editor.',
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -636,6 +637,7 @@ const hi: Record<string, string> = {
   'teach.toolbar': 'संपादन उपकरण पट्टी',
   'teach.verifyError': 'सत्यापन विफल रहा',
   'teach.confirmLeave': 'आपके पास बिना सहेजे गए परिवर्तन हैं। क्या आप वाकई छोड़ना चाहते हैं?',
+  'teach.stayingInEditor': 'अभी भी संपादक में हैं।',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -937,6 +939,7 @@ const gu: Record<string, string> = {
   'teach.toolbar': 'સંપાદન ટૂલબાર',
   'teach.verifyError': 'પ્રમાણીકરણ નિષ્ફળ રહ્યું',
   'teach.confirmLeave': 'તમારી પાસે સેવ ન કરેલા ફેરફારો છે. શું તમે ખરેખર બહાર નીકળવા માંગો છો?',
+  'teach.stayingInEditor': 'હજુ પણ સંપાદકમાં છો.',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };

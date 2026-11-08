@@ -46,6 +46,8 @@ export interface BackContext {
   dirty: boolean;
   /** The Explore screen was opened from a shared link. */
   fromShare: boolean;
+  /** An Explore scene exists to return to when leaving Teach. */
+  hasScene?: boolean;
 }
 
 export interface BackStep {
@@ -57,15 +59,20 @@ export interface BackStep {
 }
 
 /**
- * Where the Back control (Android Back, browser Back, TalkBack Back) leads from `screen`.
+ * Navigation policy table: where the Back control (Android Back, browser Back,
+ * TalkBack Back) leads from `screen`.
  *
+ * This function is the application's central policy table for hardware and
+ * gesture Back navigation.
  * Total: every screen has a destination and a sentence to speak, so Back is never silent
  * (Requirement 17.1). Leaving the Teacher editor with unsaved changes needs a confirmation.
  */
 export function leaveByBack(screen: ScreenName, ctx: BackContext): BackStep {
   switch (screen) {
     case 'teach':
-      return { next: 'start', announceKey: 'start.intro', needsConfirm: ctx.dirty };
+      return ctx.hasScene
+        ? { next: 'explore', announceKey: 'explore.gestureHint', needsConfirm: ctx.dirty }
+        : { next: 'start', announceKey: 'start.intro', needsConfirm: ctx.dirty };
     case 'shareError':
     case 'capture':
     case 'start':
@@ -78,5 +85,58 @@ export function leaveByBack(screen: ScreenName, ctx: BackContext): BackStep {
       return { next: 'capture', announceKey: 'capture.prompt', needsConfirm: false };
     case 'correct':
       return { next: 'explore', announceKey: 'explore.gestureHint', needsConfirm: false };
+  }
+}
+
+export interface HashBackActions {
+  confirm: (msg: string) => boolean;
+  speak: (text: string, langBcp47: string) => void;
+  restoreHash: () => void;
+  focusHeading: () => void;
+  onNavigateStart: () => void;
+  onNavigateExplore: (scene: DiagramScene, announcement: string) => void;
+}
+
+/**
+ * Handle Back triggered by hash change (`#/teach` -> `#` or shared link -> `#`).
+ *
+ * Implements R3-01 and R3-03:
+ * - Speaks `teach.confirmLeave` before the confirm dialog.
+ * - If confirm is cancelled or suppressed (returns false):
+ *   Restores URL hash to `#/teach`, speaks `teach.stayingInEditor`, and refocuses editor heading.
+ * - If confirmed or not dirty:
+ *   Navigates to Explore with the diagram if an Explore scene exists, otherwise to Start.
+ */
+export function handleAppHashBack(
+  leaving: ScreenName | null,
+  ctx: BackContext,
+  lastExploreScene: DiagramScene | null | undefined,
+  actions: HashBackActions,
+  langBcp47: string,
+): { stayed: boolean; next?: ScreenName } {
+  if (leaving === null) return { stayed: false };
+
+  const step = leaveByBack(leaving, ctx);
+  if (step.needsConfirm) {
+    actions.speak(t('teach.confirmLeave'), langBcp47);
+    const confirmed = actions.confirm(t('teach.confirmLeave'));
+    if (!confirmed) {
+      actions.restoreHash();
+      actions.speak(t('teach.stayingInEditor'), langBcp47);
+      actions.focusHeading();
+      return { stayed: true };
+    }
+  }
+
+  if (step.next === 'explore' && lastExploreScene) {
+    const scene = lastExploreScene;
+    const announced = exploreAnnouncement(scene, 'ai');
+    actions.speak(announced, langBcp47);
+    actions.onNavigateExplore(scene, announced);
+    return { stayed: false, next: 'explore' };
+  } else {
+    actions.speak(t(step.announceKey), langBcp47);
+    actions.onNavigateStart();
+    return { stayed: false, next: step.next };
   }
 }

@@ -40,7 +40,11 @@ import {
   replaceSavedEntry,
 } from './drivers/navigation';
 import { capturePrompt } from './flow/start';
-import { exploreAnnouncement, leaveByBack, type ScreenName } from './flow/navigation';
+import {
+  exploreAnnouncement,
+  leaveByBack,
+  type ScreenName,
+} from './flow/navigation';
 import { createPhotoUrlTracker, type PhotoUrlTracker } from './flow/capture';
 import { isTeacherActive } from './flow/teach';
 import { getLang, LANG_BCP47, subscribeLang, t } from './i18n';
@@ -275,14 +279,31 @@ export function App(): JSX.Element {
             ? 'explore'
             : null;
       if (leaving !== null) {
-        const step = leaveByBack(leaving, { dirty: teachDirty.current, fromShare });
-        if (step.needsConfirm && !window.confirm(t('teach.confirmLeave'))) {
-          // Stay in the editor: put the URL back.
-          window.location.hash = TEACH_HASH;
-          return;
+        const hasScene = Boolean(lastExploreScene.current);
+        const step = leaveByBack(leaving, { dirty: teachDirty.current, fromShare, hasScene });
+        if (step.needsConfirm) {
+          drivers.speech.speak(t('teach.confirmLeave'), LANG_BCP47[currentLang]);
+          const confirmed =
+            typeof window !== 'undefined' && typeof window.confirm === 'function'
+              ? window.confirm(t('teach.confirmLeave'))
+              : true;
+          if (!confirmed) {
+            // Stay in the editor: put the URL back.
+            window.location.hash = TEACH_HASH;
+            drivers.speech.speak(t('teach.stayingInEditor'), LANG_BCP47[currentLang]);
+            document.querySelector<HTMLElement>('.gt-teach__title')?.focus();
+            return;
+          }
         }
-        drivers.speech.speak(t(step.announceKey), LANG_BCP47[currentLang]);
-        setView({ screen: 'start' });
+        if (step.next === 'explore' && lastExploreScene.current) {
+          const scene = lastExploreScene.current;
+          const announced = exploreAnnouncement(scene, 'ai');
+          drivers.speech.speak(announced, LANG_BCP47[currentLang]);
+          setView({ screen: 'explore', scene, announced });
+        } else {
+          drivers.speech.speak(t(step.announceKey), LANG_BCP47[currentLang]);
+          setView({ screen: 'start' });
+        }
       }
     }
   }, [hash, drivers, currentLang]);

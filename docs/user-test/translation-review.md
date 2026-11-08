@@ -505,6 +505,7 @@ The following spoken strings may be difficult for blind students to follow in a 
 | `teach.toolbar` | Editing toolbar | संपादन उपकरण पट्टी | સંપાદન ટૂલબાર | | | | |
 | `teach.verifyError` | Verification failed | सत्यापन विफल रहा | પ્રમાણીકરણ નિષ્ફળ રહ્યું | | | | |
 | `teach.confirmLeave` | You have unsaved changes. Are you sure you want to leave? | आपके पास बिना सहेजे गए परिवर्तन हैं। क्या आप वाकई छोड़ना चाहते हैं? | તમારી પાસે સેવ ન કરેલા ફેરફારો છે. શું તમે ખરેખર બહાર નીકળવા માંગો છો? | | | | |
+| `teach.stayingInEditor (spoken)` | Still in the editor. | अभी भी संपादक में हैं। | હજુ પણ સંપાદકમાં છો. | | | | |
 
 ---
 

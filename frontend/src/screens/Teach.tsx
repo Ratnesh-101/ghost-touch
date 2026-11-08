@@ -89,6 +89,53 @@ const DEFAULT_SCENE: DiagramScene = {
   ],
 };
 
+export interface TeachCleanBaseline {
+  scene: DiagramScene;
+  name: string;
+  note: string;
+}
+
+/**
+ * Pure helper for computing Teacher dirty state against a clean baseline (R3-02).
+ */
+export function isTeachDirty(
+  scene: DiagramScene,
+  name: string,
+  note: string,
+  baseline: TeachCleanBaseline,
+): boolean {
+  return scene !== baseline.scene || name !== baseline.name || note !== baseline.note;
+}
+
+export interface TeachBackActions {
+  speak: (text: string) => void;
+  confirm: (message: string) => boolean;
+  sayAndStatus: (msg: string) => void;
+  focusHeading: () => void;
+  onBack: () => void;
+}
+
+/**
+ * Handle in-app Exit button click in Teacher editor (R3-01).
+ * Speaks question before confirm; if cancelled, speaks staying message and focuses heading.
+ */
+export function executeTeachBack(
+  isDirty: boolean,
+  actions: TeachBackActions,
+): { stayed: boolean } {
+  if (isDirty) {
+    actions.speak(t('teach.confirmLeave'));
+    const confirmed = actions.confirm(t('teach.confirmLeave'));
+    if (!confirmed) {
+      actions.sayAndStatus(t('teach.stayingInEditor'));
+      actions.focusHeading();
+      return { stayed: true };
+    }
+  }
+  actions.onBack();
+  return { stayed: false };
+}
+
 export function Teach({
   initialScene,
   currentExploreScene,
@@ -170,9 +217,20 @@ export function Teach({
     wasLoadModalOpen.current = isLoadModalOpen;
   }, [isLoadModalOpen]);
 
+  // Clean baseline for dirty tracking (R3-02)
+  const cleanBaseline = useRef<TeachCleanBaseline>({
+    scene: history.present,
+    name: teacherName,
+    note: teacherNote,
+  });
+
   // Unsaved changes tracking & beforeunload protection
-  const isDirty =
-    canUndo(history) || teacherName.trim().length > 0 || teacherNote.trim().length > 0;
+  const isDirty = isTeachDirty(
+    history.present,
+    teacherName,
+    teacherNote,
+    cleanBaseline.current,
+  );
 
   // Report the flag to the App (CORE-01); a closed editor holds nothing unsaved.
   useEffect(() => {
@@ -191,14 +249,16 @@ export function Teach({
   }, [isDirty]);
 
   const handleBack = (): void => {
-    if (isDirty) {
-      const confirmed =
+    executeTeachBack(isDirty, {
+      speak,
+      confirm: (msg) =>
         typeof window !== 'undefined' && typeof window.confirm === 'function'
-          ? window.confirm(t('teach.confirmLeave'))
-          : true;
-      if (!confirmed) return;
-    }
-    onBack();
+          ? window.confirm(msg)
+          : true,
+      sayAndStatus,
+      focusHeading: () => headingRef.current?.focus(),
+      onBack,
+    });
   };
 
   // Sync label input when selection changes
@@ -367,6 +427,11 @@ export function Teach({
 
       if (historyRef.current.present === sceneSnapshot) {
         setShareData({ url, qrUrl });
+        cleanBaseline.current = {
+          scene: sceneSnapshot,
+          name: teacherName,
+          note: teacherNote,
+        };
         sayAndStatus(t('teach.verifiedSuccess'));
       }
     } catch (err) {
@@ -382,17 +447,18 @@ export function Teach({
     sourceTitle: string,
     payload?: SharePayload,
   ): void => {
+    const nextName = payload && typeof payload.verifiedBy === 'string' ? payload.verifiedBy : '';
+    const nextNote = payload && typeof payload.note === 'string' ? payload.note : '';
     setHistory(createHistory(newScene));
     setSelection(null);
     setShareData(null);
-    if (payload) {
-      if (typeof payload.verifiedBy === 'string') {
-        setTeacherName(payload.verifiedBy);
-      }
-      if (typeof payload.note === 'string') {
-        setTeacherNote(payload.note);
-      }
-    }
+    setTeacherName(nextName);
+    setTeacherNote(nextNote);
+    cleanBaseline.current = {
+      scene: newScene,
+      name: nextName,
+      note: nextNote,
+    };
     const msg = t('teach.loadedSuccess').replace('{title}', sourceTitle);
     sayAndStatus(msg);
   };
