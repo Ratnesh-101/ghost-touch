@@ -89,7 +89,9 @@ function closerVertex(
   dist: number,
   radius: number,
 ): VertexHit | null {
-  if (dist > radius) return prev;
+  // NaN fails every comparison, so `dist > radius` alone lets a NaN candidate win and then
+  // never lose (`dist < NaN` is false). A non-finite distance is a miss.
+  if (!Number.isFinite(dist) || dist > radius) return prev;
   if (prev === null || dist < prev.dist) return { id, label, dist };
   return prev;
 }
@@ -105,7 +107,8 @@ function closerLine(
   dist: number,
   radius: number,
 ): LineHit | null {
-  if (dist > radius) return prev;
+  // Same NaN rule as closerVertex.
+  if (!Number.isFinite(dist) || dist > radius) return prev;
   if (prev === null || dist < prev.dist) return { id, elementKind, dist };
   return prev;
 }

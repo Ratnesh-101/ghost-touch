@@ -12,6 +12,7 @@
 import { useEffect, useRef, useState, type JSX } from 'react';
 import type { DiagramScene } from '../core/scene';
 import { orderForDisplay, type SavedDiagram } from '../core/savedDiagrams';
+import { deletedAnnouncement, loadSavedList } from '../flow/saved';
 import type { DiagramStore } from '../drivers/diagramStore';
 import type { SpeechDriver } from '../drivers/speech';
 import { AccessibleButton } from '../components/AccessibleButton';
@@ -50,24 +51,18 @@ export function SavedDiagrams({
     setStatus(text);
   };
 
-  // Load entries on mount and announce list or empty status.
+  // Load entries on mount and announce list or empty status. If the user leaves before the
+  // read finishes, the late result must neither speak nor set state (CORE-03).
   useEffect(() => {
-    void (async () => {
-      const result = await diagramStore.list();
+    let active = true;
+    void loadSavedList(diagramStore, () => active, (view) => {
       setLoading(false);
-      if (!result.ok) {
-        say(t('saved.errorLoad'));
-        return;
-      }
-      const ordered = orderForDisplay(result.value);
-      setEntries(ordered);
-      if (ordered.length === 0) {
-        say(t('saved.empty'));
-      } else {
-        const titles = ordered.map((e) => e.title).join('. ');
-        say(titles);
-      }
-    })();
+      setEntries(view.entries);
+      say(view.announcement);
+    });
+    return () => {
+      active = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -95,15 +90,13 @@ export function SavedDiagrams({
       say(t('saved.errorDelete'));
       return;
     }
-    const msg = t('saved.deleted').replace('{title}', entry.title);
-    say(msg);
-    setEntries((prev) => {
-      const next = prev.filter((e) => e.id !== entry.id);
-      if (next.length === 0) {
-        say(t('saved.empty'));
-      }
-      return orderForDisplay(next);
-    });
+    // One message, spoken once: a state updater must stay pure, and a second `say` would
+    // cut the first one off (CORE-07).
+    const next = orderForDisplay(entries.filter((e) => e.id !== entry.id));
+    say(deletedAnnouncement(entry.title, next.length));
+    setEntries(next);
+    // The confirmed Delete button is about to leave the page; keep screen-reader focus here.
+    headingRef.current?.focus();
   };
 
   const handleTogglePin = async (entry: SavedDiagram): Promise<void> => {

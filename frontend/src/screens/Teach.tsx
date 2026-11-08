@@ -69,6 +69,8 @@ export interface TeachProps {
   currentExploreScene?: DiagramScene | null;
   drivers: Drivers;
   onBack: () => void;
+  /** Told whenever the editor gains or loses unsaved changes, so Back can ask first. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 const DEFAULT_SCENE: DiagramScene = {
@@ -92,6 +94,7 @@ export function Teach({
   currentExploreScene,
   drivers,
   onBack,
+  onDirtyChange,
 }: TeachProps): JSX.Element {
   const activeLang = useSyncExternalStore(subscribeLang, getLang, getLang);
 
@@ -170,6 +173,12 @@ export function Teach({
   // Unsaved changes tracking & beforeunload protection
   const isDirty =
     canUndo(history) || teacherName.trim().length > 0 || teacherNote.trim().length > 0;
+
+  // Report the flag to the App (CORE-01); a closed editor holds nothing unsaved.
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    return () => onDirtyChange?.(false);
+  }, [isDirty, onDirtyChange]);
 
   useEffect(() => {
     if (!isDirty) return;

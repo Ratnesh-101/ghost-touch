@@ -112,6 +112,49 @@ export function checkCentreTick(
   };
 }
 
+const SENTENCE_END = /[.!?।॥]$/;
+
+/**
+ * Join announcements into one utterance: blank parts are dropped, order is kept, and parts are
+ * separated by a full stop unless the previous part already ends a sentence.
+ *
+ * The speech driver cancels the running utterance on every `speak`, so announcements made
+ * together must be spoken together or all but the last are lost (CORE-02, Requirement 17.2).
+ */
+export function joinAnnouncements(parts: readonly string[]): string {
+  let out = '';
+  for (const raw of parts) {
+    const part = raw.trim();
+    if (part === '') continue;
+    out = out === '' ? part : `${out}${SENTENCE_END.test(out) ? ' ' : '. '}${part}`;
+  }
+  return out;
+}
+
+/**
+ * Fold the axis crossings of one pointer move and the engine's own `speak` effects into a
+ * single `speak` effect: axis crossings first, then the vertex or bar. Other effects are kept
+ * in order. When there is nothing to say the effects are returned unchanged.
+ */
+export function mergeAnnouncements(axisCrossings: readonly string[], effects: Effect[]): Effect[] {
+  const engineSpeech = effects.flatMap((e) => (e.kind === 'speak' ? [e.text] : []));
+  const text = joinAnnouncements([...axisCrossings, ...engineSpeech]);
+  if (text === '') return effects;
+
+  const merged: Effect[] = [];
+  let placed = false;
+  for (const effect of effects) {
+    if (effect.kind !== 'speak') {
+      merged.push(effect);
+    } else if (!placed) {
+      merged.push({ kind: 'speak', text });
+      placed = true;
+    }
+  }
+  if (!placed) merged.push({ kind: 'speak', text });
+  return merged;
+}
+
 export const DEFAULT_AXIS_HYSTERESIS_NORM = 0.015;
 
 export interface AxisTrackerState {

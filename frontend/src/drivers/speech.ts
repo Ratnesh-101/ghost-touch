@@ -11,6 +11,7 @@
  * missing voice notice.
  */
 
+import { t } from '../i18n';
 import { safeGet, safeSet } from './storage';
 
 export type ListenFailure =
@@ -260,8 +261,9 @@ export class WebSpeechDriver implements SpeechDriver {
       this.isSpeakingNotice = true;
       try {
         const langDisplay = lang.split('-')[0]?.toUpperCase() ?? lang;
+        // Text comes from the language tables, not from this file (CORE-10, rule 7).
         const noticeUtterance = createUtterance(
-          `No system voice found for ${langDisplay}. Using default voice.`,
+          t('speech.noVoiceNotice').replace('{lang}', langDisplay),
         );
         noticeUtterance.rate = rate;
         noticeUtterance.lang = match.voice?.lang ?? DEFAULT_SPEECH_LANG;

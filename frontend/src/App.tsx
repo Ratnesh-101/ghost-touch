@@ -21,7 +21,15 @@ import {
   type SavedDiagram,
 } from './core/savedDiagrams';
 import { createBrowserDrivers, renderSceneThumbnail, type Drivers } from './drivers';
-import { clearHash, DEBUG_HASH, isTeachHash, parseShareHash, readHash, subscribeHash } from './drivers/hashRoute';
+import {
+  clearHash,
+  DEBUG_HASH,
+  isTeachHash,
+  parseShareHash,
+  readHash,
+  subscribeHash,
+  TEACH_HASH,
+} from './drivers/hashRoute';
 import {
   leaveCorrectEntry,
   leaveSavedEntry,
@@ -32,7 +40,7 @@ import {
   replaceSavedEntry,
 } from './drivers/navigation';
 import { capturePrompt } from './flow/start';
-import { exploreAnnouncement } from './flow/navigation';
+import { exploreAnnouncement, leaveByBack, type ScreenName } from './flow/navigation';
 import { createPhotoUrlTracker, type PhotoUrlTracker } from './flow/capture';
 import { isTeacherActive } from './flow/teach';
 import { getLang, LANG_BCP47, subscribeLang, t } from './i18n';
@@ -192,6 +200,15 @@ export function App(): JSX.Element {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const photoTracker = useRef<PhotoUrlTracker>(createPhotoUrlTracker());
   const lastProcessedHash = useRef<string | null>(null);
+  // The hash handler runs after the browser has already moved the URL, so it reads the screen
+  // that is showing through a ref instead of a stale closure.
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  // The Teacher editor reports unsaved changes here so Back can ask before discarding them.
+  const teachDirty = useRef(false);
+  const setTeachDirty = useCallback((dirty: boolean): void => {
+    teachDirty.current = dirty;
+  }, []);
 
   const updatePhotoUrl = useCallback((newUrl: string | null): void => {
     photoTracker.current.update(newUrl);
@@ -247,16 +264,26 @@ export function App(): JSX.Element {
         announced: resolution.errorMessage,
       });
     } else if (hash === '' || hash === '#') {
-      setView((prev) => {
-        if (
-          prev.screen === 'shareError' ||
-          (prev.screen === 'explore' && prev.fromShare) ||
-          prev.screen === 'teach'
-        ) {
-          return { screen: 'start' };
+      // Back from `#/teach`, a shared diagram or the share error screen. This used to drop to
+      // Start in silence and throw away unsaved Teacher edits (CORE-01, Requirement 17.1).
+      const current = viewRef.current;
+      const fromShare = current.screen === 'explore' && current.fromShare === true;
+      const leaving: ScreenName | null =
+        current.screen === 'teach' || current.screen === 'shareError'
+          ? current.screen
+          : fromShare
+            ? 'explore'
+            : null;
+      if (leaving !== null) {
+        const step = leaveByBack(leaving, { dirty: teachDirty.current, fromShare });
+        if (step.needsConfirm && !window.confirm(t('teach.confirmLeave'))) {
+          // Stay in the editor: put the URL back.
+          window.location.hash = TEACH_HASH;
+          return;
         }
-        return prev;
-      });
+        drivers.speech.speak(t(step.announceKey), LANG_BCP47[currentLang]);
+        setView({ screen: 'start' });
+      }
     }
   }, [hash, drivers, currentLang]);
 
@@ -487,6 +514,7 @@ export function App(): JSX.Element {
           currentExploreScene={lastExploreScene.current}
           drivers={drivers}
           onBack={handleTeachBack}
+          onDirtyChange={setTeachDirty}
         />
       );
   }

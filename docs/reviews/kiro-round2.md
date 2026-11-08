@@ -9,6 +9,8 @@ Contract decisions A2 SEC-01, A2 SEC-04 and A5-05 were not touched. No haptic co
 - **Step 0 (audit reports):** `audit-a6-security-fullstack.md` and `audit-a7-bughunt-core.md` were already committed on main (`a3d3171`, `194efec`). The lane copies are identical once line endings are normalised, so there was nothing to copy or commit.
 - **f4 lane:** `agy/f4-fix-backend-ask` points at `4a43004`, an ancestor of main, so it has no commits. The lane's work is uncommitted in `..\gt-lane-f4-fix-backend-ask` (modified `ask.py`, `limits.py`, `main.py`, `BUILD_LOG.md`; new `test_fix_ask_regression.py`, `agy-f4-fix2.md`, report). `git merge --squash` of that branch would add nothing, so the working-tree diff is applied to main as a patch. The lane worktree is left unchanged.
 
+- **Commit split for T25 (not the one-commit-per-task asked for):** while task 25 was in progress, Claude Code gated and committed my uncommitted working tree as `dabd499` ("fix(T25) ... Kiro's partial work gated and committed by Claude Code"). So the T25 code, its tests, and the task 26 fix for K2-01 (`App.tsx`, `tests/app.hooksOrder.test.ts`) are in `dabd499`, and my own commit `f45f04e` holds only the spec ticks, this review and the BUILD_LOG entry. `dabd499` also changed `docs/reviews/session-review-latest.md`, which I did not edit in that step. History was not rewritten.
+
 ## Findings
 
 | ID | Severity | Task | Status | Evidence / reason |

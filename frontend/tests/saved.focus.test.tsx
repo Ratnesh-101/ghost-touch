@@ -84,10 +84,16 @@ describe('Finding 8: SavedDiagrams screen heading focus placement', () => {
     const tsxPath = new URL('../src/screens/SavedDiagrams.tsx', import.meta.url);
     const tsx = fs.readFileSync(tsxPath, 'utf-8') as string;
 
-    // Must still speak error, empty, or diagram titles
-    expect(tsx).toContain("say(t('saved.empty'))");
-    expect(tsx).toContain("say(t('saved.errorLoad'))");
-    expect(tsx).toContain('say(titles)');
+    // Must still speak error, empty, or diagram titles. Since round 2 (CORE-03) the load and its
+    // three messages live in flow/saved.ts, guarded against late results; the screen speaks
+    // whatever `loadSavedList` hands it. The messages themselves are tested in round2.saved.test.ts.
+    expect(tsx).toContain('loadSavedList(');
+    expect(tsx).toContain('say(view.announcement)');
+    const flowPath = new URL('../src/flow/saved.ts', import.meta.url);
+    const flow = fs.readFileSync(flowPath, 'utf-8') as string;
+    expect(flow).toContain("t('saved.empty')");
+    expect(flow).toContain("t('saved.errorLoad')");
+    expect(flow).toMatch(/entries\.map\(\(e\) => e\.title\)\.join\('\. '\)/);
   });
 });
 

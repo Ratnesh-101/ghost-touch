@@ -225,7 +225,7 @@ Each property maps to requirements and runs with fast-check (frontend) or Hypoth
 | Unmount safety (17.3) | `SavedDiagrams` guards its async load with an `active` flag cleared in the effect cleanup. |
 | Delete and focus (17.4) | One combined message; focus moves to the heading. |
 | Pointer capture (17.5) | `setPointerCapture` is wrapped in try/catch in Explore; the Teacher canvas handles `onLostPointerCapture` like pointer up. |
-| Voice notice (17.6) | `speech.noVoiceNotice` key in the `en`, `hi` and `gu` tables; the driver takes the text through a callback and does not hold English. |
+| Voice notice (17.6) | The `speech.noVoiceNotice` key already exists in the `en`, `hi` and `gu` tables; the driver reads it with `t()` and fills in `{lang}`, and holds no English. Whether a device's default voice can pronounce the Hindi or Gujarati sentence is for the phone test (step 12.3). |
 
 Contract decisions A2 SEC-01, A2 SEC-04 and A5-05 are not changed by this round.
 

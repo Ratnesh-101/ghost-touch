@@ -365,6 +365,7 @@ export function TeachCanvas({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onLostPointerCapture={handlePointerUp}
         onKeyDown={handleKeyDown}
       />
     </div>

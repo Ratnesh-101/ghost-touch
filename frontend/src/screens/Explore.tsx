@@ -37,6 +37,7 @@ import {
   initialAxisState,
   initialCentreTickState,
   initialState,
+  mergeAnnouncements,
   processPointerMove,
   rearmCentreTick,
   seedAxisState,
@@ -844,7 +845,12 @@ export function Explore({
   const handlePointerDown = (e: PointerEvent<HTMLCanvasElement>): void => {
     if (leaving.current) return;
     drivers.audio.unlock();
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // A synthesized or already-released pointer (TalkBack's double-tap hold) can be refused
+      // with InvalidPointerId. Exploring still works without capture, so carry on (CORE-08).
+    }
     updateDimensions();
     const coords = getCanvasCoords(e);
     const now = performance.now();
@@ -947,11 +953,13 @@ export function Explore({
     if (moveResult.centreCheck.tick) {
       drivers.haptics.vibrate(CENTRE_TICK_MS);
     }
-    for (const axisSpoken of moveResult.axisCrossings) {
-      drivers.speech.speak(axisSpoken, lang);
-      lastSpokenRef.current = axisSpoken;
+    // One utterance per move: speaking the axis and then the vertex would cut the axis off.
+    const moveEffects = mergeAnnouncements(moveResult.axisCrossings, moveResult.effects);
+    if (moveResult.axisCrossings.length > 0) {
+      const joined = moveEffects.find((e) => e.kind === 'speak');
+      if (joined?.kind === 'speak') lastSpokenRef.current = joined.text;
     }
-    runEffects(moveResult.effects, drivers, lang);
+    runEffects(moveEffects, drivers, lang);
     scheduleDraw(view, coords);
   };
 
@@ -1014,11 +1022,13 @@ export function Explore({
     if (moveResult.centreCheck.tick) {
       drivers.haptics.vibrate(CENTRE_TICK_MS);
     }
-    for (const axisSpoken of moveResult.axisCrossings) {
-      drivers.speech.speak(axisSpoken, lang);
-      lastSpokenRef.current = axisSpoken;
+    // One utterance per move: speaking the axis and then the vertex would cut the axis off.
+    const moveEffects = mergeAnnouncements(moveResult.axisCrossings, moveResult.effects);
+    if (moveResult.axisCrossings.length > 0) {
+      const joined = moveEffects.find((e) => e.kind === 'speak');
+      if (joined?.kind === 'speak') lastSpokenRef.current = joined.text;
     }
-    runEffects(moveResult.effects, drivers, lang);
+    runEffects(moveEffects, drivers, lang);
     scheduleDraw(view, coords);
   };
 
@@ -1074,11 +1084,12 @@ export function Explore({
         if (moveResult.centreCheck.tick) {
           drivers.haptics.vibrate(CENTRE_TICK_MS);
         }
-        for (const axisSpoken of moveResult.axisCrossings) {
-          drivers.speech.speak(axisSpoken, lang);
-          lastSpokenRef.current = axisSpoken;
+        const moveEffects = mergeAnnouncements(moveResult.axisCrossings, moveResult.effects);
+        if (moveResult.axisCrossings.length > 0) {
+          const joined = moveEffects.find((e) => e.kind === 'speak');
+          if (joined?.kind === 'speak') lastSpokenRef.current = joined.text;
         }
-        runEffects(moveResult.effects, drivers, lang);
+        runEffects(moveEffects, drivers, lang);
         scheduleDraw(view, promotedCoords);
       } else {
         // All fingers lifted: silence effects
