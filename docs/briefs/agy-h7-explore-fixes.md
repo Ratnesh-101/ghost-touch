@@ -1,0 +1,17 @@
+# Lane h7-explore-fixes (FIX, frontend)
+Read AGENTS.md and `docs/briefs/fix-common.md` first. Sources: `docs/reports/audit-r3-speech-pointers.md` (R3-01..R3-08) and `docs/reports/audit-claude-explore-bughunt.md` (GT-01..GT-10). Verify each finding in the CURRENT code first; record FIXED / NOT REPRODUCED / SKIPPED. Never open `.env*`. Run `npm --prefix frontend test`, tsc and `npm --prefix frontend run build` (allowed); do not run backend tests.
+Allowed files: `frontend/src/screens/Explore.tsx`, `frontend/src/screens/SavedDiagrams.tsx`, `frontend/src/flow/explore.ts`, `frontend/src/flow/saved.ts`, `frontend/src/drivers/speech.ts` (listen timer only), `frontend/src/i18n/index.ts` (new keys only, en + hi + gu), new `frontend/tests/h7.*.test.ts(x)`, `docs/reports/agy-h7-explore-fixes-report.md`, `docs/user-test/translation-review.md` and `.csv`, one BUILD_LOG entry. FORBIDDEN: `frontend/src/core/**` (so R3-07 hitTest bar NaN goes under "Needs from planner"), App.tsx, Teach.tsx, flow/navigation.ts (lane h6 owns them), backend, `.kiro/**`, `.env*`, existing `*.prop.test.ts` files. The tuned haptic values and tone tuning must not change. The speech driver cancels the previous utterance on every `speak`: never speak twice back to back; join into one utterance.
+Scope, in this order:
+R3-01 (centre announcement cancelled on pointer-down): put the centre message into the merge, `mergeAnnouncements([centreMsg, ...axisCrossings], effects)`; test: pointer-down at the canvas centre on a vertex gives exactly ONE `speak` containing both texts.
+R3-02: update `lastSpokenRef` unconditionally from the merged speak effect so "repeat" says the latest vertex/bar text.
+R3-03: extract ONE `applyMoveResult(moveResult, lang)` helper used by pointer-down, pointer-move and the promotion path (no behaviour change except R3-01/02).
+R3-04: `handleConfirmDelete` in SavedDiagrams: `activeRef` set false on unmount; return early after the await if inactive; use the functional `setEntries`; test: unmount during a pending delete, `speak` not called.
+R3-05: `loadSavedList` joins titles with `joinAnnouncements`, not a raw '. ' join.
+GT-01: `handleVoiceAsk` re-entry guard (`busyRef` for the whole function, cleared in `finally`; also check the ask manager's busy state).
+GT-02: when Ask starts, stop the tone and haptics and make `handlePointerMove` skip `runEffects` and axis speech until listening ends (`askActive` ref).
+GT-03: on promotion of a second finger to primary, first run `step(state, {kind:'lift'})` and its effects (tone off, vibrate stop) before resetting and processing the promoted point; do this in the screen, not in core.
+GT-04: clear `activePointers`/`primaryPointerId` on `visibilitychange` hidden and window `blur`; self-heal in `handlePointerDown` if the tracked primary id is not in `activePointers`.
+GT-09: re-arm the two-finger long-press timer when the finger count drops back to exactly two.
+GT-07: start the 6 s listen timeout on the recognition `onaudiostart`/`onstart` event, not before `recognition.start()`, so the microphone permission prompt does not use up the budget (only if the fake recognition in the tests allows it; otherwise "Needs from planner").
+SKIP (not in scope): GT-05, GT-06, GT-08 (already try/catch), GT-10, R3-08 (device checks); list them in the report.
+Each fix needs a regression test that fails without it (new files; component tests with the existing fake drivers; never weaken an existing assertion). Keep all existing tests green.
