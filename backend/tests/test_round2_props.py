@@ -143,6 +143,22 @@ def test_p41_limiter_holds_no_empty_window_and_no_long_expired_client(
         assert {c for c, _ in _HITS} <= recently_active
 
 
+@PROPS
+@given(per_minute=st.integers(1, 6), wait=st.floats(0.0, 120.0, allow_nan=False))
+def test_p41_a_client_is_admitted_again_once_its_window_has_passed(
+    per_minute: int, wait: float
+) -> None:
+    reset_rate_limits()
+    mw = RequestGuardMiddleware(_noop, body_limits={}, rate_limits={"/api/v1/ask": per_minute})
+    start = 5000.0
+    for _ in range(per_minute):
+        assert mw._allow("10.9.9.9", "/api/v1/ask", per_minute, now=start)
+    assert not mw._allow("10.9.9.9", "/api/v1/ask", per_minute, now=start)  # budget used up
+    again = mw._allow("10.9.9.9", "/api/v1/ask", per_minute, now=start + wait)
+    # Blocked inside the window, admitted again as soon as the whole window has passed.
+    assert again == (wait > RATE_WINDOW_SECONDS)
+
+
 # ---------------------------------------------------------------------------
 # P42: guards are path-normalisation invariant
 # ---------------------------------------------------------------------------
