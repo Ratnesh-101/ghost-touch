@@ -1696,3 +1696,27 @@ Format for each entry:
 - Done by Claude Code: committed T25 (`dabd499`) and T26 (`8f60415`) after running the gates; wrote `backend/tests/test_round2_props.py` (P40, P41, P42, P45, P46), mutation-checked each property, fixed a real bug a property caught (`clamp_answer` returned 301 characters for a long unbroken answer), filled the T26 rows of `docs/reviews/kiro-round2.md`, wrote `docs/kiro-evidence/round2.md`.
 - Gates: frontend tsc clean, 118 files / 1585 tests, build ok; backend pytest exit 0, ruff check and format clean. `core/` diff: the NaN fix in `hitTest.ts` only.
 - Not done: CORE-09, NEEDS-KIRO-02 (OPEN); CORE-08 unverified on hardware. `tasks.md` boxes not ticked.
+
+## 2026-11-08 — agy, reviewed by Claude — Lane h1-verify-core (SPEC GHOST pure module & tests)
+- Built pure TypeScript verification module in `frontend/src/verify/verify.ts` per `docs/briefs/agy-h1-verify-core.md` and SPEC GHOST specification:
+  - `parseFacts`: parses length facts ("XY = n unit", "length of (side) XY is n unit", "XY: n"), angle facts ("angle X = n°", "angle X = n degrees", 3-letter vertex angles), bar facts ("label: n", "label has a value of n"), scale disclaimers ("not to scale"); matches reversed segment names (AC vs CA); ignores unparsed lines.
+  - `verifyScene`: checks length RATIOS only (±15% default, ±25% for AI mode) and angles (±8°); requires >= 2 parsed lengths; silent if "not to scale" or unparsed; operates in letterboxed unit square geometry.
+  - Exported `VERIFY_WORDING` with `disagree` and `disagreeTemplate` ("Facts and drawing disagree on {name}. I can't tell which is right."); never uses "verified" or "trust the text".
+- Built comprehensive test suite in `frontend/tests/verify.test.ts`:
+  - P47: Scene built from its own measurements is never flagged (fast-check geometry & bar charts, 200 total runs).
+  - P48: Results invariant under uniform scale and translation (fast-check 100 runs).
+  - P49: Unparsed facts, "not to scale", or <2 lengths give silence.
+  - P50: Order-independent verification across permutations of facts and segments (fast-check 50 runs).
+  - Regression: Ran over all 60 valid DiagramScenes across `frontend/public/samples/`, `research/samples/synthetic/ground_truth/`, and `research/results/**/predictions/`; 0 false disagreements; 21/60 (35.0%) parse rate; honest `triangle.json` is consistent; forged "AC = 7 cm" on `triangle.json` is correctly flagged.
+- Surprises/What broke during development:
+  - fast-check `fc.float` requires 32-bit floats via `Math.fround` or `fc.double` for JS numbers; switched to `fc.double`.
+  - Photo prediction `02_rectangle.json` in `gemini-3.5-flash-lite-run1` has distorted drawn geometry (ratio 2.2 vs 1.6); sticking strictly to the brief's specified patterns prevented false disagreement while correctly parsing honest structured facts.
+- Verification:
+  - `npm --prefix frontend test`: 119 test files passed (1596 tests passed).
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: Clean (0 errors).
+  - `npm --prefix frontend run build`: Clean PWA build (129 modules, 252ms).
+- Files touched:
+  - `frontend/src/verify/verify.ts` (new)
+  - `frontend/tests/verify.test.ts` (new)
+  - `docs/reports/agy-h1-verify-core-report.md` (new)
+  - `docs/BUILD_LOG.md`
