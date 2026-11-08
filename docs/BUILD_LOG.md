@@ -1764,3 +1764,29 @@ Format for each entry:
   - `docs/user-test/translation-review.csv`
   - `docs/reports/agy-h6-nav-fixes-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-08 — agy, reviewed by Claude — Lane h7-explore-fixes (Explore Screen & Saved Diagrams Fixes)
+- Fixed defects R3-01..R3-05 and GT-01..GT-04, GT-09 from audit reports:
+  - R3-01: Merged canvas centre announcement with vertex/axis effects in `applyMoveResult` via `mergeAnnouncements([centreMsg, ...axisCrossings], effects)`, emitting exactly one combined `speak` utterance on touch-down at centre.
+  - R3-02: `lastSpokenRef` unconditionally updated from merged speak effect, fixing stale repeat state on vertex-only and bar-only moves.
+  - R3-03: Extracted unified `applyMoveResult(moveResult, lang, extraAnnouncements)` helper used across pointerdown, pointermove, and pointerlift promotion.
+  - R3-04: Added `activeRef` unmount guard and `confirmDeleteDiagram` in `flow/saved.ts`; early return prevents late speech after unmount; functional updater for `setEntries`.
+  - R3-05: `loadSavedList` joins titles using `joinAnnouncements`, preventing duplicated punctuation marks (`..`, `।.`).
+  - GT-01: Added `busyRef` and `askManager.current.isBusy()` re-entry guard in `handleVoiceAsk`, cleared in `finally`.
+  - GT-02: Stopped tone and haptics on Ask start and marked `askActive.current = true`; `handlePointerMove` skips `runEffects` and axis crossings during listening.
+  - GT-03: Ran `step(engineState.current, { kind: 'lift', t: now })` and silencing effects before promotion in `handlePointerLift`, eliminating stuck line tone.
+  - GT-04: Cleared `activePointers`, `primaryPointerId`, and lifted engine state on window `blur` and `visibilitychange` hidden; added `selfHealPrimaryPointer` in `handlePointerDown`.
+  - GT-09: Extracted `armTwoFingerLongPressTimer(now)` and re-armed timer in `handlePointerLift` when active pointer count drops back to exactly two.
+  - GT-07 & R3-07: Documented as "Needs from planner" (GT-07 fake recognition mock in test harness needs update; R3-07 touches forbidden `core/hitTest.ts`).
+  - Added 21 regression tests in `tests/h7.explore.fixes.test.ts`.
+- Verification (real results):
+  - `npm --prefix frontend test`: 119 files, 1606 tests passed.
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: Clean (0 errors).
+  - `npm --prefix frontend run build`: Clean (129 modules transformed, 22 precache entries).
+- Files touched:
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/screens/SavedDiagrams.tsx`
+  - `frontend/src/flow/saved.ts`
+  - `frontend/tests/h7.explore.fixes.test.ts`
+  - `docs/reports/agy-h7-explore-fixes-report.md`
+  - `docs/BUILD_LOG.md`
