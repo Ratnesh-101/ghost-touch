@@ -126,10 +126,16 @@ def test_p41_limiter_holds_no_empty_window_and_no_long_expired_client(
     mw = RequestGuardMiddleware(_noop, body_limits={}, rate_limits={"/api/v1/ask": per_minute})
     now = 1000.0
     last_seen: dict[str, float] = {}
+    admitted: dict[str, list[float]] = {}
     for client_index, delta in steps:
         now += delta
         client = f"10.0.0.{client_index}"
-        mw._allow(client, "/api/v1/ask", per_minute, now=now)
+        admitted_now = mw._allow(client, "/api/v1/ask", per_minute, now=now)
+        if admitted_now:
+            admitted.setdefault(client, []).append(now)
+        # The limiter never admits more than `per_minute` inside any sliding window.
+        in_window = [t for t in admitted.get(client, []) if now - t <= RATE_WINDOW_SECONDS]
+        assert len(in_window) <= per_minute
         last_seen[client] = now
         assert all(len(window) > 0 for window in _HITS.values())
         slack = RATE_WINDOW_SECONDS + SWEEP_INTERVAL_SECONDS
