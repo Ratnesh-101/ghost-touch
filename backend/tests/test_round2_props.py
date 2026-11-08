@@ -195,6 +195,28 @@ def _guarded_client(limit: int) -> TestClient:
     return TestClient(wrapped)
 
 
+@settings(max_examples=80, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@given(
+    route=st.sampled_from(GUARDED),
+    extra=st.lists(st.integers(0, 3), min_size=2, max_size=2),
+    trailing=st.integers(0, 4),
+)
+def test_p42_every_slash_variant_gets_the_same_body_limit(
+    route: str, extra: list[int], trailing: int
+) -> None:
+    reset_rate_limits()
+
+    async def ok(request):  # type: ignore[no-untyped-def]
+        return PlainTextResponse("ok")
+
+    app = Starlette(routes=[Route(r, ok, methods=["POST"]) for r in GUARDED])
+    wrapped = RequestGuardMiddleware(app, body_limits={r: 100 for r in GUARDED}, rate_limits={})
+    client = TestClient(wrapped)
+    path = _variant(route, extra, trailing)
+    too_big = client.post("http://testserver" + path, content=b"x" * 500, follow_redirects=False)
+    assert too_big.status_code == 413
+
+
 @settings(max_examples=60, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(
     route=st.sampled_from(["/api/v1/ask", "/api/v1/validate"]),
