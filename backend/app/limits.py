@@ -30,16 +30,69 @@ DEFAULT_SCENE_PER_MINUTE = 20
 DEFAULT_VALIDATE_PER_MINUTE = 40
 
 
+# Sweep for expired clients at most this often (and always once the table is large).
+SWEEP_INTERVAL_SECONDS = 5.0
+SWEEP_TABLE_SIZE = 1000
+MAX_CLIENT_KEY_CHARS = 64
+DEFAULT_TRUSTED_HOPS_ON_RENDER = 1
+
+
+def normalize_path(path: str) -> str:
+    """Collapse repeated slashes and drop trailing ones, so `/api/v1/ask/` is `/api/v1/ask`."""
+    parts = [part for part in path.split("/") if part]
+    return "/" + "/".join(parts)
+
+
+def trusted_proxy_hops() -> int:
+    """How many right-most `X-Forwarded-For` entries were appended by proxies we trust.
+
+    `TRUSTED_PROXY_HOPS` sets it (0 means trust nothing). When unset it is 1 on Render, which
+    sets `RENDER`, and 0 everywhere else.
+    """
+    raw = os.environ.get("TRUSTED_PROXY_HOPS")
+    default = DEFAULT_TRUSTED_HOPS_ON_RENDER if os.environ.get("RENDER") else 0
+    if raw is None:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if value >= 0 else default
+
+
+def client_key(peer: str | None, forwarded_for: str | None, trusted_hops: int) -> str:
+    """Identify a client for rate limiting without trusting anything the client wrote.
+
+    With no trusted proxy the key is the network peer. Behind `n` trusted proxies the key is the
+    n-th entry from the right of `X-Forwarded-For` (the address the nearest trusted proxy saw).
+    Entries to its left were written by the client or by untrusted hops and are never read.
+    """
+    fallback = peer or "unknown"
+    if trusted_hops <= 0 or not forwarded_for:
+        return fallback[:MAX_CLIENT_KEY_CHARS]
+    entries = [entry.strip() for entry in forwarded_for.split(",") if entry.strip()]
+    if len(entries) < trusted_hops:
+        return fallback[:MAX_CLIENT_KEY_CHARS]
+    return entries[-trusted_hops][:MAX_CLIENT_KEY_CHARS]
+
+
 _HITS: dict[tuple[str, str], deque[float]] = defaultdict(deque)
+_last_sweep: float = float("-inf")
 
 
 def reset_rate_limits() -> None:
     """Forget all rate-limit history (used by tests)."""
+    global _last_sweep
     _HITS.clear()
+    _last_sweep = float("-inf")
 
 
-class _BodyTooLarge(Exception):
-    """Raised from the wrapped receive() once the streamed body passes its cap."""
+class _BodyTooLarge(BaseException):  # noqa: N818 - control-flow signal, not an error
+    """Raised from the wrapped receive() once the streamed body passes its cap.
+
+    Deliberately a BaseException: FastAPI turns any `Exception` raised while it reads the body
+    into a 400, so an ordinary exception would hide the 413 this guard is meant to send.
+    """
 
 
 def _int_env(name: str, default: int) -> int:
@@ -48,6 +101,15 @@ def _int_env(name: str, default: int) -> int:
     except ValueError:
         return default
     return value if value > 0 else default
+
+
+def _sweep(now: float) -> None:
+    """Drop every client whose window holds nothing newer than the rate window."""
+    expired = [
+        key for key, window in _HITS.items() if not window or now - window[-1] > RATE_WINDOW_SECONDS
+    ]
+    for key in expired:
+        del _HITS[key]
 
 
 class RequestGuardMiddleware:
@@ -68,7 +130,7 @@ class RequestGuardMiddleware:
             await self.app(scope, receive, send)
             return
 
-        path: str = scope.get("path", "")
+        path = normalize_path(scope.get("path", ""))
         limit = self.body_limits.get(path)
         rate = self.rate_limits.get(path)
         if limit is None and rate is None:
@@ -116,26 +178,20 @@ class RequestGuardMiddleware:
 
     @staticmethod
     def _client_key(scope: Scope, headers: dict[str, str]) -> str:
-        forwarded = headers.get("x-forwarded-for", "")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
         client = scope.get("client")
-        return str(client[0]) if client else "unknown"
+        peer = str(client[0]) if client else None
+        return client_key(peer, headers.get("x-forwarded-for"), trusted_proxy_hops())
 
-    def _allow(self, client: str, path: str, per_minute: int) -> bool:
-        now = time.monotonic()
+    def _allow(self, client: str, path: str, per_minute: int, now: float | None = None) -> bool:
+        global _last_sweep
+        now = time.monotonic() if now is None else now
+        if now - _last_sweep >= SWEEP_INTERVAL_SECONDS or len(_HITS) > SWEEP_TABLE_SIZE:
+            _sweep(now)
+            _last_sweep = now
         key = (client, path)
         window = _HITS[key]
         while window and now - window[0] > RATE_WINDOW_SECONDS:
             window.popleft()
-        if len(_HITS) > 1000:
-            stale = [
-                k
-                for k, w in _HITS.items()
-                if k != key and (not w or (now - w[-1] > RATE_WINDOW_SECONDS))
-            ]
-            for k in stale:
-                _HITS.pop(k, None)
         if len(window) >= per_minute:
             logger.warning("rate limit hit: path=%s", path)
             return False

@@ -277,8 +277,6 @@ export function App(): JSX.Element {
     }
   }, [view, drivers]);
 
-  if (hash === DEBUG_HASH) return <Debug />;
-
   // After Start, the vibration warning (if any) was already spoken by the tap.
   const openCapture = (): void => {
     setView({ screen: 'capture', announced: capturePrompt(drivers.haptics.supported) });
@@ -428,6 +426,10 @@ export function App(): JSX.Element {
       setView({ screen: 'start' });
     }
   };
+
+  // Every hook above runs on every render. Returning earlier crashed React (error #300) when
+  // `#/debug` was opened while the app was running (found by the round 2 CSP browser check).
+  if (hash === DEBUG_HASH) return <Debug />;
 
   switch (view.screen) {
     case 'start':

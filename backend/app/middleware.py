@@ -12,6 +12,10 @@ Send = Callable[[Message], Awaitable[None]]
 ASGIApp = Callable[[Scope, Receive, Send], Awaitable[None]]
 
 
+API_CSP = "default-src 'none'; frame-ancestors 'none'"
+DOCS_PATHS = frozenset({"/docs", "/redoc", "/docs/oauth2-redirect", "/openapi.json"})
+
+
 class SecurityHeadersMiddleware:
     """Injects baseline security and cache headers on responses (SEC-07).
 
@@ -34,6 +38,13 @@ class SecurityHeadersMiddleware:
 
                 if b"x-content-type-options" not in header_names:
                     raw_headers.append((b"x-content-type-options", b"nosniff"))
+                # API responses are data, never pages: no scripts, no framing (A6-04).
+                # (The interactive docs pages, only enabled outside production, need scripts.)
+                if scope.get("path", "") not in DOCS_PATHS:
+                    if b"content-security-policy" not in header_names:
+                        raw_headers.append((b"content-security-policy", API_CSP.encode("ascii")))
+                    if b"x-frame-options" not in header_names:
+                        raw_headers.append((b"x-frame-options", b"DENY"))
 
                 is_json = False
                 for name, value in raw_headers:

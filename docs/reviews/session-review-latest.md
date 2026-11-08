@@ -1,22 +1,21 @@
 # Session review (latest)
-Reviewer: Kiro | Date: 2026-11-07 | Verdict: **SHIP** (with two tracked high findings that are not regressions)
+Reviewer: Kiro | Date: 2026-11-07 | Verdict: **FIX FIRST** (the working tree is mid-task; nothing here should ship until T24 passes its gate)
 
-Scope: this session's edits in `C:\Users\Admin\Downloads\ghost-touch-main\ghost-touch-main`. Kiro-owned files changed: `core/correct.ts`, `tests/correct.prop.test.ts`, `tests/savedDiagrams.prop.test.ts`, `tests/explore.gesture.prop.test.ts` (new), `.kiro/specs/ghost-touch/design.md`, `tasks.md`. Full review: `docs/reviews/kiro-core-review.md`.
+Scope: round 2, Phase 2 of 2026-11-07, in `C:\Users\Admin\Downloads\ghost-touch-main\ghost-touch-main`. Kiro-owned files changed: `.kiro/specs/ghost-touch/requirements.md`, `design.md`, `tasks.md` (committed as `kiro: T23`, `2b11b4e`). No file in `frontend/src/core/` or any `*.prop.test.ts` changed this session.
 
 ## Checks
-- [x] Architecture: `core/` has no browser API calls. The one grep hit is a doc comment in `savedDiagrams.ts`. The `correct.ts` change is pure (`isUnit` helper).
-- [x] Haptic values unchanged: lineMs 80, retriggerMs 70, cornerPattern [50,90,50], quietMs 450, vertexRadius 22, lineRadius 14, pitch 200 to 1000 Hz.
-- [x] P1 to P13 present; every `fc.assert` in the P1 to P8, P11 files sets `numRuns` of at least 200. P9, P10, P13 are at 200 in the backend (P10 was 40 and P13 default; fixed this session). P12 is the integration test.
-- [x] No TEMP stubs: no `_temp/` folders.
-- [x] tasks.md matches: task 19 and 20.8 are ticked and verified; 20.1 to 20.7, 20.9, 20.10, 21 and 22 are open or `[~]`.
-- [x] Tests: `tsc` clean, 1542 frontend tests and 477 backend tests pass, build OK.
+- [x] Architecture: no `core/` change; spec text keeps new pure logic in `flow/` and `backend/app/limits.py`, not in `core/`.
+- [x] Haptic values unchanged (no diff in `core/` since T19; values last verified: lineMs 80, retriggerMs 70, cornerPattern [50,90,50], quietMs 450, vertexRadius 22, lineRadius 14, pitch 200 to 1000 Hz).
+- [x] P1 to P13: no test file changed this session; last verified at 200 or more cases each.
+- [x] No TEMP stubs (`frontend/src/_temp` does not exist).
+- [x] tasks.md matches: task 23 ticked (spec, design, review skeleton all exist and its gate passed: tsc clean, 1542 frontend tests, build OK, 477 backend tests, ruff clean). Tasks 24 to 28 are open and correctly unticked.
 
 ## Findings
-| # | Severity | Where | Problem | Fix |
+| # | Severity | Where | Problem | Next step |
 |---|---|---|---|---|
-| 1 | High (not a regression) | `drivers/diagramStore.ts` | IndexedDB writes are reported successful before the transaction commits. | Task 20.1 |
-| 2 | High (not a regression) | `App.tsx:319-322` | Evicted diagram is deleted before the new one is written. | Task 20.2 |
-| 3 | Low | `tests/labTheme.prop.test.ts:262,326,350` | P18 to P20 use `numRuns: 100`; design.md says at least 200. | Raise to 200 (not done) |
+| 1 | High (blocks shipping) | working tree: `backend/app/ask.py`, `limits.py`, `main.py` plus `tests/test_fix_ask_regression.py` | The f4 lane diff is applied but uncommitted, and 6 tests fail: 3 use `@pytest.mark.asyncio` (no `pytest-asyncio` installed), 1 raw `</user_question>` reaches the prompt through the scene JSON, 1 `/validate` polyline cap was raised together with `/ask`, 1 a lone unit word selects a fact. | Task 24; waiting on the owner's choice of how to edit the f4 test file (my scripted edit was rejected). |
+| 2 | Medium | process | `agy/f4-fix-backend-ask` has no commits, so `git merge --squash` adds nothing; the work was taken as a patch from the lane worktree, which is untouched. | Recorded in `docs/reviews/kiro-round2.md`. |
+| 3 | Low | `/validate` vs share contract | Keeping `/validate` at 1000 polyline points (as instructed) means a Teacher scene with 1001 to 2000 points opens from a share link but fails to save in Correct mode. | Noted for task 24.3; owner decision stands. |
 
-## Needs from Kiro
-- Tasks 20.1 and 20.2 once the owner decides on timing. Nothing else blocks.
+## Needs from the owner
+- Pick how to fix the three async tests (targeted edits, add `pytest-asyncio`, or leave them).

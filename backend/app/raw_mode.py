@@ -15,6 +15,9 @@ import numpy as np
 from app.image_utils import MAX_IMAGE_PIXELS, sniff_image_dimensions
 from app.schema import DiagramScene, Point, Segment
 
+MAX_RAW_SEGMENTS = 300  # Requirement 8.2
+MAX_DEDUPE_CANDIDATES = 1000  # bounds the quadratic de-duplication (A6-08)
+
 
 class RawModeError(Exception):
     """Raised when Raw Mode cannot process or decode image bytes."""
@@ -104,13 +107,17 @@ def build_raw_scene(image: bytes) -> DiagramScene:
                 if math.hypot(x2 - x1, y2 - y1) > 0.0:
                     extracted_segments.append((x1, y1, x2, y2))
 
+    # Longest first. De-duplication is quadratic, and a noisy photo yields tens of thousands of
+    # tiny edges (a 400x400 noise image gave 24k, about 21 s). Only the longest 300 are kept,
+    # so de-duplicate just the longest MAX_DEDUPE_CANDIDATES (A6-08). In this order the longer of
+    # two near-identical twins is the one kept.
+    extracted_segments.sort(key=lambda s: math.hypot(s[2] - s[0], s[3] - s[1]), reverse=True)
+    candidates = extracted_segments[:MAX_DEDUPE_CANDIDATES]
+
     # Deduplicate near-identical segments (Finding 10)
     merge_tol = max(3.0, 0.01 * min(width, height))
-    deduped_segments = _dedupe_segments(extracted_segments, tol=merge_tol)
-
-    # Sort by length descending and keep up to 300
-    deduped_segments.sort(key=lambda s: math.hypot(s[2] - s[0], s[3] - s[1]), reverse=True)
-    top_segments = deduped_segments[:300]
+    deduped_segments = _dedupe_segments(candidates, tol=merge_tol)
+    top_segments = deduped_segments[:MAX_RAW_SEGMENTS]
 
     # Merge nearby endpoints to create shared vertices for corner haptics
     point_registry: list[tuple[float, float, float, float, str]] = []  # (nx, ny, rx, ry, pid)

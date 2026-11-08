@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+# The default token can write to the repository; CI only needs to read it (A6-09).
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

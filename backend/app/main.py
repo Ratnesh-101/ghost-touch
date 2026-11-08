@@ -9,6 +9,7 @@ and diagram scene validation (POST /api/v1/validate).
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import os
 import time
@@ -57,6 +58,7 @@ ALLOWED_MIME_TYPES = {
     "image/webp",
 }
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
+ASK_DISCONNECT_POLL_SECONDS = 0.25  # how often a running /ask call checks for a hang-up
 MAX_VALIDATE_POLYLINE_POINTS = 1000  # /validate keeps its own structural limit (/ask allows 2000)
 MAX_ASK_BODY_SIZE = 512 * 1024  # a scene plus a 500-character question is far smaller
 MAX_VALIDATE_BODY_SIZE = 512 * 1024  # scene JSON for teacher correct validation
@@ -69,6 +71,8 @@ DEFAULT_ASK_QUEUE_WAIT_SECONDS = 5.0
 _cached_chain: ProviderChain | None = None
 _scene_semaphore: asyncio.Semaphore | None = None
 _ask_semaphore: asyncio.Semaphore | None = None
+_improve_semaphore: asyncio.Semaphore | None = None
+DEFAULT_IMPROVE_MAX_CONCURRENCY = 1
 
 
 def parse_scene_max_concurrency() -> int:
@@ -115,6 +119,18 @@ def parse_scene_queue_wait_seconds() -> float:
             DEFAULT_SCENE_QUEUE_WAIT_SECONDS,
         )
         return DEFAULT_SCENE_QUEUE_WAIT_SECONDS
+
+
+async def acquire_slot(sem: asyncio.Semaphore, wait_seconds: float) -> None:
+    """Take a slot, waiting at most `wait_seconds`; raises TimeoutError when none frees up.
+
+    A free slot is always taken. `asyncio.wait_for(..., timeout=0)` would raise even when the
+    semaphore is free, which made a wait of 0 mean "always busy".
+    """
+    if not sem.locked():
+        await sem.acquire()
+        return
+    await asyncio.wait_for(sem.acquire(), timeout=wait_seconds)
 
 
 def get_scene_semaphore() -> asyncio.Semaphore:
@@ -233,6 +249,29 @@ def get_improve_provider() -> VisionProvider | None:
     return GeminiProvider(api_key=api_key, model=model)
 
 
+def get_improve_semaphore() -> asyncio.Semaphore:
+    """Process-wide cap on background improve passes (A6-10).
+
+    Set `IMPROVE_MAX_CONCURRENCY` to change it; the default is 1.
+    """
+    global _improve_semaphore
+    if _improve_semaphore is None:
+        try:
+            cap = int(
+                os.environ.get("IMPROVE_MAX_CONCURRENCY", str(DEFAULT_IMPROVE_MAX_CONCURRENCY))
+            )
+        except ValueError:
+            cap = DEFAULT_IMPROVE_MAX_CONCURRENCY
+        _improve_semaphore = asyncio.Semaphore(cap if cap >= 1 else DEFAULT_IMPROVE_MAX_CONCURRENCY)
+    return _improve_semaphore
+
+
+def reset_improve_semaphore() -> None:
+    """Reset the improve-pass semaphore (for testing)."""
+    global _improve_semaphore
+    _improve_semaphore = None
+
+
 async def run_improve_pass(
     improve_provider: VisionProvider,
     image_bytes: bytes,
@@ -244,8 +283,26 @@ async def run_improve_pass(
 
     If it returns a valid scene, stores it in the cache under the same image hash so
     subsequent requests get the improved scene. Never fails or delays the primary response,
-    and never caches failures.
+    and never caches failures. Best effort and bounded: when every improve slot is busy the
+    pass is skipped, so a burst of scenes cannot fan out into unlimited paid model calls.
     """
+    sem = get_improve_semaphore()
+    if sem.locked():
+        logger.info("Background improve pass skipped: all improve slots are busy")
+        return
+    async with sem:
+        await _run_improve_pass_locked(
+            improve_provider, image_bytes, content_type, cache_key, validator
+        )
+
+
+async def _run_improve_pass_locked(
+    improve_provider: VisionProvider,
+    image_bytes: bytes,
+    content_type: str,
+    cache_key: str,
+    validator: Callable[[str | dict[str, Any]], ValidationResult],
+) -> None:
     try:
         timeout = float(os.environ.get("IMPROVE_TIMEOUT_SECONDS", "30.0"))
         if timeout <= 0:
@@ -491,7 +548,7 @@ async def process_scene(
     sem = get_scene_semaphore()
     wait_seconds = parse_scene_queue_wait_seconds()
     try:
-        await asyncio.wait_for(sem.acquire(), timeout=wait_seconds)
+        await acquire_slot(sem, wait_seconds)
     except TimeoutError as exc:
         raise HTTPException(
             status_code=503,
@@ -697,7 +754,7 @@ async def ask_question_route(
     sem = get_ask_semaphore()
     wait_seconds = parse_ask_queue_wait_seconds()
     try:
-        await asyncio.wait_for(sem.acquire(), timeout=wait_seconds)
+        await acquire_slot(sem, wait_seconds)
     except TimeoutError as exc:
         raise HTTPException(
             status_code=503,
@@ -709,7 +766,22 @@ async def ask_question_route(
         if await raw_request.is_disconnected():
             logger.info("Client disconnected before ask processing; aborting")
             return Response(status_code=499)
-        return await answer_question(request, chain)
+        # Run the model call as a task so a client that hangs up mid-call frees the slot and
+        # the paid request is cancelled instead of running to completion.
+        work = asyncio.create_task(answer_question(request, chain))
+        try:
+            while True:
+                done, _ = await asyncio.wait({work}, timeout=ASK_DISCONNECT_POLL_SECONDS)
+                if done:
+                    return work.result()
+                if await raw_request.is_disconnected():
+                    logger.info("Client disconnected during ask processing; cancelling")
+                    return Response(status_code=499)
+        finally:
+            if not work.done():
+                work.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await work
     finally:
         sem.release()
 

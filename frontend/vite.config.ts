@@ -2,6 +2,21 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA, type VitePWAOptions } from 'vite-plugin-pwa';
 import { siteUrlPlugin } from './vite-plugins/siteUrl.ts';
+import vercelConfig from './vercel.json' with { type: 'json' };
+
+interface VercelHeaderRule {
+  source: string;
+  headers: { key: string; value: string }[];
+}
+
+/** The headers Vercel sends on every route (`/(.*)`), as a plain object. */
+export function siteHeaders(): Record<string, string> {
+  const rules = (vercelConfig as { headers?: VercelHeaderRule[] }).headers ?? [];
+  const all = rules.find((rule) => rule.source === '/(.*)');
+  const out: Record<string, string> = {};
+  for (const { key, value } of all?.headers ?? []) out[key] = value;
+  return out;
+}
 
 export const pwaOptions: Partial<VitePWAOptions> = {
   registerType: 'autoUpdate',
@@ -55,5 +70,10 @@ export default defineConfig({
   plugins: [react(), siteUrlPlugin(), VitePWA(pwaOptions)],
   server: {
     host: true,
+  },
+  // `vite preview` serves the production build with the same security headers as Vercel, so
+  // the CSP can be checked locally before deploying (A6-04). vercel.json is the one source.
+  preview: {
+    headers: siteHeaders(),
   },
 });
