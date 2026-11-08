@@ -1672,3 +1672,21 @@ Format for each entry:
 - Files touched:
   - `docs/reports/cleanup.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-07 — Kiro — T25 (Security A6-01 to A6-05 and confirmed mediums)
+- Tool: **Kiro** did this work. The findings come from the Antigravity audit `docs/reports/audit-a6-security-fullstack.md`. Each was reproduced before it was fixed; the record is in `docs/reviews/kiro-round2.md`.
+- Built:
+  - Backend: `client_key`, `trusted_proxy_hops`, `normalize_path` and a periodic sweep in `limits.py`; `acquire_slot` and a mid-call disconnect watcher on `/ask`; a skip-if-busy cap on improve passes; API CSP and `X-Frame-Options`; Raw Mode de-duplication limited to the 1000 longest candidates.
+  - Frontend and CI: CSP, HSTS and Permissions-Policy in `frontend/vercel.json`; `vite preview` serves the same headers (read from `vercel.json`); `permissions: contents: read` in `ci.yml`.
+  - Tests: `backend/tests/test_round2_security.py` (28 cases), `frontend/tests/security.headers.test.ts` (11 cases).
+- Findings: 11 FIXED (A6-01, 02, 03, 04, 05, 06, 08, 10, 15, CORE-13, and A6-09 in part), A6-07 NOT REPRODUCED, and the `@v7` half of A6-09 NOT REPRODUCED. A6-11, 12, 13, 14, 16 were not part of this task and are still open.
+- What broke or surprised:
+  - A6-03: the f4 lane's cap had a real bug (a queue wait of 0 made /ask and /scene always answer busy) and did not stop a model call when the client hung up.
+  - A6-15: the symptom was a 400, not the 500 the audit described; the fix made the overflow signal a `BaseException` so FastAPI cannot swallow it.
+  - A6-08 was worse than reported: a 400x400 noise image took 21.6 s, which is longer than the 15 s request budget. After the fix: 0.22 s.
+  - A6-09: the audit was wrong that `@v7` does not exist (checked against GitHub); only the missing permissions block was real.
+  - The CSP browser check found an unrelated crash: opening `#/debug` threw React error #300. Logged as K2-01 for task 26.
+  - Several PowerShell commands lost their output and a probe left Python processes running; they were stopped and the temporary probe files in `%TEMP%` were deleted. Two ruff errors in my own edits (a long docstring, an import block) were fixed before the gate.
+- Verification (real results): backend `pytest` 561 passed in the full run, then 117 passed again on the files touched by the last lint-only edits; `ruff check` and `ruff format --check` clean (66 files); frontend `tsc --noEmit` clean, `vitest run` 113 files and 1556 tests passed, `npm run build` ok. Browser: headless Edge against the production build served by `vite preview`: 0 CSP violations.
+- Not verified: Render's real proxy chain length (task 21.10); the Teacher QR image, camera capture and live speech under the CSP (need flags or a device); the live Vercel deployment (the CSP is not deployed until the owner pushes).
+- Files touched: `backend/app/limits.py`, `backend/app/main.py`, `backend/app/middleware.py`, `backend/app/raw_mode.py`, `backend/tests/test_round2_security.py` (new), `frontend/vercel.json`, `frontend/vite.config.ts`, `frontend/tests/security.headers.test.ts` (new), `.github/workflows/ci.yml`, `docs/reviews/kiro-round2.md`, `.kiro/specs/ghost-touch/tasks.md`, `docs/BUILD_LOG.md`.

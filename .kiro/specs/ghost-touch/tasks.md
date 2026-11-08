@@ -195,14 +195,14 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 24.8 Gate (backend and frontend) passes; commit `kiro: T24 ...`
   - _Requirements: 16.9, 16.10, 16.11_
 
-- [ ] 25. Security A6-01 to A6-05 and confirmed mediums
-  - [ ] 25.1 A6-01: client identity from the trusted proxy hop, else the socket address
-  - [ ] 25.2 A6-02: prune empty rate-limit windows
-  - [ ] 25.3 A6-03: concurrency cap on `POST /api/v1/ask`
-  - [ ] 25.4 A6-04: CSP in `frontend/vercel.json` and on FastAPI; verify with `npm run build` and `npm run preview` that the console shows no violation
-  - [ ] 25.5 A6-05: guards apply under trailing and repeated slashes
-  - [ ] 25.6 A6-06 HSTS and Permissions-Policy; A6-07 WebP chunk walk; A6-08 Raw Mode candidate cap; A6-09 CI permissions and action versions; A6-10 improve-pass concurrency; A6-15 streamed overflow gives 413 (each only if reproduced)
-  - [ ] 25.7 Gate passes; commit `kiro: T25 ...`
+- [x] 25. Security A6-01 to A6-05 and confirmed mediums
+  - [x] 25.1 A6-01: client identity from the trusted proxy hop, else the socket address
+  - [x] 25.2 A6-02: prune empty rate-limit windows
+  - [x] 25.3 A6-03: concurrency cap on `POST /api/v1/ask`
+  - [x] 25.4 A6-04: CSP in `frontend/vercel.json` and on FastAPI; verify with `npm run build` and `npm run preview` that the console shows no violation
+  - [x] 25.5 A6-05: guards apply under trailing and repeated slashes
+  - [x] 25.6 A6-06 HSTS and Permissions-Policy; A6-07 WebP chunk walk; A6-08 Raw Mode candidate cap; A6-09 CI permissions and action versions; A6-10 improve-pass concurrency; A6-15 streamed overflow gives 413 (each only if reproduced)
+  - [x] 25.7 Gate passes; commit `kiro: T25 ...`
   - _Requirements: 16.1 to 16.8_
 
 - [ ] 26. Bugs CORE-01 to CORE-03 and confirmed mediums
