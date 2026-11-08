@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState, type JSX } from 'react';
 import type { DiagramScene } from '../core/scene';
 import { orderForDisplay, type SavedDiagram } from '../core/savedDiagrams';
-import { deletedAnnouncement, loadSavedList } from '../flow/saved';
+import { confirmDeleteDiagram, deletedAnnouncement, loadSavedList } from '../flow/saved';
 import type { DiagramStore } from '../drivers/diagramStore';
 import type { SpeechDriver } from '../drivers/speech';
 import { AccessibleButton } from '../components/AccessibleButton';
@@ -40,6 +40,9 @@ export function SavedDiagrams({
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const activeRef = useRef(true);
+  const entriesRef = useRef(entries);
+  entriesRef.current = entries;
 
   // Focus screen heading on mount for TalkBack / keyboard focus placement (Finding 8)
   useEffect(() => {
@@ -54,13 +57,15 @@ export function SavedDiagrams({
   // Load entries on mount and announce list or empty status. If the user leaves before the
   // read finishes, the late result must neither speak nor set state (CORE-03).
   useEffect(() => {
+    activeRef.current = true;
     let active = true;
-    void loadSavedList(diagramStore, () => active, (view) => {
+    void loadSavedList(diagramStore, () => active && activeRef.current, (view) => {
       setLoading(false);
       setEntries(view.entries);
       say(view.announcement);
     });
     return () => {
+      activeRef.current = false;
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,18 +90,23 @@ export function SavedDiagrams({
 
   const handleConfirmDelete = async (entry: SavedDiagram): Promise<void> => {
     setConfirmingId(null);
-    const result = await diagramStore.delete(entry.id);
-    if (!result.ok) {
-      say(t('saved.errorDelete'));
-      return;
-    }
-    // One message, spoken once: a state updater must stay pure, and a second `say` would
-    // cut the first one off (CORE-07).
-    const next = orderForDisplay(entries.filter((e) => e.id !== entry.id));
-    say(deletedAnnouncement(entry.title, next.length));
-    setEntries(next);
-    // The confirmed Delete button is about to leave the page; keep screen-reader focus here.
-    headingRef.current?.focus();
+    await confirmDeleteDiagram(
+      diagramStore,
+      entry.id,
+      () => activeRef.current,
+      () => {
+        // One message, spoken once: a state updater must stay pure, and a second `say` would
+        // cut the first one off (CORE-07).
+        const remaining = entriesRef.current.filter((e) => e.id !== entry.id);
+        say(deletedAnnouncement(entry.title, remaining.length));
+        setEntries((prev) => orderForDisplay(prev.filter((e) => e.id !== entry.id)));
+        // The confirmed Delete button is about to leave the page; keep screen-reader focus here.
+        headingRef.current?.focus();
+      },
+      () => {
+        say(t('saved.errorDelete'));
+      },
+    );
   };
 
   const handleTogglePin = async (entry: SavedDiagram): Promise<void> => {

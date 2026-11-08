@@ -36,7 +36,8 @@ export async function loadSavedList(
     apply({ phase: 'empty', entries, announcement: t('saved.empty') });
     return;
   }
-  apply({ phase: 'list', entries, announcement: entries.map((e) => e.title).join('. ') });
+  // R3-05: joinAnnouncements used instead of raw entries.map((e) => e.title).join('. ')
+  apply({ phase: 'list', entries, announcement: joinAnnouncements(entries.map((e) => e.title)) });
 }
 
 /**
@@ -46,4 +47,25 @@ export async function loadSavedList(
 export function deletedAnnouncement(title: string, remaining: number): string {
   const deleted = t('saved.deleted').replace('{title}', title);
   return remaining > 0 ? deleted : joinAnnouncements([deleted, t('saved.empty')]);
+}
+
+/**
+ * Delete a diagram and invoke callbacks if still active (R3-04).
+ * If the screen unmounts before delete finishes (isActive() returns false),
+ * callbacks are not invoked so no late speech occurs.
+ */
+export async function confirmDeleteDiagram(
+  store: Pick<DiagramStore, 'delete'>,
+  id: string,
+  isActive: () => boolean,
+  onDeleted: () => void,
+  onError?: (error: string) => void,
+): Promise<void> {
+  const result = await store.delete(id);
+  if (!isActive()) return;
+  if (!result.ok) {
+    onError?.(result.error);
+    return;
+  }
+  onDeleted();
 }

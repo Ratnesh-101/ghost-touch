@@ -93,6 +93,20 @@ export function promoteOldestPointer(
 }
 
 /**
+ * Self-heals the tracked primary pointer id if it was orphaned
+ * without a pointercancel/pointerup event (GT-04).
+ */
+export function selfHealPrimaryPointer(
+  primaryId: number | null,
+  activePointers: Map<number, unknown>,
+): number | null {
+  if (primaryId !== null && !activePointers.has(primaryId)) {
+    return null;
+  }
+  return primaryId;
+}
+
+/**
  * Determines whether the Explore canvas aria-label should be suppressed to prevent
  * simultaneous speech collisions with Web Speech synthesis (Finding 5, Requirement 13.8).
  */
@@ -172,6 +186,8 @@ export function Explore({
 
   const askManager = useRef<AskManager>(new AskManager());
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const busyRef = useRef(false);
+  const askActive = useRef(false);
 
   const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
   const [statusMessage, setStatusMessage] = useState(announced);
@@ -240,6 +256,25 @@ export function Explore({
     }
   };
 
+  /** Re-arm the two-finger long-press timer (GT-09). */
+  const armTwoFingerLongPressTimer = (now: number): void => {
+    clearLongPressTimer();
+    if (activePointers.current.size !== 2) return;
+    for (const pointer of activePointers.current.values()) {
+      pointer.start = { x: pointer.current.x, y: pointer.current.y, t: now };
+    }
+    longPressTimer.current = setTimeout(() => {
+      if (activePointers.current.size === 2) {
+        const entries = Array.from(activePointers.current.values());
+        const p1 = entries[0];
+        const p2 = entries[1];
+        if (p1 && p2 && checkTwoFingerLongPress(p1, p2, performance.now())) {
+          void handleVoiceAsk();
+        }
+      }
+    }, TWO_FINGER_LONG_PRESS_MS);
+  };
+
   /** Controls are disabled while busy; focus only works once React re-enables them. */
   const focusAfterRender = (ref: { current: HTMLElement | null }): void => {
     setTimeout(() => ref.current?.focus(), 0);
@@ -283,8 +318,20 @@ export function Explore({
   };
 
   const handleVoiceAsk = async (): Promise<void> => {
+    // GT-01: Re-entry guard for handleVoiceAsk
+    if (busyRef.current || askManager.current.isBusy()) return;
+    busyRef.current = true;
     clearLongPressTimer();
     setIsBusy(true);
+
+    // GT-02: Stop tone and haptics and mark askActive while voice listening is open
+    askActive.current = true;
+    try {
+      drivers.audio.setTone(null);
+      drivers.haptics.stop();
+    } catch {
+      // ignore
+    }
 
     const lang = LANG_BCP47[getLang()] ?? 'en-IN';
 
@@ -338,6 +385,7 @@ export function Explore({
         setShowTextFallback(true);
         return;
       } finally {
+        askActive.current = false;
         askManager.current.setActiveSpeech(null);
       }
 
@@ -462,6 +510,7 @@ export function Explore({
       lastSpokenRef.current = msg;
       setShowTextFallback(true);
     } finally {
+      busyRef.current = false;
       if (!leaving.current) {
         setIsBusy(false);
         focusAfterRender(askButtonRef);
@@ -470,6 +519,8 @@ export function Explore({
   };
 
   const handleTextSubmit = async (): Promise<void> => {
+    // GT-01: Re-entry guard
+    if (busyRef.current || askManager.current.isBusy()) return;
     if (!questionText.trim()) {
       const msg = t('ask.errorEmpty');
       setStatusMessage(msg);
@@ -782,6 +833,7 @@ export function Explore({
       onBackRef.current();
     });
 
+    // GT-04: Clear active pointers, primary pointer, and engine tone on visibilitychange hidden or window blur
     const handleVisibilityChange = (): void => {
       if (document.hidden) {
         if (guideController.current?.isGuiding()) {
@@ -789,9 +841,30 @@ export function Explore({
         }
         drivers.audio.setTone(null);
         drivers.audio.setGuideTone?.(null);
+        clearLongPressTimer();
+        activePointers.current.clear();
+        primaryPointerId.current = null;
+        const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
+        engineState.current = state;
+        runEffects(effects, drivers);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    const handleWindowBlur = (): void => {
+      if (guideController.current?.isGuiding()) {
+        guideController.current.stop('user');
+      }
+      drivers.audio.setTone(null);
+      drivers.audio.setGuideTone?.(null);
+      clearLongPressTimer();
+      activePointers.current.clear();
+      primaryPointerId.current = null;
+      const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
+      engineState.current = state;
+      runEffects(effects, drivers);
+    };
+    window.addEventListener('blur', handleWindowBlur);
 
     if (isSpeechActive) {
       setSpeechAnnounced(true);
@@ -815,6 +888,7 @@ export function Explore({
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
       gc.destroy();
       guideController.current = null;
       clearLongPressTimer();
@@ -842,6 +916,38 @@ export function Explore({
     };
   };
 
+  /**
+   * Unified move pipeline result applicator (R3-03).
+   * Updates engine/centre/axis states and runs merged announcements and effects.
+   */
+  const applyMoveResult = (
+    moveResult: ReturnType<typeof processPointerMove>,
+    lang: string,
+    extraAnnouncements: readonly string[] = [],
+  ): void => {
+    engineState.current = moveResult.nextEngineState;
+    centreTickState.current = moveResult.centreCheck.nextState;
+    axisState.current = moveResult.nextAxisState;
+
+    if (moveResult.centreCheck.tick) {
+      drivers.haptics.vibrate(CENTRE_TICK_MS);
+    }
+    // R3-01 / R3-03: Unified move pipeline calls mergeAnnouncements (previously in pointerdown, move, promotion)
+    // PointerDown: mergeAnnouncements([centreMsg, ...axisCrossings], effects) (R3-01)
+    // PointerMove: mergeAnnouncements(moveResult.axisCrossings, moveResult.effects)
+    // Promotion: mergeAnnouncements(moveResult.axisCrossings, moveResult.effects)
+    const moveEffects = mergeAnnouncements(
+      [...extraAnnouncements, ...moveResult.axisCrossings],
+      moveResult.effects,
+    );
+    // R3-02: update lastSpokenRef unconditionally from the merged speak effect
+    const joined = moveEffects.find((e) => e.kind === 'speak');
+    if (joined?.kind === 'speak') {
+      lastSpokenRef.current = joined.text;
+    }
+    runEffects(moveEffects, drivers, lang);
+  };
+
   const handlePointerDown = (e: PointerEvent<HTMLCanvasElement>): void => {
     if (leaving.current) return;
     drivers.audio.unlock();
@@ -863,23 +969,9 @@ export function Explore({
       current: { x: coords.x, y: coords.y, t: now },
     });
 
-    // Check two-finger long-press timer setup
+    // Check two-finger long-press timer setup (GT-09)
     if (activePointers.current.size === 2) {
-      clearLongPressTimer();
-      // Re-baseline both fingers so earlier exploring movement does not veto the long-press.
-      for (const pointer of activePointers.current.values()) {
-        pointer.start = { x: pointer.current.x, y: pointer.current.y, t: now };
-      }
-      longPressTimer.current = setTimeout(() => {
-        if (activePointers.current.size === 2) {
-          const entries = Array.from(activePointers.current.values());
-          const p1 = entries[0];
-          const p2 = entries[1];
-          if (p1 && p2 && checkTwoFingerLongPress(p1, p2, performance.now())) {
-            void handleVoiceAsk();
-          }
-        }
-      }, TWO_FINGER_LONG_PRESS_MS);
+      armTwoFingerLongPressTimer(now);
     } else {
       clearLongPressTimer();
     }
@@ -891,6 +983,12 @@ export function Explore({
       scheduleDraw(view, coords);
       return;
     }
+
+    // GT-04: Self-heal if the tracked primary pointer is not in activePointers
+    primaryPointerId.current = selfHealPrimaryPointer(
+      primaryPointerId.current,
+      activePointers.current,
+    );
 
     // Only the first active pointer drives the engine (finding 11)
     if (primaryPointerId.current !== null) {
@@ -930,11 +1028,8 @@ export function Explore({
     if (centreResult.tick) {
       drivers.haptics.vibrate(CENTRE_TICK_MS);
     }
-    if (centreResult.speakCentre) {
-      const msg = t('explore.centre');
-      drivers.speech.speak(msg, lang);
-      lastSpokenRef.current = msg;
-    }
+    // R3-01: Centre announcement merged into applyMoveResult instead of speaking directly
+    const centreAnnouncements = centreResult.speakCentre ? [t('explore.centre')] : [];
 
     // Process move pipeline at the touch point
     const moveResult = processPointerMove(
@@ -946,20 +1041,7 @@ export function Explore({
       centreTickState.current,
       axisState.current,
     );
-    engineState.current = moveResult.nextEngineState;
-    centreTickState.current = moveResult.centreCheck.nextState;
-    axisState.current = moveResult.nextAxisState;
-
-    if (moveResult.centreCheck.tick) {
-      drivers.haptics.vibrate(CENTRE_TICK_MS);
-    }
-    // One utterance per move: speaking the axis and then the vertex would cut the axis off.
-    const moveEffects = mergeAnnouncements(moveResult.axisCrossings, moveResult.effects);
-    if (moveResult.axisCrossings.length > 0) {
-      const joined = moveEffects.find((e) => e.kind === 'speak');
-      if (joined?.kind === 'speak') lastSpokenRef.current = joined.text;
-    }
-    runEffects(moveEffects, drivers, lang);
+    applyMoveResult(moveResult, lang, centreAnnouncements);
     scheduleDraw(view, coords);
   };
 
@@ -1005,7 +1087,25 @@ export function Explore({
       return;
     }
 
-    // Per-move pipeline
+    // GT-02: When Ask starts, skip runEffects and axis speech until listening ends
+    if (askActive.current) {
+      const moveResult = processPointerMove(
+        scene,
+        coords,
+        view,
+        now,
+        engineState.current,
+        centreTickState.current,
+        axisState.current,
+      );
+      engineState.current = moveResult.nextEngineState;
+      centreTickState.current = moveResult.centreCheck.nextState;
+      axisState.current = moveResult.nextAxisState;
+      scheduleDraw(view, coords);
+      return;
+    }
+
+    // Per-move pipeline (R3-03)
     const moveResult = processPointerMove(
       scene,
       coords,
@@ -1015,24 +1115,12 @@ export function Explore({
       centreTickState.current,
       axisState.current,
     );
-    engineState.current = moveResult.nextEngineState;
-    centreTickState.current = moveResult.centreCheck.nextState;
-    axisState.current = moveResult.nextAxisState;
-
-    if (moveResult.centreCheck.tick) {
-      drivers.haptics.vibrate(CENTRE_TICK_MS);
-    }
-    // One utterance per move: speaking the axis and then the vertex would cut the axis off.
-    const moveEffects = mergeAnnouncements(moveResult.axisCrossings, moveResult.effects);
-    if (moveResult.axisCrossings.length > 0) {
-      const joined = moveEffects.find((e) => e.kind === 'speak');
-      if (joined?.kind === 'speak') lastSpokenRef.current = joined.text;
-    }
-    runEffects(moveEffects, drivers, lang);
+    applyMoveResult(moveResult, lang);
     scheduleDraw(view, coords);
   };
 
   const handlePointerLift = (e: PointerEvent<HTMLCanvasElement>): void => {
+    const now = performance.now();
     clearLongPressTimer();
     const isPrimaryLift = e.pointerId === primaryPointerId.current;
     const { promotedPointerId, promotedCoords } = promoteOldestPointer(
@@ -1040,6 +1128,11 @@ export function Explore({
       e.pointerId,
       primaryPointerId.current,
     );
+
+    // GT-09: Re-arm the two-finger long-press timer when finger count drops back to exactly two
+    if (activePointers.current.size === 2) {
+      armTwoFingerLongPressTimer(now);
+    }
 
     if (guideController.current?.isGuiding()) {
       if (isPrimaryLift) {
@@ -1060,9 +1153,13 @@ export function Explore({
       if (promotedPointerId !== null && promotedCoords !== null) {
         // Promote oldest surviving pointer to primary (Finding 14, Requirement 4.8)
         primaryPointerId.current = promotedPointerId;
-        const now = performance.now();
         const view = viewportRef.current;
         const lang = LANG_BCP47[getLang()] ?? 'en-IN';
+
+        // GT-03: On promotion of a second finger to primary, first run step(state, {kind: 'lift'})
+        // and its effects (tone off, vibrate stop) before resetting and processing the promoted point
+        const liftResult = step(engineState.current, { kind: 'lift', t: now });
+        runEffects(liftResult.effects, drivers);
 
         engineState.current = initialState();
         const norm = toNorm(promotedCoords, view);
@@ -1077,19 +1174,7 @@ export function Explore({
           centreTickState.current,
           axisState.current,
         );
-        engineState.current = moveResult.nextEngineState;
-        centreTickState.current = moveResult.centreCheck.nextState;
-        axisState.current = moveResult.nextAxisState;
-
-        if (moveResult.centreCheck.tick) {
-          drivers.haptics.vibrate(CENTRE_TICK_MS);
-        }
-        const moveEffects = mergeAnnouncements(moveResult.axisCrossings, moveResult.effects);
-        if (moveResult.axisCrossings.length > 0) {
-          const joined = moveEffects.find((e) => e.kind === 'speak');
-          if (joined?.kind === 'speak') lastSpokenRef.current = joined.text;
-        }
-        runEffects(moveEffects, drivers, lang);
+        applyMoveResult(moveResult, lang);
         scheduleDraw(view, promotedCoords);
       } else {
         // All fingers lifted: silence effects
