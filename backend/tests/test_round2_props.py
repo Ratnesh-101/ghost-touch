@@ -267,6 +267,25 @@ def test_p45_clamped_answer_is_bounded(text: str) -> None:
     assert len(sentences) <= MAX_ANSWER_SENTENCES
 
 
+sentence_body = (
+    st.text(alphabet=string.ascii_letters + string.digits + " ,", min_size=1, max_size=60)
+    .map(str.strip)
+    .filter(bool)
+)
+sentence = st.tuples(sentence_body, st.sampled_from([".", "!", "?", "।"])).map(
+    lambda p: p[0] + p[1]
+)
+
+
+@PROPS
+@given(sentences=st.lists(sentence, min_size=1, max_size=6))
+def test_p45_keeps_exactly_the_first_two_sentences(sentences: list[str]) -> None:
+    text = " ".join(sentences)
+    out = clamp_answer(text)
+    assert out == " ".join(sentences[:MAX_ANSWER_SENTENCES])
+    assert out  # a non-blank answer never becomes empty
+
+
 @PROPS
 @given(text=answer_text)
 def test_p45_clamping_twice_equals_clamping_once(text: str) -> None:
