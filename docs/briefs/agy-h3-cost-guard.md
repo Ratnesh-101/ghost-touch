@@ -9,3 +9,10 @@ C4: per-client in-flight cap (1-2) for /ask in the request path so one IP cannot
 C5: `PROVIDER_RETRIES` semantics so /ask makes at most 1 attempt per provider (charge every attempt to the budget).
 A8: stop returning provider names/content-type echoes to clients; the `X-Vision-Provider` header becomes `ai` or `raw` only (check the frontend does not read the old values: grep `frontend/src` read-only, and list any usage under "Needs from planner").
 Add `.env.example` entries (names and safe defaults, no values). Every fix needs a regression test that fails without it. A3/A5 (Raw Mode CPU/memory, upload buffering) belong to lane h4: do not touch.
+
+## Added after the round-3 re-audit (docs/reports/audit-r3-rate-limits.md): same files, same lane
+R3-2: throttle the sweep (at most once per second regardless of table size) and add a hard cap on `_HITS` (about 50,000 keys: evict the oldest or fail closed for unknown keys); test with 5000 distinct clients at a fixed `now` that `_sweep` runs once and the table stays under the cap.
+R3-3: in `client_key`, parse the key with `ipaddress`; key IPv6 addresses on their /64 network; strip port/brackets; canonicalise IPv4-mapped addresses; test that `2001:db8::1` and `2001:db8::ffff` give the same key. Keep existing client_key tests green (IPv4 behaviour unchanged).
+R3-5: `declared.isascii() and declared.isdigit()` with try/except around `int()` for Content-Length (a Latin-1 superscript or a >4300 digit string must give 400/413, never a 500); join duplicate `X-Forwarded-For` header lines with a comma. Test the middleware directly.
+R3-1 is the same as C4 above (per-client in-flight cap, 429 over the cap; also for `/scene`).
+Do NOT change `TRUSTED_PROXY_HOPS` defaults (the owner must first check Render's real header shape); do not touch `render.yaml`.
