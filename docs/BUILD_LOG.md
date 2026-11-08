@@ -1720,3 +1720,24 @@ Format for each entry:
   - `frontend/tests/verify.test.ts` (new)
   - `docs/reports/agy-h1-verify-core-report.md` (new)
   - `docs/BUILD_LOG.md`
+
+## 2026-11-08 — Antigravity — Lane h5-privacy-docs (Privacy Documentation from Code Verification)
+- Conducted a comprehensive read-only privacy audit of backend and frontend codebases and authored plain-language `docs/PRIVACY.md`:
+  - Disclosed exact network flows: photos pre-processed in browser (max 1600 px JPEG) and transmitted to backend `POST /api/v1/scene` and upstream vision LLMs (Google Gemini `gemini-3.5-flash-lite`, OpenAI `gpt-4.1-mini`, Nebius `openbmb/MiniCPM-V-4_5`) or processed locally on server via OpenCV Raw Mode.
+  - Verified backend storage invariants: in-memory LRU scene cache (`scene_cache.py`, 64 entries, 6 h TTL) caches only extracted DiagramScene JSON coordinate payloads; the uploaded image itself is NEVER cached or persisted to disk. Rate-limiting data (`limits.py`) is held in RAM only and swept every 5 seconds. No database or disk persistence exists.
+  - Verified logging practices: question length (`question_len`) and point counts (`scene_points`) are logged; question text and diagram coordinates are never logged. API keys and bearer tokens are redacted by regex.
+  - Documented client-side storage: up to 20 saved diagrams in browser IndexedDB (with canvas vector thumbnails, not camera photos); user settings (`gt_language`, `gt_speech_rate`, `gt_guide_enabled`, `gt_teacher_enabled`) in localStorage; transient photo object URLs revoked on navigation.
+  - Documented Web Speech API audio handling by the browser vendor (e.g. Google speech cloud services on Android Chrome) and local Web Audio / vibration generation.
+  - Verified complete absence of user accounts, login, cookies, tracking scripts, and analytics/telemetry packages in `frontend/package.json` and backend dependencies.
+  - Created "For teachers and parents" summary section and 3-sentence in-app notice in English, Hindi, and Gujarati (Hindi and Gujarati marked as needing native review).
+  - Identified and disclosed privacy gaps: upstream provider error responses (first 200 characters) logged in server warnings; external provider data retention policies marked UNVERIFIED.
+  - Verified README.md has no docs/links section; left README.md untouched per brief instructions.
+  - Created lane report `docs/reports/agy-h5-privacy-docs-report.md` with status DONE.
+- What broke or surprising findings:
+  - Confirmed the backend scene cache strictly keys by image hash and prompt but discards image bytes after extraction, caching only the validated scene JSON dictionary.
+  - Confirmed question answering logs `question_len` and `scene_points` only, maintaining user query privacy in standard application logs.
+- Files touched:
+  - `docs/PRIVACY.md`
+  - `docs/reports/agy-h5-privacy-docs-report.md`
+  - `docs/BUILD_LOG.md`
+
