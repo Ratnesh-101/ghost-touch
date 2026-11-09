@@ -36,6 +36,7 @@ from app.limits import (
     reset_in_flight_limits,
 )
 from app.main import (
+    ALLOWED_MIME_TYPES,
     ask_question_route,
     get_ask_semaphore,
     get_scene_semaphore,
@@ -56,6 +57,15 @@ def _make_png_bytes(width: int = 120, height: int = 80) -> bytes:
     img = np.zeros((height, width, 3), dtype=np.uint8)
     cv2.rectangle(img, (10, 10), (width - 10, height - 10), (255, 255, 255), 2)
     ok, buf = cv2.imencode(".png", img)
+    assert ok
+    return buf.tobytes()
+
+
+def _make_jpeg_bytes(width: int = 120, height: int = 80) -> bytes:
+    """Generate a small valid test JPEG with a drawn rectangle."""
+    img = np.zeros((height, width, 3), dtype=np.uint8)
+    cv2.rectangle(img, (10, 10), (width - 10, height - 10), (255, 255, 255), 2)
+    ok, buf = cv2.imencode(".jpg", img)
     assert ok
     return buf.tobytes()
 
@@ -379,7 +389,11 @@ def test_m4_05_semantic_calculations_safe_with_boundary_aspect() -> None:
     )
     # Should calculate without overflow or math domain error
     res, coords, lbl = _find_right_angle(scene_high)
-    assert coords is not None or res is None
+    assert res is not None
+    assert res.element_id == "A"
+    assert res.name == "right_angle"
+    assert coords == (0.0, 0.0)
+    assert lbl == "A"
 
     best_seg, _, _ = _find_longest_side(scene_high)
     assert best_seg is not None
@@ -443,6 +457,7 @@ def test_m4_07_scene_vision_aborts_on_client_disconnect(monkeypatch: pytest.Monk
     """process_scene polls disconnect and aborts in-flight AI call with HTTP 499."""
 
     async def _run() -> None:
+        reset_in_flight_limits()
         monkeypatch.setattr("app.main.ASK_DISCONNECT_POLL_SECONDS", 0.01)
 
         class SlowProvider:
@@ -487,6 +502,7 @@ def test_m4_07_scene_vision_aborts_on_client_disconnect(monkeypatch: pytest.Monk
 
         assert isinstance(resp, Response)
         assert resp.status_code == 499
+        assert get_scene_in_flight_limiter().count("10.0.0.88") == 0
 
     asyncio.run(_run())
 
@@ -612,3 +628,68 @@ def test_m4_12_docstrings_match_12_mp_limit() -> None:
     assert validate_image_bytes.__doc__ is not None
     assert "12 MP" in validate_image_bytes.__doc__
     assert "40 MP" not in validate_image_bytes.__doc__
+
+
+# ---------------------------------------------------------------------------
+# R5 backend audit fixes: image/jpg MIME upload acceptance
+# ---------------------------------------------------------------------------
+
+
+def test_upload_declared_image_jpg_accepted() -> None:
+    """Upload declared with Content-Type 'image/jpg' is accepted by process_scene without 415."""
+
+    async def _run() -> None:
+        reset_in_flight_limits()
+        assert "image/jpg" in ALLOWED_MIME_TYPES
+
+        jpeg_bytes = _make_jpeg_bytes()
+        detected, w, h = validate_image_bytes(jpeg_bytes, declared_mime="image/jpg")
+        assert detected == "image/jpeg"
+        assert w > 0 and h > 0
+
+        class MockClient:
+            host = "10.0.0.95"
+            port = 45000
+
+        class MockRequest:
+            headers = {"content-type": "image/jpg", "content-length": str(len(jpeg_bytes))}
+            client = MockClient()
+
+            async def is_disconnected(self) -> bool:
+                return False
+
+        mock_file = UploadFile(
+            file=io.BytesIO(jpeg_bytes),
+            filename="diagram.jpg",
+            headers={"content-type": "image/jpg"},
+        )
+
+        resp = await process_scene(
+            request=MockRequest(),  # type: ignore[arg-type]
+            response=Response(),
+            background_tasks=BackgroundTasks(),
+            image=mock_file,
+            chain=ProviderChain([]),
+            validator=validate_scene,
+        )
+        assert isinstance(resp, dict)
+        assert resp.get("mode") == "raw"
+        assert "scene" in resp
+
+        bad_file = UploadFile(
+            file=io.BytesIO(b"not an image"),
+            filename="diagram.txt",
+            headers={"content-type": "text/plain"},
+        )
+        with pytest.raises(HTTPException) as exc_info:
+            await process_scene(
+                request=MockRequest(),  # type: ignore[arg-type]
+                response=Response(),
+                background_tasks=BackgroundTasks(),
+                image=bad_file,
+                chain=ProviderChain([]),
+                validator=validate_scene,
+            )
+        assert exc_info.value.status_code == 415
+
+    asyncio.run(_run())
