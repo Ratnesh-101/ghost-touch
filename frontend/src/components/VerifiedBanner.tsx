@@ -1,18 +1,21 @@
 /**
- * VerifiedBanner — displays teacher verification details on the Explore screen.
+ * VerifiedBanner — displays shared diagram author details on the Explore screen.
  *
- * Requirements:
+ * Requirements (R1/R3):
  * - Rendered with `role="status"` and accessible text.
+ * - Spoken and visible label says "Shared by <name>, not checked" style wording (never "Verified" for link content).
+ * - Strips leading checkmarks and words "verified"/"certified" from author name.
+ * - Renders author name, note, and labels isolated with `<bdi>`.
  * - Teacher name, note, and labels render as React text children only (no dangerouslySetInnerHTML).
  * - Note is hidden initially and shown/spoken on request only via "Read note" button.
  * - Touch targets >= 48x48 px via `.gt-control`.
- * - Displays name, note, and labels isolated with `<bdi>` (SEC-02).
- * - Honesty line displayed in student banner area and spoken only on request (SEC-03).
+ * - Honesty line displayed in student banner area with role="note".
  */
 
 import { useState, type JSX } from 'react';
 import { AccessibleButton } from './AccessibleButton';
 import { t } from '../i18n';
+import { honestSharedByLabel, sanitizeShareName } from '../flow/share';
 
 export interface VerifiedBannerProps {
   by: string;
@@ -45,31 +48,15 @@ export function VerifiedBanner({
     }
   };
 
-  const nameText = by.trim() !== '' ? by : t('share.verified');
-  const template = t('share.verifiedBy');
-  const nameIndex = template.indexOf('{name}');
-  const prefix = nameIndex !== -1 ? template.slice(0, nameIndex) : '';
-  const suffix = nameIndex !== -1 ? template.slice(nameIndex + '{name}'.length) : '';
-  const verifiedText = template.replace('{name}', nameText);
+  const cleanName = sanitizeShareName(by);
+  const labelText = honestSharedByLabel(cleanName);
 
   return (
-    <aside className="gt-verified-banner" role="status" aria-label={verifiedText}>
+    <aside className="gt-verified-banner" role="status" aria-label={labelText}>
       <div className="gt-verified-banner__main">
-        <span className="gt-verified-banner__badge" aria-hidden="true">
-          ✓
-        </span>
+        {/* Leading checkmark stripped per R1/R3 honesty */}
         <span className="gt-verified-banner__by">
-          <bdi>
-            {nameIndex !== -1 ? (
-              <>
-                {prefix}
-                <bdi className="gt-verified-banner__name">{nameText}</bdi>
-                {suffix}
-              </>
-            ) : (
-              <bdi className="gt-verified-banner__name">{nameText}</bdi>
-            )}
-          </bdi>
+          <bdi className="gt-verified-banner__name">{labelText}</bdi>
         </span>
         {hasNote && (
           <AccessibleButton

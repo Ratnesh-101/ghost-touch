@@ -12,13 +12,21 @@
  * - Friendly error screens for each error code without stacks or raw payload.
  */
 
-import { createElement } from 'react';
+import { act, createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import LZString from 'lz-string';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { App, joinShareAnnouncements, resolveShareRoute, speakShareAnnouncements } from '../src/App';
+import {
+  App,
+  joinShareAnnouncements,
+  openSharedDiagram,
+  resolveShareRoute,
+  speakShareAnnouncements,
+} from '../src/App';
 import type { DiagramScene } from '../src/core/scene';
-import type { Drivers } from '../src/drivers';
+import { MemoryDiagramStore, type Drivers } from '../src/drivers';
+import { Explore } from '../src/screens/Explore';
+import { ShareGate } from '../src/components/ShareGate';
 import { clearHash } from '../src/drivers/hashRoute';
 import { encodeShare, LIMITS, type SharePayload } from '../src/share';
 import { exploreAnnouncement } from '../src/flow/navigation';
@@ -138,7 +146,7 @@ describe('Share Open Routing & Flow', () => {
     vi.restoreAllMocks();
   });
 
-  it('valid link opens Explore screen with verified banner and diagram title', () => {
+  it('valid link shows ShareGate first, then opens Explore with honest banner on tap', async () => {
     const payload: SharePayload = {
       v: 1,
       scene: sampleScene,
@@ -151,12 +159,79 @@ describe('Share Open Routing & Flow', () => {
     (globalThis as unknown as { window: unknown }).window = mockWindow;
     (globalThis as unknown as { history: unknown }).history = mockWindow.history;
 
-    const html = renderToStaticMarkup(createElement(App));
+    const gateHtml = renderToStaticMarkup(createElement(App));
 
-    // Verify Explore screen rendered with scene title and verified banner
-    expect(html).toContain('Right Triangle ABC');
-    expect(html).toContain('Verified by Mrs. Sharma');
-    expect(html).toContain('role="status"');
+    // 1. ShareGate is shown on load until the user taps (GT-05)
+    expect(gateHtml).toContain('Open the shared diagram');
+    expect(gateHtml).toContain('Right Triangle ABC');
+    expect(gateHtml).toContain('Mrs. Sharma');
+    expect(gateHtml).not.toContain('role="status"');
+    expect(gateHtml).not.toContain('Shared by Mrs. Sharma, not checked');
+
+    // 2. User tap unlocks and transitions to Explore screen with honest verified banner
+    const resolution = resolveShareRoute(`#s=${encoded}`, true, { honest: true });
+    expect(resolution.kind).toBe('explore');
+    if (resolution.kind !== 'explore') return;
+
+    const testDrivers: Drivers = {
+      haptics: { supported: true, lastResult: null, vibrate: vi.fn(), stop: vi.fn() },
+      audio: {
+        unlock: vi.fn(),
+        setTone: vi.fn(),
+        beep: vi.fn(),
+        playEarcon: vi.fn(),
+        state: 'running',
+      },
+      speech: { speak: vi.fn(), listen: vi.fn(), canSpeak: true, canListen: true },
+      diagramStore: new MemoryDiagramStore(),
+    };
+
+    // Perform tap using the same handler path the app uses
+    let tapped = false;
+    let nextView: ReturnType<typeof openSharedDiagram> | null = null;
+    const gateOnOpen = vi.fn(() => {
+      tapped = true;
+      nextView = openSharedDiagram(testDrivers, resolution, 'en-IN');
+    });
+
+    const gateElement = createElement(ShareGate, {
+      onOpen: gateOnOpen,
+      title: 'Right Triangle ABC',
+      sharedBy: 'Mrs. Sharma',
+    });
+    const gateMarkup = renderToStaticMarkup(gateElement);
+    expect(gateMarkup).toContain('Open the shared diagram');
+
+    // Fire the tap handler and wait for state update inside act()
+    await act(async () => {
+      gateOnOpen();
+    });
+
+    expect(tapped).toBe(true);
+    expect(testDrivers.audio.unlock).toHaveBeenCalledTimes(1);
+    expect(testDrivers.audio.playEarcon).toHaveBeenCalledWith('start');
+    expect(testDrivers.speech.speak).toHaveBeenCalledTimes(1);
+    expect(nextView).toEqual({
+      screen: 'explore',
+      scene: sampleScene,
+      announced: resolution.sceneAnnouncement,
+      verified: resolution.verified,
+      fromShare: true,
+    });
+
+    // Render Explore with the post-tap view state and assert honest banner
+    const exploreHtml = renderToStaticMarkup(
+      createElement(Explore, {
+        scene: nextView!.scene,
+        announced: nextView!.announced,
+        drivers: testDrivers,
+        onBack: vi.fn(),
+        verified: nextView!.verified,
+      }),
+    );
+    expect(exploreHtml).toContain('Right Triangle ABC');
+    expect(exploreHtml).toContain('Shared by Mrs. Sharma, not checked');
+    expect(exploreHtml).toContain('role="status"');
   });
 
   it('no network call at all (asserts fetch is NOT called)', () => {

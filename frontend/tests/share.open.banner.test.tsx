@@ -29,7 +29,7 @@ describe('VerifiedBanner Component', () => {
     setLang('en');
   });
 
-  it('renders with role="status" and displays "Verified by <name>"', () => {
+  it('renders with role="status" and displays "Shared by <name>, not checked"', () => {
     const html = renderToStaticMarkup(
       createElement(VerifiedBanner, {
         by: 'Mrs. Sharma',
@@ -40,7 +40,7 @@ describe('VerifiedBanner Component', () => {
     const banner = getAllElements(root).filter((el) => el.attrs['role'] === 'status');
 
     expect(banner.length).toBe(1);
-    expect(html).toContain('Verified by Mrs. Sharma');
+    expect(html).toContain('Shared by Mrs. Sharma, not checked');
   });
 
   it('initially hides the note and renders "Read note" button', () => {
@@ -123,7 +123,7 @@ describe('VerifiedBanner Component', () => {
         note: 'कोनों को ध्यान से देखें।',
       }),
     );
-    expect(htmlHi).toContain('शर्मा जी द्वारा सत्यापित');
+    expect(htmlHi).toContain('शर्मा जी द्वारा साझा किया गया, जाँचा नहीं गया');
     expect(htmlHi).toContain('नोट पढ़ें');
 
     setLang('gu');
@@ -133,7 +133,7 @@ describe('VerifiedBanner Component', () => {
         note: 'ખૂણાઓ ધ્યાનથી જુઓ.',
       }),
     );
-    expect(htmlGu).toContain('પટેલ સાહેબ દ્વારા પ્રમાણિત');
+    expect(htmlGu).toContain('પટેલ સાહેબ દ્વારા શેર કરેલ, ચકાસાયેલ નથી');
     expect(htmlGu).toContain('નોંધ વાંચો');
   });
 });

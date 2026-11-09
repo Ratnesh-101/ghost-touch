@@ -287,6 +287,12 @@ const en: Record<string, string> = {
   'share.error.badScene': 'This shared diagram could not be read.',
   'share.error.empty': 'This shared link has no diagram.',
   'share.error.generic': 'Something went wrong opening this shared link.',
+  // Shared Link Gate & Share Honesty (Lane m3-shared-link-gate)
+  'share.gate.open': 'Open the shared diagram',
+  'share.gate.heading': 'Shared diagram',
+  'share.sharedBy': 'Shared by {name}, not checked',
+  'share.sharedUnnamed': 'Shared diagram, not checked',
+  'share.titlePrefix': 'Title: {title}',
 
   // Teacher Editor (Lane t2-teach-editor)
   'lab.settings.teacher': 'Teacher tools',
@@ -599,6 +605,12 @@ const hi: Record<string, string> = {
   'share.error.badScene': 'यह साझा किया गया आरेख पढ़ा नहीं जा सका।',
   'share.error.empty': 'इस साझा किए गए लिंक में कोई आरेख नहीं है।',
   'share.error.generic': 'इस साझा किए गए लिंक को खोलने में कुछ गलत हो गया।',
+  // Shared Link Gate & Share Honesty (Lane m3-shared-link-gate)
+  'share.gate.open': 'साझा किया गया आरेख खोलें',
+  'share.gate.heading': 'साझा किया गया आरेख',
+  'share.sharedBy': '{name} द्वारा साझा किया गया, जाँचा नहीं गया',
+  'share.sharedUnnamed': 'साझा किया गया आरेख, जाँचा नहीं गया',
+  'share.titlePrefix': 'शीर्षक: {title}',
 
   // Teacher Editor (Lane t2-teach-editor)
   'lab.settings.teacher': 'शिक्षक उपकरण',
@@ -911,6 +923,12 @@ const gu: Record<string, string> = {
   'share.error.badScene': 'આ શેર કરેલી આકૃતિ વાંચી શકાઈ નથી.',
   'share.error.empty': 'આ શેર કરેલી લિંકમાં કોઈ આકૃતિ નથી.',
   'share.error.generic': 'આ શેર કરેલી લિંક ખોલવામાં કંઈક ખોટું થયું.',
+  // Shared Link Gate & Share Honesty (Lane m3-shared-link-gate)
+  'share.gate.open': 'શેર કરેલી આકૃતિ ખોલો',
+  'share.gate.heading': 'શેર કરેલી આકૃતિ',
+  'share.sharedBy': '{name} દ્વારા શેર કરેલ, ચકાસાયેલ નથી',
+  'share.sharedUnnamed': 'શેર કરેલી આકૃતિ, ચકાસાયેલ નથી',
+  'share.titlePrefix': 'શીર્ષક: {title}',
 
   // Teacher Editor (Lane t2-teach-editor)
   'lab.settings.teacher': 'શિક્ષક સાધનો',
