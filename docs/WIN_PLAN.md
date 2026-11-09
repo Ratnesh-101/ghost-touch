@@ -12,7 +12,7 @@
 | Finding | Consequence |
 |---|---|
 | Web haptics work on the user's OnePlus Nord CE6 (Chrome, TalkBack **off**) | Core idea validated |
-| **With TalkBack on, a plain one-finger drag gets no vibration** — TalkBack consumes it for its own explore-by-touch | **SOLVED (2026-11-01, Gate A, A1 passes):** TalkBack's pass-through gesture (double-tap, hold on the second tap, then drag) delivers events and the phone vibrates when the cursor crosses a line. TalkBack starts the virtual finger at the centre of the focused element and movement is relative, so Explore uses a "relative cursor" design (`docs/briefs/T07-explore.md`). Stay on web; the Capacitor native spike is optional Phase 2. |
+| **With TalkBack on, a plain one-finger drag gets no vibration** — TalkBack consumes it for its own explore-by-touch | **SOLVED (2026-11-01, Gate A, A1 passes in code):** TalkBack's pass-through gesture (double-tap, hold on the second tap, then drag) delivers events and the phone vibrates when the cursor crosses a line. TalkBack starts the virtual finger at the centre of the focused element and movement is relative, so Explore uses a "relative cursor" design (`docs/briefs/T07-explore.md`). Stay on web; the Capacitor native spike is optional Phase 2. (Note: physical phone hardware verification is pending per `docs/OWNER_CHECKLIST.md`). |
 | Competitors (see §8): Dot Pad (~£6,500+ hardware), Seeing AI explore-photo (people/objects, no diagram haptics), Desmos Audio Trace (typed equations only), Grafici Accessibili (Android tablet, typed equations, 3 function types), TouchSight (hackathon, embosser/3D-print output, no phone haptics, never tested with blind users) | Our gap is real: **photo of any diagram → instant haptic + audio exploration + voice Q&A on a budget phone, free.** |
 | Vision-LLM accuracy on real textbook photos is **untested** | #2 risk |
 
@@ -20,7 +20,7 @@
 | Criterion (Kiroween, 20% each) | How we score |
 |---|---|
 | Potential Impact | Real blind students at BPA Ahmedabad using it; works **with TalkBack**; budget phone |
-| Technological Implementation (Kiro) | Specs drive the build, 3+ hooks, steering, **11+ property-based tests**, MCP, honest multi-tool write-up |
+| Technological Implementation (Kiro) | Specs drive the build, 5 hooks, steering, **P1–P46 property tests**, MCP, honest multi-tool write-up following BUILD_LOG |
 | Design | Eyes-closed-usable, dark glowing UI, theremin signature sound, coherent end-to-end flow |
 | Innovation | Unique combo vs. competitors table; TalkBack-compatible touch exploration is itself novel |
 | Presentation | Real student on camera tracing a triangle; < 3 min; memorable "creature" framing |
@@ -50,7 +50,7 @@ The updated prototype (`prototypes/index.html`) now starts on TalkBack's double-
 - **Only A4 passes →** do **both**: (1) ship web with a spoken, one-step instruction to suspend TalkBack in Explore and resume after; (2) start **Capacitor native spike** (Phase 0b) immediately, because a native app can receive TalkBack's touch-exploration as hover events and drive haptics without suspending TalkBack.
 
 ### Phase 0b — Native spike (NOT needed: Gate A passed with A1; optional Phase 2 experiment only), assign to agy
-Brief `docs/briefs/T00b-native-spike.md`:
+Brief `docs/briefs/T00b-native-spike.md` *(Note: Brief was not created as Gate A passed with method A1, making the native spike unnecessary)*:
 1. Minimal Capacitor Android project wrapping the prototype.
 2. A small native plugin: set an `OnHoverListener` (and `OnTouchListener`) on the WebView; forward `x, y, action` to JS via `evaluateJavascript`; trigger vibration natively with `VibrationEffect` (amplitude control).
 3. In JS, if native events arrive, feed them to the same `handle()` logic.
@@ -203,7 +203,7 @@ Feature freeze **Nov 30**. Dec 1–4 = demo, write-up, submission only.
 ## 7. Risk register
 | Risk | Status | Mitigation |
 |---|---|---|
-| TalkBack blocks touch exploration | **Solved via pass-through gesture** (A1 passes, 2026-11-01) | Explore uses double-tap-and-hold then drag, announced on entry; relative-cursor design; Android Back exit. Remaining: confirm on the T07 build; Capacitor only as optional Phase 2 |
+| TalkBack blocks touch exploration | **Solved in code via pass-through gesture** (A1 passes in code and emulation; unverified on physical hardware) | Explore uses double-tap-and-hold then drag, announced on entry; relative-cursor design; Android Back exit. Remaining: physical phone testing per `docs/OWNER_CHECKLIST.md`; Capacitor only as optional Phase 2 |
 | Vision LLM inaccurate on photos | Untested | Gate B; digital-first input; teacher correction |
 | Kiro credits run out (50 free) | Active | User requests 4,000 now; Kiro used for core + reviews only |
 | BPA can't schedule before Nov 15 | Possible | VIT Bhopal alternative; online follow-up |
@@ -235,3 +235,12 @@ Keep the full source list in `docs/research/competitors.md`.
 4. Write `docs/user-test/plan.md` from §4.
 5. Log all of this in `docs/BUILD_LOG.md`.
 6. Reply to the user with: the Gate A test steps (short, phone-friendly), how to run the vision spike, and the exact message to give agy for T05.
+
+---
+
+## 10. Honest Disclosures, Known Limits & Open Items
+- **Hardware Verification Pending:** TalkBack pass-through gesture, Guide-my-finger haptics/pan, and Teacher verify QR sharing are unverified on physical phone hardware (`docs/OWNER_CHECKLIST.md`). Guide and Share remain flagged OFF by default (`VITE_FEATURE_GUIDE=1`, `VITE_FEATURE_SHARE=1`).
+- **Open Round 2 Items (No 'bug free' or 'secure' claims):** Active security and bug audits remain ongoing. Open items: CORE-09 (lost pointer capture on canvas boundary traversal) and NEEDS-KIRO-02 (`hapticEngine.ts:132` line tone sequencing).
+- **Spec Ghost (`frontend/src/verify`):** Experimental consistency check designed to detect impossible shapes; not yet wired into the main flow; parse rate is ~35% on real scenes.
+- **Data Privacy Architecture:** All diagram processing is stateless in RAM; images are never written to disk or database (see `docs/PRIVACY.md`).
+- **BPA Ahmedabad Testing:** In-person user testing sessions at the Blind People's Association in Ahmedabad are pending.
