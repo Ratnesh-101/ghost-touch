@@ -132,6 +132,58 @@ export function resolveCanvasAriaLabel(
   return canvasAriaLabel(scene);
 }
 
+/**
+ * Caps canvas devicePixelRatio to at most maxDpr (PERF-03).
+ * Prevents VRAM exhaustion and LMK tab discards on high-DPI budget phones.
+ */
+export function computeCanvasDpr(rawDpr: number, maxDpr = 2): number {
+  if (!Number.isFinite(rawDpr) || rawDpr <= 0) return 1;
+  return Math.min(rawDpr, maxDpr);
+}
+
+export interface CanvasRectCache {
+  getRect(): DOMRect | null;
+  setRect(rect: DOMRect | null): void;
+  update(canvas: HTMLCanvasElement | null): DOMRect | null;
+  getCoords(clientX: number, clientY: number, canvas: HTMLCanvasElement | null): ScreenPoint;
+}
+
+/**
+ * Caches canvas bounding rectangle to eliminate layout thrashing from
+ * getBoundingClientRect calls on the high-frequency pointermove path (PERF-02).
+ */
+export function createCanvasRectCache(): CanvasRectCache {
+  let cached: DOMRect | null = null;
+  return {
+    getRect: () => cached,
+    setRect: (rect: DOMRect | null) => {
+      cached = rect;
+    },
+    update: (canvas: HTMLCanvasElement | null) => {
+      if (!canvas || typeof canvas.getBoundingClientRect !== 'function') return null;
+      const rect = canvas.getBoundingClientRect();
+      cached = rect;
+      return rect;
+    },
+    getCoords: (
+      clientX: number,
+      clientY: number,
+      canvas: HTMLCanvasElement | null,
+    ): ScreenPoint => {
+      let rect = cached;
+      if (!rect && canvas && typeof canvas.getBoundingClientRect === 'function') {
+        rect = canvas.getBoundingClientRect();
+        cached = rect;
+      }
+      if (!rect) return { x: 0, y: 0 };
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top,
+      };
+    },
+  };
+}
+
 interface ExploreProps {
   scene: DiagramScene;
   /** The entry announcement spoken aloud and shown in status text. */
@@ -161,6 +213,7 @@ export function Explore({
   verified,
 }: ExploreProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRectCache = useRef<CanvasRectCache>(createCanvasRectCache());
   const askButtonRef = useRef<HTMLButtonElement>(null);
   const backButtonRef = useRef<HTMLButtonElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
@@ -772,13 +825,19 @@ export function Explore({
     }
   };
 
+  const updateRect = (): DOMRect | null => {
+    return canvasRectCache.current.update(canvasRef.current);
+  };
+
   const updateDimensions = (): void => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
+    const rect = updateRect();
+    if (!rect) return;
     const width = Math.max(1, Math.round(rect.width));
     const height = Math.max(1, Math.round(rect.height));
-    const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+    const rawDpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+    const dpr = computeCanvasDpr(rawDpr, 2);
 
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
@@ -875,7 +934,12 @@ export function Explore({
     updateDimensions();
 
     const handleResize = (): void => updateDimensions();
+    const handleScroll = (): void => {
+      updateRect();
+    };
     window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
 
     const canvas = canvasRef.current;
     let observer: ResizeObserver | null = null;
@@ -895,6 +959,8 @@ export function Explore({
       askManager.current.abort();
       unbindBack();
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+      window.removeEventListener('scroll', handleScroll, true);
       observer?.disconnect();
       if (rafId.current !== null && typeof cancelAnimationFrame !== 'undefined') {
         cancelAnimationFrame(rafId.current);
@@ -907,13 +973,7 @@ export function Explore({
   }, []);
 
   const getCanvasCoords = (e: PointerEvent<HTMLCanvasElement>): ScreenPoint => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
+    return canvasRectCache.current.getCoords(e.clientX, e.clientY, canvasRef.current);
   };
 
   /**

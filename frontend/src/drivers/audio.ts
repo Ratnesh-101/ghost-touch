@@ -102,6 +102,7 @@ export interface AudioContextLike {
   createGain(): GainLike;
   createStereoPanner?(): StereoPannerLike;
   resume(): Promise<void>;
+  suspend?(): Promise<void>;
 }
 export type AudioContextFactory = () => AudioContextLike | undefined;
 
@@ -421,6 +422,13 @@ export class WebAudioDriver implements AudioDriver {
     });
   }
 
+  private suspendIfRunning(ctx: AudioContextLike): void {
+    if (ctx.state === 'suspended' || typeof ctx.suspend !== 'function') return;
+    ctx.suspend().catch(() => {
+      // Best-effort; ignore error if suspend is refused.
+    });
+  }
+
   private attachLifecycleListeners(): void {
     if (this.listenersAttached) return;
     this.listenersAttached = true;
@@ -436,6 +444,9 @@ export class WebAudioDriver implements AudioDriver {
       } else if (doc && (doc.visibilityState === 'hidden' || doc.hidden === true)) {
         this.setTone(null);
         this.setGuideTone?.(null);
+        if (this.ctx) {
+          this.suspendIfRunning(this.ctx);
+        }
       }
     };
 
@@ -449,5 +460,10 @@ export class WebAudioDriver implements AudioDriver {
     win?.addEventListener('pointerdown', onGesture);
     win?.addEventListener('touchstart', onGesture);
     win?.addEventListener('keydown', onGesture);
+    if (doc && doc !== (win as unknown)) {
+      doc.addEventListener('pointerdown', onGesture);
+      doc.addEventListener('touchstart', onGesture);
+      doc.addEventListener('keydown', onGesture);
+    }
   }
 }
