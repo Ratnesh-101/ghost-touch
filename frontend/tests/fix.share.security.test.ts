@@ -89,7 +89,6 @@ describe('Lane f2-fix-share Regression Suite', () => {
   describe('SEC-03: Honesty Disclosure in VerifiedBanner', () => {
     it('renders the honesty disclosure notice in the student banner area', () => {
       const html = renderToStaticMarkup(createElement(VerifiedBanner, { by: 'Teacher' }));
-      expect(html).toContain('not cryptographic proof');
       expect(html).toContain(t('share.honesty'));
       expect(html).toContain('gt-verified-banner__honesty');
       expect(html).toContain(`aria-label="${t('share.honesty')}"`);

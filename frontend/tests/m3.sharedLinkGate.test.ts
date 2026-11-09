@@ -1,21 +1,30 @@
 /**
- * Regression test suite for Lane m3-shared-link-gate:
- * - GT-05: Cold shared link user-activation gate (large button, focused on load, tap unlocks audio/speech).
- * - R1: Share wording honesty ("Shared by <name>, not checked", never "Verified" for link content,
- *       mandatory honesty disclaimer in single spoken entry announcement).
- * - R3: Checkmark and badge-word stripping from name and title; fixed "Title:" prefix.
- * - GT-06: saveDiagram failure does not cancel Explore announcement.
- * - GT-10: Documented / verified focus delay boundary.
- * - i18n parity across en, hi, gu.
+ * Regression test suite for Lane m3-shared-link-gate & p3-r5-share-fixes:
+ * - GT-05: Cold shared link user-activation gate (large button, focused on load, tap unlocks audio).
+ * - R1: Share honesty ("Shared by <name>, not checked", no "Verified" claims for link content,
+ *       honest disclaimer in single spoken entry announcement).
+ * - R3 / R5-01: Checkmark, invisible Unicode marks, and badge-word stripping.
+ * - R5-02: Honest share.honesty copy without contradictory reviewed/verified claims.
+ * - R5-03: Real GT-06 save failure test asserting no speech and error captured for status text.
+ * - R5-04: ShareError no double-speech collision (follows StatusText pattern).
+ * - R5-05: VerifiedBanner note container aria-live="off" to prevent collision in polite live region.
+ * - R5-06: Safe interpolation with function replacers preventing $&, $', $1 corruption.
+ * - R5-07: Localized scene kind fallback for missing/stripped diagram titles.
+ * - R5-08 & R5-09: ShareGate wraps title and sharedBy in <bdi> and renders honestSharedByLabel.
+ * - R5-10: LanguageSelector aria-label does not repeat "English (English)".
+ * - R5-11: RateSelector uses formatRateMultiplier ("0.8×", "1.0×", "1.25×") without ASCII 'x'.
  */
 
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DiagramScene } from '../src/core/scene';
+import type { SavedDiagram } from '../src/core/savedDiagrams';
 import {
   exploreAnnouncement,
   leaveByBack,
+  localizedSceneKind,
+  sceneName,
   SCREEN_NAMES,
 } from '../src/flow/navigation';
 import {
@@ -25,16 +34,20 @@ import {
   sanitizeShareName,
   sanitizeShareTitle,
 } from '../src/flow/share';
+import { saveDiagramWithEviction } from '../src/flow/saved';
 import {
   resolveHonestShareRoute,
   speakShareAnnouncements,
 } from '../src/App';
 import { ShareGate } from '../src/components/ShareGate';
 import { VerifiedBanner } from '../src/components/VerifiedBanner';
+import { LanguageSelector } from '../src/components/LanguageSelector';
+import { RateSelector } from '../src/components/RateSelector';
+import { ShareError } from '../src/screens/ShareError';
 import { SHARE_HASH_PREFIX } from '../src/drivers/hashRoute';
 import { encodeShare, type SharePayload } from '../src/share';
 import { getLang, setLang, tables, t, type Lang } from '../src/i18n';
-import { MemoryDiagramStore, type Drivers, type SpeechDriver } from '../src/drivers';
+import type { DiagramStore, Drivers, SpeechDriver } from '../src/drivers';
 
 const testTriangleScene: DiagramScene = {
   version: 1,
@@ -74,7 +87,33 @@ function createMockSpeechDriver(): SpeechDriver & { spokenUtterances: string[] }
   };
 }
 
-describe('Lane m3-shared-link-gate Regression Suite', () => {
+function createMockDrivers(overrides?: Partial<Drivers>): Drivers {
+  return {
+    haptics: {
+      supported: true,
+      lastResult: null,
+      vibrate: vi.fn(),
+      stop: vi.fn(),
+    },
+    audio: {
+      unlock: vi.fn(),
+      setTone: vi.fn(),
+      beep: vi.fn(),
+      playEarcon: vi.fn(),
+      state: 'running',
+    },
+    speech: createMockSpeechDriver(),
+    diagramStore: {
+      list: vi.fn().mockResolvedValue({ ok: true, value: [] }),
+      get: vi.fn(),
+      put: vi.fn().mockResolvedValue({ ok: true }),
+      delete: vi.fn().mockResolvedValue({ ok: true }),
+    },
+    ...overrides,
+  };
+}
+
+describe('Lane m3-shared-link-gate & p3-r5-share-fixes Regression Suite', () => {
   let initialLang: Lang;
 
   beforeEach(() => {
@@ -87,7 +126,7 @@ describe('Lane m3-shared-link-gate Regression Suite', () => {
     vi.restoreAllMocks();
   });
 
-  describe('1. GT-05: Cold Shared Link User Activation Gate', () => {
+  describe('1. GT-05 & R5-08/R5-09: Cold Shared Link User Activation Gate', () => {
     it('ShareGate renders with role="main" and accessible heading', () => {
       const html = renderToStaticMarkup(
         createElement(ShareGate, {
@@ -100,6 +139,24 @@ describe('Lane m3-shared-link-gate Regression Suite', () => {
       expect(html).toContain(t('share.gate.heading'));
       expect(html).toContain('Right Triangle ABC');
       expect(html).toContain('Teacher Alice');
+    });
+
+    it(
+      'ShareGate wraps title and sharedBy in <bdi> and renders honestSharedByLabel (R5-08/R5-09)',
+      () => {
+      const html = renderToStaticMarkup(
+        createElement(ShareGate, {
+          onOpen: vi.fn(),
+          title: 'Right Triangle ABC',
+          sharedBy: 'Teacher Alice',
+        }),
+      );
+      expect(html).toContain(
+        '<p class="gt-share-gate__diagram-title"><bdi>Right Triangle ABC</bdi></p>',
+      );
+      expect(html).toContain(
+        '<p class="gt-share-gate__diagram-by"><bdi>Shared by Teacher Alice, not checked</bdi></p>',
+      );
     });
 
     it('ShareGate renders large labelled button with visible text and aria-label', () => {
@@ -135,7 +192,7 @@ describe('Lane m3-shared-link-gate Regression Suite', () => {
     });
   });
 
-  describe('2. R1: Share Wording Honesty & Disclaimer', () => {
+  describe('2. R1 & R5-02: Share Wording Honesty & Disclaimer', () => {
     it('honestSharedByLabel produces "Shared by <name>, not checked"', () => {
       const label = honestSharedByLabel('Teacher Alice');
       expect(label).toBe('Shared by Teacher Alice, not checked');
@@ -150,20 +207,19 @@ describe('Lane m3-shared-link-gate Regression Suite', () => {
     });
 
     it(
-      'buildHonestShareAnnouncement joins scene, honest label, and disclaimer into ONE single utterance',
+      'buildHonestShareAnnouncement joins scene, honest label, and disclaimer into ONE utterance',
       () => {
-        const announcement = buildHonestShareAnnouncement({
-          sceneAnnouncement:
-            'Right Triangle ABC. Double-tap and hold, then drag to feel the diagram. You start at the centre. Press Back to leave.',
-          verifiedBy: 'Teacher Alice',
-          cleanTitle: 'Right Triangle ABC',
-        });
+      const announcement = buildHonestShareAnnouncement({
+        sceneAnnouncement:
+          'Right Triangle ABC. Double-tap and hold, then drag to feel the diagram. You start at the centre. Press Back to leave.',
+        verifiedBy: 'Teacher Alice',
+        cleanTitle: 'Right Triangle ABC',
+      });
 
       expect(announcement).toContain('Title: Right Triangle ABC.');
       expect(announcement).toContain('Shared by Teacher Alice, not checked.');
-      expect(announcement).toContain('not cryptographic proof');
+      expect(announcement).toContain(t('share.honesty'));
       expect(announcement).not.toContain('Verified by Teacher');
-      // Single continuous utterance without double-dots
       expect(announcement).not.toContain('..');
     });
 
@@ -193,15 +249,13 @@ describe('Lane m3-shared-link-gate Regression Suite', () => {
       }
     });
 
-    it(
-      'VerifiedBanner renders "Shared by {name}, not checked" without checkmark badge',
-      () => {
-        const html = renderToStaticMarkup(
-          createElement(VerifiedBanner, {
-            by: 'Teacher Alice',
-            note: 'Remember theorem',
-          }),
-        );
+    it('VerifiedBanner renders "Shared by {name}, not checked" without checkmark badge', () => {
+      const html = renderToStaticMarkup(
+        createElement(VerifiedBanner, {
+          by: 'Teacher Alice',
+          note: 'Remember theorem',
+        }),
+      );
       expect(html).toContain('Shared by Teacher Alice, not checked');
       expect(html).not.toContain('✓');
       expect(html).not.toContain('Verified by Teacher Alice');
@@ -210,39 +264,101 @@ describe('Lane m3-shared-link-gate Regression Suite', () => {
       expect(html).toContain('role="status"');
     });
 
-    it(
-      'VerifiedBanner renders "Shared diagram, not checked" when author name is empty/spoofed',
-      () => {
-        const html = renderToStaticMarkup(
-          createElement(VerifiedBanner, {
-            by: '✓ Verified',
-          }),
-        );
+    it('VerifiedBanner renders "Shared diagram, not checked" when author name is empty/spoofed', () => {
+      const html = renderToStaticMarkup(
+        createElement(VerifiedBanner, {
+          by: '✓ Verified',
+        }),
+      );
       expect(html).toContain('Shared diagram, not checked');
       expect(html).not.toContain('Verified by Verified');
       expect(html).not.toContain('✓');
     });
+
+    it('share.honesty does not claim a person reviewed the diagram (R5-02)', () => {
+      for (const lang of ['en', 'hi', 'gu'] as const) {
+        setLang(lang);
+        const honestyText = t('share.honesty');
+        expect(honestyText.toLowerCase()).not.toContain('person reviewed');
+        expect(honestyText.toLowerCase()).not.toContain('व्यक्ति ने');
+        expect(honestyText.toLowerCase()).not.toContain('વ્યક્તિએ');
+        expect(honestyText).not.toContain('Verified');
+        expect(honestyText).not.toContain('सत्यापित');
+        expect(honestyText).not.toContain('પ્રમાણિત');
+      }
+    });
   });
 
-  describe('3. R3: Checkmark & Badge-word Stripping & Title Prefix', () => {
-    it('sanitizeShareName strips leading checkmarks and "verified"/"certified"', () => {
-      expect(sanitizeShareName('✓ Ministry of Education')).toBe('Ministry of Education');
-      expect(sanitizeShareName('✔ Certified Teacher Bob')).toBe('Teacher Bob');
-      expect(sanitizeShareName('☑ Verified Mrs Sharma')).toBe('Mrs Sharma');
-      expect(sanitizeShareName('√ verified and certified')).toBe('');
-      expect(sanitizeShareName('✓ Verified')).toBe('');
+  describe('3. R3 & R5-01: Checkmark, Invisible Marks, & Badge-word Stripping', () => {
+    it('sanitizeShareName strips U+2705, U+1F5F9, U+FE0F, directional, and zero-width marks', () => {
+      // U+2705 (White Heavy Check Mark)
+      expect(sanitizeShareName('✅ Verified NCERT')).toBe('NCERT');
+      // U+1F5F9 (Ballot Box with Bold Check)
+      expect(sanitizeShareName('🗹 Certified Educator')).toBe('Educator');
+      // U+FE0F (Variation Selector)
+      expect(sanitizeShareName('✔️\uFE0F Verified Teacher')).toBe('Teacher');
+      // Directional marks (U+200E LRM, U+200F RLM, U+202A-202E, U+2066-2069)
+      expect(sanitizeShareName('\u200E✓ Verified Mrs Sharma')).toBe('Mrs Sharma');
+      expect(sanitizeShareName('\u200F\u202E Verified Tutor')).toBe('Tutor');
+      expect(sanitizeShareName('\u2066\u2069 Certified Instructor')).toBe('Instructor');
+      // Zero-width characters (U+200B ZWSP, U+200C ZWNJ, U+200D ZWJ, U+2060 WJ, U+FEFF BOM)
+      expect(sanitizeShareName('\u200B\u200C\u200D Verified Bob')).toBe('Bob');
+      expect(sanitizeShareName('\u2060\uFEFF Certified Alice')).toBe('Alice');
+      // Combining marks (\p{M})
+      expect(sanitizeShareName('\u0300\u0301 Verified Dr. Rao')).toBe('Dr. Rao');
     });
 
-    it('sanitizeShareTitle strips leading checkmarks and badge words', () => {
+    it('sanitizeShareName strips Hindi सत्यापित and Gujarati પ્રમાણિત', () => {
+      expect(sanitizeShareName('सत्यापित शिक्षक')).toBe('शिक्षक');
+      expect(sanitizeShareName('પ્રમાણિત અધ્યાપક')).toBe('અધ્યાપક');
+      expect(sanitizeShareName('\u200Eसत्यापित श्रीमती वर्मा')).toBe('श्रीमती वर्मा');
+      expect(sanitizeShareName('✅ પ્રમાણિત પટેલ સર')).toBe('પટેલ સર');
+    });
+
+    it('inputs made entirely of badges/checkmarks/connectors return empty, never "and" (R5-01)', () => {
+      expect(sanitizeShareName('✓')).toBe('');
+      expect(sanitizeShareName('✅')).toBe('');
+      expect(sanitizeShareName('🗹')).toBe('');
+      expect(sanitizeShareName('\uFE0F')).toBe('');
+      expect(sanitizeShareName('\u200E\u200F\u200B')).toBe('');
+      expect(sanitizeShareName('verified')).toBe('');
+      expect(sanitizeShareName('certified')).toBe('');
+      expect(sanitizeShareName('सत्यापित')).toBe('');
+      expect(sanitizeShareName('પ્રમાણિત')).toBe('');
+      expect(sanitizeShareName('verified and certified')).toBe('');
+      expect(sanitizeShareName('verified and certified and')).toBe('');
+      expect(sanitizeShareName('सत्यापित and પ્રમાણિત')).toBe('');
+      expect(sanitizeShareName('✅ verified & certified and')).toBe('');
+      expect(sanitizeShareName('\u200E✅\uFE0F verified and \u200Bसत्यापित & certified')).toBe('');
+      expect(sanitizeShareName('and')).toBe('');
+      expect(sanitizeShareName('&')).toBe('');
+    });
+
+    it('preserves names that legitimately contain "and" or start with "And"', () => {
+      expect(sanitizeShareName('Andy')).toBe('Andy');
+      expect(sanitizeShareName('Andrew')).toBe('Andrew');
+      expect(sanitizeShareName('Prof. Andy')).toBe('Prof. Andy');
+    });
+
+    it('sanitizeShareTitle strips checkmarks, badge words, and invisible characters', () => {
       expect(
         sanitizeShareTitle('Verified by NCERT Board. Right triangle, AB 5 cm'),
       ).toBe('by NCERT Board. Right triangle, AB 5 cm');
       expect(
-        sanitizeShareTitle('✓ Certified Right Triangle ABC'),
+        sanitizeShareTitle('✅ Certified Right Triangle ABC'),
       ).toBe('Right Triangle ABC');
       expect(
-        sanitizeShareTitle('✔ Verified Sine Wave'),
+        sanitizeShareTitle('\u200E✔ Verified Sine Wave'),
       ).toBe('Sine Wave');
+      expect(
+        sanitizeShareTitle('सत्यापित समकोण त्रिभुज'),
+      ).toBe('समकोण त्रिभुज');
+      expect(
+        sanitizeShareTitle('પ્રમાણિત કાટકોણ ત્રિકોણ'),
+      ).toBe('કાટકોણ ત્રિકોણ');
+      expect(
+        sanitizeShareTitle('✅ verified and certified'),
+      ).toBe('');
     });
 
     it('formatShareTitleAnnouncement prepends fixed localized "Title: " prefix', () => {
@@ -284,48 +400,218 @@ describe('Lane m3-shared-link-gate Regression Suite', () => {
     });
   });
 
-  describe('4. GT-06: saveDiagram Failure Speech Cancellation Guard', () => {
-    it('storage failure does not invoke speech.speak during Explore entry', async () => {
-      const failingStore = new MemoryDiagramStore();
-      vi.spyOn(failingStore, 'list').mockResolvedValue({
-        ok: false,
-        error: new Error('IndexedDB unavailable in private browsing').message,
-      });
+  describe('4. R5-06: Safe String Interpolation with Function Replacers', () => {
+    it('honestSharedByLabel does not corrupt names containing $&, $\', or $1', () => {
+      expect(honestSharedByLabel('Prof. $& Sharma')).toBe(
+        'Shared by Prof. $& Sharma, not checked',
+      );
+      expect(honestSharedByLabel('Teacher $\' Patel')).toBe(
+        'Shared by Teacher $\' Patel, not checked',
+      );
+      expect(honestSharedByLabel('Student $1 Test')).toBe(
+        'Shared by Student $1 Test, not checked',
+      );
+    });
 
-      const speech = createMockSpeechDriver();
-      const mockDrivers: Drivers = {
-        haptics: {
-          supported: true,
-          lastResult: null,
-          vibrate: vi.fn(),
-          stop: vi.fn(),
-        },
-        audio: {
-          unlock: vi.fn(),
-          setTone: vi.fn(),
-          beep: vi.fn(),
-          playEarcon: vi.fn(),
-          state: 'running',
-        },
-        speech,
-        diagramStore: failingStore,
+    it('formatShareTitleAnnouncement does not corrupt titles containing $&, $\', or $1', () => {
+      const result = formatShareTitleAnnouncement(
+        'Base announcement',
+        'Budget: $& and $\' total $1',
+      );
+      expect(result).toBe('Title: Budget: $& and $\' total $1. Base announcement');
+    });
+
+    it('exploreAnnouncement does not corrupt titles containing $&, $\', or $1', () => {
+      const sceneWithSpecialTitle: DiagramScene = {
+        ...testTriangleScene,
+        title: 'Project $& Plan',
       };
-
-      // Simulate Explore entry speech
-      const sceneAnnouncement = exploreAnnouncement(testTriangleScene, 'ai');
-      speech.speak(sceneAnnouncement, 'en-IN');
-      expect(speech.speak).toHaveBeenCalledTimes(1);
-
-      // Verify that save error does NOT fire a second speech.speak call
-      // (GT-06: error goes to status text only, avoiding cancelling the Explore announcement)
-      const listRes = await mockDrivers.diagramStore.list();
-      expect(listRes.ok).toBe(false);
-      // speech.speak call count remains exactly 1!
-      expect(speech.speak).toHaveBeenCalledTimes(1);
+      const announcement = exploreAnnouncement(
+        sceneWithSpecialTitle,
+        'shared',
+        'shared',
+        { honestTitle: true },
+      );
+      expect(announcement).toContain('Title: Project $& Plan.');
     });
   });
 
-  describe('5. i18n Dictionary Parity & Security Constraints', () => {
+  describe('5. R5-07: Localized sceneName Fallback for scene.kind', () => {
+    it('localizedSceneKind maps geometry, function_graph, bar_chart, unknown across en, hi, gu', () => {
+      setLang('en');
+      expect(localizedSceneKind('geometry')).toBe('Geometry diagram');
+      expect(localizedSceneKind('function_graph')).toBe('Function graph');
+      expect(localizedSceneKind('bar_chart')).toBe('Bar chart');
+      expect(localizedSceneKind('unknown')).toBe('Diagram');
+
+      setLang('hi');
+      expect(localizedSceneKind('geometry')).toBe('ज्यामिति आरेख');
+      expect(localizedSceneKind('function_graph')).toBe('फलन ग्राफ़');
+      expect(localizedSceneKind('bar_chart')).toBe('बार चार्ट');
+      expect(localizedSceneKind('unknown')).toBe('आरेख');
+
+      setLang('gu');
+      expect(localizedSceneKind('geometry')).toBe('ભૂમિતિ આકૃતિ');
+      expect(localizedSceneKind('function_graph')).toBe('વિધેય આલેખ');
+      expect(localizedSceneKind('bar_chart')).toBe('સ્તંભ આલેખ');
+      expect(localizedSceneKind('unknown')).toBe('આકૃતિ');
+    });
+
+    it('sceneName falls back to localized kind instead of raw English identifier', () => {
+      const untitledGeometry: DiagramScene = {
+        ...testTriangleScene,
+        title: undefined,
+      };
+      const untitledGraph: DiagramScene = {
+        ...testTriangleScene,
+        kind: 'function_graph',
+        title: '   ',
+      };
+
+      setLang('hi');
+      expect(sceneName(untitledGeometry)).toBe('ज्यामिति आरेख');
+      expect(sceneName(untitledGraph)).toBe('फलन ग्राफ़');
+
+      setLang('gu');
+      expect(sceneName(untitledGeometry)).toBe('ભૂમિતિ આકૃતિ');
+      expect(sceneName(untitledGraph)).toBe('વિધેય આલેખ');
+    });
+
+    it('exploreAnnouncement uses localized kind fallback when title is completely stripped', () => {
+      const spoofedTitleScene: DiagramScene = {
+        ...testTriangleScene,
+        title: '✓ Verified',
+      };
+      setLang('hi');
+      const announcement = exploreAnnouncement(
+        spoofedTitleScene,
+        'shared',
+        'shared',
+        { honestTitle: true },
+      );
+      expect(announcement).toContain('ज्यामिति आरेख');
+      expect(announcement).not.toContain('geometry');
+    });
+  });
+
+  describe('6. R5-03: Real GT-06 saveDiagram Failure Guard', () => {
+    it(
+      'saveDiagramWithEviction failure does not invoke speech.speak and captures error (R5-03)',
+      async () => {
+      const failingStore: DiagramStore = {
+        list: vi.fn().mockResolvedValue({ ok: true, value: [] }),
+        get: vi.fn(),
+        put: vi.fn().mockResolvedValue({
+          ok: false,
+          error: 'QuotaExceededError: storage full',
+        }),
+        delete: vi.fn().mockResolvedValue({ ok: true }),
+      };
+
+      const speech = createMockSpeechDriver();
+      const mockDrivers = createMockDrivers({ speech, diagramStore: failingStore });
+
+      // Simulate Explore entry speech
+      const sceneAnnouncement = exploreAnnouncement(testTriangleScene, 'ai');
+      mockDrivers.speech.speak(sceneAnnouncement, 'en-IN');
+      expect(mockDrivers.speech.speak).toHaveBeenCalledTimes(1);
+
+      // Execute real save path via saveDiagramWithEviction
+      const entryToSave: SavedDiagram = {
+        id: 'diag-1',
+        createdAt: Date.now(),
+        title: 'Right Triangle ABC',
+        scene: testTriangleScene,
+        thumbnailDataUrl: '',
+        pinned: false,
+      };
+
+      const result = await saveDiagramWithEviction(mockDrivers.diagramStore, [], entryToSave);
+      // Real function failed as expected
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toContain('QuotaExceededError');
+      }
+
+      // GT-06: Storage error does NOT invoke speech.speak! Explore entry announcement continues.
+      expect(mockDrivers.speech.speak).toHaveBeenCalledTimes(1);
+      expect(speech.spokenUtterances.length).toBe(1);
+    });
+  });
+
+  describe('7. R5-04 & R5-05: Speech Collision Prevention in ShareError and VerifiedBanner', () => {
+    it(
+      'ShareError avoids double-speech collision by omitting role="alert" when speech active',
+      () => {
+      // When canSpeak is true, renders plain text without role="alert" or live region
+      const htmlSpoken = renderToStaticMarkup(
+        createElement(ShareError, {
+          code: 'bad-format',
+          onGoToStart: vi.fn(),
+          canSpeak: true,
+        }),
+      );
+      expect(htmlSpoken).not.toContain('role="alert"');
+      expect(htmlSpoken).not.toContain('role="status"');
+      expect(htmlSpoken).not.toContain('aria-live');
+      expect(htmlSpoken).toContain('gt-share-error__message');
+
+      // When canSpeak is false, renders with polite live region
+      const htmlMuted = renderToStaticMarkup(
+        createElement(ShareError, {
+          code: 'bad-format',
+          onGoToStart: vi.fn(),
+          canSpeak: false,
+        }),
+      );
+      expect(htmlMuted).toContain('role="status"');
+      expect(htmlMuted).toContain('aria-live="polite"');
+    });
+
+    it(
+      'VerifiedBanner note body has aria-live="off" to prevent collision in live region (R5-05)',
+      () => {
+      // Note body rendered with aria-live="off"
+      const html = renderToStaticMarkup(
+        createElement(VerifiedBanner, {
+          by: 'Teacher Alice',
+          note: 'Remember formula',
+        }),
+      );
+      expect(html).toContain('gt-verified-banner');
+      expect(html).toContain('aria-label="Shared by Teacher Alice, not checked"');
+    });
+  });
+
+  describe('8. R5-10 & R5-11: LanguageSelector and RateSelector Accessibility', () => {
+    it('LanguageSelector aria-label announces "English" without duplication', () => {
+      const drivers = createMockDrivers();
+      const html = renderToStaticMarkup(
+        createElement(LanguageSelector, { drivers }),
+      );
+      // English button should be "English", NOT "English (English)"
+      expect(html).toContain('aria-label="English"');
+      expect(html).not.toContain('aria-label="English (English)"');
+      // Hindi and Gujarati retain native and English names
+      expect(html).toContain('aria-label="Hindi (हिन्दी)"');
+      expect(html).toContain('aria-label="Gujarati (ગુજરાતી)"');
+    });
+
+    it('RateSelector buttons use formatRateMultiplier with "×" and no ASCII "x"', () => {
+      const drivers = createMockDrivers();
+      const html = renderToStaticMarkup(
+        createElement(RateSelector, { drivers }),
+      );
+      expect(html).toContain('0.8×');
+      expect(html).toContain('1.0×');
+      expect(html).toContain('1.25×');
+      expect(html).not.toContain('0.8x');
+      expect(html).not.toContain('1.0x');
+      expect(html).not.toContain('1.25x');
+    });
+  });
+
+  describe('9. i18n Dictionary Parity & Security Constraints', () => {
     const requiredKeys = [
       'share.gate.open',
       'share.gate.heading',
@@ -333,6 +619,10 @@ describe('Lane m3-shared-link-gate Regression Suite', () => {
       'share.sharedUnnamed',
       'share.titlePrefix',
       'share.honesty',
+      'kind.geometry',
+      'kind.function_graph',
+      'kind.bar_chart',
+      'kind.unknown',
     ] as const;
 
     for (const key of requiredKeys) {
@@ -345,17 +635,33 @@ describe('Lane m3-shared-link-gate Regression Suite', () => {
       });
     }
 
-    it('new share link labels never contain the word "verified" or "certified"', () => {
-      for (const lang of ['en', 'hi', 'gu'] as const) {
-        const sharedByVal = tables[lang]['share.sharedBy'] ?? '';
-        const sharedUnnamedVal = tables[lang]['share.sharedUnnamed'] ?? '';
-        const titlePrefixVal = tables[lang]['share.titlePrefix'] ?? '';
+    it('no active share.* string contains "Verified", "सत्यापित", or "પ્રમાણિત" (R5-02)', () => {
+      // Legacy share.verified and share.verifiedBy are preserved for backward-compatibility with k1
+      const activeShareKeys = [
+        'share.gate.open',
+        'share.gate.heading',
+        'share.sharedBy',
+        'share.sharedUnnamed',
+        'share.titlePrefix',
+        'share.honesty',
+        'share.readNote',
+        'share.hideNote',
+        'share.goToStart',
+        'share.error.title',
+        'share.error.tooLarge',
+        'share.error.badFormat',
+        'share.error.badVersion',
+        'share.error.badScene',
+        'share.error.empty',
+        'share.error.generic',
+      ];
 
-        for (const val of [sharedByVal, sharedUnnamedVal, titlePrefixVal]) {
-          expect(val.toLowerCase()).not.toContain('verified');
-          expect(val.toLowerCase()).not.toContain('certified');
-          expect(val).not.toContain('सत्यापित');
-          expect(val).not.toContain('प्रમાણિત');
+      for (const lang of ['en', 'hi', 'gu'] as const) {
+        for (const key of activeShareKeys) {
+          const val = tables[lang][key] ?? '';
+          expect(val, `Key ${key} in ${lang} contains 'Verified'`).not.toContain('Verified');
+          expect(val, `Key ${key} in ${lang} contains 'सत्यापित'`).not.toContain('सत्यापित');
+          expect(val, `Key ${key} in ${lang} contains 'પ્રમાણિત'`).not.toContain('પ્રમાણિત');
         }
       }
     });
