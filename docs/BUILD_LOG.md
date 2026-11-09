@@ -2005,3 +2005,53 @@ Format for each entry:
   - `docs/WIN_PLAN.md`
   - `docs/reports/agy-k5-docs-honesty-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — Antigravity — Lane k3-validate-hardening (Validation & Schema Hardening)
+- Tool: **Antigravity** (agy).
+- What was built:
+  - F6 (NaN and Infinity rejection): Added `math.isfinite` check in `_clamp_coord` and in bar value/axes handling; added `allow_inf_nan=False` on `Point.x`, `Point.y`, `Polyline.points` coordinate items, `Bar.x0`, `Bar.x1`, `Bar.y_top`, `Bar.y_base`, `Bar.value`, `Axes.x_axis_y`, `Axes.y_axis_x`, and `DiagramScene.aspect`.
+  - F7 (validate_scene never raises): Wrapped coordinate and structure repair in `validate_scene` in try/except; enforced `isinstance(a, str) and isinstance(b, str)` on segment endpoints in `_drop_dangling_segments` so unhashable or malformed endpoints return normal validation errors instead of raising 500.
+  - F5 (Drop of referenced elements fails validation): Tracked raw points used by segments and raw elements referenced in facts. If coordinate clamping or dangling segment resolution drops any element that was referenced, validation fails (triggering raw mode or AI retry) instead of silently returning a truncated diagram; dropping unreferenced stray elements remains silently allowed.
+  - F9 (Polyline minimum 2 points): Polyline requires at least 2 points to count as drawable in `validate_scene`. Enforced in `validate.py` rather than `schema.py` so existing property test `test_semantic_props.py` (`st_polyline_points` min_size=1) remains green.
+  - F15 (Dedupe IDs before dangling segments): Reordered repair pipeline in `validate_scene` so `_dedupe_ids` executes before `_drop_dangling_segments`, binding segments to intended points.
+  - F12 (Spoken string sanitization): Added `_sanitize_string` stripping Cf/Cc/Zl/Zp characters, collapsing whitespace, and enforcing length caps (label 60, title 120, fact 280, repo-wide text cap 300). Added `_check_empty_ids` rejecting empty or whitespace-only element IDs.
+  - B2-05 (Normalise inverted bars): Applied `min(x0, x1)`, `max(x0, x1)`, `min(y_top, y_base)`, `max(y_top, y_base)` in `_repair_coords` so bar bounds are normalized and hittable.
+  - F2 (Aspect ratio preservation): Added optional `aspect: float = Field(default=1.0, gt=0.0, allow_inf_nan=False)` to `DiagramScene`. Scaled x differences by `scene.aspect` in `_find_right_angle` and `_find_longest_side` in `semantic.py`.
+  - B2-06 (Consistent structural checks): Aligned `validate_scene` structural checks with `/ask` limits (points <= 500, segments <= 1000, polylines <= 50, polyline points <= 1000, bars <= 100, facts <= 100). Added `max_length` constraints to `DiagramScene` and `Polyline.points`.
+  - B2-13 (Colour/shape words): Stripped punctuation in `_is_colour_shape_only` before checking words list.
+  - Added full regression test suite in `backend/tests/test_k3_validate_hardening.py` covering all 10 findings.
+- What broke / findings:
+  - `Polyline.points min_length=2` constraint in `schema.py` would break existing property test `test_semantic_props.py::test_prop_peak_y_le_every_vertex` because Hypothesis strategy `st_polyline_points` generates lists with `min_size=1`. Per brief instructions, this requirement was strictly enforced in `validate.py` only.
+  - `DiagramScene.aspect` field addition was made optional with default 1.0, preserving identical behaviour for all existing callers and fixtures. Listed for supervisor to update `backend/app/export_schema.py` with `"aspect"` in `EXPECTED_TOP_LEVEL_PROPERTIES` before running schema export and TypeScript type generation.
+- Files touched:
+  - `backend/app/schema.py`
+  - `backend/app/validate.py`
+  - `backend/app/semantic.py`
+  - `backend/tests/test_k3_validate_hardening.py`
+  - `docs/reports/agy-k3-validate-hardening-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — Antigravity — Lane k3-validate-hardening (Follow-Up Test Resolutions)
+- Tool: **Antigravity** (agy).
+- What was built:
+  - Removed artificial `max_length` hard caps from `backend/app/schema.py` on `Polyline.points` and `DiagramScene` fields (`points`, `segments`, `polylines`, `bars`, `facts`). Structural bounds remain enforced at endpoint boundaries: `/validate` checks 1000 polyline points, `/ask` checks 2000 polyline points.
+  - Added `"aspect": 1.0` to the three sample JSON files in both `backend/fixtures/` and `frontend/public/samples/` (`triangle.json`, `sine.json`, `barchart.json`), keeping both directories byte-identical.
+  - Added fallback in `backend/app/validate.py` defaulting `"aspect": null` inputs to `1.0`. `semantic.py` defaults missing/None aspect to 1.0.
+  - Added `"aspect"` to `EXPECTED_TOP_LEVEL_PROPERTIES` in `backend/app/export_schema.py`.
+  - Updated `test_p9_drop_beyond_tolerance` in `backend/tests/test_validate_props.py` to assert the two-case rule (unreferenced dropped point keeps scene valid; referenced dropped point invalidates scene).
+- What broke / findings:
+  - Initial run added `max_length` constraints to Pydantic models in `schema.py`, breaking tests expecting `/ask` to allow up to 2000 points and prompt compaction fallback on large facts. Structural limits were moved strictly to endpoint intake logic.
+  - Adding `aspect` to `DiagramScene` changed factory `model_dump()`, failing fixture tests until samples in `backend/fixtures/` and `frontend/public/samples/` were updated with `"aspect": 1.0`.
+- Files touched:
+  - `backend/app/schema.py`
+  - `backend/app/validate.py`
+  - `backend/app/export_schema.py`
+  - `backend/fixtures/triangle.json`
+  - `backend/fixtures/sine.json`
+  - `backend/fixtures/barchart.json`
+  - `frontend/public/samples/triangle.json`
+  - `frontend/public/samples/sine.json`
+  - `frontend/public/samples/barchart.json`
+  - `backend/tests/test_validate_props.py`
+  - `docs/reports/agy-k3-validate-hardening-report.md`
+  - `docs/BUILD_LOG.md`
