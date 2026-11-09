@@ -378,3 +378,249 @@ describe('IDBDiagramStore — with minimal fake indexedDB', () => {
     }
   });
 });
+
+describe('IDBDiagramStore — realistic IndexedDB failure paths (TQ-06)', () => {
+  const existing1: SavedDiagram = {
+    id: 'orig-1',
+    createdAt: 1000,
+    title: 'Original 1',
+    thumbnailDataUrl: 'data:img1',
+    scene: { kind: 'geometry' },
+    pinned: false,
+  };
+
+  const existing2: SavedDiagram = {
+    id: 'orig-2',
+    createdAt: 2000,
+    title: 'Original 2',
+    thumbnailDataUrl: 'data:img2',
+    scene: { kind: 'bar_chart' },
+    pinned: true,
+  };
+
+  const incoming: SavedDiagram = {
+    id: 'new-3',
+    createdAt: 3000,
+    title: 'Incoming 3',
+    thumbnailDataUrl: 'data:img3',
+    scene: { kind: 'function_graph' },
+    pinned: false,
+  };
+
+  /** Helper creating a controllable IndexedDB factory with realistic lifecycle hooks */
+  function createControllableIdb(options: {
+    initialData?: SavedDiagram[];
+    abortOnPutTx?: Error;
+    failPutRequest?: Error;
+    failDeleteRequest?: Error;
+    abortOnEvictTx?: Error;
+  }) {
+    const rawMap = new Map<string, unknown>();
+    for (const item of options.initialData ?? []) {
+      rawMap.set(item.id, item);
+    }
+
+    const fakeDb = {
+      objectStoreNames: {
+        contains: (name: string) => name === 'saved-diagrams',
+      },
+      close: vi.fn(),
+      transaction: (_storeName: string, mode: string) => {
+        let isPutOp = false;
+        let isDeleteOp = false;
+        let stagedPut: SavedDiagram | null = null;
+        let stagedDeleteId: string | null = null;
+
+        const txObj = {
+          mode,
+          error: undefined as Error | undefined,
+          oncomplete: null as (() => void) | null,
+          onerror: null as (() => void) | null,
+          onabort: null as (() => void) | null,
+          addEventListener: vi.fn(),
+          objectStore: (_name: string) => ({
+            getAll: () => {
+              const req: {
+                result?: unknown[];
+                onsuccess?: () => void;
+                onerror?: () => void;
+              } = {};
+              setTimeout(() => {
+                req.result = [...rawMap.values()];
+                req.onsuccess?.();
+              }, 0);
+              return req;
+            },
+            get: (key: string) => {
+              const req: {
+                result?: unknown;
+                onsuccess?: () => void;
+                onerror?: () => void;
+              } = {};
+              setTimeout(() => {
+                req.result = rawMap.get(key);
+                req.onsuccess?.();
+              }, 0);
+              return req;
+            },
+            put: (val: SavedDiagram) => {
+              isPutOp = true;
+              const req: {
+                result?: unknown;
+                error?: Error;
+                onsuccess?: () => void;
+                onerror?: () => void;
+              } = {};
+              setTimeout(() => {
+                if (options.failPutRequest) {
+                  req.error = options.failPutRequest;
+                  req.onerror?.();
+                } else {
+                  stagedPut = val;
+                  req.onsuccess?.();
+                }
+              }, 0);
+              return req;
+            },
+            delete: (key: string) => {
+              isDeleteOp = true;
+              const req: {
+                result?: unknown;
+                error?: Error;
+                onsuccess?: () => void;
+                onerror?: () => void;
+              } = {};
+              setTimeout(() => {
+                if (options.failDeleteRequest) {
+                  req.error = options.failDeleteRequest;
+                  req.onerror?.();
+                } else {
+                  stagedDeleteId = key;
+                  req.onsuccess?.();
+                }
+              }, 0);
+              return req;
+            },
+          }),
+        };
+
+        // Complete or abort the transaction on next tick after requests finish
+        setTimeout(() => {
+          if (isDeleteOp && options.abortOnEvictTx) {
+            txObj.error = options.abortOnEvictTx;
+            txObj.onabort?.();
+            return;
+          }
+          if (isPutOp && options.abortOnPutTx) {
+            txObj.error = options.abortOnPutTx;
+            txObj.onabort?.();
+            return;
+          }
+          if (stagedPut) rawMap.set(stagedPut.id, stagedPut);
+          if (stagedDeleteId) rawMap.delete(stagedDeleteId);
+          txObj.oncomplete?.();
+        }, 10);
+
+        return txObj;
+      },
+    };
+
+    const factory: IDBFactory = {
+      open: () => {
+        const req: {
+          result?: typeof fakeDb;
+          onsuccess?: (ev: { target: { result: typeof fakeDb } }) => void;
+          onerror?: () => void;
+          onupgradeneeded?: (ev: { target: { result: typeof fakeDb } }) => void;
+        } = {};
+        setTimeout(() => {
+          req.result = fakeDb;
+          req.onsuccess?.({ target: { result: fakeDb } });
+        }, 0);
+        return req as unknown as IDBOpenDBRequest;
+      },
+      cmp: () => 0,
+      deleteDatabase: vi.fn(),
+      databases: vi.fn(),
+    };
+
+    return { factory, rawMap };
+  }
+
+  it('reports error and leaves earlier entries intact when tx aborts on quota', async () => {
+    const quotaError = new DOMException('The quota has been exceeded.', 'QuotaExceededError');
+    const { factory, rawMap } = createControllableIdb({
+      initialData: [existing1, existing2],
+      abortOnPutTx: quotaError,
+    });
+    const store = new IDBDiagramStore(factory);
+
+    const res = await store.put(incoming);
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toMatch(/QuotaExceededError|quota/i);
+    }
+
+    // Earlier entries must remain completely intact
+    const listRes = await store.list();
+    expect(listRes.ok).toBe(true);
+    if (listRes.ok) {
+      expect(listRes.value).toEqual([existing1, existing2]);
+    }
+    expect(rawMap.has(incoming.id)).toBe(false);
+    expect(rawMap.get(existing1.id)).toEqual(existing1);
+    expect(rawMap.get(existing2.id)).toEqual(existing2);
+  });
+
+  it('reports error and leaves earlier entries intact on failing put request', async () => {
+    const putError = new DOMException('Key constraint failed.', 'ConstraintError');
+    const { factory, rawMap } = createControllableIdb({
+      initialData: [existing1],
+      failPutRequest: putError,
+    });
+    const store = new IDBDiagramStore(factory);
+
+    const res = await store.put(incoming);
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toMatch(/ConstraintError/i);
+    }
+
+    // Earlier entries must remain completely intact
+    const listRes = await store.list();
+    expect(listRes.ok).toBe(true);
+    if (listRes.ok) {
+      expect(listRes.value).toEqual([existing1]);
+    }
+    expect(rawMap.has(incoming.id)).toBe(false);
+    expect(rawMap.get(existing1.id)).toEqual(existing1);
+  });
+
+  it('reports error and leaves earlier entries intact on eviction failure', async () => {
+    const deleteError = new DOMException('Could not delete victim diagram.', 'AbortError');
+    const { factory, rawMap } = createControllableIdb({
+      initialData: [existing1, existing2],
+      failDeleteRequest: deleteError,
+    });
+    const store = new IDBDiagramStore(factory);
+
+    // Attempt to put incoming diagram and evict existing1
+    const res = await store.putWithEviction(incoming, existing1.id);
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toMatch(/AbortError/i);
+    }
+
+    // Both earlier entries must remain present and intact.
+    // Incoming diagram was also stored because store.put() runs before eviction.
+    const listRes = await store.list();
+    expect(listRes.ok).toBe(true);
+    if (listRes.ok) {
+      expect(listRes.value).toHaveLength(3);
+      expect(listRes.value).toEqual([existing1, existing2, incoming]);
+    }
+    expect(rawMap.get(existing1.id)).toEqual(existing1);
+    expect(rawMap.get(existing2.id)).toEqual(existing2);
+    expect(rawMap.get(incoming.id)).toEqual(incoming);
+  });
+});

@@ -14,13 +14,13 @@ describe('P8 — Coordinate round-trip', () => {
    */
   it('toNorm(toScreen(p, view), view) ≈ p within 1e-9 for any viewport', () => {
     const normPoint = fc.record({
-      x: fc.float({ min: 0, max: 1, noNaN: true }),
-      y: fc.float({ min: 0, max: 1, noNaN: true }),
+      x: fc.double({ min: 0, max: 1, noNaN: true }),
+      y: fc.double({ min: 0, max: 1, noNaN: true }),
     });
 
     const dimensions = fc.record({
-      w: fc.float({ min: 1, max: 2000, noNaN: true }),
-      h: fc.float({ min: 1, max: 2000, noNaN: true }),
+      w: fc.double({ min: 1, max: 2000, noNaN: true }),
+      h: fc.double({ min: 1, max: 2000, noNaN: true }),
     });
 
     fc.assert(

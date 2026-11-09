@@ -250,17 +250,13 @@ describe('Requirement 14: Frankenstein Laboratory Theme Property Tests (agy, awa
       const sparkTimeoutMs = Number(sparkTimeoutMatch?.[1]);
       expect(sparkTimeoutMs).toBeLessThanOrEqual(1200);
 
-      // Fast-check property across all alive animations
-      fc.assert(
-        fc.property(fc.constantFrom(...aliveAnimations), (anim) => {
-          const durationSec = anim.durationMs / 1000;
-          expect(durationSec).toBeLessThanOrEqual(1.2);
-          const flashFrequencyHz = anim.pulseCount / durationSec;
-          expect(flashFrequencyHz).toBeLessThanOrEqual(3.0);
-          return durationSec <= 1.2 && flashFrequencyHz <= 3.0;
-        }),
-        { numRuns: 100 },
-      );
+      // Verify all alive animations satisfy duration and flash frequency bounds
+      for (const anim of aliveAnimations) {
+        const durationSec = anim.durationMs / 1000;
+        expect(durationSec).toBeLessThanOrEqual(1.2);
+        const flashFrequencyHz = anim.pulseCount / durationSec;
+        expect(flashFrequencyHz).toBeLessThanOrEqual(3.0);
+      }
     });
 
     it('P18: temporal sampling over arbitrary 1.0s intervals confirms <= 3 flashes per second', () => {
@@ -300,55 +296,46 @@ describe('Requirement 14: Frankenstein Laboratory Theme Property Tests (agy, awa
     it('asserts that every @import in any styles/*.css file precedes all style rules', () => {
       expect(cssFileNames.length).toBeGreaterThan(0);
 
-      fc.assert(
-        fc.property(fc.constantFrom(...cssFileNames), (fileName) => {
-          const rawCss = loadStylesheet(fileName);
-          const cleanCss = stripCssComments(rawCss);
+      for (const fileName of cssFileNames) {
+        const rawCss = loadStylesheet(fileName);
+        const cleanCss = stripCssComments(rawCss);
 
-          const importRegex = /@import\s+[^;]+;/g;
-          let match: RegExpExecArray | null;
+        const importRegex = /@import\s+[^;]+;/g;
+        let match: RegExpExecArray | null;
 
-          while ((match = importRegex.exec(cleanCss)) !== null) {
-            const preceding = cleanCss.slice(0, match.index);
-            // Preceding content may only contain whitespace, @charset, and prior @import statements
-            const nonImportPreceding = preceding
-              .replace(/@charset\s+[^;]+;/g, '')
-              .replace(/@import\s+[^;]+;/g, '')
-              .trim();
+        while ((match = importRegex.exec(cleanCss)) !== null) {
+          const preceding = cleanCss.slice(0, match.index);
+          const nonImportPreceding = preceding
+            .replace(/@charset\s+[^;]+;/g, '')
+            .replace(/@import\s+[^;]+;/g, '')
+            .trim();
 
-            expect(
-              nonImportPreceding,
-              `In "${fileName}", @import statement "${match[0]}" appears after style rules: "${nonImportPreceding.slice(0, 80)}"`,
-            ).toBe('');
-          }
-          return true;
-        }),
-        { numRuns: 100 },
-      );
+          expect(
+            nonImportPreceding,
+            `In "${fileName}", @import statement "${match[0]}" appears after style rules: "${nonImportPreceding.slice(0, 80)}"`,
+          ).toBe('');
+        }
+      }
     });
 
     it('asserts that every @import target file actually exists on disk', () => {
-      fc.assert(
-        fc.property(fc.constantFrom(...cssFileNames), (fileName) => {
-          const rawCss = loadStylesheet(fileName);
-          const cleanCss = stripCssComments(rawCss);
+      for (const fileName of cssFileNames) {
+        const rawCss = loadStylesheet(fileName);
+        const cleanCss = stripCssComments(rawCss);
 
-          const importRegex = /@import\s+(?:url\(['"]?([^'"\)]+)['"]?\)|['"]([^'"]+)['"])/g;
-          let match: RegExpExecArray | null;
+        const importRegex = /@import\s+(?:url\(['"]?([^'"\)]+)['"]?\)|['"]([^'"]+)['"])/g;
+        let match: RegExpExecArray | null;
 
-          while ((match = importRegex.exec(cleanCss)) !== null) {
-            const importTarget = match[1] || match[2];
-            if (!importTarget) continue;
-            const resolvedPath = path.resolve(stylesDir, importTarget);
-            expect(
-              fs.existsSync(resolvedPath),
-              `Imported file "${importTarget}" in "${fileName}" not found at "${resolvedPath}"`,
-            ).toBe(true);
-          }
-          return true;
-        }),
-        { numRuns: 100 },
-      );
+        while ((match = importRegex.exec(cleanCss)) !== null) {
+          const importTarget = match[1] || match[2];
+          if (!importTarget) continue;
+          const resolvedPath = path.resolve(stylesDir, importTarget);
+          expect(
+            fs.existsSync(resolvedPath),
+            `Imported file "${importTarget}" in "${fileName}" not found at "${resolvedPath}"`,
+          ).toBe(true);
+        }
+      }
     });
   });
 
@@ -423,28 +410,67 @@ describe('Requirement 14: Frankenstein Laboratory Theme Property Tests (agy, awa
       for (const file of screenStylesheets) {
         allOccurrences.push(...extractHexOccurrences(file));
       }
+      expect(allOccurrences.length).toBeGreaterThan(0);
+
+      for (const occ of allOccurrences) {
+        if (occ.isTokenDefinition) {
+          continue;
+        }
+
+        const isManagedByToken = occ.isInsideVar;
+        const isDocumentedLegacy = legacyBareHexAllowList.has(`${occ.file}:${occ.hex}`);
+        const isCompliant = isManagedByToken || isDocumentedLegacy;
+
+        expect(
+          isCompliant,
+          `Unmanaged bare hex literal ${occ.hex} at ${occ.file}:${occ.line} ("${occ.fullLine}"). ` +
+            `Every color declaration must consume var(--gt-*) tokens or documented fallbacks.`,
+        ).toBe(true);
+      }
+    });
+
+    it('P20: property-based conformance check against arbitrary generated CSS declarations (200+ runs)', () => {
+      const hexColorArb = fc
+        .array(fc.constantFrom(...'0123456789abcdef'.split('')), { minLength: 6, maxLength: 6 })
+        .map((a) => `#${a.join('')}`);
+      const tokenNameArb = fc.stringMatching(/^[a-z][a-z0-9-]{2,15}$/).map((s) => `--gt-${s}`);
+
+      const compliantDeclArb = fc
+        .record({
+          property: fc.constantFrom('color', 'background-color', 'border-color'),
+          token: tokenNameArb,
+          hex: hexColorArb,
+        })
+        .map(({ property, token, hex }) => `${property}: var(${token}, ${hex});`);
+
+      const bareHexDeclArb = fc
+        .record({
+          property: fc.constantFrom('color', 'background-color', 'border-color'),
+          hex: hexColorArb,
+        })
+        .map(({ property, hex }) => `${property}: ${hex};`);
 
       fc.assert(
-        fc.property(fc.constantFrom(...allOccurrences), (occ) => {
-          // Token definitions in tokens.css or :root are valid source-of-truth definitions
-          if (occ.isTokenDefinition) {
-            return true;
-          }
+        fc.property(compliantDeclArb, bareHexDeclArb, (compliantCss, bareHexCss) => {
+          const checkHexOnLine = (line: string): { isInsideVar: boolean }[] => {
+            const hexRegex = /#(?:[0-9a-fA-F]{3,8})\b/g;
+            const res: { isInsideVar: boolean }[] = [];
+            let m: RegExpExecArray | null;
+            while ((m = hexRegex.exec(line)) !== null) {
+              const preceding = line.slice(0, m.index);
+              const inside = /var\(\s*--gt-[a-zA-Z0-9_-]+(?:\s*,\s*[^)]*)?$/.test(preceding);
+              res.push({ isInsideVar: inside });
+            }
+            return res;
+          };
 
-          // Conformance requirement: Hex must be wrapped in var(--gt-*) as a fallback,
-          // OR must be explicitly registered on the retroactive spec allow-list.
-          const isManagedByToken = occ.isInsideVar;
-          const isDocumentedLegacy = legacyBareHexAllowList.has(`${occ.file}:${occ.hex}`);
+          const compliantOccs = checkHexOnLine(compliantCss);
+          expect(compliantOccs.length).toBe(1);
+          expect(compliantOccs[0]!.isInsideVar).toBe(true);
 
-          const isCompliant = isManagedByToken || isDocumentedLegacy;
-
-          expect(
-            isCompliant,
-            `Unmanaged bare hex literal ${occ.hex} at ${occ.file}:${occ.line} ("${occ.fullLine}"). ` +
-              `Every color declaration must consume var(--gt-*) tokens or documented fallbacks.`,
-          ).toBe(true);
-
-          return isCompliant;
+          const bareOccs = checkHexOnLine(bareHexCss);
+          expect(bareOccs.length).toBe(1);
+          expect(bareOccs[0]!.isInsideVar).toBe(false);
         }),
         { numRuns: 200 },
       );
