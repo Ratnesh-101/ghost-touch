@@ -18,14 +18,16 @@ from typing import Any
 
 import httpx
 
+from app.paid_budget import try_consume
 from app.vision._openai_compat import post_chat_completion, strip_fences
+from app.vision.base import VisionError
 
 DEFAULT_MODEL = "gpt-4.1-mini"
 DEFAULT_BASE_URL = "https://api.openai.com/v1"
 EXTRACT_MAX_TOKENS = 4096
 EXTRACT_MAX_TOKENS_REASONING = 16384
-COMPLETE_MAX_TOKENS = 1024
-COMPLETE_MAX_TOKENS_REASONING = 4096
+COMPLETE_MAX_TOKENS = 256
+COMPLETE_MAX_TOKENS_REASONING = 1024
 
 
 def _is_gpt4_family(model: str) -> bool:
@@ -82,6 +84,8 @@ class OpenAIProvider:
 
     async def extract(self, image: bytes, mime: str, prompt: str, *, timeout: float) -> str:
         """Extract diagram JSON text from an image. Raises VisionError on any failure."""
+        if not try_consume(1):
+            raise VisionError(self.name, "paid call budget exhausted", transient=False)
         data_url = f"data:{mime};base64,{base64.b64encode(image).decode('ascii')}"
         content = [
             {"type": "text", "text": prompt},
@@ -92,4 +96,6 @@ class OpenAIProvider:
 
     async def complete(self, prompt: str, *, timeout: float) -> str:
         """Complete a text-only prompt (used by Ask). Raises VisionError on any failure."""
+        if not try_consume(1):
+            raise VisionError(self.name, "paid call budget exhausted", transient=False)
         return await self._post(self._body(prompt, extract=False), timeout)

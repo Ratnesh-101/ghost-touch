@@ -120,6 +120,7 @@ class ProviderChain:
 
         last_error: VisionError | None = None
         for provider in self.providers:
+            stop_chain = False
             for attempt in range(1 + self.retries):
                 try:
                     logger.info("Calling vision provider: %s", provider.name)
@@ -128,6 +129,12 @@ class ProviderChain:
                     return raw_text, provider.name
                 except VisionError as exc:
                     last_error = exc
+                    if "budget exhausted" in exc.reason.lower():
+                        logger.warning(
+                            "Vision provider %s budget exhausted; stopping chain", provider.name
+                        )
+                        stop_chain = True
+                        break
                     if attempt < self.retries and is_transient(exc):
                         if deadline is not None:
                             remaining = deadline - time.monotonic()
@@ -153,6 +160,8 @@ class ProviderChain:
                     else:
                         logger.warning("Vision provider %s failed: %s", provider.name, exc.reason)
                         break
+            if stop_chain:
+                break
 
         error_reason = last_error.reason if last_error else "all providers failed"
         raise VisionError(
@@ -163,22 +172,39 @@ class ProviderChain:
         )
 
     async def complete(
-        self, prompt: str, *, timeout: float | None = None, deadline: float | None = None
+        self,
+        prompt: str,
+        *,
+        timeout: float | None = None,
+        deadline: float | None = None,
+        retries: int | None = None,
+        max_attempts: int | None = None,
     ) -> tuple[str, str]:
         """Complete prompt text using the first succeeding provider (Task 9.1).
 
         ``timeout`` is the per-call cap; ``deadline`` (absolute ``time.monotonic()``) caps it
         further so every provider in the chain still gets a turn.
+        ``max_attempts`` (or ``retries``) controls per-provider attempts; default None preserves
+        the chain's configured retry behaviour (1 + self.retries attempts).
+        /ask passes max_attempts=1 (C5).
         Returns (answer_text, provider_name_used).
         Raises VisionError if all providers fail or if no providers are configured.
         """
         if not self.providers:
             raise VisionError("chain", "no providers configured")
 
+        if max_attempts is not None:
+            effective_attempts = max(1, max_attempts)
+        elif retries is not None:
+            effective_attempts = 1 + max(0, retries)
+        else:
+            effective_attempts = 1 + self.retries
+
         base_timeout = timeout if timeout is not None else self.call_timeout
         last_error: VisionError | None = None
         for provider in self.providers:
-            for attempt in range(1 + self.retries):
+            stop_chain = False
+            for attempt in range(effective_attempts):
                 try:
                     logger.info("Calling text completion provider: %s", provider.name)
                     call_to = self._call_timeout(base_timeout, deadline)
@@ -186,7 +212,13 @@ class ProviderChain:
                     return answer_text, provider.name
                 except VisionError as exc:
                     last_error = exc
-                    if attempt < self.retries and is_transient(exc):
+                    if "budget exhausted" in exc.reason.lower():
+                        logger.warning(
+                            "Provider %s budget exhausted; stopping chain", provider.name
+                        )
+                        stop_chain = True
+                        break
+                    if attempt + 1 < effective_attempts and is_transient(exc):
                         if deadline is not None:
                             remaining = deadline - time.monotonic()
                             required = self.retry_backoff + self.min_useful_call_time
@@ -211,6 +243,8 @@ class ProviderChain:
                     else:
                         logger.warning("Provider %s complete failed: %s", provider.name, exc.reason)
                         break
+            if stop_chain:
+                break
 
         error_reason = last_error.reason if last_error else "all providers failed"
         raise VisionError(

@@ -17,6 +17,7 @@ from typing import Any
 from google import genai
 from google.genai import errors, types
 
+from app.paid_budget import try_consume
 from app.vision.base import VisionError
 
 logger = logging.getLogger(__name__)
@@ -132,6 +133,9 @@ class GeminiProvider:
         if not self._client:
             raise VisionError(self.name, "API key not configured", transient=False)
 
+        if not try_consume(1):
+            raise VisionError(self.name, "paid call budget exhausted", transient=False)
+
         thinking_cfg = self.get_thinking_config()
         config = types.GenerateContentConfig(
             response_mime_type="application/json",
@@ -161,6 +165,10 @@ class GeminiProvider:
                         initial_exc,
                     )
                     _process_disable_thinking = True
+                    if not try_consume(1):
+                        raise VisionError(
+                            self.name, "paid call budget exhausted", transient=False
+                        ) from initial_exc
                     retry_config = types.GenerateContentConfig(
                         response_mime_type="application/json",
                         temperature=0.0,
@@ -212,10 +220,14 @@ class GeminiProvider:
         if not self._client:
             raise VisionError(self.name, "API key not configured", transient=False)
 
+        if not try_consume(1):
+            raise VisionError(self.name, "paid call budget exhausted", transient=False)
+
         thinking_cfg = self.get_thinking_config()
         config = types.GenerateContentConfig(
             temperature=0.0,
             thinking_config=thinking_cfg,
+            max_output_tokens=256,
         )
 
         try:
@@ -236,9 +248,14 @@ class GeminiProvider:
                         initial_exc,
                     )
                     _process_disable_thinking = True
+                    if not try_consume(1):
+                        raise VisionError(
+                            self.name, "paid call budget exhausted", transient=False
+                        ) from initial_exc
                     retry_config = types.GenerateContentConfig(
                         temperature=0.0,
                         thinking_config=None,
+                        max_output_tokens=256,
                     )
                     response = await asyncio.wait_for(
                         self._client.aio.models.generate_content(

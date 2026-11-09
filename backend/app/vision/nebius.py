@@ -21,13 +21,15 @@ from typing import Any
 
 import httpx
 
+from app.paid_budget import try_consume
 from app.vision._openai_compat import fit_image_for_inline, post_chat_completion, strip_fences
+from app.vision.base import VisionError
 
 DEFAULT_MODEL = "openbmb/MiniCPM-V-4_5"
 DEFAULT_BASE_URL = "https://api.tokenfactory.nebius.com/v1"
 INLINE_LIMIT = 1_500_000  # bytes; keeps requests small and fast without hurting diagram detail
 EXTRACT_MAX_TOKENS = 4096
-COMPLETE_MAX_TOKENS = 1024
+COMPLETE_MAX_TOKENS = 256
 
 
 class NebiusProvider:
@@ -73,6 +75,8 @@ class NebiusProvider:
 
     async def extract(self, image: bytes, mime: str, prompt: str, *, timeout: float) -> str:
         """Extract diagram JSON text from an image. Raises VisionError on any failure."""
+        if not try_consume(1):
+            raise VisionError(self.name, "paid call budget exhausted", transient=False)
         fitted = await asyncio.to_thread(fit_image_for_inline, image, self.inline_limit)
         fitted_mime = "image/jpeg" if fitted is not image else mime
         data_url = f"data:{fitted_mime};base64,{base64.b64encode(fitted).decode('ascii')}"
@@ -85,4 +89,6 @@ class NebiusProvider:
 
     async def complete(self, prompt: str, *, timeout: float) -> str:
         """Complete a text-only prompt (used by Ask). Raises VisionError on any failure."""
+        if not try_consume(1):
+            raise VisionError(self.name, "paid call budget exhausted", transient=False)
         return await self._post(self._body(prompt, COMPLETE_MAX_TOKENS, self.text_model), timeout)
