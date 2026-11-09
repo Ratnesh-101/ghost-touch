@@ -2649,3 +2649,6 @@ Format for each entry:
 
 ## 2026-11-09 — Kiro — T37 spec commit (Requirement 21, P62-P65, task 37)
 - Tool: **Kiro**. Committed the spec text for task 37 that was written earlier the same day and left uncommitted: Requirement 21 (`deletePolyline` and `deleteBar` in `core/correct.ts`), the design section, P62-P65 and task 37 (37.1 to 37.3). Spec files and this entry only. Requirement 20 and task 36 were already committed in `76c7874`. `frontend/src/core/correct.ts`, `frontend/tests/correct.deleteKinds.prop.test.ts` and `docs/reviews/session-review-latest.md` were also uncommitted and were deliberately left out of this commit. No app code was changed.
+
+## 2026-11-09 — Kiro — T37.1 (Correct mode: delete curves and bars, Requirement 21)
+- Tool: **Kiro**. Wrote the spec first: Requirement 21, a design section listing the UI lane's selection, controls and 5 i18n keys, and P62-P65. Then added `deletePolyline` and `deleteBar` to `core/correct.ts`; unlike `deleteSegment`, an unknown id returns the same scene object. Wrote `tests/correct.deleteKinds.prop.test.ts` (P62-P65, 250 runs each); 7 mutants were killed, each property killing at least one. Gate: `tsc` 0 errors, 135 files, 1851 passed, 0 skipped. `Correct.tsx` and `flow/` were not touched. Task 20.5 is ticked for the core half; the screen wiring is still to do (agy).

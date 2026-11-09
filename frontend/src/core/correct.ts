@@ -157,6 +157,26 @@ export function deleteSegment(scene: DiagramScene, segmentId: string): DiagramSc
   };
 }
 
+/**
+ * Delete a polyline (curve) by id (Requirement 21.1). An id that is not a polyline id returns the
+ * same scene (21.3). Nothing else is touched, and the input is never mutated.
+ */
+export function deletePolyline(scene: DiagramScene, polylineId: string): DiagramScene {
+  const polylines = scene.polylines ?? [];
+  if (!polylines.some((p) => p.id === polylineId)) return scene;
+  return { ...scene, polylines: polylines.filter((p) => p.id !== polylineId) };
+}
+
+/**
+ * Delete a bar by id (Requirement 21.2). An id that is not a bar id returns the same scene (21.3).
+ * Nothing else is touched, and the input is never mutated.
+ */
+export function deleteBar(scene: DiagramScene, barId: string): DiagramScene {
+  const bars = scene.bars ?? [];
+  if (!bars.some((b) => b.id === barId)) return scene;
+  return { ...scene, bars: bars.filter((b) => b.id !== barId) };
+}
+
 /** Every id used by a point, segment, polyline or bar (ids are unique across all kinds). */
 function usedIds(scene: DiagramScene): Set<string> {
   const ids = new Set<string>();
