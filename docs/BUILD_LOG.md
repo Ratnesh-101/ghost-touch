@@ -2786,3 +2786,101 @@ Format for each entry:
   - `frontend/tests/n2.round4.test.ts`
   - `docs/reports/agy-p2-r5-saved-fixes-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — agy, reviewed by Claude — Lane p3-r5-share-fixes (Frontend Share and A11y Fixes)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - R5-01: In `frontend/src/flow/share.ts`, updated `stripLeadingBadge` in `sanitizeShareName` and
+    `sanitizeShareTitle` to strip modern checkmark emojis (`✅` U+2705, `🗹` U+1F5F9), variation
+    selector `\uFE0F`, directional formatting marks (U+200E, U+200F, U+202A-202E, U+2066-2069),
+    zero-width characters (U+200B-200D, U+2060, U+FEFF), combining marks (`\p{M}`), and Indic
+    badge words (`सत्यापित`, `પ્રમાણિત`) alongside `verified`/`certified`. Guaranteed inputs
+    consisting only of badges return empty, never "and".
+  - R5-02: In `frontend/src/i18n/index.ts`, replaced `share.honesty` across en, hi, gu with honest
+    non-contradictory wording eliminating human review claims ("This diagram was shared as a link.
+    Ghost Touch has not verified it."). Appended rows to `docs/user-test/translation-review.csv`
+    and `.md` marked for native review. Added test ensuring no active `share.*` string contains
+    "Verified", "सत्यापित", or "પ્રમાણિત".
+  - R5-03: Rewrote sham GT-06 test in `frontend/tests/m3.sharedLinkGate.test.ts` to exercise
+    `saveDiagramWithEviction` with failing store. Verified `res.ok === false`, error captured for
+    status text, and `speech.speak` count remains 1 (zero speech on storage failure).
+  - R5-04: In `frontend/src/screens/ShareError.tsx`, adopted `StatusText` pattern; removed
+    `role="alert"` when speech synthesis is active to eliminate dual-speech collision with Web
+    Speech synthesis.
+  - R5-05: In `frontend/src/components/VerifiedBanner.tsx`, added `aria-live="off"` to the note
+    body container to prevent TalkBack double-speaking on note expand in polite live region. Kept
+    accessible label on aside.
+  - R5-06: In `frontend/src/flow/share.ts` and `frontend/src/flow/navigation.ts`, replaced string
+    replace targets with function replacers `() => clean`, ensuring names/titles with `$&`, `$'`,
+    `$1` cannot corrupt template output.
+  - R5-07: In `frontend/src/flow/navigation.ts`, mapped `sceneName(scene)` and
+    `exploreAnnouncement` title fallbacks through `localizedSceneKind(kind)` for `kind.geometry`,
+    `kind.function_graph`, `kind.bar_chart`, `kind.unknown` in en, hi, gu.
+  - R5-08 & R5-09: In `frontend/src/components/ShareGate.tsx`, wrapped `title` and `sharedBy` in
+    `<bdi>` elements and rendered `sharedBy` through `honestSharedByLabel(sharedBy)`.
+  - R5-10: In `frontend/src/components/LanguageSelector.tsx`, formatted accessible name as
+    `info.english` when `info.english === info.native`, eliminating duplicate "English (English)".
+  - R5-11: In `frontend/src/components/RateSelector.tsx`, formatted multiplier labels via
+    `formatRateMultiplier(id)` ("0.8×", "1.0×", "1.25×") instead of hardcoded ASCII strings.
+  - R5-12: DEFERRED to supervisor (`App.tsx` forbidden from editing in this lane).
+  - Replaced dead helper test in `frontend/tests/m1.a11y.test.tsx` (`resolveCanvasAriaLabel`) with
+    component-level DOM test checking `aria-label={canvasAriaLabel(scene)}`.
+- What broke / surprising findings:
+  - `fix.share.security.test.ts` and `m1.a11y.test.tsx` had assertions expecting old `share.honesty`
+    copy ("not cryptographic proof" / "person reviewed"); updated assertions to match the new
+    honest phrasing.
+- Files touched:
+  - `frontend/src/flow/share.ts`
+  - `frontend/src/flow/navigation.ts`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/components/ShareGate.tsx`
+  - `frontend/src/components/LanguageSelector.tsx`
+  - `frontend/src/components/RateSelector.tsx`
+  - `frontend/src/screens/ShareError.tsx`
+  - `frontend/src/components/VerifiedBanner.tsx`
+  - `frontend/tests/m3.sharedLinkGate.test.ts`
+  - `frontend/tests/m1.a11y.test.tsx`
+  - `frontend/tests/fix.share.security.test.ts`
+  - `docs/user-test/translation-review.csv`
+  - `docs/user-test/translation-review.md`
+  - `docs/reports/agy-p3-r5-share-fixes-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-10 — Antigravity — Pass 2 legacy test suite alignment for p3-r5-share-fixes
+- Updated legacy tests asserting pre-R5 behaviours:
+  - `frontend/tests/m3.sharedLinkGate.test.ts`: Added missing `thumbnailDataUrl: ''` and
+    `pinned: false` to `SavedDiagram` fixture resolving TS2739.
+  - `frontend/tests/RateSelector.test.tsx` and `frontend/tests/labSettings.test.tsx`: Updated
+    multiplier and aria-label assertions from ASCII 'x' to multiplication sign `×` (U+00D7) from
+    `formatRateMultiplier` ('0.8×', '1.0×', '1.25×') per R5-11.
+  - `frontend/tests/flow.capture.test.ts`: Updated `sceneName` expectation from raw kind identifier to
+    localized label `t('kind.bar_chart')` ('Bar chart') and `t('kind.geometry')` ('Geometry diagram'),
+    and asserted that for Hindi (`t('kind.bar_chart')`) and Gujarati (`t('kind.bar_chart')`)
+    the fallback is the localized label and never the raw identifier `'bar_chart'`.
+  - `frontend/tests/a11y.screens.test.tsx`: Excluded controls that are language endonyms ('English',
+    'Hindi (हिन्दी)', 'Gujarati (ગુજરાતી)') from the must-differ check in LabSettings with a comment
+    explaining that language names are legitimately identical across UI locales to allow native
+    language identification (R5-10 plain 'English').
+  - `frontend/src/screens/ShareError.tsx`: Set `role="alert"` on `<section>` when `speechAvailable`
+    is false (speech cannot speak).
+  - `frontend/tests/share.open.errors.test.tsx`: Updated test to cover both cases with the real
+    component: with `canSpeak: true` there is NO `role="alert"` and message text is still rendered;
+    with `canSpeak: false` `role="alert"` is present exactly once and message text is rendered.
+  - `frontend/tests/share.open.routing.test.tsx`: Updated pre-tap assertions to verify the gate shows
+    the honest 'Shared by Mrs. Sharma, not checked' text and does NOT yet show the Explore screen
+    (`gt-explore`) or VerifiedBanner note controls (`Read note`, `gt-verified-banner`); verified that
+    after tap the Explore screen with the banner and note controls appears.
+- What broke / surprising findings:
+  - None. All legacy Vitest assertions and the TypeScript compiler error are now aligned with the
+    R5 specification.
+- Files touched:
+  - `frontend/src/screens/ShareError.tsx`
+  - `frontend/tests/m3.sharedLinkGate.test.ts`
+  - `frontend/tests/a11y.screens.test.tsx`
+  - `frontend/tests/flow.capture.test.ts`
+  - `frontend/tests/RateSelector.test.tsx`
+  - `frontend/tests/labSettings.test.tsx`
+  - `frontend/tests/share.open.errors.test.tsx`
+  - `frontend/tests/share.open.routing.test.tsx`
+  - `docs/reports/agy-p3-r5-share-fixes-report.md`
+  - `docs/BUILD_LOG.md`
