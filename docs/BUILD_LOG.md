@@ -1897,3 +1897,26 @@ Format for each entry:
   - `backend/tests/test_h3_cost_guard.py`
   - `docs/reports/agy-h3-cost-guard-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-08 — Antigravity — Lane h2-ask-accuracy (Backend Ask Accuracy & Semantic Fixes)
+- Tool: **Antigravity** (agy).
+- What was built:
+  - F1: Fallback from peak/maximum and trough/minimum queries on bar charts to tallest and shortest bars; return `None` on geometry maximum queries without curves/bars so facts and LLM answer.
+  - F3: `clamp_answer` in `app/ask.py` strips markdown by default (`preserve_symbols=False`), with explicit opt-out (`preserve_symbols=True`) used by `facts_lookup` and semantic paths to preserve `*`, `_`, `#` in mathematical expressions while enforcing the 300-char cap and idempotence.
+  - F4a-c: Tokenization in `facts_lookup` drops point-id tokens from content words, tokenizes decimals with `\d+(?:\.\d+)?`, boosts numeric facts on measurement queries, and enforces >=2 content words or an ID/number match before answering so unrelated single-noun queries answer "I don't know from this diagram."
+  - F10: `_find_tallest_bar` and `_find_shortest_bar` in `app/semantic.py` select geometry-consistent maximum and minimum values respectively (`test_prop_tallest_and_shortest_bars` passes invariant across all random scenes); ties announced via exact equality `==` without rounding or absolute tolerance floor; visual height order mismatches announced in speech while keeping target pinned to value-best element.
+  - F11: Right-angle questions naming specific point/segment IDs bypass generic vertex lookup in `app/semantic.py` to allow facts/LLM validation.
+  - F12 part: Control character filtering (Cf, Cc, Zl, Zp) and 300-char clamping on semantic answers.
+  - Added new spoken strings in English, Hindi, and Gujarati to `docs/user-test/translation-review.md` and `docs/user-test/translation-review.csv`.
+  - Added full regression test suite in `backend/tests/test_h2_ask_accuracy.py` covering all findings, including subnormal/near-zero values (0.0 vs 1e-254). Cleaned up unused imports and formatted to repo ruff standard (line length 100, double quotes).
+- What broke / findings:
+  - Initially, `test_clamp_answer_strips_control_characters_and_markdown` failed because `is_model=False` by default did not strip markdown from AI/unspecified text. Fixed by making markdown stripping the default (`preserve_symbols=False`) and opting out only for facts and semantic answers.
+  - Initially, `test_prop_tallest_and_shortest_bars` failed because height-mismatch selection inverted shortest bar target to the first bar when all bars had equal heights. Fixed by evaluating height mismatch only when visual heights genuinely vary, and ensuring target `element_id` always matches max/min value.
+  - Follow-up 4: `test_prop_tallest_and_shortest_bars` failed on near-zero subnormal values (`assert 0.0 == -1.098164511039338e-254` and `0.0 == 1.098164511039338e-254`) due to `math.isclose` using `abs_tol=1e-7`. Resolved by enforcing exact equality `==` (`float(bar.value) == max_val` / `min_val`) with no absolute epsilon or rounding. Added regression test `test_f10_subnormal_near_zero_values_not_treated_as_ties`.
+- Files touched:
+  - `backend/app/ask.py`
+  - `backend/app/semantic.py`
+  - `backend/tests/test_h2_ask_accuracy.py`
+  - `docs/user-test/translation-review.csv`
+  - `docs/reports/agy-h2-ask-accuracy-report.md`
+  - `docs/BUILD_LOG.md`
