@@ -2884,3 +2884,73 @@ Format for each entry:
   - `frontend/tests/share.open.routing.test.tsx`
   - `docs/reports/agy-p3-r5-share-fixes-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — agy, reviewed by Claude — Lane g1-ghostwriter-ui (Task 36: Ghostwriter in Teach mode)
+- Tool: **agy, reviewed by Claude**.
+- What was built:
+  - Task 36.1: Implemented pure flow module `frontend/src/flow/ghostwriter.ts`:
+    - Point and segment caps (`GHOSTWRITER_POINT_CAP = 300`, `GHOSTWRITER_SEGMENT_CAP = 300`).
+    - `planAddPoint` and `planAddSegment` with ordered validation and structured failure outcomes.
+    - `describeUndo` returning `{ kind: 'point', id }` or `{ kind: 'segment', a, b }` strictly when
+      one element was appended and all other elements / properties are unchanged.
+    - `nextMode` state machine managing arming, canvas tap, point picking, second press center placement,
+      and Escape / button cancellations (Requirements 20.2.2, 20.2.3, 20.3.2, 20.3.5).
+    - `ghostwriterSpeech` and `undoSpeech` producing localized utterances via `t()` / `tf()`.
+    - Pure TypeScript with zero React, DOM, or browser API dependencies.
+  - Task 36.2: Added properties P58-P61 in `frontend/tests/ghostwriter.prop.test.ts` (250 runs each via fast-check):
+    - P58: Add point outcome, coordinates validation, cap enforcement.
+    - P59: Add edge outcome order (samePoint, unknownPoint, alreadyJoined, limit, added).
+    - P60: Undo naming point or edge endpoints; undefined for moves, renames, deletes.
+    - P61: Completeness, placeholder parity, non-English verification, honesty (no forbidden words).
+    - Mutation-checked each property with 6 distinct mutants killed.
+  - Task 36.3: Internationalization (i18n):
+    - Appended 17 new keys to `en`, `hi`, `gu` in `frontend/src/i18n/index.ts` without reordering.
+    - Appended 17 matching rows to `docs/user-test/translation-review.csv`.
+    - Added Section 25 to `docs/user-test/translation-review.md` marked for native speaker review.
+  - Task 36.4: Screen wiring in `frontend/src/screens/Teach.tsx` and `TeachCanvas.tsx`:
+    - Converted "Add vertex" into "Add point" and added "Add edge" with min 48×48 px targets and accessible names.
+    - Wired `nextMode`, `planAddPoint`, `planAddSegment`, and canvas tap coordinate conversion.
+    - Wired `describeUndo` and `undoSpeech` on undo; history untouched on no-op adds.
+  - Task 36.5: Added component and integration tests in `frontend/tests/ghostwriter.teach.test.tsx` (jsdom):
+    - Verified control accessibility and target sizes.
+    - Tested add point via tap and second press (center 0.5, 0.5).
+    - Tested add edge between points.
+    - Tested all no-op reasons and undo speech.
+    - Tested 300-point cap refusal.
+    - Verified Explore screen renders no add controls.
+    - Verified Requirement 20.6 Spec Ghost caveat behavior on missing vs added CD.
+  - Task 36.6: Audited `flow/teach.ts` `addVertex` / `generateUniquePointId`: preserved for backwards compatibility;
+    Teach screen exclusively uses `planAddPoint` (`core/correct.ts: addPoint`).
+- Files touched:
+  - `frontend/src/flow/ghostwriter.ts`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/screens/Teach.tsx`
+  - `frontend/src/components/teach/TeachCanvas.tsx`
+  - `frontend/tests/ghostwriter.prop.test.ts`
+  - `frontend/tests/ghostwriter.teach.test.tsx`
+  - `docs/user-test/translation-review.csv`
+  - `docs/user-test/translation-review.md`
+  - `docs/reports/agy-g1-ghostwriter-ui-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-10 — Antigravity — Lane g1-ghostwriter-ui Pass 2 (TypeScript and Teach tests fix)
+- Tool: **Antigravity**.
+- What was done:
+  - TypeScript (tests only): Narrowed `outcome` and `step1`/`step2` discriminated unions before
+    accessing `.id` and `.label` in `frontend/tests/ghostwriter.prop.test.ts` and
+    `frontend/tests/ghostwriter.teach.test.tsx`. Removed unused `addPointBtn` variable.
+  - Requirement 20.2.6 test expectation update: Updated `frontend/tests/teach.editor.test.tsx`
+    from legacy 'Add vertex' to 'Add point' and asserted matching `aria-label`. Added explicit
+    `aria-label` to Add point and Add edge toolbar buttons in `frontend/src/screens/Teach.tsx`.
+  - Add point defect fix: Fixed screen defect in `frontend/src/screens/Teach.tsx` where `planAddPoint`
+    incorrectly received `labelText` (the rename input for the currently selected vertex). Newly
+    added points are now created unlabelled as intended so subsequent additions are spoken with
+    `teach.pointAddedUnlabelled` ("Added Point E.") and selection is cleared upon entering add mode.
+    All assertions in `frontend/tests/ghostwriter.teach.test.tsx` pass without weakening.
+- Files touched:
+  - `frontend/src/screens/Teach.tsx`
+  - `frontend/tests/ghostwriter.prop.test.ts`
+  - `frontend/tests/ghostwriter.teach.test.tsx`
+  - `frontend/tests/teach.editor.test.tsx`
+  - `docs/reports/agy-g1-ghostwriter-ui-report.md`
+  - `docs/BUILD_LOG.md`
