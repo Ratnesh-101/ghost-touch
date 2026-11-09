@@ -360,6 +360,24 @@ const en: Record<string, string> = {
   'teach.stayingInEditor': 'Still in the editor.',
   'verify.disagree': "Facts and drawing disagree on {name}. I can't tell which is right.",
   'verify.angleName': 'angle {vertex}',
+  'teach.addPoint': 'Add point',
+  'teach.addPointArmed':
+    'Tap the drawing where the new point goes, or press Add point again to put it in the centre.',
+  'teach.pointAddedUnlabelled': 'Added {point}.',
+  'teach.pointAddedLabelled': 'Added point {id}, labelled {label}.',
+  'teach.pointLimit': 'This diagram already has {max} points, the most that can be shared.',
+  'teach.pointBadCoords': 'That spot is outside the drawing. Try again.',
+  'teach.addEdge': 'Add edge',
+  'teach.addEdgeFirst': 'Choose the first point.',
+  'teach.addEdgeSecond': '{id} chosen. Choose the second point.',
+  'teach.edgeAdded': 'Joined {a} and {b}.',
+  'teach.edgeSamePoint': 'That is the same point. Choose a different second point.',
+  'teach.edgeAlreadyJoined': '{a} and {b} are already joined.',
+  'teach.edgeUnknownPoint': 'That point is no longer in the diagram.',
+  'teach.edgeLimit': 'This diagram already has {max} edges, the most that can be shared.',
+  'teach.addCancelled': 'Adding cancelled.',
+  'teach.undidAddPoint': 'Undone: point {id} removed.',
+  'teach.undidAddEdge': 'Undone: edge from {a} to {b} removed.',
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -685,6 +703,26 @@ const hi: Record<string, string> = {
   'teach.stayingInEditor': 'अभी भी संपादक में हैं।',
   'verify.disagree': 'तथ्य और चित्र {name} पर असहमत हैं। मैं नहीं बता सकता कि कौन सा सही है।',
   'verify.angleName': 'कोण {vertex}',
+  'teach.addPoint': 'बिंदु जोड़ें',
+  'teach.addPointArmed':
+    'चित्र में वहाँ टैप करें जहाँ नया बिंदु रखना है, या इसे केंद्र में रखने के लिए फिर से बिंदु जोड़ें दबाएं।',
+  'teach.pointAddedUnlabelled': '{point} जोड़ा गया।',
+  'teach.pointAddedLabelled': 'बिंदु {id} जोड़ा गया, लेबल {label}।',
+  'teach.pointLimit':
+    'इस आरेख में पहले से ही {max} बिंदु हैं, जो साझा किए जा सकने वाले अधिकतम हैं।',
+  'teach.pointBadCoords': 'वह स्थान चित्र से बाहर है। पुनः प्रयास करें।',
+  'teach.addEdge': 'किनारा जोड़ें',
+  'teach.addEdgeFirst': 'पहला बिंदु चुनें।',
+  'teach.addEdgeSecond': '{id} चुना गया। दूसरा बिंदु चुनें।',
+  'teach.edgeAdded': '{a} और {b} को जोड़ा गया।',
+  'teach.edgeSamePoint': 'वह वही बिंदु है। एक अलग दूसरा बिंदु चुनें।',
+  'teach.edgeAlreadyJoined': '{a} और {b} पहले से जुड़े हुए हैं।',
+  'teach.edgeUnknownPoint': 'वह बिंदु अब आरेख में नहीं है।',
+  'teach.edgeLimit':
+    'इस आरेख में पहले से ही {max} किनारे हैं, जो साझा किए जा सकने वाले अधिकतम हैं।',
+  'teach.addCancelled': 'जोड़ना रद्द किया गया।',
+  'teach.undidAddPoint': 'पूर्ववत: बिंदु {id} हटाया गया।',
+  'teach.undidAddEdge': 'पूर्ववत: {a} से {b} तक का किनारा हटाया गया।',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -1010,6 +1048,26 @@ const gu: Record<string, string> = {
   'teach.stayingInEditor': 'હજુ પણ સંપાદકમાં છો.',
   'verify.disagree': 'તથ્યો અને આકૃતિ {name} પર અસંમત છે. હું કહી શકતો નથી કે કયું સાચું છે.',
   'verify.angleName': 'ખૂણા {vertex}',
+  'teach.addPoint': 'બિંદુ ઉમેરો',
+  'teach.addPointArmed':
+    'આકૃતિમાં ત્યાં ટેપ કરો જ્યાં નવું બિંદુ મૂકવું છે, અથવા તેને કેન્દ્રમાં મૂકવા માટે ફરીથી બિંદુ ઉમેરો દબાવો.',
+  'teach.pointAddedUnlabelled': '{point} ઉમેર્યું.',
+  'teach.pointAddedLabelled': 'બિંદુ {id} ઉમેર્યું, લેબલ {label}.',
+  'teach.pointLimit':
+    'આ આકૃતિમાં પહેલેથી જ {max} બિંદુઓ છે, જે શેર કરી શકાય તેટલા મહત્તમ છે.',
+  'teach.pointBadCoords': 'તે સ્થાન આકૃતિની બહાર છે. ફરી પ્રયાસ કરો.',
+  'teach.addEdge': 'કાંઠો ઉમેરો',
+  'teach.addEdgeFirst': 'પ્રથમ બિંદુ પસંદ કરો.',
+  'teach.addEdgeSecond': '{id} પસંદ કર્યું. બીજું બિંદુ પસંદ કરો.',
+  'teach.edgeAdded': '{a} અને {b} જોડ્યા.',
+  'teach.edgeSamePoint': 'તે એ જ બિંદુ છે. એક અલગ બીજું બિંદુ પસંદ કરો.',
+  'teach.edgeAlreadyJoined': '{a} અને {b} પહેલેથી જોડાયેલા છે.',
+  'teach.edgeUnknownPoint': 'તે બિંદુ હવે આકૃતિમાં નથી.',
+  'teach.edgeLimit':
+    'આ આકૃતિમાં પહેલેથી જ {max} કાંઠા છે, જે શેર કરી શકાય તેટલા મહત્તમ છે.',
+  'teach.addCancelled': 'ઉમેરવાનું રદ કર્યું.',
+  'teach.undidAddPoint': 'પૂર્વવત્: બિંદુ {id} દૂર કર્યું.',
+  'teach.undidAddEdge': 'પૂર્વવત્: {a} થી {b} સુધીનો કાંઠો દૂર કર્યો.',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };
