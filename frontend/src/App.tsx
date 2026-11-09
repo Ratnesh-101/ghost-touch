@@ -43,8 +43,11 @@ import { capturePrompt } from './flow/start';
 import {
   exploreAnnouncement,
   leaveByBack,
+  verifyCaveatForScene,
   type ScreenName,
 } from './flow/navigation';
+import { joinAnnouncements } from './flow/explore';
+import { type VerifyMode } from './verify/verify';
 import { createPhotoUrlTracker, type PhotoUrlTracker } from './flow/capture';
 import { isTeacherActive } from './flow/teach';
 import { getLang, LANG_BCP47, subscribeLang, t } from './i18n';
@@ -108,7 +111,7 @@ export function resolveShareRoute(
   }
   try {
     const decoded = decodeShare(hash);
-    const sceneAnnouncement = exploreAnnouncement(decoded.scene, 'ai');
+    const sceneAnnouncement = exploreAnnouncement(decoded.scene, 'shared');
     const verifiedName =
       decoded.verifiedBy.trim() !== '' ? decoded.verifiedBy : t('share.verified');
     const verifiedAnnouncement = t('share.verifiedBy').replace('{name}', verifiedName);
@@ -384,7 +387,8 @@ export function App(): JSX.Element {
   ): void => {
     updatePhotoUrl(photo ?? null);
     lastExploreScene.current = scene;
-    const announced = exploreAnnouncement(scene, mode);
+    const verifyMode: VerifyMode = source === 'sample' ? 'sample' : mode;
+    const announced = exploreAnnouncement(scene, mode, verifyMode);
     drivers.speech.speak(announced, LANG_BCP47[currentLang]);
     setView({ screen: 'explore', scene, announced });
     if (source !== 'sample') {
@@ -456,7 +460,9 @@ export function App(): JSX.Element {
     updatePhotoUrl(null);
     lastExploreScene.current = scene;
     // Open an offline saved diagram: goes straight to Explore, no network call, no re-save
-    const announced = `${title}. ${t('explore.gestureHint')} ${t('explore.backHint')}`;
+    const base = `${title}. ${t('explore.gestureHint')} ${t('explore.backHint')}`;
+    const caveat = verifyCaveatForScene(scene, 'ai');
+    const announced = caveat ? joinAnnouncements([base, caveat]) : base;
     drivers.speech.speak(announced, LANG_BCP47[currentLang]);
     setView({ screen: 'explore', scene, announced });
   };

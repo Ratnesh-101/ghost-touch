@@ -18,6 +18,14 @@ export interface VerifyFinding {
   message: string;
 }
 
+/**
+ * Pure helper to extract the disputed target name (e.g. "AC", "Red", "angle C") from a finding message.
+ */
+export function getFindingTarget(finding: VerifyFinding): string {
+  const match = finding.message.match(/disagree on (.+?)\./i);
+  return match?.[1]?.trim() ?? finding.segmentId ?? '';
+}
+
 export type VerifyStatus = 'consistent' | 'disagree' | 'silent';
 
 export interface VerifyResult {

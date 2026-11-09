@@ -8,10 +8,18 @@
  * All functions here are pure and unit-tested without DOM or browser APIs.
  */
 
-import { requestAsk, AskRequestError, type AskResponse, type AskSource, type GuideTarget } from '../api/ask';
+import {
+  requestAsk,
+  AskRequestError,
+  type AskResponse,
+  type AskSource,
+  type GuideTarget,
+} from '../api/ask';
 import type { DiagramScene } from '../core/scene';
 import { ListenError, type AudioDriver, type SpeechDriver } from '../drivers';
 import { getLang, LANG_BCP47, t } from '../i18n';
+import { joinAnnouncements } from './explore';
+import { verifyScene, getFindingTarget, type VerifyFinding } from '../verify/verify';
 
 /** Listening cue tone (Task 9.2). */
 export const LISTENING_BEEP_HZ = 660;
@@ -40,6 +48,7 @@ export interface AskDeps {
     signal: AbortSignal,
   ) => Promise<AskResponse>;
   formatAnswer?: (answer: string, target?: GuideTarget) => string;
+  findings?: readonly VerifyFinding[];
 }
 
 /**
@@ -87,6 +96,65 @@ export function askErrorMessage(error: unknown): string {
   }
 
   return t('ask.errorFailed');
+}
+
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Pure helper for Ask flow: checks if the question names a segment, side, or element
+ * that appears in a 'disagree' finding (Requirement 3).
+ *
+ * Matching rules:
+ * - Matches by target, name, or segmentId (case-insensitive).
+ * - For 2-character segment names/ids (e.g. "AC" or "CA"), accepts reversed order.
+ * - Matches on word boundaries so "AC" does not falsely match "ACTION" or "BACK".
+ * - If matched, returns the localised caveat sentence: "Facts and drawing disagree on {name}. I can't tell which is right."
+ * - If no match, returns null.
+ */
+export function caveatForQuestion(
+  findings: readonly VerifyFinding[] | undefined | null,
+  question: string,
+): string | null {
+  if (!findings || findings.length === 0 || !question) {
+    return null;
+  }
+
+  const trimmedQ = question.trim();
+  if (!trimmedQ) return null;
+
+  for (const finding of findings) {
+    const candidates = new Set<string>();
+
+    const addCandidate = (val: string | undefined): void => {
+      if (!val) return;
+      const tVal = val.trim();
+      if (!tVal) return;
+      candidates.add(tVal);
+      if (tVal.length === 2 && /^[a-zA-Z]{2}$/.test(tVal)) {
+        candidates.add(`${tVal[1]}${tVal[0]}`);
+      }
+      if (/^angle\s+([a-zA-Z0-9]+)$/i.test(tVal)) {
+        const vertex = tVal.replace(/^angle\s+/i, '').trim();
+        if (vertex) candidates.add(vertex);
+      }
+    };
+
+    const targetName = getFindingTarget(finding);
+    addCandidate(targetName);
+    addCandidate(finding.segmentId);
+
+    for (const cand of candidates) {
+      const re = new RegExp(`(?:^|[^a-zA-Z0-9_])${escapeRegExp(cand)}(?:$|[^a-zA-Z0-9_])`, 'i');
+      if (re.test(trimmedQ)) {
+        const displayTarget = targetName || finding.segmentId || cand;
+        return t('verify.disagree').replace('{name}', displayTarget);
+      }
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -194,10 +262,13 @@ export class AskManager {
         // non-fatal
       }
       try {
-        const answerText = deps.formatAnswer
+        const baseAnswer = deps.formatAnswer
           ? deps.formatAnswer(response.answer, response.target)
           : response.answer;
-        deps.say(answerText);
+        const findings = deps.findings ?? (deps.scene ? verifyScene(deps.scene).findings : []);
+        const caveat = caveatForQuestion(findings, question);
+        const finalAnswer = caveat ? joinAnnouncements([caveat, baseAnswer]) : baseAnswer;
+        deps.say(finalAnswer);
       } catch {
         // non-fatal
       }
@@ -295,10 +366,13 @@ export class AskManager {
         // non-fatal
       }
       try {
-        const answerText = deps.formatAnswer
+        const baseAnswer = deps.formatAnswer
           ? deps.formatAnswer(response.answer, response.target)
           : response.answer;
-        deps.say(answerText);
+        const findings = deps.findings ?? (deps.scene ? verifyScene(deps.scene).findings : []);
+        const caveat = caveatForQuestion(findings, question);
+        const finalAnswer = caveat ? joinAnnouncements([caveat, baseAnswer]) : baseAnswer;
+        deps.say(finalAnswer);
       } catch {
         // non-fatal
       }

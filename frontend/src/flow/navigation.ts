@@ -3,6 +3,8 @@
  */
 import type { DiagramScene } from '../core/scene';
 import type { SceneMode } from '../api/scene';
+import { verifyScene, getFindingTarget, type VerifyMode } from '../verify/verify';
+import { joinAnnouncements } from './explore';
 import { t } from '../i18n';
 
 /** Spoken name of a scene: its title, or its kind when it has none. */
@@ -12,15 +14,55 @@ export function sceneName(scene: DiagramScene): string {
 }
 
 /**
+ * Resolves the localized caveat sentence if verifyScene returns 'disagree'.
+ * Returns null if status is 'consistent' or 'silent'.
+ * SPEC GHOST: never says "verified" or "trust the text".
+ */
+export function verifyCaveatForScene(
+  scene: DiagramScene,
+  mode: VerifyMode = 'ai',
+): string | null {
+  const result = verifyScene(scene, { mode });
+  if (result.status === 'disagree' && result.findings.length > 0) {
+    const finding = result.findings[0]!;
+    const targetName = getFindingTarget(finding);
+    return t('verify.disagree').replace('{name}', targetName);
+  }
+  return null;
+}
+
+/**
  * Entry announcement for the Explore screen. A Raw Mode scene starts with the
  * exact sentence required by Requirement 8.1.
+ *
+ * Runs verifyScene(scene, {mode}) once on entry:
+ * - If 'disagree', appends ONE extra sentence localized in en, hi, gu via joinAnnouncements.
+ * - If 'consistent' or 'silent', says NOTHING extra.
  */
-export function exploreAnnouncement(scene: DiagramScene, mode: SceneMode): string {
+export function exploreAnnouncement(
+  scene: DiagramScene,
+  mode: SceneMode | VerifyMode = 'ai',
+  verifyMode?: VerifyMode,
+): string {
   const name = sceneName(scene);
   const hint = `${t('explore.gestureHint')} ${t('explore.backHint')}`;
-  return mode === 'raw'
-    ? `${t('raw.announce')} ${name}. ${hint}`
-    : `${name}. ${hint}`;
+  const base =
+    mode === 'raw'
+      ? `${t('raw.announce')} ${name}. ${hint}`
+      : `${name}. ${hint}`;
+
+  const vMode: VerifyMode =
+    verifyMode ??
+    (mode === 'raw'
+      ? 'raw'
+      : mode === 'sample'
+        ? 'sample'
+        : mode === 'shared'
+          ? 'shared'
+          : 'ai');
+
+  const caveat = verifyCaveatForScene(scene, vMode);
+  return caveat ? joinAnnouncements([base, caveat]) : base;
 }
 
 /** Accessible label for the Explore canvas. */
