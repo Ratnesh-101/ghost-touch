@@ -241,9 +241,9 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 29.2 Design section and properties P47-P50 in `design.md`, exactly as implemented in `frontend/src/verify/verify.ts` and `tests/verify.test.ts`
   - [x] 29.3 `.kiro/steering/verify.md`: consistency check, not forgery protection; never "verified"; silent when unsure
   - [x] 29.4 Hook `.kiro/hooks/verify-tests-on-save.json`, modelled on `run-tests-on-core-save.json`, plus a hooks-test entry
-  - [ ] 29.5 Review `verify.ts` against Requirement 18; for each contradiction write a failing test first, then fix
-  - [ ] 29.6 Move to `frontend/src/core/verify.ts` if it is pure (no browser API, no React); keep one import path for callers
-  - [ ] 29.7 Bring P47-P50 to at least 200 cases and mutation-check each
+  - [x] 29.5 Review `verify.ts` against Requirement 18; for each contradiction write a failing test first, then fix
+  - [x] 29.6 Move to `frontend/src/core/verify.ts` if it is pure (no browser API, no React); keep one import path for callers
+  - [x] 29.7 Bring P47-P50 to at least 200 cases and mutation-check each
   - [ ] 29.8 `docs/KIRO_WRITEUP.md`: what was Kiro's (spec, steering, hook, review, fixes) and what was agy's (module and first tests)
   - _Requirements: 18.*_
 

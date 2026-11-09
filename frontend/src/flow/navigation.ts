@@ -3,7 +3,7 @@
  */
 import type { DiagramScene } from '../core/scene';
 import type { SceneMode } from '../api/scene';
-import { verifyScene, getFindingTarget, type VerifyMode } from '../verify/verify';
+import { verifyScene, getFindingTarget, type VerifyMode } from '../core/verify';
 import { joinAnnouncements } from './explore';
 import { t } from '../i18n';
 

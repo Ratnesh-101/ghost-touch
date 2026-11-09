@@ -19,7 +19,7 @@ import type { DiagramScene } from '../core/scene';
 import { ListenError, type AudioDriver, type SpeechDriver } from '../drivers';
 import { getLang, LANG_BCP47, t } from '../i18n';
 import { joinAnnouncements } from './explore';
-import { verifyScene, getFindingTarget, type VerifyFinding } from '../verify/verify';
+import { verifyScene, getFindingTarget, type VerifyFinding } from '../core/verify';
 
 /** Listening cue tone (Task 9.2). */
 export const LISTENING_BEEP_HZ = 660;

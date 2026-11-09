@@ -109,7 +109,7 @@ describe('P47 — Scene built from its own facts is never flagged', () => {
         const result = verifyScene(scene, { mode: 'raw' });
         return result.status === 'consistent' && result.findings.length === 0;
       }),
-      { numRuns: 100 },
+      { numRuns: 200 },
     );
   });
 
@@ -147,7 +147,7 @@ describe('P47 — Scene built from its own facts is never flagged', () => {
         const result = verifyScene(scene, { mode: 'raw' });
         return result.status === 'consistent' && result.findings.length === 0;
       }),
-      { numRuns: 100 },
+      { numRuns: 200 },
     );
   });
 });
@@ -209,7 +209,7 @@ describe('P48 — Results invariant under uniform scale and translation', () => 
         }
         return true;
       }),
-      { numRuns: 100 },
+      { numRuns: 200 },
     );
   });
 });
@@ -243,7 +243,7 @@ describe('P49 — Unparsed facts give silence', () => {
         const res = verifyScene(scene);
         return res.status === 'silent' && res.findings.length === 0;
       }),
-      { numRuns: 50 },
+      { numRuns: 200 },
     );
   });
 
@@ -339,7 +339,7 @@ describe('P50 — Order-independent', () => {
           return true;
         },
       ),
-      { numRuns: 50 },
+      { numRuns: 200 },
     );
   });
 });
@@ -397,6 +397,9 @@ describe('Regression Suite — Real Scenes & Forgery Check', () => {
     const parseRateFraction = scenesWithParsedFacts / validScenes;
     expect(scenesWithParsedFacts).toBe(21);
     expect(parseRateFraction).toBeCloseTo(21 / 60, 2);
+    // Kiro review (T29): the title promised zero false disagreements but nothing asserted it.
+    expect(disagreedScenes).toEqual([]);
+    expect(disagreeCount).toBe(0);
   });
 
   it('flags a forged "AC = 7 cm" on triangle.json', () => {

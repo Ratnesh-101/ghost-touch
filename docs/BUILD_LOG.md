@@ -2422,3 +2422,23 @@ Format for each entry:
   - `docs/BUILD_LOG.md`
 
 
+
+## 2026-11-09 — Kiro — T29 (Spec Ghost: spec after code, review, move to core)
+- Tool: **Kiro**. The feature (fact check of printed facts against the drawing) was chosen by the agent tournament and built by Antigravity: the module, its first tests P47-P50 and the k1 wiring. Kiro did not write the module.
+- Spec (commit `5c2cd29`, written after the code and marked so): Requirement 18 in EARS (ratios within 15%, 25% for AI scenes; angles within 8 degrees; at least 2 matched lengths; silent on unparsed facts and on "not to scale"; the exact sentence "Facts and drawing disagree on AB. I can't tell which is right."; never "verified"; one utterance on scene load; Ask caveat; en/hi/gu). Design section and P47-P50 as implemented. Steering `.kiro/steering/verify.md` (fileMatch). Hook `.kiro/hooks/verify-tests-on-save.json`, with a check in `tests/kiro.hooks.test.ts`.
+- Review (this commit): the module is pure (no React, no browser API, no i18n), so it moved with `git mv` to `frontend/src/core/verify.ts`. `frontend/src/verify/verify.ts` is now a one-line re-export, so `App.tsx` (not editable in this round) and agy's tests keep working; `flow/ask.ts` and `flow/navigation.ts` import from core.
+- Contradictions found, each with a failing test first (`tests/verify.review.test.ts`, 14 tests, 9 failed before the fix):
+  - 18.6 aspect: lengths and angles were measured in the unit square, ignoring `scene.aspect`. An honest wide right triangle (aspect 2) was flagged, and a right angle that is only right in true proportions was flagged. Now x differences count `aspect` times, as the backend `semantic.py` does. A missing, zero, negative or non-finite aspect counts as 1.
+  - 18.7 units: "3 cm", "40 mm", "0.05 m" were compared as 3, 40 and 0.05, so an honest triangle was flagged. Known length units are now converted to mm. An unknown unit among different units, or a bare number next to two different units, gives silence instead of a guess.
+  - agy's regression test was titled "ZERO false disagreements" but only asserted the parse count. It now asserts no disagreement in AI mode across all 60 sample and research scenes.
+- Tolerances were not changed (owner decision). Finding kept as a known limit: the research ground truth `01_right_triangle.json` is labelled 3-4-5 but drawn nearly isosceles (about 18% off), so it is flagged at 15% (sample mode) and not at 25% (AI mode). The review test documents this case.
+- P47-P50 raised to 200 runs each (from 100/100/100/50/50).
+- Mutation check (each mutant run against `tests/verify.test.ts` alone, then with the review tests; source restored byte for byte):
+  - P47, tolerance 0.15 to 0: killed (P47 geometry and bars, P48).
+  - P48, length depends on translation (`+ pa.x`): killed (P47, P48, P50, regression).
+  - P49, "not to scale" ignored: killed (P49).
+  - P50, median taken without sorting: killed (P50, regression).
+  - Aspect ignored and units ignored: survive agy's tests and are killed only by the review tests (4 and 5 failures). That is expected: those rules are new.
+- Known limits, not fixed: the bar check measures from `y_base`, so an axis that does not start at 0 can mislead; with exactly 2 lengths both sides are named, because the check cannot tell which is wrong; the renderer draws in the unit square and ignores `aspect`; a shared link can show "Verified by ..." next to the caveat (owner decision R1).
+- Gate: frontend `tsc` clean, 129 files and 1744 tests pass, build ok; backend 705 passed, `ruff check` and `ruff format --check` clean (76 files).
+- Files touched: `frontend/src/core/verify.ts` (moved from `frontend/src/verify/verify.ts`), `frontend/src/verify/verify.ts` (re-export), `frontend/src/flow/ask.ts`, `frontend/src/flow/navigation.ts`, `frontend/tests/verify.review.test.ts` (new), `frontend/tests/verify.test.ts`, `.kiro/specs/ghost-touch/tasks.md`, `docs/BUILD_LOG.md`.
