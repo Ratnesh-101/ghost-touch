@@ -1920,3 +1920,45 @@ Format for each entry:
   - `docs/user-test/translation-review.csv`
   - `docs/reports/agy-h2-ask-accuracy-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — Antigravity — Lane k2-prompt-facts (Structured Extraction Facts Prompt)
+- Rewrote the facts rule in `backend/app/vision/prompts.py` so the extraction prompt specifies
+  exact machine-friendly shapes: `AB = 3 cm` (endpoints' point ids, unit preserved),
+  `angle B = 90°` (vertex id, degree sign), `label: 35` (bar/value), `AB is parallel to CD`,
+  `AB = CD` (equal sides), and short sentences only as a fallback for relations fitting no shape.
+- Added explicit rules to copy only measurements and relations PRINTED in the image (never
+  compute or invent), add the fact `not to scale` when the figure says "not drawn to scale",
+  and keep ids identical to the `points` ids.
+- Resolved contradiction between "short sentences" and the examples; preserved schema placeholder,
+  JSON-only constraint, coordinate normalization, kind rules, polyline sampling, and teacher
+  vocabulary semantically.
+- Created `backend/tests/test_k2_prompt_facts.py` asserting all fact shapes, 'not to scale' rule,
+  printed-only and id-consistency rules, schema and do-not-invent preservation, absence of
+  "as short sentences" contradiction, teacher vocabulary, and prompt length budget (<24k chars).
+- What broke / findings: None. Total prompt length with injected schema is ~4,450 characters.
+- Files touched:
+  - `backend/app/vision/prompts.py`
+  - `backend/tests/test_k2_prompt_facts.py`
+  - `docs/reports/agy-k2-prompt-facts-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — Antigravity — Lane k2-prompt-facts (Structured Extraction Facts Prompt)
+- Rewrote the facts rule in `backend/app/vision/prompts.py` so the extraction prompt specifies
+  exact machine-friendly shapes: `AB = 3 cm` (endpoints' point ids, unit preserved),
+  `angle B = 90°` (vertex id, degree sign), `label: 35` (bar/value), `AB is parallel to CD`,
+  `AB = CD` (equal sides), and short sentences only as a fallback for relations fitting no shape.
+- Added explicit rules to copy only measurements and relations PRINTED in the image (never
+  compute or invent), add the fact `not to scale` when the figure says "not drawn to scale",
+  and keep ids identical to the `points` ids.
+- Resolved contradiction between "short sentences" and the examples; preserved schema placeholder,
+  JSON-only constraint, coordinate normalization, kind rules, polyline sampling, and teacher
+  vocabulary semantically.
+- Created `backend/tests/test_k2_prompt_facts.py` asserting all fact shapes, 'not to scale' rule,
+  printed-only and id-consistency rules, schema and do-not-invent preservation, absence of
+  "as short sentences" contradiction, teacher vocabulary, and prompt length budget (<24k chars).
+- What broke / findings: None. Total prompt length with injected schema is ~4,450 characters.
+- Files touched:
+  - `backend/app/vision/prompts.py`
+  - `backend/tests/test_k2_prompt_facts.py`
+  - `docs/reports/agy-k2-prompt-facts-report.md`
+  - `docs/BUILD_LOG.md`
