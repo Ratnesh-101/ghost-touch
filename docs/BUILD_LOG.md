@@ -2213,3 +2213,99 @@ Format for each entry:
 - Gate: frontend `tsc` clean, 126 files and 1716 tests pass, build ok; backend 675 passed, `ruff check` and `ruff format --check` clean.
 - Not verified: behaviour on a phone with a real Android notification or system gesture.
 - Files touched: `frontend/tests/teach.canvas.pointer.test.tsx` (new), `frontend/package.json`, `frontend/package-lock.json`, `docs/reviews/kiro-round2.md`, `.kiro/specs/ghost-touch/tasks.md`, `docs/BUILD_LOG.md`.
+
+## 2026-11-09 — Antigravity — Lane k4-scene-pipeline (Backend Scene Pipeline Fixes)
+- Tool: **Antigravity** (agy, reviewed by Claude).
+- What was built:
+  - B2-01: Calculated AI timeout using absolute remaining deadline (`ai_deadline - now`)
+    in `main.py`, preventing queue wait and upload streaming from overrunning the 15-second total
+    request deadline.
+  - B2-02: Implemented client disconnect polling loop (`ASK_DISCONNECT_POLL_SECONDS = 0.25s`)
+    during model extraction in `POST /api/v1/scene`, aborting in-flight vision calls, returning
+    HTTP 499, and releasing both `_scene_semaphore` and per-client in-flight limiter permits.
+  - B2-03: Caught OpenCV internal errors (`cv2.error`) in `build_raw_scene` (`raw_mode.py`) and
+    mapped them to `RawModeError` and clean HTTP 422, preventing 500 crashes on malformed inputs.
+  - B2-04: Extracted EXIF orientation tags (1..8) in `image_utils.py` and applied
+    rotation/flipping in `raw_mode.py` before edge detection, ensuring Raw Mode outlines align
+    with mobile portrait photos (Requirement 15.4 / SEC-04). Fixed APP1 segment loop to preserve
+    parsed orientation across multiple APP1 segments (B2-11).
+  - B2-07 / F13: Prevented background improve pass (`_run_improve_pass_locked`) from overwriting
+    cached equation-sampled function graphs with crude polylines.
+  - B2-08: Inspected `exc.reason` in `except VisionError` for "timed out", "timeout", or
+    "deadline reached" and assigned `fallback_reason = "timeout"` instead of "provider_error".
+  - B2-09: Integrated `fit_image_for_inline` into `OpenAIProvider.extract` with 1.5 MB inline cap,
+    preventing payload bloat and 8s upload timeouts.
+  - F14: Re-raised `asyncio.CancelledError` when cancellation is aimed at the request handler
+    task in `process_scene` and `ask_question_route`.
+  - F16: Sanitized error responses across 415, 422, and `/validate` to use generic, clean
+    messages without echoing raw exception details or provider names.
+  - Added comprehensive regression test suite in `backend/tests/test_k4_scene_pipeline.py` (10
+    tests covering B2-01..B2-04, B2-07..B2-09, F13, F14, F16).
+- What broke / findings:
+  - None; all changes are backwards-compatible and keep existing limits, headers
+    (`X-Vision-Provider` = `ai`/`raw`), and budget behaviours intact.
+- Files touched:
+  - `backend/app/main.py`
+  - `backend/app/raw_mode.py`
+  - `backend/app/image_utils.py`
+  - `backend/app/vision/openai_provider.py`
+  - `backend/tests/test_k4_scene_pipeline.py`
+  - `docs/reports/agy-k4-scene-pipeline-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — Antigravity — Lane k4-scene-pipeline (Follow-up: 6 test fixes & Ruff E501)
+- Tool: **Antigravity** (agy, reviewed by Claude).
+- What was done:
+  - Wrapped comment in `app/raw_mode.py:158` to resolve Ruff E501 (kept <= 100 columns).
+  - Fixed fallback reason in `app/main.py`: fast provider failures classify as `provider_error`;
+    only true deadline expiration (`time.monotonic() >= ai_deadline` or `"deadline reached"`)
+    sets `timeout`. Resolves existing `test_pipeline_all_providers_fail_returns_raw_mode`.
+  - Fixed OpenCV EXIF double rotation in `app/raw_mode.py` using `IMREAD_IGNORE_ORIENTATION` so
+    orientation transforms coordinates once before 1600 px downscaling and Canny edge detection.
+    Resolves `test_b2_04_exif_orientation_applied_before_raw_mode`.
+  - Fixed cancellation swallowing in `app/main.py` by recording `handler_cancelled = True` and
+    re-raising `asyncio.CancelledError` in `finally`. Resolves
+    `test_f14_cancellation_aimed_at_handler_is_reraised`.
+  - Converted tests in `backend/tests/test_k4_scene_pipeline.py` from unsupported
+    `@pytest.mark.asyncio` to synchronous `asyncio.run(_run())` for fast, deterministic runs.
+  - Patched `ASK_DISCONNECT_POLL_SECONDS = 0.01` and used `MockAddress` in `test_b2_02`.
+  - Replaced random noise with deterministic 400x400 image in `test_b2_09` (<10ms).
+- What broke / findings:
+  - `test_pipeline_all_providers_fail_returns_raw_mode`: `exc.reason` matching "timeout" wrongly
+    classified normal rapid provider errors as timeouts.
+  - `test_b2_04`: OpenCV 4 `imdecode` auto-rotates EXIF JPEGs by default; adding manual
+    rotation produced a 180-degree double rotation. Fixed via `cv2.IMREAD_IGNORE_ORIENTATION`.
+  - `test_f14`: `asyncio.current_task().cancelled()` evaluates to `False` while the task is
+    executing its own body, swallowing the cancellation.
+  - `pytest-asyncio` plugin not present; async tests require standard `asyncio.run()`.
+- Files touched:
+  - `backend/app/raw_mode.py`
+  - `backend/app/main.py`
+  - `backend/tests/test_k4_scene_pipeline.py`
+  - `docs/reports/agy-k4-scene-pipeline-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — Antigravity — Lane k4-scene-pipeline (Follow-up 4: B2-09 test fix)
+- Tool: **Antigravity** (agy, reviewed by Claude).
+- What was done:
+  - Fixed `test_b2_09_openai_provider_downscales_large_image` in
+    `backend/tests/test_k4_scene_pipeline.py`:
+    - Replaced 400x400 image (which compressed to only ~2.8 KB as PNG) with a seeded 3000x3000
+      random noise image (`np.random.default_rng(42)`) encoded as high-quality JPEG (~6.5 MB).
+    - Preconditions `len(image_bytes) > 20_000` and `len(image_bytes) > provider.inline_limit`
+      now hold reliably.
+    - Verified `OpenAIProvider.extract` downscales the payload: asserting decoded dimensions
+      are capped (`max(fitted_h, fitted_w) <= 1024` and `<= 1600`, down from 3000x3000) and
+      payload size is reduced below inline_limit (`len(fitted_bytes) <= provider.inline_limit`
+      and `len(fitted_bytes) < len(image_bytes)`).
+    - Preserved deterministic, sub-0.2s test execution speed without any network calls.
+  - Confirmed `OpenAIProvider` already performs inline downscaling via `fit_image_for_inline`,
+    enforcing dimensions <= 1024 px (well under 1600 px cap) and bytes <= inline_limit.
+  - Updated `docs/reports/agy-k4-scene-pipeline-report.md` (Status: DONE).
+- What broke / findings:
+  - `test_b2_09_openai_provider_downscales_large_image` failed with `assert 2864 > 20000` because
+    a 400x400 synthetic gradient image compressed too efficiently as PNG.
+- Files touched:
+  - `backend/tests/test_k4_scene_pipeline.py`
+  - `docs/reports/agy-k4-scene-pipeline-report.md`
+  - `docs/BUILD_LOG.md`
