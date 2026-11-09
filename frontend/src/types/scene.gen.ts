@@ -5,6 +5,10 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
+/**
+ * Aspect ratio (width / height) of the diagram's bounding box
+ */
+export type Aspect = number;
 export type XAxisY = number | null;
 export type YAxisX = number | null;
 export type Id = string;
@@ -38,6 +42,7 @@ export type Version = 1;
  * The normalized, validated description of a diagram (source of truth).
  */
 export interface DiagramScene {
+  aspect?: Aspect;
   axes?: Axes | null;
   bars?: Bars;
   facts?: Facts;
