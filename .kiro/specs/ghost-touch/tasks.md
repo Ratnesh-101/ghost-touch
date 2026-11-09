@@ -259,11 +259,11 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 31.4 Key `vertex.unlabelled` in `en`, `hi`, `gu` and the translation sheets (separate commit `6bd9503`, after k1 and k6 were on `main`; committed before the code that uses it so `main` never spoke the raw key)
   - _Requirements: 4.3, 10.1_
 
-- [ ] 32. Hit test: PERF-01 and R3-07
-  - [ ] 32.1 Keep the current `hitTest` as a test oracle
-  - [ ] 32.2 PERF-01: bounding-box pre-checks per segment and polyline piece, endpoints transformed once, no per-segment allocation, identical results
-  - [ ] 32.3 R3-07: a bar whose value is not finite is never hit
-  - [ ] 32.4 Properties: optimised equals oracle on random scenes including a 2000-point polyline (200+ runs); non-finite bar is never a hit; P1, P2, P8 green; each new property mutation-checked
+- [x] 32. Hit test: PERF-01 and R3-07
+  - [x] 32.1 Keep the current `hitTest` as a test oracle
+  - [x] 32.2 PERF-01: bounding-box pre-checks per segment and polyline piece, endpoints transformed once, no per-segment allocation, identical results (no per-polyline box: without a cache it costs a pass over the points, and a cache in a pure module would go stale on in-place edits)
+  - [x] 32.3 R3-07: a bar whose value is not finite is never hit
+  - [x] 32.4 Properties: optimised equals oracle on random scenes including a 2000-point polyline (200+ runs); non-finite bar is never a hit; P1, P2, P8 green; each new property mutation-checked
   - _Requirements: 4.6, 6.1, 16.12_
 
 - [ ] 33. Round 3 evidence and log

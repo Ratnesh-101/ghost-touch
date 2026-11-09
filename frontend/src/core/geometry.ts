@@ -127,21 +127,36 @@ export function distToSegment(
   a: ScreenPoint,
   b: ScreenPoint,
 ): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
+  return distToSegmentXY(p.x, p.y, a.x, a.y, b.x, b.y);
+}
+
+/**
+ * `distToSegment` on plain numbers, so a hot loop allocates nothing (PERF-01). This is the one
+ * implementation: `distToSegment` calls it, so the two can never give different answers.
+ */
+export function distToSegmentXY(
+  px: number,
+  py: number,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+): number {
+  const dx = bx - ax;
+  const dy = by - ay;
   const lenSq = dx * dx + dy * dy;
 
   // Degenerate segment: distance to the lone endpoint.
   if (lenSq === 0) {
-    return Math.hypot(p.x - a.x, p.y - a.y);
+    return Math.hypot(px - ax, py - ay);
   }
 
   // Scalar projection of (p - a) onto (b - a), clamped to the segment.
-  let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq;
+  let t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
   t = Math.max(0, Math.min(1, t));
 
-  const closestX = a.x + t * dx;
-  const closestY = a.y + t * dy;
+  const closestX = ax + t * dx;
+  const closestY = ay + t * dy;
 
-  return Math.hypot(p.x - closestX, p.y - closestY);
+  return Math.hypot(px - closestX, py - closestY);
 }
