@@ -20,7 +20,7 @@ import {
   type HapticConfig,
 } from '../core/hapticEngine';
 import { pitchForY } from '../core/pitch';
-import { t } from '../i18n';
+import { t, tf } from '../i18n';
 
 export { step, initialState, DEFAULT_HAPTICS, pitchForY };
 export type { EngineState, Effect, HapticConfig };
@@ -136,15 +136,27 @@ export function joinAnnouncements(parts: readonly string[]): string {
  * single `speak` effect: axis crossings first, then the vertex or bar. Other effects are kept
  * in order. When there is nothing to say the effects are returned unchanged.
  */
+/** The words of a speech effect: literal text, or the keyed sentence in the active language. */
+export function speechText(effect: Effect): string | null {
+  if (effect.kind === 'speak') return effect.text;
+  if (effect.kind === 'speakKey') return tf(effect.textKey, effect.params);
+  return null;
+}
+
 export function mergeAnnouncements(axisCrossings: readonly string[], effects: Effect[]): Effect[] {
-  const engineSpeech = effects.flatMap((e) => (e.kind === 'speak' ? [e.text] : []));
+  // Keyed speech (an unlabelled corner) counts as speech too, so it is joined with the axis
+  // crossings instead of being spoken separately and cutting them off.
+  const engineSpeech = effects.flatMap((e) => {
+    const words = speechText(e);
+    return words === null ? [] : [words];
+  });
   const text = joinAnnouncements([...axisCrossings, ...engineSpeech]);
   if (text === '') return effects;
 
   const merged: Effect[] = [];
   let placed = false;
   for (const effect of effects) {
-    if (effect.kind !== 'speak') {
+    if (effect.kind !== 'speak' && effect.kind !== 'speakKey') {
       merged.push(effect);
     } else if (!placed) {
       merged.push({ kind: 'speak', text });

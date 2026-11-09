@@ -46,7 +46,7 @@ Contract decisions A2 SEC-01, A2 SEC-04 and A5-05 were not touched. No haptic co
 | CORE-10 | med | 26 | FIXED | The missing-voice notice now comes from `speech.noVoiceNotice` in en, hi and gu (speech.ts). Hindi and Gujarati wording still needs native review. |
 | CORE-13 | med | 25 | FIXED | Duplicate of A6-01 and A6-02 (same code); see those rows. |
 | NEEDS-KIRO-01 | high | 26 | FIXED | `hitTest` treats a non-finite distance as a miss (`closerVertex` and the line variant, core/hitTest.ts); property tests in hitTest.nan.prop.test.ts. |
-| NEEDS-KIRO-02 | med | 26 | OPEN | `hapticEngine.ts:132` (core) still speaks `'Point ' + target.id` in every language (re-checked 2026-11-09). Task 31. |
+| NEEDS-KIRO-02 | med | 26 / 31 | FIXED | Reproduced: `hapticEngine.ts` spoke `'Point ' + target.id` in every language. The pure engine now emits `{ kind: 'speakKey', textKey: 'vertex.unlabelled', params: { id } }`; `runEffects` and `mergeAnnouncements` word it with `tf()` (new key in en, hi, gu and both translation sheets, `6bd9503`). English output is unchanged ("Point B"); Hindi and Gujarati use the wording already used elsewhere ("बिंदु B", "બિંદુ B"), not yet native-reviewed. Property P51 (`vertexSpeech.prop.test.ts`); mutants (engine speaks English, runEffects speaks the raw key, merge drops keyed speech) all killed. Tuned values and P3-P7 unchanged; the vertex-speech test inside the P4 block was updated to the new contract. |
 | CORE-14, CORE-15, CORE-16 | low | 26 | SKIPPED | Not requested for round 2. Note: CORE-16 (PDF photo overlay) was addressed by lane k7 (`242e9b6`, Capture builds `photoUrl` from the downscaled image); Kiro has not verified that change. See "Decisions" below. |
 
 ## New findings from Kiro's own checks

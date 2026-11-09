@@ -224,9 +224,9 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 27.7 Gate passes; commit `kiro: T27 ...` (committed as `1ca4cdb` by Claude Code after Kiro was stopped)
   - _Requirements: 16.1, 16.2, 16.5, 16.10, 17.1, 17.2_
 
-- [ ] 28. Evidence and log
+- [x] 28. Evidence and log (finished by Claude Code after Kiro was stopped; closed by Kiro 2026-11-09)
   - [x] 28.1 `docs/kiro-evidence/round2.md`: spec to task to tests to what the tests caught (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
-  - [ ] 28.2 `docs/reviews/kiro-round2.md` complete: every finding FIXED, NOT REPRODUCED or SKIPPED with a reason
+  - [x] 28.2 `docs/reviews/kiro-round2.md` complete: every finding FIXED, NOT REPRODUCED or SKIPPED with a reason (closed by Kiro 2026-11-09 after tasks 30 and 31)
   - [x] 28.3 `docs/BUILD_LOG.md` entry: Kiro did this work; agent-written findings and code are credited to Antigravity (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
   - [x] 28.4 Commit `kiro: T28 ...`; nothing is pushed (committed as `1ca4cdb` by Claude Code after Kiro was stopped; nothing pushed)
 
@@ -252,11 +252,11 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 30.2 Keep the handler; gate; commit
   - _Requirements: 17.5_
 
-- [ ] 31. NEEDS-KIRO-02: unlabelled vertices are spoken in the active language
-  - [ ] 31.1 Engine emits `{ kind: 'speak', textKey: 'vertex.unlabelled', params: { id } }` for an unlabelled vertex; a labelled vertex keeps `{ kind: 'speak', text }`
-  - [ ] 31.2 `runEffects` resolves `textKey` through i18n; `mergeAnnouncements` and the Explore speech helpers handle both forms
-  - [ ] 31.3 Property: unlabelled gives the key effect, labelled gives the label text; P3-P7 and the tuned values unchanged
-  - [ ] 31.4 Key `vertex.unlabelled` in `en`, `hi`, `gu` and the translation sheets (separate last commit, after k1 and k6)
+- [x] 31. NEEDS-KIRO-02: unlabelled vertices are spoken in the active language
+  - [x] 31.1 Engine emits `{ kind: 'speak', textKey: 'vertex.unlabelled', params: { id } }` for an unlabelled vertex; a labelled vertex keeps `{ kind: 'speak', text }`
+  - [x] 31.2 `runEffects` resolves `textKey` through i18n; `mergeAnnouncements` and the Explore speech helpers handle both forms
+  - [x] 31.3 Property: unlabelled gives the key effect, labelled gives the label text; P3-P7 and the tuned values unchanged
+  - [x] 31.4 Key `vertex.unlabelled` in `en`, `hi`, `gu` and the translation sheets (separate commit `6bd9503`, after k1 and k6 were on `main`; committed before the code that uses it so `main` never spoke the raw key)
   - _Requirements: 4.3, 10.1_
 
 - [ ] 32. Hit test: PERF-01 and R3-07

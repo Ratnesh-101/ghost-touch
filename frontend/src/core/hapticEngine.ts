@@ -17,10 +17,16 @@ import { pitchForY, pitchForValue } from './pitch';
 // Public types
 // ---------------------------------------------------------------------------
 
+/** Keys of the sentences the engine asks the shell to speak (the shell owns the words). */
+export type SpeechKey = 'vertex.unlabelled';
+
 /** Plain-data effect emitted by the engine. Drivers execute these. */
 export type Effect =
   | { kind: 'vibrate'; pattern: number | number[] }
   | { kind: 'speak'; text: string }
+  // Speech the engine cannot word itself because it has no language: the shell looks up
+  // `textKey` in the active language and fills in `params` (NEEDS-KIRO-02).
+  | { kind: 'speakKey'; textKey: SpeechKey; params: { id: string } }
   | { kind: 'tone'; hz: number | null };
 
 /** Tuned configuration. Defaults come from the tech.md haptic vocabulary. */
@@ -88,8 +94,8 @@ export function initialState(): EngineState {
  * Step the haptic engine forward by one input.
  *
  * Rules (design.md):
- * 1. Enter a new vertex -> vibrate(cornerPattern), speak(label or "Point " + id),
- *    tone(null); set quietUntil = t + quietMs.
+ * 1. Enter a new vertex -> vibrate(cornerPattern), speak(label) or, with no label,
+ *    speakKey('vertex.unlabelled', { id }), tone(null); set quietUntil = t + quietMs.
  * 2. Same vertex as last step -> no effects.
  * 3. On a line, t >= quietUntil and t - lastBuzz > retriggerMs -> vibrate(lineMs).
  * 4. On a curve (polyline line) -> also tone(pitchForY(yNorm)).
@@ -121,16 +127,16 @@ export function step(
     next.onLine = false;
     next.lastBarId = null;
     if (state.lastVertexId !== target.id) {
-      // Rule 1: New vertex -> corner pulse, speak label (or "Point " + id),
-      // stop tone.
+      // Rule 1: New vertex -> corner pulse, speak the label (or, for an unlabelled corner,
+      // the 'vertex.unlabelled' sentence in the active language), stop tone.
       next.lastVertexId = target.id;
       next.quietUntil = t + cfg.quietMs;
       effects.push({ kind: 'vibrate', pattern: cfg.cornerPattern });
-      const labelText =
-        target.label !== undefined && target.label.trim() !== ''
-          ? target.label
-          : 'Point ' + target.id;
-      effects.push({ kind: 'speak', text: labelText });
+      if (target.label !== undefined && target.label.trim() !== '') {
+        effects.push({ kind: 'speak', text: target.label });
+      } else {
+        effects.push({ kind: 'speakKey', textKey: 'vertex.unlabelled', params: { id: target.id } });
+      }
       effects.push({ kind: 'tone', hz: null });
     }
     // Rule 2: Same vertex -> no effects (effects stays empty).

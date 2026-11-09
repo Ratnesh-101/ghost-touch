@@ -2310,3 +2310,13 @@ Format for each entry:
   - `backend/tests/test_k4_scene_pipeline.py`
   - `docs/reports/agy-k4-scene-pipeline-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — Kiro — T31 (NEEDS-KIRO-02: unlabelled corners spoken in the active language)
+- Tool: **Kiro**. Finding from the Antigravity audit a7 (NEEDS-KIRO-02); the change is in Kiro-owned `core/`.
+- Spec: task 31 was written before the code (in `8be6678`). The i18n key went in first, as its own commit `6bd9503`, after lanes k1 and k6 were on `main`. The brief said "add keys last"; doing it after the code would have left `main` speaking the raw key "vertex.unlabelled" between commits, so the key commit came just before the code that uses it.
+- Built: `core/hapticEngine.ts` emits `{ kind: 'speakKey', textKey: 'vertex.unlabelled', params: { id } }` for an unlabelled corner (the engine stays pure and language-free; a labelled corner still gives `{ kind: 'speak', text }`). `i18n.tf()` fills `{name}` placeholders literally. `drivers/index.ts` `runEffects` and `flow/explore.ts` `mergeAnnouncements` (new helper `speechText`) word the key, so a keyed corner is joined with axis crossings into one utterance (CORE-02 stays fixed) and `Explore.tsx` still only ever sees plain `speak` effects (it was not edited, per the brief).
+- Tests: new P51 in `tests/vertexSpeech.prop.test.ts` (7 tests, 200-250 runs each): unlabelled gives the key with the id, labelled gives the label text, no English "Point" text from the engine, tuned corner pattern and 450 ms quiet window unchanged, `runEffects` speaks the translated sentence in en/hi/gu, Hindi and Gujarati do not say "Point", and the merge words the key after the axis crossings while keeping the other effects in order. The vertex-speech test inside the P4 block expected the old English string; it was updated to the new contract (the rest of P3-P7 is untouched).
+- What the tests caught: P51 failed 5 of 7 on the old engine. Mutants killed: engine speaks English again (5 fail), `runEffects` speaks the raw key (2 fail), merge drops keyed speech (1 fail). Sources restored byte for byte.
+- Gate: frontend `tsc` clean, 127 files and 1723 tests pass, build ok; backend 689 passed, `ruff check` and `ruff format --check` clean.
+- Not verified: how Hindi and Gujarati phone voices read "बिंदु B" / "બિંદુ B" (needs a native speaker and a phone).
+- Files touched: `frontend/src/core/hapticEngine.ts`, `frontend/src/drivers/index.ts`, `frontend/src/flow/explore.ts`, `frontend/src/i18n/index.ts` (`tf` only; the key is in `6bd9503`), `frontend/tests/vertexSpeech.prop.test.ts` (new), `frontend/tests/hapticEngine.prop.test.ts`, `docs/reviews/kiro-round2.md`, `.kiro/specs/ghost-touch/tasks.md`, `docs/BUILD_LOG.md`.

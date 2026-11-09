@@ -1023,6 +1023,16 @@ export function t(key: string): string {
 }
 
 /**
+ * `t(key)` with `{name}` placeholders filled from `params`. A placeholder with no value is left
+ * as it is. Values are inserted literally (a `$` or `{` in a value is never re-interpreted).
+ */
+export function tf(key: string, params: Readonly<Record<string, string>>): string {
+  return t(key).replace(/\{(\w+)\}/g, (whole: string, name: string) =>
+    Object.prototype.hasOwnProperty.call(params, name) ? (params[name] ?? whole) : whole,
+  );
+}
+
+/**
  * Format a speech rate multiplier into display string (e.g. '1.0×').
  */
 export function formatRateMultiplier(rate?: string | number): string {

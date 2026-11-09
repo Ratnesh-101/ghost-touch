@@ -8,7 +8,7 @@
 import { DEFAULT_HAPTICS, type Effect } from '../core/hapticEngine';
 import type { DiagramScene } from '../core/scene';
 import type { GuideEffect } from '../guide';
-import { t } from '../i18n';
+import { t, tf } from '../i18n';
 import { WebAudioDriver, type AudioDriver } from './audio';
 import { IDBDiagramStore, type DiagramStore } from './diagramStore';
 import { WebHapticDriver, type HapticDriver } from './haptics';
@@ -172,6 +172,10 @@ export function runEffects(
         break;
       case 'speak':
         drivers.speech.speak(effect.text, lang);
+        break;
+      case 'speakKey':
+        // The engine has no language; the words come from the active i18n table.
+        drivers.speech.speak(tf(effect.textKey, effect.params), lang);
         break;
       case 'tone':
         drivers.audio.setTone(effect.hz);

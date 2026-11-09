@@ -158,10 +158,11 @@ describe('P4 — No repeated corner', () => {
   });
 
   /**
-   * Vertex speech: entering a new vertex always produces a speak effect.
-   * If the label is non-blank, speak the label; otherwise speak "Point " + id.
+   * Vertex speech: entering a new vertex always produces exactly one speech effect.
+   * If the label is non-blank, speak the label; otherwise emit the 'vertex.unlabelled' key with
+   * the id (task 31, NEEDS-KIRO-02: the shell words it in the active language, see P51).
    */
-  it('entering a new vertex always speaks label or "Point " + id', () => {
+  it('entering a new vertex always speaks the label, or emits the unlabelled key with the id', () => {
     const cfg = DEFAULT_HAPTICS;
     const vertexArb = fc.record({
       id: fc.string({ minLength: 1, maxLength: 5 }),
@@ -177,10 +178,13 @@ describe('P4 — No repeated corner', () => {
           target,
           yNorm: 0.5,
         }, cfg);
-        const speakEff = effects.find((e) => e.kind === 'speak');
-        if (speakEff === undefined || speakEff.kind !== 'speak') return false;
-        const expected = label !== undefined && label.trim() !== '' ? label : 'Point ' + id;
-        return speakEff.text === expected;
+        const speech = effects.filter((e) => e.kind === 'speak' || e.kind === 'speakKey');
+        if (speech.length !== 1) return false;
+        const only = speech[0]!;
+        if (label !== undefined && label.trim() !== '') {
+          return only.kind === 'speak' && only.text === label;
+        }
+        return only.kind === 'speakKey' && only.textKey === 'vertex.unlabelled' && only.params.id === id;
       }),
       { numRuns: 200 },
     );
