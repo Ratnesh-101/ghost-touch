@@ -2622,3 +2622,28 @@ Format for each entry:
 
 ## 2026-11-09 — Kiro — T36 spec (Ghostwriter in Teach mode, Requirement 20; spec only, no code)
 - Tool: **Kiro**. Wrote Requirement 20 (EARS), a design section (the pure `flow/ghostwriter.ts` API, the screen wiring, 17 i18n keys, the test list), P58-P61, and task 36 (unticked) for the agy lane g1. Two decisions differ from the prompt and the g1 brief. The cap is the smaller of the share limit and the backend limit: 300 points and 300 segments (`frontend/src/share/limits.ts`), not 500, because the Teach screen's output is a share link and above 300 it would be refused. The existing "Add vertex" button becomes the one "Add point" control, so Teach does not have two id schemes (`p1` and `A`). A second press places the point at the centre, so it can be added without a canvas tap. Spec Ghost gets no new call: an edited scene is checked when its shared link is opened (18.1). No app code was changed.
+
+## 2026-11-09 — agy, reviewed by Claude — Lane p1-r5-backend-fixes (Backend Audit Fixes)
+- Tool: **Antigravity** (agy, reviewed by Claude).
+- What was built:
+  - Finding 1: Replaced tautological assertion `assert coords is not None or res is None` in
+    `backend/tests/test_n1_backend.py` with real assertions verifying that `_find_right_angle`
+    resolves vertex A as the 90-degree right angle at normalized coordinates (0.0, 0.0) with
+    element_id "A", label "A", and name "right_angle".
+  - Finding 2: Added `"image/jpg"` to `ALLOWED_MIME_TYPES` in `backend/app/main.py:65`, normalized
+    `content_type` from `validate_image_bytes` in `process_scene`, and added
+    `test_upload_declared_image_jpg_accepted` in `backend/tests/test_n1_backend.py` verifying that
+    an upload with declared Content-Type "image/jpg" is accepted and processed rather than returning
+    HTTP 415.
+  - Finding 3: In `test_m4_07_scene_vision_aborts_on_client_disconnect`
+    (`backend/tests/test_n1_backend.py`), added assertion that the client's in-flight permit
+    returns to 0 after receiving HTTP 499 on disconnect.
+  - Invariant preservation: Preserved `backend/app/validate.py` `CLAMP_TOLERANCE = 0.02` untouched.
+- What broke / findings:
+  - No breakages. All assertions test real application behavior and enforce backend invariants.
+- Files touched:
+  - `backend/app/main.py`
+  - `backend/tests/test_n1_backend.py`
+  - `docs/reports/agy-p1-r5-backend-fixes-report.md`
+  - `docs/BUILD_LOG.md`
+
