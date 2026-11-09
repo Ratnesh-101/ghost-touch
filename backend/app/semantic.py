@@ -754,7 +754,7 @@ def _build_answer(
         if base == "gu":
             absence_gu = {
                 FEATURE_PEAK: "આ આકૃતિમાં કોઈ શિખર નથી.",
-                FEATURE_TROUGH: "આ આકૃતિમાં કોઈ નીચો બિંદુ નથી.",
+                FEATURE_TROUGH: "આ આકૃતિમાં કોઈ નીચું બિંદુ નથી.",
                 FEATURE_ORIGIN: "આ આકૃતિમાં કોઈ ઉદ્ભવ બિંદુ નથી.",
                 FEATURE_TALLEST_BAR: "આ આકૃતિમાં કોઈ બાર નથી.",
                 FEATURE_SHORTEST_BAR: "આ આકૃતિમાં કોઈ બાર નથી.",
@@ -873,7 +873,7 @@ def _build_answer(
         if feature == FEATURE_PEAK:
             return _sanitize_spoken_answer(f"શિખર {pos} છે.")
         if feature == FEATURE_TROUGH:
-            return _sanitize_spoken_answer(f"સૌથી નીચો બિંદુ {pos} છે.")
+            return _sanitize_spoken_answer(f"સૌથી નીચું બિંદુ {pos} છે.")
         if feature == FEATURE_ORIGIN:
             return _sanitize_spoken_answer(f"ઉદ્ભવ બિંદુ {pos} છે.")
         if feature == FEATURE_RIGHT_ANGLE:
