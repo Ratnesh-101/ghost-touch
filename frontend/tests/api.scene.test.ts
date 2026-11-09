@@ -99,8 +99,8 @@ describe('requestScene', () => {
     ).toBe('bad-response');
   });
 
-  it('defines SCENE_TIMEOUT_MS as 45 seconds for cold backend start', () => {
-    expect(SCENE_TIMEOUT_MS).toBe(45_000);
+  it('defines SCENE_TIMEOUT_MS as 65 seconds for cold backend start', () => {
+    expect(SCENE_TIMEOUT_MS).toBe(65_000);
   });
 
   it('times out and aborts the request, leaving no timer behind', async () => {

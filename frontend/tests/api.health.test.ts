@@ -137,7 +137,7 @@ describe('warmBackend', () => {
     expect(WARM_TIMEOUT_MS).toBe(60_000);
   });
 
-  it('verifies SCENE_TIMEOUT_MS is 45 seconds', () => {
-    expect(SCENE_TIMEOUT_MS).toBe(45_000);
+  it('verifies SCENE_TIMEOUT_MS is 65 seconds', () => {
+    expect(SCENE_TIMEOUT_MS).toBe(65_000);
   });
 });
