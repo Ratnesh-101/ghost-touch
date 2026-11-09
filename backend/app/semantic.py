@@ -651,6 +651,8 @@ def _find_right_angle(
     aspect = float(getattr(scene, "aspect", 1.0) or 1.0)
     if not math.isfinite(aspect) or aspect <= 0.0:
         aspect = 1.0
+    else:
+        aspect = max(0.05, min(20.0, aspect))
 
     for p in scene.points:
         incident = [s for s in scene.segments if s.a == p.id or s.b == p.id]
@@ -672,7 +674,13 @@ def _find_right_angle(
             continue
 
         dot = v1[0] * v2[0] + v1[1] * v2[1]
-        cos_theta = max(-1.0, min(1.0, dot / (len1 * len2)))
+        denom = len1 * len2
+        if not math.isfinite(dot) or not math.isfinite(denom) or denom <= 0.0:
+            continue
+        ratio = dot / denom
+        if not math.isfinite(ratio):
+            continue
+        cos_theta = max(-1.0, min(1.0, ratio))
         angle_deg = math.degrees(math.acos(cos_theta))
         if 87.0 <= angle_deg <= 93.0:
             label = p.label if p.label else p.id
@@ -695,6 +703,8 @@ def _find_longest_side(
     aspect = float(getattr(scene, "aspect", 1.0) or 1.0)
     if not math.isfinite(aspect) or aspect <= 0.0:
         aspect = 1.0
+    else:
+        aspect = max(0.05, min(20.0, aspect))
     best_seg = None
     max_len = -1.0
 

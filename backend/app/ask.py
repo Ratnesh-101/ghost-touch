@@ -947,8 +947,15 @@ async def answer_question(
 
     used_provider = "none"
 
-    # Deterministic semantic target check before invoking models (Lane g5)
-    sem_check = _semantic_ask(request.scene, request.question, request.lang)
+    # Deterministic semantic target check before invoking models (Lane g5, M4-05)
+    sem_check = None
+    try:
+        sem_check = _semantic_ask(request.scene, request.question, request.lang)
+    except Exception as exc:
+        logger.warning(
+            "ask: semantic check failed unexpectedly (%s); falling through to next stage",
+            type(exc).__name__,
+        )
     if sem_check is not None:
         spoken_ans, sem_target = sem_check
         ask_target = semantic_to_ask_target(sem_target)
