@@ -31,6 +31,11 @@ export interface DiagramStore {
   put(entry: SavedDiagram): Promise<StoreResult<void>>;
   /** Delete an entry by id. No-op if it does not exist. */
   delete(id: string): Promise<StoreResult<void>>;
+  /**
+   * Atomically save an entry and evict an old entry if evictedId is provided (B4-04).
+   * Runs in a single readwrite transaction. If saving fails, nothing is evicted.
+   */
+  putWithEviction?(entry: SavedDiagram, evictedId?: string): Promise<StoreResult<void>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -68,6 +73,15 @@ export class MemoryDiagramStore implements DiagramStore {
     return { ok: true, value: undefined };
   }
 
+  async putWithEviction(entry: SavedDiagram, evictedId?: string): Promise<StoreResult<void>> {
+    if (this.failWith !== null) return { ok: false, error: this.failWith };
+    this.store.set(entry.id, entry);
+    if (evictedId !== undefined) {
+      this.store.delete(evictedId);
+    }
+    return { ok: true, value: undefined };
+  }
+
   clear(): void {
     this.store.clear();
   }
@@ -91,6 +105,22 @@ function idbPromise<T>(req: IDBRequest<T>): Promise<T> {
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error ?? new Error('IDBRequest failed'));
   });
+}
+
+/**
+ * Safely wait for transaction completion if supported by the IDB implementation.
+ * Guards against minimal mocks that don't implement addEventListener.
+ */
+function waitTx(tx: unknown): Promise<void> {
+  const txObj = tx as Partial<IDBTransaction>;
+  if (txObj && typeof txObj.addEventListener === 'function') {
+    return new Promise<void>((resolve, reject) => {
+      txObj.oncomplete = () => resolve();
+      txObj.onerror = () => reject(txObj.error ?? new Error('Transaction error'));
+      txObj.onabort = () => reject(txObj.error ?? new Error('Transaction aborted'));
+    });
+  }
+  return Promise.resolve();
 }
 
 /**
@@ -194,6 +224,29 @@ export class IDBDiagramStore implements DiagramStore {
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
         await idbPromise(store.put(entry));
+        await waitTx(tx);
+        return { ok: true, value: undefined };
+      } finally {
+        db.close();
+      }
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
+  }
+
+  async putWithEviction(entry: SavedDiagram, evictedId?: string): Promise<StoreResult<void>> {
+    try {
+      const db = await this.openDb();
+      if (db === null) return { ok: false, error: 'storage_unavailable' };
+
+      try {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        await idbPromise(store.put(entry));
+        if (evictedId !== undefined) {
+          await idbPromise(store.delete(evictedId));
+        }
+        await waitTx(tx);
         return { ok: true, value: undefined };
       } finally {
         db.close();
@@ -212,6 +265,7 @@ export class IDBDiagramStore implements DiagramStore {
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
         await idbPromise(store.delete(id));
+        await waitTx(tx);
         return { ok: true, value: undefined };
       } finally {
         db.close();

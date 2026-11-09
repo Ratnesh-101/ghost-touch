@@ -4,7 +4,12 @@
  * No React and no browser APIs: the screen passes in the store, a function that says whether it
  * is still open, and a callback that applies the result.
  */
-import { orderForDisplay, type SavedDiagram } from '../core/savedDiagrams';
+import {
+  applyAdd,
+  orderForDisplay,
+  SAVED_DIAGRAMS_CAP,
+  type SavedDiagram,
+} from '../core/savedDiagrams';
 import type { DiagramStore } from '../drivers/diagramStore';
 import { t } from '../i18n';
 import { joinAnnouncements } from './explore';
@@ -68,4 +73,47 @@ export async function confirmDeleteDiagram(
     return;
   }
   onDeleted();
+}
+
+export type SaveWithEvictionResult =
+  | { ok: true; evictedId?: string }
+  | { ok: false; error: 'all_pinned' | string };
+
+/**
+ * Save a diagram and evict the oldest unpinned entry atomically if at cap (B4-04).
+ * If saving fails (e.g. storage error, quota exceeded), nothing is evicted.
+ */
+export async function saveDiagramWithEviction(
+  store: DiagramStore,
+  existing: readonly SavedDiagram[],
+  newEntry: SavedDiagram,
+  cap: number = SAVED_DIAGRAMS_CAP,
+): Promise<SaveWithEvictionResult> {
+  const decision = applyAdd(existing, newEntry, cap);
+  if (!decision.ok) {
+    return { ok: false, error: 'all_pinned' };
+  }
+
+  if (typeof store.putWithEviction === 'function') {
+    const res = await store.putWithEviction(newEntry, decision.evictedId);
+    if (!res.ok) {
+      return { ok: false, error: res.error };
+    }
+    return { ok: true, evictedId: decision.evictedId };
+  }
+
+  // Evict-after-successful-put: put first, delete victim only if put succeeds
+  const putResult = await store.put(newEntry);
+  if (!putResult.ok) {
+    return { ok: false, error: putResult.error };
+  }
+
+  if (decision.evictedId !== undefined) {
+    const deleteResult = await store.delete(decision.evictedId);
+    if (!deleteResult.ok) {
+      return { ok: true, evictedId: undefined };
+    }
+  }
+
+  return { ok: true, evictedId: decision.evictedId };
 }
