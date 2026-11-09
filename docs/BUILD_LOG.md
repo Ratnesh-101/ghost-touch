@@ -2715,3 +2715,74 @@ Format for each entry:
   - `backend/tests/test_ask_ids.py`
   - `docs/reports/agy-p5-r5-backend-ask-ids-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — agy, reviewed by Claude — Lane p2-r5-saved-fixes (frontend saved diagrams)
+- Tool: **Antigravity** (agy, reviewed by Claude).
+- What was built:
+  - R5-01: In `frontend/src/screens/Explore.tsx`, synchronized `statusMessage` with `announced`
+    prop updates via an effect without re-triggering speech synthesis. In `frontend/src/App.tsx`,
+    retained pending storage errors across screens via `pendingStorageError` ref and appended to
+    Explore status text on entry without speaking (upholding GT-06).
+  - R5-02: In `frontend/src/drivers/diagramStore.ts`, reordered `putWithEviction` to delete victim
+    entry first before putting new entry inside the same `readwrite` transaction. If `put` fails
+    (e.g. QuotaExceededError), the transaction automatically aborts and rolls back, preserving victim.
+  - R5-03 & R5-05: In `frontend/src/App.tsx`, tracked saved diagram ID (`lastSavedDiagramId` ref)
+    across saves and when opening saved diagrams from list. Serialised saves through a sequential
+    promise chain (`saveQueue`) to prevent concurrent race conditions between initial scene save
+    and teacher correction save. Replaced fragile `JSON.stringify` scene matching with ID matching,
+    preserving `pinned` and `createdAt` on in-place updates.
+  - R5-04: In `frontend/src/screens/Correct.tsx` and `frontend/src/App.tsx`, added dirty check
+    (`canUndo(history)`) and confirmation dialog before leaving via Back or Cancel (matching
+    Teach.tsx pattern). Spoke Explore announcement upon exit. Added `correct.confirmLeave` and
+    `correct.stayingInEditor` strings in en, hi, gu.
+  - R5-06: In `frontend/src/flow/saved.ts`, implemented rollback in `saveDiagramWithEviction` for
+    non-atomic stores when victim deletion fails after put, deleting the newly put entry and
+    returning `{ ok: false, error: deleteResult.error }` to ensure `SAVED_DIAGRAMS_CAP` holds.
+  - R5-07: In `frontend/src/screens/Correct.tsx` and `frontend/src/App.tsx`, resolved speech
+    collision by speaking a single concatenated utterance (saved notice followed by Explore
+    announcement).
+  - R5-08: In `frontend/src/screens/Correct.tsx`, added synchronous `isSavingRef` guard in
+    `handleSave` to prevent double-tap submissions before React re-render.
+  - R5-09: In `frontend/src/drivers/diagramStore.ts`, updated `waitTx` to use
+    `addEventListener('complete' | 'error' | 'abort')` rather than clobbering transaction property
+    callbacks.
+  - Tests: Replaced weak tests in `frontend/tests/n2.round4.test.ts` and
+    `frontend/tests/k6.pwa-offline.test.ts` with real driver and component flow tests asserting
+    GT-06 silence, in-place update preservation, eviction failure rollback, and transaction
+    event listeners.
+- What broke / findings:
+  - Addressed all findings R5-01 through R5-09 from `docs/reports/audit-r5-saved-api.md`.
+- Files touched:
+  - `frontend/src/App.tsx`
+  - `frontend/src/drivers/diagramStore.ts`
+  - `frontend/src/flow/saved.ts`
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/screens/Correct.tsx`
+  - `frontend/src/screens/SavedDiagrams.tsx`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/tests/n2.round4.test.ts`
+  - `frontend/tests/k6.pwa-offline.test.ts`
+  - `docs/user-test/translation-review.csv`
+  - `docs/user-test/translation-review.md`
+  - `docs/reports/agy-p2-r5-saved-fixes-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — agy, reviewed by Claude — Lane p2-r5-saved-fixes Pass 2 (Supervisor Gating Fixes)
+- Tool: **Antigravity** (agy, reviewed by Claude).
+- What was fixed:
+  - TypeScript: Imported `type DiagramStore` from `../src/drivers` in
+    `frontend/tests/n2.round4.test.ts` (resolving TS2304).
+  - TypeScript: In `frontend/src/drivers/diagramStore.ts`, captured `rawAddListener` and checked
+    `typeof rawAddListener === 'function'` before binding `rawAddListener.bind(txObj)` in `waitTx`,
+    ensuring each listener invocation is on a narrowed, definitely-defined function (resolving TS2722).
+  - Test failure: Diagnosed non-atomic eviction rollback test in `frontend/tests/n2.round4.test.ts`.
+    `saveDiagramWithEviction` in `frontend/src/flow/saved.ts` was already correct, but the test
+    attempted to delete `putWithEviction` from a `MemoryDiagramStore` instance where it was defined
+    on the prototype. Constructed a true non-atomic `DiagramStore` object lacking `putWithEviction`,
+    exercising the put-first rollback path on victim delete failure, asserting `ok: false`, rollback
+    of the new entry, and retention of the victim.
+- Files touched:
+  - `frontend/src/drivers/diagramStore.ts`
+  - `frontend/tests/n2.round4.test.ts`
+  - `docs/reports/agy-p2-r5-saved-fixes-report.md`
+  - `docs/BUILD_LOG.md`
