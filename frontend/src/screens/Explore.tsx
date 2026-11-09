@@ -243,6 +243,11 @@ export function Explore({
 
   const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
   const [statusMessage, setStatusMessage] = useState(announced);
+
+  // Sync statusMessage with announced prop updates without re-speaking (R5-01).
+  useEffect(() => {
+    setStatusMessage(announced);
+  }, [announced]);
   const [isBusy, setIsBusy] = useState(false);
   const [showTextFallback, setShowTextFallback] = useState(!drivers.speech.canListen);
   const [questionText, setQuestionText] = useState('');

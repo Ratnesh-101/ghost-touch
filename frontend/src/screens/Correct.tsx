@@ -51,8 +51,38 @@ export interface CorrectProps {
   scene: DiagramScene;
   photoUrl: string | null;
   drivers: Drivers;
-  onSave: (scene: DiagramScene) => void;
+  onSave: (scene: DiagramScene, notice?: string) => void;
   onCancel: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+}
+
+export interface CorrectLeaveActions {
+  speak: (text: string) => void;
+  confirm: (message: string) => boolean;
+  sayAndStatus: (msg: string) => void;
+  focusHeading: () => void;
+  onLeave: () => void;
+}
+
+/**
+ * Handle leaving Teacher Correct mode when there are unsaved edits (R5-04).
+ * Reuses the same pattern as Teach.tsx with confirmation.
+ */
+export function executeCorrectLeave(
+  isDirty: boolean,
+  actions: CorrectLeaveActions,
+): { stayed: boolean } {
+  if (isDirty) {
+    actions.speak(t('correct.confirmLeave'));
+    const confirmed = actions.confirm(t('correct.confirmLeave'));
+    if (!confirmed) {
+      actions.sayAndStatus(t('correct.stayingInEditor'));
+      actions.focusHeading();
+      return { stayed: true };
+    }
+  }
+  actions.onLeave();
+  return { stayed: false };
 }
 
 export type SaveCorrectResult =
@@ -109,6 +139,7 @@ export function Correct({
   drivers,
   onSave,
   onCancel,
+  onDirtyChange,
 }: CorrectProps): JSX.Element {
   const [history, setHistory] = useState<HistoryState>(() => createHistory(scene));
   const [selection, setSelection] = useState<CorrectSelection>(null);
@@ -116,6 +147,24 @@ export function Correct({
   const [statusMessage, setStatusMessage] = useState(() => t('correct.intro'));
   const [isSaving, setIsSaving] = useState(false);
   const [hasError, setHasError] = useState(false);
+
+  const isSavingRef = useRef(false);
+  const isDirty = canUndo(history);
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    return () => onDirtyChange?.(false);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
   const headingRef = useRef<HTMLHeadingElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -488,21 +537,41 @@ export function Correct({
   };
 
   const handleSave = async (): Promise<void> => {
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
     setIsSaving(true);
     sayAndStatus(t('correct.validating'));
 
-    const result = await executeCorrectSave(history.present);
-    setIsSaving(false);
-
-    if (result.kind === 'saved' || result.kind === 'saved-offline') {
-      sayAndStatus(t(result.messageKey));
-      drivers.audio.playEarcon?.('success');
-      onSave(result.scene);
-    } else {
-      const errorText = formatValidationErrors(result.errors);
-      sayAndStatus(errorText, true);
-      drivers.audio.playEarcon?.('error');
+    try {
+      const result = await executeCorrectSave(history.present);
+      if (result.kind === 'saved' || result.kind === 'saved-offline') {
+        setStatusMessage(t(result.messageKey));
+        drivers.audio.playEarcon?.('success');
+        onSave(result.scene, t(result.messageKey));
+      } else {
+        isSavingRef.current = false;
+        setIsSaving(false);
+        const errorText = formatValidationErrors(result.errors);
+        sayAndStatus(errorText, true);
+        drivers.audio.playEarcon?.('error');
+      }
+    } catch {
+      isSavingRef.current = false;
+      setIsSaving(false);
     }
+  };
+
+  const handleCancel = (): void => {
+    executeCorrectLeave(isDirty, {
+      speak,
+      confirm: (msg) =>
+        typeof window !== 'undefined' && typeof window.confirm === 'function'
+          ? window.confirm(msg)
+          : true,
+      sayAndStatus,
+      focusHeading: () => headingRef.current?.focus(),
+      onLeave: onCancel,
+    });
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLCanvasElement>): void => {
@@ -543,7 +612,7 @@ export function Correct({
         </h1>
         <AccessibleButton
           className="gt-correct__btn"
-          onClick={onCancel}
+          onClick={handleCancel}
           disabled={isSaving}
         >
           {t('correct.cancel')}

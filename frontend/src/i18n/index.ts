@@ -122,6 +122,8 @@ const en: Record<string, string> = {
   'correct.selectedSegment': 'Selected line',
   'correct.photoOverlay': 'Original photo with diagram overlay',
   'correct.cancel': 'Cancel',
+  'correct.confirmLeave': 'You have unsaved changes. Are you sure you want to leave?',
+  'correct.stayingInEditor': 'Still in correction mode.',
   'common.back': 'Back',
   // Saved diagrams screen (Task 13).
   'capture.savedDiagrams': 'Saved diagrams',
@@ -440,6 +442,8 @@ const hi: Record<string, string> = {
   'correct.selectedSegment': 'चयनित रेखा',
   'correct.photoOverlay': 'आरेख ओवरले के साथ मूल फोटो',
   'correct.cancel': 'रद्द करें',
+  'correct.confirmLeave': 'आपके पास बिना सहेजे गए परिवर्तन हैं। क्या आप वाकई छोड़ना चाहते हैं?',
+  'correct.stayingInEditor': 'अभी भी सुधार मोड में हैं।',
   'common.back': 'वापस',
   // Saved diagrams screen (Task 13).
   'capture.savedDiagrams': 'सहेजे गए आरेख',
@@ -758,6 +762,8 @@ const gu: Record<string, string> = {
   'correct.selectedSegment': 'પસંદ કરેલ રેખા',
   'correct.photoOverlay': 'આકૃતિ ઓવરલે સાથે મૂળ ફોટો',
   'correct.cancel': 'રદ કરો',
+  'correct.confirmLeave': 'તમારી પાસે સેવ ન કરેલા ફેરફારો છે. શું તમે ખરેખર બહાર નીકળવા માંગો છો?',
+  'correct.stayingInEditor': 'હજુ પણ સુધારણા મોડમાં છો.',
   'common.back': 'પાછા',
   // Saved diagrams screen (Task 13).
   'capture.savedDiagrams': 'સેવ કરેલ આકૃતિઓ',

@@ -292,6 +292,28 @@ export function App(): JSX.Element {
   const setTeachDirty = useCallback((dirty: boolean): void => {
     teachDirty.current = dirty;
   }, []);
+  const correctDirty = useRef(false);
+  const pendingStorageError = useRef<string | null>(null);
+  const lastSavedDiagramId = useRef<string | null>(null);
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
+
+  const makeExploreAnnounced = useCallback((baseAnnounced: string): string => {
+    const err = pendingStorageError.current;
+    pendingStorageError.current = null;
+    return err ? `${baseAnnounced} ${err}` : baseAnnounced;
+  }, []);
+
+  const setStorageError = useCallback((errKey: string): void => {
+    const err = t(errKey);
+    setView((prev) => {
+      if (prev.screen === 'explore') {
+        pendingStorageError.current = null;
+        return { ...prev, announced: `${prev.announced} ${err}` };
+      }
+      pendingStorageError.current = err;
+      return prev;
+    });
+  }, []);
 
   const updatePhotoUrl = useCallback((newUrl: string | null): void => {
     photoTracker.current.update(newUrl);
@@ -397,11 +419,30 @@ export function App(): JSX.Element {
     if (view.screen === 'correct') {
       const scene = view.scene;
       return onCorrectBack(() => {
-        const announced = exploreAnnouncement(scene, 'ai');
-        setView({ screen: 'explore', scene, announced });
+        if (correctDirty.current) {
+          drivers.speech.speak(t('correct.confirmLeave'), LANG_BCP47[currentLang]);
+          const confirmed =
+            typeof window !== 'undefined' && typeof window.confirm === 'function'
+              ? window.confirm(t('correct.confirmLeave'))
+              : true;
+          if (!confirmed) {
+            pushCorrectEntry();
+            drivers.speech.speak(t('correct.stayingInEditor'), LANG_BCP47[currentLang]);
+            document.querySelector<HTMLElement>('.gt-correct__title')?.focus();
+            return;
+          }
+        }
+        leaveCorrectEntry();
+        const baseAnnounced = exploreAnnouncement(scene, 'ai');
+        drivers.speech.speak(baseAnnounced, LANG_BCP47[currentLang]);
+        setView({
+          screen: 'explore',
+          scene,
+          announced: makeExploreAnnounced(baseAnnounced),
+        });
       });
     }
-  }, [view, drivers]);
+  }, [view, drivers, currentLang, makeExploreAnnounced]);
 
   // After Start, the vibration warning (if any) was already spoken by the tap.
   const openCapture = (): void => {
@@ -412,75 +453,86 @@ export function App(): JSX.Element {
    * Save a diagram entry to the store, evicting oldest unpinned entry if needed.
    * Called inside handleScene after navigation so it doesn't block exploration.
    * GT-06: Storage failures update status text only; never speak or cancel exploration.
+   * R5-03 + R5-05: Serialised via promise chain and tracks entry ID to prevent duplication
+   * and preserve pinned/createdAt on in-place updates.
    */
   const saveDiagram = useCallback(
-    async (scene: DiagramScene, previousScene?: DiagramScene | null): Promise<void> => {
-      try {
-        const listResult = await drivers.diagramStore.list();
-        if (!listResult.ok) {
-          const err = t('saved.errorStorageUnavailable');
-          setView((prev) =>
-            prev.screen === 'explore'
-              ? { ...prev, announced: `${prev.announced} ${err}` }
-              : prev,
-          );
-          return;
-        }
+    (
+      scene: DiagramScene,
+      explicitTarget?: string | DiagramScene | null,
+    ): Promise<void> => {
+      const task = async (): Promise<void> => {
+        try {
+          const listResult = await drivers.diagramStore.list();
+          if (!listResult.ok) {
+            setStorageError('saved.errorStorageUnavailable');
+            return;
+          }
 
-        const existing = listResult.value;
-        const matchingEntry = previousScene
-          ? existing.find(
+          const existing = listResult.value;
+          let targetId =
+            typeof explicitTarget === 'string'
+              ? explicitTarget
+              : explicitTarget === null
+                ? null
+                : lastSavedDiagramId.current;
+
+          if (!targetId && explicitTarget && typeof explicitTarget === 'object') {
+            const prev = existing.find(
               (e) =>
-                e.scene === previousScene ||
-                JSON.stringify(e.scene) === JSON.stringify(previousScene),
-            )
-          : undefined;
+                e.scene === explicitTarget ||
+                JSON.stringify(e.scene) === JSON.stringify(explicitTarget),
+            );
+            if (prev) targetId = prev.id;
+          }
 
-        const thumbnailDataUrl = renderSceneThumbnail(scene);
-        const entryToSave: SavedDiagram = matchingEntry
-          ? {
-              ...matchingEntry,
-              title: savedTitle(scene, currentLang),
-              thumbnailDataUrl,
-              scene,
-            }
-          : {
-              id: makeId(Date.now(), Math.random),
-              createdAt: Date.now(),
-              title: savedTitle(scene, currentLang),
-              thumbnailDataUrl,
-              scene,
-              pinned: false,
-            };
+          const matchingEntry = targetId
+            ? existing.find((e) => e.id === targetId)
+            : undefined;
 
-        const result = await saveDiagramWithEviction(
-          drivers.diagramStore,
-          existing,
-          entryToSave,
-          SAVED_DIAGRAMS_CAP,
-        );
-        if (!result.ok) {
-          const key =
-            result.error === 'all_pinned'
-              ? 'saved.errorAllPinned'
-              : 'saved.errorSave';
-          const err = t(key);
-          setView((prev) =>
-            prev.screen === 'explore'
-              ? { ...prev, announced: `${prev.announced} ${err}` }
-              : prev,
+          const thumbnailDataUrl = renderSceneThumbnail(scene);
+          const entryToSave: SavedDiagram = matchingEntry
+            ? {
+                ...matchingEntry,
+                title: savedTitle(scene, currentLang),
+                thumbnailDataUrl,
+                scene,
+              }
+            : {
+                id: makeId(Date.now(), Math.random),
+                createdAt: Date.now(),
+                title: savedTitle(scene, currentLang),
+                thumbnailDataUrl,
+                scene,
+                pinned: false,
+              };
+
+          const result = await saveDiagramWithEviction(
+            drivers.diagramStore,
+            existing,
+            entryToSave,
+            SAVED_DIAGRAMS_CAP,
           );
+          if (!result.ok) {
+            const key =
+              result.error === 'all_pinned'
+                ? 'saved.errorAllPinned'
+                : 'saved.errorSave';
+            setStorageError(key);
+            return;
+          }
+
+          lastSavedDiagramId.current = entryToSave.id;
+        } catch {
+          setStorageError('saved.errorSave');
         }
-      } catch {
-        const err = t('saved.errorSave');
-        setView((prev) =>
-          prev.screen === 'explore'
-            ? { ...prev, announced: `${prev.announced} ${err}` }
-            : prev,
-        );
-      }
+      };
+
+      const chained = saveQueue.current.then(task, task);
+      saveQueue.current = chained;
+      return chained;
     },
-    [drivers, currentLang],
+    [drivers, currentLang, setStorageError],
   );
 
   const handleOpenSharedDiagram = (
@@ -497,12 +549,17 @@ export function App(): JSX.Element {
   ): void => {
     updatePhotoUrl(photo ?? null);
     lastExploreScene.current = scene;
+    lastSavedDiagramId.current = null;
     const verifyMode: VerifyMode = source === 'sample' ? 'sample' : mode;
-    const announced = exploreAnnouncement(scene, mode, verifyMode);
-    drivers.speech.speak(announced, LANG_BCP47[currentLang]);
-    setView({ screen: 'explore', scene, announced });
+    const baseAnnounced = exploreAnnouncement(scene, mode, verifyMode);
+    drivers.speech.speak(baseAnnounced, LANG_BCP47[currentLang]);
+    setView({
+      screen: 'explore',
+      scene,
+      announced: makeExploreAnnounced(baseAnnounced),
+    });
     if (source !== 'sample') {
-      void saveDiagram(scene);
+      void saveDiagram(scene, null);
     }
   };
 
@@ -537,22 +594,31 @@ export function App(): JSX.Element {
     setView({ screen: 'correct', scene: view.scene });
   };
 
-  const handleSaveCorrect = (scene: DiagramScene): void => {
+  const handleSaveCorrect = (scene: DiagramScene, notice?: string): void => {
     leaveCorrectEntry();
-    const previousScene =
-      view.screen === 'correct' ? view.scene : lastExploreScene.current;
     lastExploreScene.current = scene;
-    const announced = exploreAnnouncement(scene, 'ai');
-    drivers.speech.speak(announced, LANG_BCP47[currentLang]);
-    setView({ screen: 'explore', scene, announced });
-    void saveDiagram(scene, previousScene);
+    const exploreMsg = exploreAnnouncement(scene, 'ai');
+    const prefix = notice ?? t('correct.saved');
+    const spokenAnnounced = `${prefix} ${exploreMsg}`;
+    drivers.speech.speak(spokenAnnounced, LANG_BCP47[currentLang]);
+    setView({
+      screen: 'explore',
+      scene,
+      announced: makeExploreAnnounced(spokenAnnounced),
+    });
+    void saveDiagram(scene);
   };
 
   const handleCancelCorrect = (): void => {
     if (view.screen !== 'correct') return;
     leaveCorrectEntry();
-    const announced = exploreAnnouncement(view.scene, 'ai');
-    setView({ screen: 'explore', scene: view.scene, announced });
+    const baseAnnounced = exploreAnnouncement(view.scene, 'ai');
+    drivers.speech.speak(baseAnnounced, LANG_BCP47[currentLang]);
+    setView({
+      screen: 'explore',
+      scene: view.scene,
+      announced: makeExploreAnnounced(baseAnnounced),
+    });
   };
 
   const openSaved = (): void => {
@@ -569,25 +635,34 @@ export function App(): JSX.Element {
     setView({ screen: 'capture', announced });
   };
 
-  const handleSavedOpen = (scene: DiagramScene, title: string): void => {
+  const handleSavedOpen = (scene: DiagramScene, title: string, id?: string): void => {
     replaceSavedEntry();
     updatePhotoUrl(null);
     lastExploreScene.current = scene;
+    lastSavedDiagramId.current = id ?? null;
     // Open an offline saved diagram: goes straight to Explore, no network call, no re-save
     const base = `${title}. ${t('explore.gestureHint')} ${t('explore.backHint')}`;
     const caveat = verifyCaveatForScene(scene, 'ai');
-    const announced = caveat ? joinAnnouncements([base, caveat]) : base;
-    drivers.speech.speak(announced, LANG_BCP47[currentLang]);
-    setView({ screen: 'explore', scene, announced });
+    const baseAnnounced = caveat ? joinAnnouncements([base, caveat]) : base;
+    drivers.speech.speak(baseAnnounced, LANG_BCP47[currentLang]);
+    setView({
+      screen: 'explore',
+      scene,
+      announced: makeExploreAnnounced(baseAnnounced),
+    });
   };
 
   const handleTeachBack = (): void => {
     clearHash();
     if (lastExploreScene.current) {
       const scene = lastExploreScene.current;
-      const announced = exploreAnnouncement(scene, 'ai');
-      drivers.speech.speak(announced, LANG_BCP47[currentLang]);
-      setView({ screen: 'explore', scene, announced });
+      const baseAnnounced = exploreAnnouncement(scene, 'ai');
+      drivers.speech.speak(baseAnnounced, LANG_BCP47[currentLang]);
+      setView({
+        screen: 'explore',
+        scene,
+        announced: makeExploreAnnounced(baseAnnounced),
+      });
     } else {
       const announced = t('start.intro');
       drivers.speech.speak(announced, LANG_BCP47[currentLang]);
@@ -637,6 +712,9 @@ export function App(): JSX.Element {
           drivers={drivers}
           onSave={handleSaveCorrect}
           onCancel={handleCancelCorrect}
+          onDirtyChange={(dirty) => {
+            correctDirty.current = dirty;
+          }}
         />
       );
     case 'saved':
