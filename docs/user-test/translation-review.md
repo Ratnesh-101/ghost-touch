@@ -689,3 +689,45 @@ The following spoken strings may be difficult for blind students to follow in a 
 | `kind.function_graph (spoken)` | Function graph | फलन ग्राफ़ | વિધેય આલેખ | | | | R5-07 scene kind label; marked for native review |
 | `kind.bar_chart (spoken)` | Bar chart | बार चार्ट | સ્તંભ આલેખ | | | | R5-07 scene kind label; marked for native review |
 | `kind.unknown (spoken)` | Diagram | आरेख | આકૃતિ | | | | R5-07 scene kind label; marked for native review |
+---
+## 25. Ghostwriter in Teach Mode (Requirement 20, lane g1)
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `teach.addPoint` | Add point | बिंदु जोड़ें | બિંદુ ઉમેરો | | | | Toolbar button; marked for native review |
+| `teach.addPointArmed (spoken)` | Tap the drawing where the new point goes, or press Add point again to put it in the centre. | चित्र में वहाँ टैप करें जहाँ नया बिंदु रखना है, या इसे केंद्र में रखने के लिए फिर से बिंदु जोड़ें दबाएं। | આકૃતિમાં ત્યાં ટેપ કરો જ્યાં નવું બિંદુ મૂકવું છે, અથવા તેને કેન્દ્રમાં મૂકવા માટે ફરીથી બિંદુ ઉમેરો દબાવો. | | | | Spoken when add-point armed; marked for native review |
+| `teach.pointAddedUnlabelled (spoken)` | Added {point}. | {point} जोड़ा गया। | {point} ઉમેર્યું. | | | | Spoken confirmation; keep {point}; marked for native review |
+| `teach.pointAddedLabelled (spoken)` | Added point {id}, labelled {label}. | बिंदु {id} जोड़ा गया, लेबल {label}। | બિંદુ {id} ઉમેર્યું, લેબલ {label}. | | | | Spoken confirmation; keep {id}, {label}; marked for native review |
+| `teach.pointLimit (spoken)` | This diagram already has {max} points, the most that can be shared. | इस आरेख में पहले से ही {max} बिंदु हैं, जो साझा किए जा सकने वाले अधिकतम हैं। | આ આકૃતિમાં પહેલેથી જ {max} બિંદુઓ છે, જે શેર કરી શકાય તેટલા મહત્તમ છે. | | | | Point cap notice; keep {max}; marked for native review |
+| `teach.pointBadCoords (spoken)` | That spot is outside the drawing. Try again. | वह स्थान चित्र से बाहर है। पुनः प्रयास करें। | તે સ્થાન આકૃતિની બહાર છે. ફરી પ્રયાસ કરો. | | | | Out of bounds coordinate warning; marked for native review |
+| `teach.addEdge` | Add edge | किनारा जोड़ें | કાંઠો ઉમેરો | | | | Toolbar button; marked for native review |
+| `teach.addEdgeFirst (spoken)` | Choose the first point. | पहला बिंदु चुनें। | પ્રથમ બિંદુ પસંદ કરો. | | | | Spoken prompt for first point; marked for native review |
+| `teach.addEdgeSecond (spoken)` | {id} chosen. Choose the second point. | {id} चुना गया। दूसरा बिंदु चुनें। | {id} પસંદ કર્યું. બીજું બિંદુ પસંદ કરો. | | | | Spoken prompt for second point; keep {id}; marked for native review |
+| `teach.edgeAdded (spoken)` | Joined {a} and {b}. | {a} और {b} को जोड़ा गया। | {a} અને {b} જોડ્યા. | | | | Spoken confirmation; keep {a}, {b}; marked for native review |
+| `teach.edgeSamePoint (spoken)` | That is the same point. Choose a different second point. | वह वही बिंदु है। एक अलग दूसरा बिंदु चुनें। | તે એ જ બિંદુ છે. એક અલગ બીજું બિંદુ પસંદ કરો. | | | | Disallow duplicate endpoint; marked for native review |
+| `teach.edgeAlreadyJoined (spoken)` | {a} and {b} are already joined. | {a} और {b} पहले से जुड़े हुए हैं। | {a} અને {b} પહેલેથી જોડાયેલા છે. | | | | Existing edge notice; keep {a}, {b}; marked for native review |
+| `teach.edgeUnknownPoint (spoken)` | That point is no longer in the diagram. | वह बिंदु अब आरेख में नहीं है। | તે બિંદુ હવે આકૃતિમાં નથી. | | | | Missing point notice; marked for native review |
+| `teach.edgeLimit (spoken)` | This diagram already has {max} edges, the most that can be shared. | इस आरेख में पहले से ही {max} किनारे हैं, जो साझा किए जा सकने वाले अधिकतम हैं। | આ આકૃતિમાં પહેલેથી જ {max} કાંઠા છે, જે શેર કરી શકાય તેટલા મહત્તમ છે. | | | | Edge cap notice; keep {max}; marked for native review |
+| `teach.addCancelled (spoken)` | Adding cancelled. | जोड़ना रद्द किया गया। | ઉમેરવાનું રદ કર્યું. | | | | Cancelled notice; marked for native review |
+| `teach.undidAddPoint (spoken)` | Undone: point {id} removed. | पूर्ववत: बिंदु {id} हटाया गया। | પૂર્વવત્: બિંદુ {id} દૂર કર્યું. | | | | Undo point notice; keep {id}; marked for native review |
+| `teach.undidAddEdge (spoken)` | Undone: edge from {a} to {b} removed. | पूर्ववत: {a} से {b} तक का किनारा हटाया गया। | પૂર્વવત્: {a} થી {b} સુધીનો કાંઠો દૂર કર્યો. | | | | Undo edge notice; keep {a}, {b}; marked for native review |
+---
+## 25. Ghostwriter in Teach Mode (Requirement 20, lane g1)
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `teach.addPoint` | Add point | बिंदु जोड़ें | બિંદુ ઉમેરો | | | | Toolbar button; marked for native review |
+| `teach.addPointArmed (spoken)` | Tap the drawing where the new point goes, or press Add point again to put it in the centre. | चित्र में वहाँ टैप करें जहाँ नया बिंदु रखना है, या इसे केंद्र में रखने के लिए फिर से बिंदु जोड़ें दबाएं। | આકૃતિમાં ત્યાં ટેપ કરો જ્યાં નવું બિંદુ મૂકવું છે, અથવા તેને કેન્દ્રમાં મૂકવા માટે ફરીથી બિંદુ ઉમેરો દબાવો. | | | | Spoken when add-point armed; marked for native review |
+| `teach.pointAddedUnlabelled (spoken)` | Added {point}. | {point} जोड़ा गया। | {point} ઉમેર્યું. | | | | Spoken confirmation; keep {point}; marked for native review |
+| `teach.pointAddedLabelled (spoken)` | Added point {id}, labelled {label}. | बिंदु {id} जोड़ा गया, लेबल {label}। | બિંદુ {id} ઉમેર્યું, લેબલ {label}. | | | | Spoken confirmation; keep {id}, {label}; marked for native review |
+| `teach.pointLimit (spoken)` | This diagram already has {max} points, the most that can be shared. | इस आरेख में पहले से ही {max} बिंदु हैं, जो साझा किए जा सकने वाले अधिकतम हैं। | આ આકૃતિમાં પહેલેથી જ {max} બિંદુઓ છે, જે શેર કરી શકાય તેટલા મહત્તમ છે. | | | | Point cap notice; keep {max}; marked for native review |
+| `teach.pointBadCoords (spoken)` | That spot is outside the drawing. Try again. | वह स्थान चित्र से बाहर है। पुनः प्रयास करें। | તે સ્થાન આકૃતિની બહાર છે. ફરી પ્રયાસ કરો. | | | | Out of bounds coordinate warning; marked for native review |
+| `teach.addEdge` | Add edge | किनारा जोड़ें | કાંઠો ઉમેરો | | | | Toolbar button; marked for native review |
+| `teach.addEdgeFirst (spoken)` | Choose the first point. | पहला बिंदु चुनें। | પ્રથમ બિંદુ પસંદ કરો. | | | | Spoken prompt for first point; marked for native review |
+| `teach.addEdgeSecond (spoken)` | {id} chosen. Choose the second point. | {id} चुना गया। दूसरा बिंदु चुनें। | {id} પસંદ કર્યું. બીજું બિંદુ પસંદ કરો. | | | | Spoken prompt for second point; keep {id}; marked for native review |
+| `teach.edgeAdded (spoken)` | Joined {a} and {b}. | {a} और {b} को जोड़ा गया। | {a} અને {b} જોડ્યા. | | | | Spoken confirmation; keep {a}, {b}; marked for native review |
+| `teach.edgeSamePoint (spoken)` | That is the same point. Choose a different second point. | वह वही बिंदु है। एक अलग दूसरा बिंदु चुनें। | તે એ જ બિંદુ છે. એક અલગ બીજું બિંદુ પસંદ કરો. | | | | Disallow duplicate endpoint; marked for native review |
+| `teach.edgeAlreadyJoined (spoken)` | {a} and {b} are already joined. | {a} और {b} पहले से जुड़े हुए हैं। | {a} અને {b} પહેલેથી જોડાયેલા છે. | | | | Existing edge notice; keep {a}, {b}; marked for native review |
+| `teach.edgeUnknownPoint (spoken)` | That point is no longer in the diagram. | वह बिंदु अब आरेख में नहीं है। | તે બિંદુ હવે આકૃતિમાં નથી. | | | | Missing point notice; marked for native review |
+| `teach.edgeLimit (spoken)` | This diagram already has {max} edges, the most that can be shared. | इस आरेख में पहले से ही {max} किनारे हैं, जो साझा किए जा सकने वाले अधिकतम हैं। | આ આકૃતિમાં પહેલેથી જ {max} કાંઠા છે, જે શેર કરી શકાય તેટલા મહત્તમ છે. | | | | Edge cap notice; keep {max}; marked for native review |
+| `teach.addCancelled (spoken)` | Adding cancelled. | जोड़ना रद्द किया गया। | ઉમેરવાનું રદ કર્યું. | | | | Cancelled notice; marked for native review |
+| `teach.undidAddPoint (spoken)` | Undone: point {id} removed. | पूर्ववत: बिंदु {id} हटाया गया। | પૂર્વવત્: બિંદુ {id} દૂર કર્યું. | | | | Undo point notice; keep {id}; marked for native review |
+| `teach.undidAddEdge (spoken)` | Undone: edge from {a} to {b} removed. | पूर्ववत: {a} से {b} तक का किनारा हटाया गया। | પૂર્વવત્: {a} થી {b} સુધીનો કાંઠો દૂર કર્યો. | | | | Undo edge notice; keep {a}, {b}; marked for native review |
