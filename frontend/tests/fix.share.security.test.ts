@@ -91,7 +91,8 @@ describe('Lane f2-fix-share Regression Suite', () => {
       const html = renderToStaticMarkup(createElement(VerifiedBanner, { by: 'Teacher' }));
       expect(html).toContain('not cryptographic proof');
       expect(html).toContain(t('share.honesty'));
-      expect(html).toContain('role="note"');
+      expect(html).toContain('gt-verified-banner__honesty');
+      expect(html).toContain(`aria-label="${t('share.honesty')}"`);
     });
 
     it('isolates teacher name and note with <bdi> elements', () => {

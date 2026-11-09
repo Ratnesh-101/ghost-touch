@@ -975,14 +975,42 @@ const gu: Record<string, string> = {
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };
 
+/**
+ * Map of supported languages to their document root BCP-47 language tags ('en', 'hi', 'gu').
+ * Setting <html lang="..."> to these tags instructs screen readers like TalkBack
+ * to load and pronounce UI elements using the appropriate language voice.
+ */
+export const DOC_LANG_TAGS: Record<Lang, string> = {
+  en: 'en',
+  hi: 'hi',
+  gu: 'gu',
+};
+
+/**
+ * Synchronize document.documentElement.lang with the active BCP-47 tag (en, hi, gu).
+ * Safe to execute in browser DOM, node.js, and SSR environments.
+ */
+export function updateDocumentLang(lang: Lang = currentLang): string {
+  const tag = (DOC_LANG_TAGS as Record<string, string>)[lang] ?? lang;
+  if (typeof document !== 'undefined' && document.documentElement) {
+    document.documentElement.lang = tag;
+    return document.documentElement.lang;
+  }
+  return tag;
+}
+
+export const setDocumentLang = updateDocumentLang;
+
 let currentLang: Lang = getStoredLang();
+updateDocumentLang(currentLang);
 
 const listeners = new Set<(lang: Lang) => void>();
 
-/** Set the active language. Persists to localStorage and notifies listeners. */
+/** Set the active language. Persists to localStorage, updates document lang, and notifies listeners. */
 export function setLang(lang: Lang): void {
   currentLang = lang;
   setStoredLang(lang);
+  updateDocumentLang(lang);
   for (const listener of listeners) {
     try {
       listener(lang);

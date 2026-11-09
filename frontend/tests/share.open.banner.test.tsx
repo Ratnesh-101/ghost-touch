@@ -98,9 +98,15 @@ describe('VerifiedBanner Component', () => {
     const root = parseHtml(html);
 
     const buttons = getAllElements(root).filter((el) => el.tag === 'button');
-    expect(buttons.length).toBe(1);
-    expect(buttons[0]!.attrs['class']).toContain('gt-control');
-    expect(buttons[0]!.attrs['class']).toContain('gt-verified-banner__note-btn');
+    expect(buttons.length).toBeGreaterThan(0);
+    for (const button of buttons) {
+      expect(button.attrs['class']).toContain('gt-control');
+    }
+
+    const noteButtons = buttons.filter((el) =>
+      el.attrs['class']?.includes('gt-verified-banner__note-btn'),
+    );
+    expect(noteButtons.length).toBe(1);
 
     // Verify CSS enforcement
     expect(globalCss).toMatch(/\.gt-control\s*\{[^}]*min-height:\s*var\(--gt-target\)/);

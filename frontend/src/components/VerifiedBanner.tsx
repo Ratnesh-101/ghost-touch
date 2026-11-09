@@ -81,21 +81,14 @@ export function VerifiedBanner({
         )}
       </div>
 
-      <p
-        className="gt-verified-banner__honesty"
+      <AccessibleButton
+        type="button"
+        className="gt-control gt-verified-banner__honesty"
         onClick={handleSpeakHonesty}
-        tabIndex={0}
-        role="note"
         aria-label={t('share.honesty')}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleSpeakHonesty();
-          }
-        }}
       >
         {t('share.honesty')}
-      </p>
+      </AccessibleButton>
 
       {hasNote && showNote && (
         <div className="gt-verified-banner__note-body">
