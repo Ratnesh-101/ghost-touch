@@ -17,3 +17,8 @@ Requirements:
 6. Respect the point limit: the backend caps a scene at 500 points (see backend/app/validate.py MAX_SCENE_POINTS); refuse to add past it with a spoken message rather than letting the scene become invalid.
 7. Tests (vitest, in the style of tests/correct.flow.test.ts and tests/correct.lab.test.tsx): flow-level tests for add point, add edge, no-op reasons, undo, the 500-point cap, and an i18n completeness test that every new key exists in en/hi/gu. Keep every test meaningful (no always-true assertions).
 Do not edit the already-merged files' behaviour outside this feature. One BUILD_LOG entry (tool = "agy, reviewed by Claude").
+
+## Addendum (2026-11-10, supervisor)
+- Never pass an explicit `id` to `addPoint`/`addSegment` from the UI: let the pure functions generate ids (a user-typed id such as `title` would collide with a reserved scene field; Kiro is fixing that in core separately).
+- Another lane (p3) is still to be merged and edits `frontend/src/i18n/index.ts` (share.* strings) and `flow/navigation.ts`: keep your i18n additions in one contiguous block at a new location so the merge is clean, and do not edit `flow/navigation.ts` or any `share*` file.
+- The Requirement 20 spec text is in `.kiro/specs/ghost-touch/requirements.md` in the main checkout (uncommitted there); this brief is the authoritative copy for your lane.
