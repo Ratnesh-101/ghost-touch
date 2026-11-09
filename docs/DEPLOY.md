@@ -72,7 +72,7 @@ The repository root contains `render.yaml`, an infrastructure-as-code Blueprint 
 
 #### 3. Step 2: Deploy Frontend on Vercel
 
-The frontend is a Vite + React 18 Progressive Web App configured via `frontend/vercel.json`.
+The frontend is a Vite + React 19 Progressive Web App configured via `frontend/vercel.json`.
 
 1. Log in to the [Vercel Dashboard](https://vercel.com/dashboard).
 2. Click **Add New...** -> **Project**.
@@ -205,7 +205,7 @@ Replace `<RENDER_URL>` with your backend domain (e.g. `https://ghost-touch-backe
    - Enable TalkBack under Android **Settings -> Accessibility -> TalkBack**.
    - Navigate buttons using swipe right and double-tap gestures.
    - Verify all controls announce descriptive `aria-label` text and meet the minimum **48×48 CSS px** accessible touch target size.
-   - Enter the **Explore screen**: the canvas utilizes `touch-action: none` and pointer capture. Dragging a single finger traces lines and generates vibration and pitch audio continuously while TalkBack is running.
+   - Enter the **Explore screen**: because TalkBack consumes single-finger touch gestures for screen navigation, explore using TalkBack's **pass-through gesture: double-tap, hold down on the second tap, then drag**. The engine fires a 25 ms centre tick and tracks the cursor relative to hold position, generating continuous vibration and theremin pitch (unverified on physical hardware).
 
 4. **Live Diagram Photo Extraction**:
    - On the Capture screen, tap **Take Photo** or upload a photo of a printed textbook diagram (e.g., triangle or function graph).
@@ -214,11 +214,15 @@ Replace `<RENDER_URL>` with your backend domain (e.g. `https://ghost-touch-backe
      - Clear diagrams load in AI Mode (`mode: "ai"`).
      - Heavy clutter or complex handwriting automatically and gracefully falls back to OpenCV Raw Mode (`mode: "raw"`).
 
+5. **Feature Flagged & Optional Features (Unverified on Hardware)**:
+   - **Guide My Finger (`VITE_FEATURE_GUIDE=1`):** Directional haptic pulses and stereo pan (default OFF; unverified on hardware).
+   - **Teacher Verify & Share (`VITE_FEATURE_SHARE=1`):** URL fragment compression (`#s=...`) and QR code sharing at `#/teach` (default OFF; unverified on hardware).
+
 ---
 
 #### 6. Step 5: Render Free-Tier Cold Starts & Demo Preparation
 
-Render free-tier web services automatically spin down into a sleep state after **15 minutes of inactivity**. When a service is sleeping, the first incoming HTTP request wakes the container, taking **50 to 70 seconds** to boot the Python environment, load OpenCV, and serve traffic.
+Render free-tier web services automatically spin down into a sleep state after **15 minutes of inactivity**. When a service is sleeping, the first incoming HTTP request wakes the container, taking **30 to 60 seconds (up to 70 seconds under heavy load)** to boot the Python environment, load OpenCV, and serve traffic.
 
 > [!WARNING]
 > **Pre-Demo Protocol:**
@@ -230,7 +234,18 @@ Render free-tier web services automatically spin down into a sleep state after *
 
 ---
 
-#### 7. Step 6: Rollback Procedures
+#### 7. Known Limits, Privacy & Open Items
+
+- **Hardware Verification Pending:** TalkBack pass-through gesture, tactile motor strength, and stereo panning are unverified on physical hardware (`docs/OWNER_CHECKLIST.md`).
+- **Feature Flags:** "Guide my finger" and "Teacher verify & share" are flagged OFF by default until physical device verification.
+- **Security & Bug Audits Ongoing:** No claims of "bug free" or "secure" software. Active open Round 2 items: CORE-09 (lost pointer capture on canvas boundary traversal) and NEEDS-KIRO-02 (`hapticEngine.ts:132` line tone sequencing).
+- **Spec Ghost (`frontend/src/verify`):** Experimental client-side geometric consistency check; not yet wired into the main flow; parse rate is ~35% on real-world scenes.
+- **Privacy Architecture:** All diagram processing is stateless in RAM; images are never written to server disk. See [docs/PRIVACY.md](docs/PRIVACY.md) for full verified data flow.
+- **Language Review:** Hindi and Gujarati translations are machine-translated and pending educator review.
+
+---
+
+#### 8. Step 6: Rollback Procedures
 
 If an issue occurs in production, use the following zero-downtime rollback procedures:
 
@@ -249,7 +264,7 @@ If an issue occurs in production, use the following zero-downtime rollback proce
 
 ---
 
-#### 8. Step 7: Before You Submit Checklist
+#### 9. Step 7: Before You Submit Checklist
 
 Before submitting to hackathons, competitions (e.g. Kiroween / STEMergent), or production launch:
 
