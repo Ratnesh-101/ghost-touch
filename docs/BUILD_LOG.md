@@ -2163,3 +2163,33 @@ Format for each entry:
   - `docs/BUILD_LOG.md`
 
 
+
+## 2026-11-09 — Antigravity — Lane k6-pwa-offline (PWA, Offline Resilience & Cold Start)
+- Tool: **Antigravity** (agy, reviewed by Claude).
+- What was built:
+  - B4-01: Verified finding against current code; h7 fixed deletion speech and focus restoration via `deletedAnnouncement` in `frontend/src/flow/saved.ts` (CORE-07 joined utterance). Added regression test verifying joined deletion and empty notification.
+  - B4-02: Fixed Teacher Correct mode save to prevent hard-blocking when offline. In `frontend/src/screens/Correct.tsx`, implemented `executeCorrectSave`: checks `isOnline` and attempts backend `/validate`, falling back on network error or offline state to client-side structural invariant validation via `validateSceneInvariants`. Valid corrections save locally with localized announcement `t('correct.savedOffline')` ("Saved without server check."). Invalid corrections display formatted invariant errors. Eliminated hardcoded English `'Network or server validation error'`.
+  - B4-03: Enabled true offline PWA PDF rendering in `frontend/vite.config.ts`. Removed `'**/pdf*'` from `workbox.globIgnores`, added `'mjs'` to `globPatterns` to match the PDF worker bundle, and set `workbox.maximumFileSizeToCacheInBytes = 3 * 1024 * 1024` (3 MiB) so PDF chunks (`pdf-*.js` ~484 KiB and `pdf.worker.min-*.mjs` ~1.26 MiB) are precached on initial install. Total precache size increases from ~659 KiB to ~2.4 MiB.
+  - B4-04: Enforced atomic diagram save and eviction in IndexedDB. In `frontend/src/drivers/diagramStore.ts`, added `putWithEviction(entry, evictedId)` to `DiagramStore` interface, `MemoryDiagramStore`, and `IDBDiagramStore` (single readwrite transaction). In `frontend/src/flow/saved.ts`, implemented `saveDiagramWithEviction`: puts the new entry first before evicting the victim, ensuring that if saving fails (e.g. storage quota exceeded), the victim diagram is not deleted and zero data loss occurs. Added transaction completion waiting (`waitTx`) on `IDBDiagramStore.put` and `delete`.
+  - B4-06/B4-07: Handled Render cold starts and reverse proxy 502/504 errors in `frontend/src/api/scene.ts`. Lengthened `SCENE_TIMEOUT_MS` from 45s to 65s (`65_000` ms). Added 502 Bad Gateway and 504 Gateway Timeout retry logic: calls `onRetry` callback with localized `t('capture.wakingUp')` ("Waking up the server…"), waits retry interval, and retries. If 502/504 persists, throws `SceneRequestError('gateway')`. In `frontend/src/flow/capture.ts`, `captureErrorMessage` maps `'gateway'` to `t('capture.errorGateway')` ("The server is waking up. Please try again in a few seconds.") and `'timeout'` to `t('capture.errorTimeout')`.
+  - Added new localized strings in English, Hindi, and Gujarati (`correct.savedOffline`, `capture.wakingUp`, `capture.errorGateway`, `capture.errorTimeout`) to `frontend/src/i18n/index.ts`, `docs/user-test/translation-review.md`, and `docs/user-test/translation-review.csv`.
+  - Built comprehensive regression test suite in `frontend/tests/k6.pwa-offline.test.ts` covering B4-01 through B4-07.
+- What broke / findings:
+  - B4-01 was verified as already resolved by h7 in `frontend/src/flow/saved.ts`.
+  - B4-05 (vite:preloadError) skipped as `main.tsx` is outside allowed files for this lane; B4-03 eliminates the primary chunk failure vector by precaching PDF chunks.
+  - B4-08 (mapping network error to capture.errorOffline) was skipped to preserve existing test assertion in `tests/flow.capture.test.ts:221` (`captureErrorMessage(new SceneRequestError('network')) === t('capture.error')`).
+  - Follow-up 3: Cleaned up unused imports `SceneResponse` and `orderForDisplay` in `frontend/tests/k6.pwa-offline.test.ts` for strict `tsc --noEmit`. Synchronized `frontend/tests/api.scene.test.ts` to expect 65_000 ms (`SCENE_TIMEOUT_MS = 65_000`). Corrected `deletedAnnouncement` test assertion to single joined period. Fixed PDF asset ignore matching logic in `frontend/tests/k6.pwa-offline.test.ts` so it tests actual chunk/worker file paths against globs instead of checking `pattern.includes('pdf')` (which conflicted with `'**/*.pdf'` document ignore needed by `tests/pwa.config.test.ts`).
+- Files touched:
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/screens/Correct.tsx`
+  - `frontend/vite.config.ts`
+  - `frontend/src/drivers/diagramStore.ts`
+  - `frontend/src/flow/saved.ts`
+  - `frontend/src/api/scene.ts`
+  - `frontend/src/flow/capture.ts`
+  - `frontend/tests/k6.pwa-offline.test.ts`
+  - `frontend/tests/api.scene.test.ts`
+  - `docs/user-test/translation-review.md`
+  - `docs/user-test/translation-review.csv`
+  - `docs/reports/agy-k6-pwa-offline-report.md`
+  - `docs/BUILD_LOG.md`
