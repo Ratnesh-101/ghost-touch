@@ -18,8 +18,8 @@ Before you begin, ensure you have active accounts on:
 1. **GitHub** — hosting the repository.
 2. **[Render](https://render.com/)** — for hosting the FastAPI backend web service (Free Tier).
 3. **[Vercel](https://vercel.com/)** — for hosting the Vite React PWA frontend (Hobby / Free Tier).
-4. **[OpenAI Platform](https://platform.openai.com/)** — for `OPENAI_API_KEY` (primary provider).
-5. *(Optional)* **[Google AI Studio](https://aistudio.google.com/)** — to generate your `GEMINI_API_KEY` (fallback after OpenAI).
+4. **[OpenAI Platform](https://platform.openai.com/)** — for `OPENAI_API_KEY` (primary provider in `render.yaml`).
+5. *(Optional)* **[Google AI Studio](https://aistudio.google.com/)** — to generate your `GEMINI_API_KEY` (primary in code default, fallback after OpenAI in `render.yaml`).
 6. *(Optional)* **[Nebius Token Factory](https://tokenfactory.nebius.com/)** — for `NEBIUS_API_KEY` (last fallback and bulk test runs).
 
 ---
@@ -33,8 +33,8 @@ The repository root contains `render.yaml`, an infrastructure-as-code Blueprint 
 3. Connect your GitHub repository (`ghost-touch`).
 4. Render detects `render.yaml` and displays the `ghost-touch-backend` service.
 5. In the environment configuration screen, enter your secret API keys (marked with `sync: false`):
-   - **`OPENAI_API_KEY`**: Paste your OpenAI API key from OpenAI Platform (**Primary**).
-   - **`GEMINI_API_KEY`**: *(Optional)* Paste your Google Gemini API key from AI Studio (fallback after OpenAI).
+   - **`OPENAI_API_KEY`**: Paste your OpenAI API key from OpenAI Platform (Primary in `render.yaml`).
+   - **`GEMINI_API_KEY`**: *(Optional)* Paste your Google Gemini API key from AI Studio (primary in code default, fallback after OpenAI in `render.yaml`).
    - **`NEBIUS_API_KEY`**: *(Optional)* Paste your Nebius API key. If omitted, Nebius is skipped in the fallback chain.
 6. Leave all non-secret settings at their Blueprint defaults:
    - `PYTHON_VERSION`: `3.11.10`
@@ -238,8 +238,8 @@ Render free-tier web services automatically spin down into a sleep state after *
 
 - **Hardware Verification Pending:** TalkBack pass-through gesture, tactile motor strength, and stereo panning are unverified on physical hardware (`docs/OWNER_CHECKLIST.md`).
 - **Feature Flags:** "Guide my finger" and "Teacher verify & share" are flagged OFF by default until physical device verification.
-- **Security & Bug Audits Ongoing:** No claims of "bug free" or "secure" software. Active open Round 2 items: CORE-09 (lost pointer capture on canvas boundary traversal) and NEEDS-KIRO-02 (`hapticEngine.ts:132` line tone sequencing).
-- **Spec Ghost (`frontend/src/verify`):** Experimental client-side geometric consistency check; not yet wired into the main flow; parse rate is ~35% on real-world scenes.
+- **Security & Bug Audits Ongoing:** No claims of "bug free" or "secure" software. Round 2 items CORE-09 (pointer capture) and NEEDS-KIRO-02 (tone sequencing) were resolved by Kiro in Round 3.
+- **Spec Ghost (`frontend/src/core/verify.ts`):** Client-side geometric consistency check between printed facts and drawing, wired into Explore and Ask announcements by lane k1; parse rate is ~35% on sample and research scenes (21 of 60, measured on the sample set).
 - **Privacy Architecture:** All diagram processing is stateless in RAM; images are never written to server disk. See [docs/PRIVACY.md](docs/PRIVACY.md) for full verified data flow.
 - **Language Review:** Hindi and Gujarati translations are machine-translated and pending educator review.
 

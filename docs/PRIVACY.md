@@ -83,7 +83,7 @@ When a teacher uses Teacher Correct mode to edit point coordinates and clicks "S
 - The photo is **not** transmitted.
 
 ### 4.4 Diagram Sharing via Link or QR Code
-When a teacher shares a verified diagram:
+When a teacher shares a diagram:
 - The diagram, teacher name, and optional note are compressed using LZ-String and appended to the URL fragment (`#s=...`).
 - **Zero Server Transmission:** Web browsers do not send URL fragments to HTTP servers. Opening or sharing a link occurs completely client-side without pinging the backend API.
 
