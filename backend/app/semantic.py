@@ -648,6 +648,9 @@ def _find_right_angle(
 ) -> tuple[SemanticResult | None, tuple[float, float] | None, str | None]:
     """Find point with exactly two incident segments forming an angle within 90 +/- 3 degrees."""
     point_map = {p.id: p for p in scene.points}
+    aspect = float(getattr(scene, "aspect", 1.0) or 1.0)
+    if not math.isfinite(aspect) or aspect <= 0.0:
+        aspect = 1.0
 
     for p in scene.points:
         incident = [s for s in scene.segments if s.a == p.id or s.b == p.id]
@@ -661,8 +664,8 @@ def _find_right_angle(
 
         p1 = point_map[other1_id]
         p2 = point_map[other2_id]
-        v1 = (float(p1.x) - float(p.x), float(p1.y) - float(p.y))
-        v2 = (float(p2.x) - float(p.x), float(p2.y) - float(p.y))
+        v1 = ((float(p1.x) - float(p.x)) * aspect, float(p1.y) - float(p.y))
+        v2 = ((float(p2.x) - float(p.x)) * aspect, float(p2.y) - float(p.y))
         len1 = math.hypot(v1[0], v1[1])
         len2 = math.hypot(v2[0], v2[1])
         if len1 <= 1e-9 or len2 <= 1e-9:
@@ -689,6 +692,9 @@ def _find_longest_side(
 ) -> tuple[SemanticResult | None, tuple[float, float] | None, str | None]:
     """Find segment with maximum Euclidean length; ties: first in document order."""
     point_map = {p.id: p for p in scene.points}
+    aspect = float(getattr(scene, "aspect", 1.0) or 1.0)
+    if not math.isfinite(aspect) or aspect <= 0.0:
+        aspect = 1.0
     best_seg = None
     max_len = -1.0
 
@@ -697,7 +703,9 @@ def _find_longest_side(
             continue
         pa = point_map[seg.a]
         pb = point_map[seg.b]
-        length = math.hypot(float(pb.x) - float(pa.x), float(pb.y) - float(pa.y))
+        dx = (float(pb.x) - float(pa.x)) * aspect
+        dy = float(pb.y) - float(pa.y)
+        length = math.hypot(dx, dy)
         if length > max_len:
             max_len = length
             best_seg = seg
