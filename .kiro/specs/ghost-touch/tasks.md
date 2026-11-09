@@ -146,7 +146,7 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [ ] 20.7 Req 11.1 says "every scene loaded successfully" but samples are not saved (`App.tsx` `source !== 'sample'`); decide and update the requirement or the code
   - [x] 20.8 `package.json` `test:prop` finds nothing (`-t prop` matches test names, not file names); change to `vitest run .prop.test`
   - [x] 20.9 Replace the four remaining `fc.float` uses in `*.prop.test.ts` with `fc.double` (done by agy lane m2 in `22a64e4`; checked in task 37.2)
-  - [ ] 20.10 Keep `share/validate.ts` and `backend/app/validate.py` rules in sync (hand-mirrored); add a shared-fixture parity test
+  - [x] 20.10 Keep `share/validate.ts` and `backend/app/validate.py` rules in sync (hand-mirrored); add a shared-fixture parity test (done in task 37.3: 32 cases, 14 known mismatches in `docs/reports/validator-parity.md`; the validators themselves are not changed, and the follow-ups there need a decision)
   - _Requirements: 9.2, 11.1, 11.3, 11.5, 11.7_
 
 - [~] 21. Open items from `docs/handoffs/` (SESSION-2026-11-04 to 11-06-night, for-kiro.md, KIRO-PAUSE.md)
@@ -307,8 +307,8 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 ## Review follow-ups 20.5, 20.9, 20.10 (task 37; spec written before the code)
 > Do not edit `App.tsx`, `Explore.tsx`, `Correct.tsx`, `Teach.tsx`, `flow/`, `hitTest` or the tuned haptic values. Agy lanes are editing tests: skip any test file a non-Kiro commit changed in the last hour, and say so.
 
-- [ ] 37. Close review follow-ups 20.5 (core half), 20.9 and 20.10
+- [x] 37. Close review follow-ups 20.5 (core half), 20.9 and 20.10
   - [x] 37.1 Requirement 21, design and P62-P65 first; then `deletePolyline` and `deleteBar` in `core/correct.ts`; properties in `frontend/tests/correct.deleteKinds.prop.test.ts` (200+ runs), mutation-checked; the UI lane's controls and keys listed in design.md
   - [x] 37.2 (already done by agy lane m2 in `22a64e4`, TQ-09: the four `fc.float` in `geometry.prop.test.ts` became `fc.double` with the same ranges and `noNaN: true`; Kiro checked on 2026-11-09 that no `fc.float` is left in `frontend/tests`, so no file was edited) Replace the remaining `fc.float` uses in `frontend/tests/*.prop.test.ts` with `fc.double` (same ranges, `noNaN: true` where the old generator could not give NaN, same run counts)
-  - [ ] 37.3 Validator parity: fixture `backend/fixtures/validator_parity.json` (named scenes, expected `accept`/`reject`, a reason key for rejects, `known_mismatch` where the two validators differ); one pytest and one vitest that run it through `backend/app/validate.py` and `frontend/src/share/validate.ts`; mismatches written up in `docs/reports/validator-parity.md`; neither validator changed
+  - [x] 37.3 Validator parity: fixture `backend/fixtures/validator_parity.json` (named scenes, expected `accept`/`reject`, a reason key for rejects, `known_mismatch` where the two validators differ); one pytest and one vitest that run it through `backend/app/validate.py` and `frontend/src/share/validate.ts`; mismatches written up in `docs/reports/validator-parity.md`; neither validator changed
   - _Requirements: 9.2, 9.3, 21.*_

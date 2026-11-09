@@ -2680,3 +2680,6 @@ Format for each entry:
   - `docs/BUILD_LOG.md`
   - `docs/reports/agy-p4-r5-docs-fixes-report.md`
 
+
+## 2026-11-09 — Kiro — T37.3 (validator parity test)
+- Tool: **Kiro**. Added `backend/fixtures/validator_parity.json` (32 named scenes, each with an expected verdict and a reason key for rejects; 14 marked `known_mismatch` with both sides' current verdicts). It is run by `backend/tests/test_validator_parity.py` and `frontend/tests/validator.parity.test.ts`. I checked both tests fail when an expectation is wrong. Mismatches are in `docs/reports/validator-parity.md`; neither validator changed. Most come from repair-by-drop (backend) versus reject (share); the deliberate 300/500 and 60/100 caps are listed too. The share side looks wrong on four: a colour-only label, a dropped segment named in a fact, a NaN bar value spoken as 0, and the per-curve limit. Not part of the verdicts, but most important: **the share validator drops `aspect`**, so a shared wide diagram is checked by Spec Ghost at aspect 1. Gate: backend 750 passed, ruff clean; frontend `tsc` 0 errors, 136 files, 1884 passed, build ok.
