@@ -93,7 +93,7 @@ describe('Teach screen & TeachCanvas interactive editing', () => {
 
     expect(html).toContain(t('teach.title'));
     expect(html).toContain('role="toolbar"');
-    expect(html).toContain(t('teach.addVertex'));
+    expect(html).toContain(t('teach.addPoint'));
     expect(html).toContain(t('teach.delete'));
     expect(html).toContain(t('teach.undo'));
     expect(html).toContain(t('teach.redo'));
@@ -104,6 +104,15 @@ describe('Teach screen & TeachCanvas interactive editing', () => {
     expect(canvas?.attrs['role']).toBe('img');
     expect(canvas?.attrs['tabindex']).toBe('0');
     expect(canvas?.attrs['aria-label']).toContain('Diagram editor canvas');
+
+    const buttons = getAllElements(root).filter((el) => el.tag === 'button');
+    const addPointBtn = buttons.find(
+      (b) =>
+        b.attrs['aria-label'] === t('teach.addPoint') ||
+        b.children.some((c) => typeof c === 'string' && c.includes(t('teach.addPoint'))),
+    );
+    expect(addPointBtn).toBeDefined();
+    expect(addPointBtn?.attrs['aria-label']).toBe(t('teach.addPoint'));
   });
 
   it('initially disables Delete, Undo, and Redo buttons when no selection and no history', () => {

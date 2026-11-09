@@ -26,6 +26,7 @@ import {
   pointerToHitTestCoords,
   pointerToScene,
 } from '../../flow/correctCanvas';
+import type { GhostwriterMode } from '../../flow/ghostwriter';
 import { t } from '../../i18n';
 
 export interface TeachCanvasProps {
@@ -37,6 +38,9 @@ export interface TeachCanvasProps {
   onDeleteSelected: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
+  ghostwriterMode?: GhostwriterMode;
+  onCanvasTap?: (coords: { x: number; y: number }, pointId?: string) => void;
+  onEscape?: () => void;
 }
 
 export function TeachCanvas({
@@ -48,6 +52,9 @@ export function TeachCanvas({
   onDeleteSelected,
   onUndo,
   onRedo,
+  ghostwriterMode,
+  onCanvasTap,
+  onEscape,
 }: TeachCanvasProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDraggingRef = useRef(false);
@@ -102,7 +109,7 @@ export function TeachCanvas({
 
   useEffect(() => {
     renderCanvas();
-  }, [scene, selection]);
+  }, [scene, selection, ghostwriterMode]);
 
   const drawLabelPill = (
     ctx: CanvasRenderingContext2D,
@@ -241,18 +248,20 @@ export function TeachCanvas({
     // Draw points
     for (const pt of points) {
       const isSel = selection?.kind === 'point' && selection.id === pt.id;
+      const isGwFirst =
+        ghostwriterMode?.kind === 'addEdgeSecond' && ghostwriterMode.first === pt.id;
       const sp = toScreen(pt, view);
 
       ctx.beginPath();
-      ctx.arc(sp.x, sp.y, isSel ? 12 : 8, 0, 2 * Math.PI);
-      ctx.fillStyle = isSel ? '#58a6ff' : '#39ff88';
+      ctx.arc(sp.x, sp.y, isSel || isGwFirst ? 12 : 8, 0, 2 * Math.PI);
+      ctx.fillStyle = isSel || isGwFirst ? '#58a6ff' : '#39ff88';
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2;
       ctx.stroke();
 
       const displayLabel = pt.label ?? pt.id;
-      drawLabelPill(ctx, displayLabel, sp.x, sp.y - 18, isSel);
+      drawLabelPill(ctx, displayLabel, sp.x, sp.y - 18, isSel || isGwFirst);
     }
   };
 
@@ -264,6 +273,15 @@ export function TeachCanvas({
 
     const { px, py } = pointerToHitTestCoords(e.clientX, e.clientY, rect, view);
     const hit = hitTestCorrect(scene, px, py, view.scale, view.scale);
+    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    const bitmapSize = { width: canvas.width, height: canvas.height };
+    const norm = pointerToScene(e.clientX, e.clientY, rect, bitmapSize, dpr, view);
+
+    if (ghostwriterMode && ghostwriterMode.kind !== 'idle') {
+      onCanvasTap?.(norm, hit?.kind === 'point' ? hit.id : undefined);
+      return;
+    }
+
     onSelect(hit);
 
     if (hit && hit.kind === 'point') {
@@ -325,7 +343,11 @@ export function TeachCanvas({
 
   const handleKeyDown = (e: ReactKeyboardEvent<HTMLCanvasElement>): void => {
     if (e.key === 'Escape') {
-      onSelect(null);
+      if (ghostwriterMode && ghostwriterMode.kind !== 'idle') {
+        onEscape?.();
+      } else {
+        onSelect(null);
+      }
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       if (selection) {
         e.preventDefault();

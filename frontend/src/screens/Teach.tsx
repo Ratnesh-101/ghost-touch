@@ -33,7 +33,6 @@ import type { DiagramScene } from '../core/scene';
 import type { Drivers } from '../drivers';
 import { getShareOrigin } from '../drivers/clipboard';
 import {
-  addVertex,
   applyEdit,
   canRedo,
   canUndo,
@@ -50,6 +49,16 @@ import {
   validateAxisCoord,
   type HistoryState,
 } from '../flow/teach';
+import {
+  describeUndo,
+  ghostwriterSpeech,
+  nextMode,
+  planAddPoint,
+  planAddSegment,
+  undoSpeech,
+  type GhostwriterEvent,
+  type GhostwriterMode,
+} from '../flow/ghostwriter';
 import {
   getSelectedLabel,
   type CorrectSelection,
@@ -175,9 +184,13 @@ export function Teach({
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
   const wasLoadModalOpen = useRef(isLoadModalOpen);
 
+  // Ghostwriter mode state (Requirement 20)
+  const [gwMode, setGwMode] = useState<GhostwriterMode>({ kind: 'idle' });
+
   const headingRef = useRef<HTMLHeadingElement>(null);
   const loadBtnRef = useRef<HTMLButtonElement>(null);
-  const addVertexBtnRef = useRef<HTMLButtonElement>(null);
+  const addPointBtnRef = useRef<HTMLButtonElement>(null);
+  const addEdgeBtnRef = useRef<HTMLButtonElement>(null);
 
   const speak = (text: string): void => {
     drivers.speech.speak(text, LANG_BCP47[activeLang]);
@@ -248,6 +261,22 @@ export function Teach({
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
 
+  // Cancel armed Ghostwriter modes on Escape key
+  useEffect(() => {
+    if (gwMode.kind === 'idle') return;
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        const res = nextMode(gwMode, { type: 'escape' });
+        setGwMode(res.mode);
+        if (res.speech) {
+          sayAndStatus(res.speech);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gwMode]);
+
   const handleBack = (): void => {
     executeTeachBack(isDirty, {
       speak,
@@ -290,8 +319,85 @@ export function Teach({
   const validationResult = validateShareScene(history.present);
   const isValidDiagram = validationResult.ok && !axisError;
 
+  // Handlers for Ghostwriter interactions (Requirement 20)
+  const handleGhostwriterEvent = (event: GhostwriterEvent): void => {
+    const res = nextMode(gwMode, event);
+    setGwMode(res.mode);
+
+    if (res.mode.kind !== 'idle' && gwMode.kind === 'idle') {
+      setSelection(null);
+    }
+
+    if (res.speech) {
+      sayAndStatus(res.speech);
+    }
+
+    if (res.action) {
+      if (res.action.kind === 'addPoint') {
+        const outcome = planAddPoint(
+          history.present,
+          res.action.x,
+          res.action.y,
+        );
+        if (outcome.kind === 'added') {
+          applySceneEdit(outcome.scene);
+          setSelection({ kind: 'point', id: outcome.id });
+          sayAndStatus(ghostwriterSpeech(outcome));
+        } else {
+          sayAndStatus(ghostwriterSpeech(outcome), true);
+        }
+      } else if (res.action.kind === 'addSegment') {
+        const outcome = planAddSegment(
+          history.present,
+          res.action.a,
+          res.action.b,
+        );
+        if (outcome.kind === 'added') {
+          applySceneEdit(outcome.scene);
+          setSelection({ kind: 'segment', id: outcome.id });
+          sayAndStatus(ghostwriterSpeech(outcome));
+        } else {
+          sayAndStatus(
+            ghostwriterSpeech(outcome),
+            outcome.kind !== 'samePoint',
+          );
+        }
+      }
+    }
+  };
+
+  const handleAddPoint = (): void => {
+    handleGhostwriterEvent({ type: 'pressAddPoint' });
+  };
+
+  const handleAddEdge = (): void => {
+    handleGhostwriterEvent({ type: 'pressAddEdge' });
+  };
+
+  const handleCanvasTap = (
+    coords: { x: number; y: number },
+    pointId?: string,
+  ): void => {
+    handleGhostwriterEvent({
+      type: 'canvasTap',
+      x: coords.x,
+      y: coords.y,
+      pointId,
+    });
+  };
+
+  const handleCanvasEscape = (): void => {
+    handleGhostwriterEvent({ type: 'escape' });
+  };
+
   // Handlers for canvas interactions
   const handleSelect = (sel: CorrectSelection): void => {
+    if (gwMode.kind === 'addEdgeFirst' || gwMode.kind === 'addEdgeSecond') {
+      if (sel && sel.kind === 'point') {
+        handleGhostwriterEvent({ type: 'pickPoint', id: sel.id });
+        return;
+      }
+    }
     setSelection(sel);
     if (sel) {
       if (sel.kind === 'point') {
@@ -324,13 +430,6 @@ export function Teach({
     }
   };
 
-  const handleAddVertex = (): void => {
-    const { scene: updated, newPointId } = addVertex(history.present);
-    applySceneEdit(updated);
-    setSelection({ kind: 'point', id: newPointId });
-    sayAndStatus(t('teach.vertexAdded').replace('{id}', newPointId));
-  };
-
   const handleDeleteSelected = (): void => {
     if (!selection) return;
 
@@ -347,18 +446,24 @@ export function Teach({
       setSelection(null);
       sayAndStatus(`${t('teach.delete')}: ${id}`);
     }
-    addVertexBtnRef.current?.focus();
+    addPointBtnRef.current?.focus();
   };
 
   const handleUndo = (): void => {
     if (!canUndo(history)) return;
     if (history.past.length <= 1) {
-      addVertexBtnRef.current?.focus();
+      addPointBtnRef.current?.focus();
     }
+    const previous = history.past[history.past.length - 1];
+    const desc = describeUndo(history.present, previous);
     setHistory((h) => undo(h));
     setSelection(null);
     setShareData(null);
-    sayAndStatus(t('teach.undo'));
+    if (desc) {
+      sayAndStatus(undoSpeech(desc));
+    } else {
+      sayAndStatus(t('teach.undo'));
+    }
   };
 
   const handleRedo = (): void => {
@@ -529,17 +634,35 @@ export function Teach({
             onDeleteSelected={handleDeleteSelected}
             onUndo={handleUndo}
             onRedo={handleRedo}
+            ghostwriterMode={gwMode}
+            onCanvasTap={handleCanvasTap}
+            onEscape={handleCanvasEscape}
           />
 
           {/* Action Toolbar */}
           <div className="gt-teach__toolbar" role="toolbar" aria-label={t('teach.toolbar')}>
             <AccessibleButton
-              ref={addVertexBtnRef}
+              ref={addPointBtnRef}
               type="button"
               className="gt-control gt-btn gt-btn--secondary"
-              onClick={handleAddVertex}
+              onClick={handleAddPoint}
+              onFocus={() => speak(t('teach.addPoint'))}
+              aria-pressed={gwMode.kind === 'addPoint'}
+              aria-label={t('teach.addPoint')}
             >
-              {t('teach.addVertex')}
+              {t('teach.addPoint')}
+            </AccessibleButton>
+
+            <AccessibleButton
+              ref={addEdgeBtnRef}
+              type="button"
+              className="gt-control gt-btn gt-btn--secondary"
+              onClick={handleAddEdge}
+              onFocus={() => speak(t('teach.addEdge'))}
+              aria-pressed={gwMode.kind === 'addEdgeFirst' || gwMode.kind === 'addEdgeSecond'}
+              aria-label={t('teach.addEdge')}
+            >
+              {t('teach.addEdge')}
             </AccessibleButton>
 
             <AccessibleButton
