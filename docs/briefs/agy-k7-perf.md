@@ -1,0 +1,10 @@
+# Lane k7-perf (FIX, frontend)
+HARD RULE: no shell commands of any kind; file read/search/edit tools only. The supervisor runs tsc, vitest and the build. Read AGENTS.md, `docs/briefs/fix-common.md`, `docs/reports/audit-b6-lowend-perf.md` (PERF-01..PERF-08) and `.kiro/steering/tech.md` (tuned haptic values). Verify EACH finding against the CURRENT code first (h7 refactored the Explore move paths); record FIXED / NOT REPRODUCED / SKIPPED. Never open `.env*`.
+Allowed files: `frontend/src/screens/Explore.tsx`, `frontend/src/screens/Capture.tsx`, `frontend/src/drivers/audio.ts` (ONLY suspend/resume of the AudioContext on visibility change; the theremin and earcon tuning, pitch maps and gain values stay exactly as they are), `frontend/src/drivers/camera.ts`, new `frontend/tests/k7.*.test.ts(x)`, `docs/reports/agy-k7-perf-report.md`, one BUILD_LOG entry. FORBIDDEN: `frontend/src/core/**` (so PERF-01, the hitTest bounding-box optimisation, goes under "Needs from planner"), App.tsx, Correct.tsx, other drivers, backend, `.kiro/**`, `.env*`, existing `*.prop.test.ts`.
+Scope:
+PERF-02: stop calling `getBoundingClientRect` on every pointer move; cache the canvas rectangle in a ref, refreshed on resize, orientation change, scroll and when the canvas mounts; the first touch after a resize must still map correctly.
+PERF-03: cap the canvas devicePixelRatio at 2 (buffer size and hit mapping stay consistent).
+PERF-05: Correct mode and Capture must build `photoUrl` from the already downscaled (1600 px) JPEG blob, not from the raw camera file, and revoke object URLs when replaced or on unmount.
+PERF-06: when the document becomes hidden suspend the AudioContext (and stop the tone as the existing code does); resume on visible/user gesture; no change to any tone, gain or timing constant.
+Others in the audit: only if clearly safe and reproduced.
+Every fix needs a regression test (fake canvas and fake context objects as the existing tests do). Keep all existing tests green; never weaken an assertion. Never speak twice back to back.
