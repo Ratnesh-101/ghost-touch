@@ -236,7 +236,7 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 > Do not edit while lanes k1, k4, k6 are being merged: `App.tsx`, `Explore.tsx`, `Correct.tsx`, `vite.config.ts`, `backend/app/main.py`. New i18n keys go in a separate, last commit after k1 and k6 are on `main`.
 > Tuned haptic values and `frontend/src/core` purity unchanged.
 
-- [ ] 29. Spec Ghost: spec after code (built by agy, reviewed by Kiro)
+- [x] 29. Spec Ghost: spec after code (built by agy, reviewed by Kiro)
   - [x] 29.1 Requirement 18 in `requirements.md` (EARS), written from the tournament brief and the shipped behaviour, marked "spec after code"
   - [x] 29.2 Design section and properties P47-P50 in `design.md`, exactly as implemented in `frontend/src/verify/verify.ts` and `tests/verify.test.ts`
   - [x] 29.3 `.kiro/steering/verify.md`: consistency check, not forgery protection; never "verified"; silent when unsure
@@ -244,7 +244,7 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 29.5 Review `verify.ts` against Requirement 18; for each contradiction write a failing test first, then fix
   - [x] 29.6 Move to `frontend/src/core/verify.ts` if it is pure (no browser API, no React); keep one import path for callers
   - [x] 29.7 Bring P47-P50 to at least 200 cases and mutation-check each
-  - [ ] 29.8 `docs/KIRO_WRITEUP.md`: what was Kiro's (spec, steering, hook, review, fixes) and what was agy's (module and first tests)
+  - [x] 29.8 `docs/KIRO_WRITEUP.md`: what was Kiro's (spec, steering, hook, review, fixes) and what was agy's (module and first tests)
   - _Requirements: 18.*_
 
 - [x] 30. CORE-09: a revoked pointer capture ends the Teacher drag
