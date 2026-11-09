@@ -47,6 +47,7 @@
 "explore.gestureHint (spoken)","Double-tap and hold, then drag to feel the diagram. You start at the centre.","डबल-टैप करके दबाए रखें, फिर चित्र महसूस करने के लिए खींचें। आप केंद्र से शुरू करते हैं।","ડબલ-ટેપ કરીને દબાવી રાખો, પછી આકૃતિ અનુભવવા માટે ખેંચો. તમે કેન્દ્રથી શરૂ કરો છો.","","","",""
 "explore.backHint (spoken)","Press Back to leave.","वापस जाने के लिए बैक दबाएं।","પાછા જવા માટે બેક દબાવો.","","","",""
 "explore.centre (spoken)","Centre.","केंद्र।","કેન્દ્ર.","","","",""
+"vertex.unlabelled (spoken)","Point {id}","बिंदु {id}","બિંદુ {id}","","","","New in round 3 (Kiro): spoken for a corner with no label; {id} is the point's id. Needs native review."
 "explore.xAxis (spoken)","x-axis","x-अक्ष","x-અક્ષ","","","",""
 "explore.yAxis (spoken)","y-axis","y-अक्ष","y-અક્ષ","","","",""
 "explore.debugWaiting","Relative cursor: waiting for touch","सापेक्ष कर्सर: स्पर्श की प्रतीक्षा","સાપેક્ષ કર્સર: સ્પર્શની રાહ","","","",""
