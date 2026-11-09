@@ -2075,3 +2075,56 @@ Format for each entry:
   - `frontend/tests/k7.perf.test.tsx`
   - `docs/reports/agy-k7-perf-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — agy, reviewed by Claude — Lane k8-i18n (Internationalisation Fixes)
+- Tool: **Antigravity** (agy, reviewed by Claude).
+- What was built:
+  - B3-02: `speakIntro` and `handleStartTap` in `frontend/src/flow/start.ts` and `say` in `frontend/src/screens/Capture.tsx` now explicitly pass active BCP-47 tag `LANG_BCP47[getLang()]`, ensuring TTS synthesizer selects correct native language voice instead of falling back to default Indian English.
+  - B3-03: Localized semantic target labels (`peak`, `lowest point`, `origin`) via new dictionary keys (`guide.semantic.label.peak`, `guide.semantic.label.trough`, `guide.semantic.label.origin`) in `frontend/src/i18n/index.ts` across English, Hindi, and Gujarati; updated `resolveSemantic` in `frontend/src/guide/semantic.ts` to look up labels via `t()`, eliminating English noun leaks into guidance announcements.
+  - B3-04: Fixed Gujarati grammatical gender agreement for the lowest point in `backend/app/semantic.py` from masculine "સૌથી નીચો બિંદુ" to neuter "સૌથી નીચું બિંદુ", and absence message to "આ આકૃતિમાં કોઈ નીચું બિંદુ નથી.".
+  - B3-10: Replaced mathematical fraction slash `{index}/{total}` in corner announcements in `frontend/src/i18n/index.ts` with natural spoken conversational phrasing in Hindi ("कोना {total} में से {index}: बिंदु {label}, स्थिति {pos}।") and Gujarati ("ખૂણો {total} માંથી {index}: બિંદુ {label}, સ્થાન {pos}."), preserving all `{index}`, `{total}`, `{label}`, `{pos}` placeholders.
+  - Added new and modified strings to `docs/user-test/translation-review.md` and `docs/user-test/translation-review.csv` marked "needs native review".
+  - Created regression test suites `frontend/tests/k8.i18n.test.ts` (13 tests) and `backend/tests/test_k8_i18n.py` (6 tests).
+- What broke / surprising findings:
+  - B3-01 was verified as already fixed on main (CORE-10).
+  - Existing property tests in `guide.semantic.prop.test.ts` and unit tests in `guide.semantic.unit.test.ts` assert English labels by default; routing labels through `t()` preserves complete backward compatibility and keeps existing tests green.
+- Files touched:
+  - `frontend/src/flow/start.ts`
+  - `frontend/src/screens/Capture.tsx`
+  - `frontend/src/guide/semantic.ts`
+  - `frontend/src/i18n/index.ts`
+  - `backend/app/semantic.py`
+  - `docs/user-test/translation-review.md`
+  - `docs/user-test/translation-review.csv`
+  - `frontend/tests/k8.i18n.test.ts`
+  - `backend/tests/test_k8_i18n.py`
+  - `docs/reports/agy-k8-i18n-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — agy — Lane k8-i18n Follow-up (Supervisor Test & Type Fixes)
+- Tool: **Antigravity** (agy).
+- What was built:
+  - Fixed `tsc` errors in `frontend/tests/k8.i18n.test.ts`: removed unused `getLang` import (`noUnusedLocals`); added missing `diagramStore: new MemoryDiagramStore()` member to mock `Drivers` object in `createMockDrivers()`.
+  - Updated Finding 9 double-tap test expectation in `frontend/tests/capture.lifecycle.test.tsx` to include the language tag argument (`expect.anything()`) passed by `say()`.
+  - Fixed Hindi substring expectation in `frontend/tests/k8.i18n.test.ts` from 'फ़ोटो लें' (with nukta) to 'फोटो लें' (no nukta) to match canonical `i18n` dictionary key `capture.prompt`.
+  - Refined regex in `frontend/tests/k8.i18n.test.ts` to `/drivers\.speech\.speak\s*\([^,]+?\)\s*;/` to prevent false positives on legitimate two-argument `speak` calls containing nested parentheses in their first argument.
+- What broke / surprising findings:
+  - Source-pin regex `/drivers\.speech\.speak\([^,)]+\)/` broke on calls like `drivers.speech.speak(t('start.intro'), lang)` because the inner argument `t('...')` terminated the character class `[^,)]+` at the first closing parenthesis. Refined to `/drivers\.speech\.speak\s*\([^,]+?\)\s*;/`.
+- Files touched:
+  - `frontend/tests/k8.i18n.test.ts`
+  - `frontend/tests/capture.lifecycle.test.tsx`
+  - `docs/reports/agy-k8-i18n-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — agy — Lane k8-i18n Follow-up 3 (H2 Integration Test Remediation)
+- Tool: **Antigravity** (agy).
+- What was built:
+  - Fixed `test_b3_04_gujarati_trough_absence_message_neuter_gender` and `test_b3_04_hindi_trough_baseline_preserved` in `backend/tests/test_k8_i18n.py` to assert absence on an empty scene (`DiagramScene(kind="geometry", title="Empty scene")`) containing no polylines, bars, or points.
+  - Asserted `pure_semantic_target(...) is None` as well as spoken absence answer equality for both Gujarati (`"આ આકૃતિમાં કોઈ નીચું બિંદુ નથી."`) and Hindi (`"इस आरेख में कोई निचला बिंदु नहीं है।"`).
+  - Cleaned up unused imports in `backend/tests/test_k8_i18n.py` (`Polyline`, `triangle_scene`, unused `pytest`).
+- What broke / surprising findings:
+  - Post-merge integration with lane h2 introduced F1 fallback in `_find_trough`, causing lowest point queries on geometry scenes without curves to fall back to the scene's points. When run against `triangle_scene()` (containing points A, B, C), `_find_trough` returned element B instead of None. Remediated in the test suite by providing an empty scene where a trough truly cannot be found.
+- Files touched:
+  - `backend/tests/test_k8_i18n.py`
+  - `docs/reports/agy-k8-i18n-report.md`
+  - `docs/BUILD_LOG.md`
