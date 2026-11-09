@@ -5,6 +5,7 @@ import { saveDiagramWithEviction } from '../src/flow/saved';
 import { verifyCaveatForScene } from '../src/flow/navigation';
 import { verifyScene } from '../src/verify/verify';
 import { MemoryDiagramStore, type Drivers } from '../src/drivers';
+import type { DiagramStore } from '../src/drivers/diagramStore';
 import {
   SAVED_DIAGRAMS_CAP,
   savedTitle,
@@ -13,6 +14,7 @@ import {
 } from '../src/core/savedDiagrams';
 import type { DiagramScene } from '../src/core/scene';
 import { getLang, setLang, t, type Lang } from '../src/i18n';
+import { executeCorrectLeave } from '../src/screens/Correct';
 
 function createMockDrivers(diagramStore = new MemoryDiagramStore()): Drivers {
   return {
@@ -139,7 +141,7 @@ describe('M4-02 (HIGH): Atomic Diagram Save with Eviction & Storage Error Resili
     expect(saved.value?.id).toBe('diag-new');
   });
 
-  it('speaks exactly ONE utterance when storage is unavailable or put fails', async () => {
+  it('never speaks storage errors when storage fails (GT-06 rule)', async () => {
     const store = new MemoryDiagramStore();
     store.failWith = 'IndexedDB unavailable';
     const drivers = createMockDrivers(store);
@@ -149,14 +151,14 @@ describe('M4-02 (HIGH): Atomic Diagram Save with Eviction & Storage Error Resili
       speakCalls.push(text);
     });
 
-    // Simulate App.tsx saveDiagram flow with failing store
-    const listResult = await drivers.diagramStore.list();
-    if (!listResult.ok) {
-      drivers.speech.speak(t('saved.errorStorageUnavailable'), 'en-IN');
-    }
+    const existing: SavedDiagram[] = [];
+    const newEntry = createSampleEntry('diag-fail', 1000, false);
+    const saveRes = await saveDiagramWithEviction(store, existing, newEntry, SAVED_DIAGRAMS_CAP);
 
-    expect(drivers.speech.speak).toHaveBeenCalledTimes(1);
-    expect(speakCalls).toEqual([t('saved.errorStorageUnavailable')]);
+    expect(saveRes.ok).toBe(false);
+    // GT-06: Storage failures must appear as status text only and NEVER be spoken
+    expect(speakCalls).toEqual([]);
+    expect(drivers.speech.speak).not.toHaveBeenCalled();
   });
 });
 
@@ -172,7 +174,7 @@ describe('M4-03 (HIGH): Teacher Correct Mode Persistence to IndexedDB', () => {
     setLang(prevLang);
   });
 
-  it('updates existing saved entry in place with corrected scene', async () => {
+  it('updates saved diagram in place preserving pinned and createdAt (R5-03, R5-05)', async () => {
     const store = new MemoryDiagramStore();
     const originalScene: DiagramScene = { ...sampleTriangle, title: 'Original AI Diagram' };
     const originalEntry = createSampleEntry('entry-123', 1000, true, originalScene);
@@ -188,52 +190,33 @@ describe('M4-03 (HIGH): Teacher Correct Mode Persistence to IndexedDB', () => {
       ],
     };
 
-    // Simulate App.tsx handleSaveCorrect -> saveDiagram(correctedScene, originalScene)
-    const listRes = await store.list();
-    expect(listRes.ok).toBe(true);
-    if (!listRes.ok) throw new Error(listRes.error);
-    const existing = listRes.value;
+    const existingRes = await store.list();
+    expect(existingRes.ok).toBe(true);
+    if (!existingRes.ok) throw new Error(existingRes.error);
 
-    const matchingEntry = existing.find(
-      (e: SavedDiagram) =>
-        e.scene === originalScene ||
-        JSON.stringify(e.scene) === JSON.stringify(originalScene),
-    );
-    expect(matchingEntry).toBeDefined();
-
-    const entryToSave: SavedDiagram = matchingEntry
-      ? {
-          ...matchingEntry,
-          title: savedTitle(correctedScene, 'en'),
-          thumbnailDataUrl: 'data:image/jpeg;base64,updated_mock',
-          scene: correctedScene,
-        }
-      : {
-          id: makeId(Date.now(), Math.random),
-          createdAt: Date.now(),
-          title: savedTitle(correctedScene, 'en'),
-          thumbnailDataUrl: 'data:image/jpeg;base64,new_mock',
-          scene: correctedScene,
-          pinned: false,
-        };
+    // Drive real saveDiagramWithEviction preserving entry ID
+    const entryToSave: SavedDiagram = {
+      ...originalEntry,
+      title: savedTitle(correctedScene, 'en'),
+      scene: correctedScene,
+    };
 
     const saveRes = await saveDiagramWithEviction(
       store,
-      existing,
+      existingRes.value,
       entryToSave,
       SAVED_DIAGRAMS_CAP,
     );
     expect(saveRes.ok).toBe(true);
 
-    const updatedListRes = await store.list();
-    expect(updatedListRes.ok).toBe(true);
-    if (!updatedListRes.ok) throw new Error(updatedListRes.error);
-    const updatedList = updatedListRes.value;
-    expect(updatedList).toHaveLength(1);
-    expect(updatedList[0]?.id).toBe('entry-123');
-    expect(updatedList[0]?.pinned).toBe(true); // preserved pinned state
-    expect(updatedList[0]?.title).toBe('Teacher Corrected Triangle');
-    expect(updatedList[0]?.scene).toEqual(correctedScene);
+    const updatedRes = await store.get('entry-123');
+    expect(updatedRes.ok).toBe(true);
+    if (!updatedRes.ok) throw new Error(updatedRes.error);
+    expect(updatedRes.value?.id).toBe('entry-123');
+    expect(updatedRes.value?.pinned).toBe(true); // preserved pinned state
+    expect(updatedRes.value?.createdAt).toBe(1000); // preserved createdAt
+    expect(updatedRes.value?.title).toBe('Teacher Corrected Triangle');
+    expect(updatedRes.value?.scene).toEqual(correctedScene);
   });
 
   it('creates new entry through atomic path when no prior saved entry exists', async () => {
@@ -243,13 +226,6 @@ describe('M4-03 (HIGH): Teacher Correct Mode Persistence to IndexedDB', () => {
     const listRes = await store.list();
     expect(listRes.ok).toBe(true);
     if (!listRes.ok) throw new Error(listRes.error);
-    const existing = listRes.value;
-    const matchingEntry = existing.find(
-      (e: SavedDiagram) =>
-        e.scene === sharedScene ||
-        JSON.stringify(e.scene) === JSON.stringify(sharedScene),
-    );
-    expect(matchingEntry).toBeUndefined();
 
     const newEntry: SavedDiagram = {
       id: makeId(Date.now(), Math.random),
@@ -262,7 +238,7 @@ describe('M4-03 (HIGH): Teacher Correct Mode Persistence to IndexedDB', () => {
 
     const saveRes = await saveDiagramWithEviction(
       store,
-      existing,
+      listRes.value,
       newEntry,
       SAVED_DIAGRAMS_CAP,
     );
@@ -271,9 +247,105 @@ describe('M4-03 (HIGH): Teacher Correct Mode Persistence to IndexedDB', () => {
     const listResAfter = await store.list();
     expect(listResAfter.ok).toBe(true);
     if (!listResAfter.ok) throw new Error(listResAfter.error);
-    const list = listResAfter.value;
-    expect(list).toHaveLength(1);
-    expect(list[0]?.scene).toEqual(sharedScene);
+    expect(listResAfter.value).toHaveLength(1);
+    expect(listResAfter.value[0]?.scene).toEqual(sharedScene);
+  });
+
+  it('rolls back added entry if victim delete fails in non-atomic eviction (R5-06)', async () => {
+    const memoryStore = new MemoryDiagramStore();
+    // Non-atomic store without putWithEviction
+    const rawStore: DiagramStore = {
+      list: () => memoryStore.list(),
+      get: (id: string) => memoryStore.get(id),
+      put: (entry: SavedDiagram) => memoryStore.put(entry),
+      delete: vi.fn(async (id: string) => {
+        if (id === 'victim-old') {
+          return { ok: false as const, error: 'disk_error' };
+        }
+        return memoryStore.delete(id);
+      }),
+    };
+
+    const victimEntry = createSampleEntry('victim-old', 1000, false);
+    await rawStore.put(victimEntry);
+
+    const existing: SavedDiagram[] = [victimEntry];
+    const newEntry = createSampleEntry('new-entry', 2000, false);
+
+    // Capacity cap = 1 so victim-old is evicted
+    const res = await saveDiagramWithEviction(rawStore, existing, newEntry, 1);
+
+    expect(res.ok).toBe(false);
+    if (res.ok) throw new Error('Expected save to fail');
+    expect(res.error).toBe('disk_error');
+
+    // Verified rollback: newEntry should have been rolled back from store
+    const checkNew = await rawStore.get('new-entry');
+    expect(checkNew.ok).toBe(true);
+    if (!checkNew.ok) throw new Error(checkNew.error);
+    expect(checkNew.value).toBeUndefined();
+
+    // Victim entry is still in the store
+    const checkVictim = await rawStore.get('victim-old');
+    expect(checkVictim.ok).toBe(true);
+    if (!checkVictim.ok) throw new Error(checkVictim.error);
+    expect(checkVictim.value).toEqual(victimEntry);
+  });
+
+  it('confirms before leaving Teacher Correct mode when dirty (R5-04)', () => {
+    const speakCalls: string[] = [];
+    const statusCalls: string[] = [];
+    let focused = false;
+    let left = false;
+
+    // When dirty and user cancels -> stays in editor
+    const stayResult = executeCorrectLeave(true, {
+      speak: (msg) => speakCalls.push(msg),
+      confirm: () => false,
+      sayAndStatus: (msg) => statusCalls.push(msg),
+      focusHeading: () => {
+        focused = true;
+      },
+      onLeave: () => {
+        left = true;
+      },
+    });
+
+    expect(stayResult.stayed).toBe(true);
+    expect(left).toBe(false);
+    expect(focused).toBe(true);
+    expect(speakCalls).toContain(t('correct.confirmLeave'));
+    expect(statusCalls).toContain(t('correct.stayingInEditor'));
+
+    // When dirty and user confirms -> leaves
+    let leftConfirmed = false;
+    const leaveResult = executeCorrectLeave(true, {
+      speak: vi.fn(),
+      confirm: () => true,
+      sayAndStatus: vi.fn(),
+      focusHeading: vi.fn(),
+      onLeave: () => {
+        leftConfirmed = true;
+      },
+    });
+    expect(leaveResult.stayed).toBe(false);
+    expect(leftConfirmed).toBe(true);
+
+    // When clean -> leaves without confirmation prompt
+    const confirmFn = vi.fn();
+    let leftClean = false;
+    const cleanResult = executeCorrectLeave(false, {
+      speak: vi.fn(),
+      confirm: confirmFn,
+      sayAndStatus: vi.fn(),
+      focusHeading: vi.fn(),
+      onLeave: () => {
+        leftClean = true;
+      },
+    });
+    expect(cleanResult.stayed).toBe(false);
+    expect(leftClean).toBe(true);
+    expect(confirmFn).not.toHaveBeenCalled();
   });
 });
 
