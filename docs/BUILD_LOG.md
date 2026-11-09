@@ -2463,3 +2463,38 @@ Format for each entry:
 - Unfinished or not verified: nothing tried on a phone; hi and gu wording for "Point {id}" needs a native speaker; owner decisions still open (Spec Ghost 15% tolerance, the "Verified by" line on shared links, `TRUSTED_PROXY_HOPS`).
 - Gate: frontend `tsc` clean, 129 files and 1751 tests pass, build ok; backend 716 passed, `ruff check` and `ruff format --check` clean (77 files).
 - Files touched: `docs/kiro-evidence/round3.md` (new), `.kiro/specs/ghost-touch/tasks.md`, `docs/BUILD_LOG.md`.
+
+## 2026-11-09 — Antigravity — Lane m1-a11y-fixes (Accessibility & Screen-Reader Fixes)
+- Tool: **Antigravity** (agy, reviewed by Claude).
+- What was built:
+  - A11Y-01: Removed conditional suppression of canvas aria-label (`speechAnnounced && drivers.speech.canSpeak ? undefined : ...`) and `canvasRef.current?.removeAttribute('aria-label')` in `frontend/src/screens/Explore.tsx`. The `<canvas role="img">` now persistently exposes its spoken accessible name via `aria-label={canvasAriaLabel(scene)}`, localized in English, Hindi, and Gujarati, so TalkBack users always hear diagram name and gesture hint. Preserved exported helpers `shouldSuppressCanvasAriaLabel` and `resolveCanvasAriaLabel` for backward compatibility.
+  - A11Y-04: Implemented `updateDocumentLang` and `setDocumentLang` in `frontend/src/i18n/index.ts`, synchronizing `document.documentElement.lang` on initial module load and on every language change (`setLang`) with the matching BCP-47 tag (`en`, `hi`, `gu`) so Android TalkBack switches to the native Indic voice. Safe in SSR and headless environments.
+  - A11Y-02: Eliminated dual-voice speech collision on focus in `LanguageSelector.tsx` and `RateSelector.tsx` by removing `onFocus` speech handlers. Focusing buttons relies on native accessible labels without TTS speech synthesis overlap. Selecting an option produces exactly ONE spoken confirmation in the newly selected language.
+  - A11Y-03: Converted honesty notice in `frontend/src/components/VerifiedBanner.tsx` from `<p role="note">` to a real `<AccessibleButton>` with `.gt-control`, enforcing >= 48x48 CSS px touch target and accessible name from `share.honesty`. Updated `.gt-verified-banner__honesty` in `explore.css` with button styling, left text alignment, and focus visible outline. Kept the "unverified / not cryptographic proof" meaning and never added "verified" to any new string.
+  - A11Y-08: Added `--gt-danger-text: #ff7b72` in `frontend/src/styles/tokens.css` meeting WCAG AAA contrast (>= 7.0:1, computed 7.65:1 on `#0b0e0c`). Used in `frontend/src/styles/correct.css` on `.gt-correct__status--error`.
+  - A11Y-09: Replaced `<nav>` landmark in `LanguageSelector.tsx` with `<div role="group">` to resolve conflicting landmark hierarchies inside modal dialogs.
+  - A11Y-10: In `frontend/src/components/Logo.tsx`, rendered `<title>` conditionally (`{!decorative && <title>{t('app.name')}</title>}`) so decorative SVGs with `aria-hidden="true"` do not leak titles into screen-reader trees.
+  - Created regression test suite in `frontend/tests/m1.a11y.test.tsx` (17 tests covering A11Y-01 through A11Y-10).
+- What broke / surprising findings:
+  - Verified A11Y-05 (StatusText live region suppression): SKIPPED / NOT REPRODUCED as defect. `StatusText` intentionally omits `aria-live` when `spoken` is true to avoid double-reading in TalkBack (Requirement 13.8); changing it would break existing test assertions in `tests/screens.render.test.ts`.
+  - Verified A11Y-06 (Explore keyboard navigation) and A11Y-07 (speech.ts hardcoded string): SKIPPED because canvas keyboard pointer navigation and drivers are outside allowed lane files per brief instructions.
+  - Unverified items requiring physical hardware (A11Y-U01 2-finger long press, A11Y-U02 haptic latency, A11Y-U03 deployed URL) remain explicitly recorded as UNVERIFIED.
+- Pass 2 (test harness & legacy test synchronization):
+  - In `frontend/tests/m1.a11y.test.tsx`, adopted `renderToStaticMarkup(createElement(Harness))` pattern from `RateSelector.test.tsx` to provide React dispatcher for hook initialization (`useSyncExternalStore`, `useState`).
+  - In `frontend/tests/RateSelector.test.tsx`, synchronized 5 legacy focus-speech tests to A11Y-02: focus does not speak, click produces single spoken confirmation across en, hi, gu.
+  - In `frontend/tests/fix.share.security.test.ts`, updated SEC-03 assertion to match A11Y-03 AccessibleButton markup with `gt-verified-banner__honesty` and `aria-label`.
+- Files touched:
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/components/LanguageSelector.tsx`
+  - `frontend/src/components/RateSelector.tsx`
+  - `frontend/src/components/VerifiedBanner.tsx`
+  - `frontend/src/components/Logo.tsx`
+  - `frontend/src/styles/tokens.css`
+  - `frontend/src/styles/explore.css`
+  - `frontend/src/styles/correct.css`
+  - `frontend/tests/m1.a11y.test.tsx`
+  - `frontend/tests/RateSelector.test.tsx`
+  - `frontend/tests/fix.share.security.test.ts`
+  - `docs/reports/agy-m1-a11y-fixes-report.md`
+  - `docs/BUILD_LOG.md`
