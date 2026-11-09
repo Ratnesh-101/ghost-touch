@@ -409,8 +409,13 @@ def prepare_ask_prompt(
     return None
 
 
+POINT_P_ID_PATTERN = re.compile(r"^P\d{1,3}$")
+
+
 def _is_point_id(word: str) -> bool:
-    """True for 1-3 uppercase letters such as 'A', 'AB', 'ABC' (not a unit or 'I'/'A')."""
+    """True for 1-3 uppercase letters ('B', 'AB', 'ABC') or 'P' + 1-3 digits ('P1', 'P99')."""
+    if POINT_P_ID_PATTERN.match(word):
+        return True
     return (
         1 <= len(word) <= 3
         and word.isalpha()
