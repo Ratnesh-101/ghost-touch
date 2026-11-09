@@ -540,14 +540,20 @@
 }
 
 .gt-verified-banner__honesty {
+  display: block;
+  width: 100%;
+  min-height: var(--gt-target, 48px);
   margin: var(--gt-space-xs, 8px) 0 0 0;
-  padding: 4px var(--gt-space-xs, 8px);
+  padding: var(--gt-space-xs, 8px) var(--gt-space-sm, 12px);
+  font-family: inherit;
   font-size: var(--gt-text-xs, 0.75rem);
   color: var(--gt-text-muted, #a8c5b5);
+  text-align: left;
   line-height: 1.4;
+  background: transparent;
+  border: none;
   border-left: 2px solid var(--gt-copper, #c88a4b);
   cursor: pointer;
-  outline: none;
 }
 
 .gt-verified-banner__honesty:focus-visible {

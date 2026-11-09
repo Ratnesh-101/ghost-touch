@@ -72,7 +72,7 @@
 }
 
 .gt-correct__status--error {
-  color: var(--gt-danger, #f85149);
+  color: var(--gt-danger-text, #ff7b72);
   font-weight: 600;
 }
 

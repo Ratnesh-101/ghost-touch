@@ -51,7 +51,7 @@ export function Logo({
         data-testid="gt-logo-mark"
         {...accessibleAttrs}
       >
-        <title>{t('app.name')}</title>
+        {!decorative && <title>{t('app.name')}</title>}
 
         {/* Frankenstein Neck Bolt */}
         <rect x="20" y="44" width="8" height="12" rx="2" fill="#c9803a" stroke="#9a5a1f" strokeWidth="1.5" />
@@ -112,7 +112,7 @@ export function Logo({
       data-testid="gt-logo-full"
       {...accessibleAttrs}
     >
-      <title>{t('app.name')}</title>
+      {!decorative && <title>{t('app.name')}</title>}
 
       {/* Creature Phone Mark */}
       <g transform="translate(2, 4) scale(0.72)">

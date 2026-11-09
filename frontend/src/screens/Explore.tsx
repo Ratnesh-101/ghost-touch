@@ -209,7 +209,6 @@ export function Explore({
   onBack,
   onCorrect,
   isRaw,
-  suppressAriaLabel,
   verified,
 }: ExploreProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -251,10 +250,6 @@ export function Explore({
   const [offeredTarget, setOfferedTarget] = useState<GuideTarget | null>(null);
   const [isGuiding, setIsGuiding] = useState(false);
   const guideController = useRef<GuideController | null>(null);
-  const isSpeechActive = drivers.speech.canSpeak && Boolean(announced);
-  const [speechAnnounced, setSpeechAnnounced] = useState(
-    suppressAriaLabel ?? false,
-  );
   const initialAliveRef = useRef<boolean>(shouldPlayAlive(scene));
   const [isAlive, setIsAlive] = useState(initialAliveRef.current);
   const prevSceneRef = useRef<DiagramScene>(scene);
@@ -925,11 +920,6 @@ export function Explore({
     };
     window.addEventListener('blur', handleWindowBlur);
 
-    if (isSpeechActive) {
-      setSpeechAnnounced(true);
-      canvasRef.current?.removeAttribute('aria-label');
-    }
-
     canvasRef.current?.focus();
     updateDimensions();
 
@@ -1311,11 +1301,7 @@ export function Explore({
           className="gt-explore__canvas"
           tabIndex={0}
           role="img"
-          aria-label={
-            speechAnnounced && drivers.speech.canSpeak
-              ? undefined
-              : canvasAriaLabel(scene)
-          }
+          aria-label={canvasAriaLabel(scene)}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerLift}

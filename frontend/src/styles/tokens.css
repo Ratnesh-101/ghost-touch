@@ -87,6 +87,10 @@
   --gt-text-white: #ffffff;
   --gt-text-vertex: #e8ffe8;
 
+  /* --- Colors: Danger / Error (WCAG AAA >= 7.0:1 on #0b0e0c) --- */
+  --gt-danger: #f85149;
+  --gt-danger-text: #ff7b72;
+
   /* --- Backward-compatible aliases --- */
   --gt-line: #39ff88;
   --gt-focus: #39ff88;
