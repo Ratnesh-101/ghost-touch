@@ -254,3 +254,17 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 6. Spec Ghost (Requirement 18) SHALL treat an edited scene exactly as any other: the add path SHALL add no Spec Ghost call of its own, remove none, and SHALL NOT change, soften or suppress its sentence. A scene that was silent may report a disagreement once an added element makes a fact match the drawing; that is intended. No new string, in any language, SHALL contain "verified", "correct", "checked" or "approved" (or a translation of them).
 7. Every new user-facing string SHALL go through `t()` / `tf()`, SHALL exist in `en`, `hi` and `gu` in `frontend/src/i18n/index.ts` with the same placeholders, and SHALL be listed in `docs/user-test/translation-review.csv` and `.md` for native review. Hindi and Gujarati values SHALL NOT be the English text.
 8. THE decision logic (arming and picking state, label handling, the caps, the no-op reasons, the undo description) SHALL live in a pure module in `frontend/src/flow/` with no React and no browser API, and SHALL have property tests of at least 200 runs (P58-P61). `screens/Teach.tsx` SHALL only call it, apply the result to history and speak the returned text.
+
+### Requirement 21: Correct mode can delete curves and bars (core half of Requirement 9.2)
+> Written by Kiro on 2026-11-09 before the code (task 37.1, from review follow-up 20.5). This covers the pure edits in `frontend/src/core/correct.ts`. Selecting and deleting curves and bars on the Correct screen is a later Antigravity lane; design.md lists what it must add.
+
+**User Story:** As a teacher correcting a scene, I want to remove a curve or a bar the vision model invented, as I can already remove a point or a line, so that the student does not feel something that is not in the diagram.
+
+#### Acceptance Criteria
+1. WHEN `deletePolyline(scene, id)` is called with the id of a polyline in the scene THEN the system SHALL return a new scene without that polyline. Every point, segment and bar, every other polyline (in order) and every other field of the scene SHALL stay exactly as it was.
+2. WHEN `deleteBar(scene, id)` is called with the id of a bar in the scene THEN the system SHALL return a new scene without that bar. Every point, segment and polyline, every other bar (in order) and every other field SHALL stay exactly as it was.
+3. IF no polyline (for `deletePolyline`) or no bar (for `deleteBar`) has the given id THEN the function SHALL return the same scene object. An id that belongs to an element of another kind SHALL count as unknown.
+4. Neither function SHALL mutate its input scene or any array or element in it.
+5. WHEN the input scene passes `validateSceneInvariants` THEN the result SHALL also pass it.
+6. Both deletions SHALL be undoable and redoable through the existing `applyEdit` / `historyReducer` history with no new action type. Undo SHALL restore the previous scene object exactly; an unknown id SHALL create no history entry.
+7. THE core SHALL allow deleting the last drawable element of a scene. Whether a scene with nothing left to feel may be shared or explored is decided by the validators (`share/validate.ts`, `backend/app/validate.py`), not by these edits.

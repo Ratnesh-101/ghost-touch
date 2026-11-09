@@ -2647,3 +2647,5 @@ Format for each entry:
   - `docs/reports/agy-p1-r5-backend-fixes-report.md`
   - `docs/BUILD_LOG.md`
 
+## 2026-11-09 — Kiro — T37 spec commit (Requirement 21, P62-P65, task 37)
+- Tool: **Kiro**. Committed the spec text for task 37 that was written earlier the same day and left uncommitted: Requirement 21 (`deletePolyline` and `deleteBar` in `core/correct.ts`), the design section, P62-P65 and task 37 (37.1 to 37.3). Spec files and this entry only. Requirement 20 and task 36 were already committed in `76c7874`. `frontend/src/core/correct.ts`, `frontend/tests/correct.deleteKinds.prop.test.ts` and `docs/reviews/session-review-latest.md` were also uncommitted and were deliberately left out of this commit. No app code was changed.

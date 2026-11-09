@@ -303,3 +303,12 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [ ] 36.6 Report what happened to `flow/teach.ts` `addVertex` / `generateUniquePointId` and their tests (kept for another caller, or removed)
   - [ ] 36.7 Gate (`tsc` 0 errors, `npm test` green with nothing skipped, build); BUILD_LOG entry (tool = "agy, reviewed by Claude"); report in `docs/reports/agy-g1-ghostwriter-ui-report.md`
   - _Requirements: 20.*_
+
+## Review follow-ups 20.5, 20.9, 20.10 (task 37; spec written before the code)
+> Do not edit `App.tsx`, `Explore.tsx`, `Correct.tsx`, `Teach.tsx`, `flow/`, `hitTest` or the tuned haptic values. Agy lanes are editing tests: skip any test file a non-Kiro commit changed in the last hour, and say so.
+
+- [ ] 37. Close review follow-ups 20.5 (core half), 20.9 and 20.10
+  - [ ] 37.1 Requirement 21, design and P62-P65 first; then `deletePolyline` and `deleteBar` in `core/correct.ts`; properties in `frontend/tests/correct.deleteKinds.prop.test.ts` (200+ runs), mutation-checked; the UI lane's controls and keys listed in design.md
+  - [ ] 37.2 Replace the remaining `fc.float` uses in `frontend/tests/*.prop.test.ts` with `fc.double` (same ranges, `noNaN: true` where the old generator could not give NaN, same run counts)
+  - [ ] 37.3 Validator parity: fixture `backend/fixtures/validator_parity.json` (named scenes, expected `accept`/`reject`, a reason key for rejects, `known_mismatch` where the two validators differ); one pytest and one vitest that run it through `backend/app/validate.py` and `frontend/src/share/validate.ts`; mismatches written up in `docs/reports/validator-parity.md`; neither validator changed
+  - _Requirements: 9.2, 9.3, 21.*_

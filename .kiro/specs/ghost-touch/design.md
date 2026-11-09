@@ -188,6 +188,10 @@ Each property maps to requirements and runs with fast-check (frontend) or Hypoth
 | P59 | **Add edge outcome and reason (task 36):** for any scene and any two strings, `planAddSegment` returns `samePoint` when a === b, `unknownPoint` when either is not a point id, `alreadyJoined` when a segment joins them in either direction, `limit` at the segment cap (checked in that order), each with the same scene object; otherwise `added`, with a scene equal to `addSegment(scene, a, b)`. | 20.3.3, 20.5 |
 | P60 | **Undo names what it removes (task 36):** for any scene and any successful add, `describeUndo(after, before)` names the added point's id, or both endpoints of the added edge; for a move, rename or delete it returns `undefined`, so the existing undo wording is used. | 20.4 |
 | P61 | **New strings are complete and honest (task 36):** every key in `GHOSTWRITER_KEYS` exists in `en`, `hi` and `gu`, is not blank, has the same `{placeholders}` in all three, has Hindi and Gujarati values that differ from English, and its English value contains none of "verified", "correct", "checked", "approved" (case-insensitive). Run over random placeholder values (200+ runs) through `tf()`. | 20.6, 20.7 |
+| P62 | **Deleting a curve or a bar keeps the scene valid and removes exactly one element (Kiro, task 37.1):** for any valid scene and the id of one of its polylines (or bars), `deletePolyline` (or `deleteBar`) returns a scene that passes `validateSceneInvariants`, has exactly one polyline (or bar) fewer, has no element with that id, keeps the remaining polylines (or bars) in order, and does not mutate its input. | 21.1, 21.2, 21.4, 21.5 |
+| P63 | **An unknown id changes nothing (Kiro, task 37.1):** for any valid scene and any id that is not a polyline id (or not a bar id), including the ids of points, segments and the other kind, the function returns the same scene object. | 21.3 |
+| P64 | **Delete then undo is exact (Kiro, task 37.1):** applying either deletion through `historyReducer` and undoing gives back the previous scene object, and redo gives back the edited one. A no-op leaves the history unchanged. | 21.6 |
+| P65 | **Other kinds are untouched (Kiro, task 37.1):** after either deletion, `points`, `segments`, `axes`, `facts`, `title`, `kind`, `aspect` and the other element kind are the same references as before. | 21.1, 21.2 |
 | P39 | **Validation is a fixed point (Kiro, Hypothesis, backend):** a well-formed scene passes `validate_scene` unchanged, and validating an accepted scene's own output returns the same scene. | 9.3 |
 | P40 | **Rate-limit identity resists spoofing (Kiro, Hypothesis, backend):** for any `X-Forwarded-For` the client forges, the client key equals the key of the same peer without forgery; with zero trusted hops the key is the peer address. | 16.1 |
 | P41 | **Rate-limit state is bounded (Kiro, Hypothesis, backend):** after any sequence of requests and clock advances, the limiter holds no empty window and no more keys than clients active in the last window; the limit itself never admits more than `per_minute` requests. | 16.2 |
@@ -336,6 +340,35 @@ After `teach.edgeSamePoint` the mode stays `addEdgeSecond` with the same first p
   - the point cap;
   - Explore renders no add control.
 - An example for 20.6: a triangle whose facts give a length for `CD` while `D` and `CD` are missing is silent. After adding `D` and `CD` in Teach, `exploreAnnouncement(scene, 'shared')` contains the unchanged `verify.disagree` sentence when the drawn `CD` does not match.
+
+## Correct mode: delete curves and bars (Requirement 21)
+Written by Kiro before the code (task 37.1).
+
+### Core (`frontend/src/core/correct.ts`)
+- `deletePolyline(scene, id)` and `deleteBar(scene, id)` follow the shape of `deleteSegment`, with one difference: they return `scene` itself when no element of that kind has the id (21.3). That lets `applyEdit` skip a history entry for a no-op.
+- The result is `{ ...scene, polylines: polylines.filter(p => p.id !== id) }` (or `bars`). Nothing else is copied.
+- An empty `polylines` or `bars` array is kept as `[]`; it is not removed. Removing the last drawable element is allowed (21.7).
+
+### What the later UI lane must add (not built here; `Correct.tsx` and `flow/` were not edited)
+- **Selection:** `flow/correct.ts` `CorrectSelection` gains `{ kind: 'polyline'; id }` and `{ kind: 'bar'; id }`. `hitTestCorrect` gains, after points and segments:
+  - a polyline hit within `HIT_SEGMENT_RADIUS_PX` of any piece;
+  - a bar hit inside the bar's rectangle.
+  
+  The priority is point > segment > polyline > bar. `getSelectedLabel` and `getSelectionAnnouncement` name the curve or bar by label, otherwise by id.
+- **Controls:** the existing Delete button (`correct.delete`, at least 48 × 48 CSS px, accessible name) deletes the selected polyline or bar too. It needs no new button. The keyboard Delete shortcut follows the same path.
+- **History:** apply through `applyEdit`; Undo speaks the existing `correct.undo`.
+- **New i18n keys** (en given; hi and gu by the lane, listed in `docs/user-test/translation-review.csv` and `.md` for native review):
+
+  | Key | English |
+  |---|---|
+  | `correct.selectedPolyline` | Selected curve |
+  | `correct.selectedBar` | Selected bar |
+  | `correct.polylineDeleted` | Deleted curve |
+  | `correct.barDeleted` | Deleted bar |
+  | `correct.nothingLeft` | Nothing is left to feel in this diagram. Undo brings it back. |
+
+  `correct.nothingLeft` is spoken after a delete leaves no point, segment, polyline or bar.
+- **Tests the lane writes:** selection and hit priority for curves and bars; deleting each kind from the screen; the spoken text in en, hi and gu; and undo after a curve or bar delete.
 
 ## Halloween Presentation Layer
 Dark background, glowing green strokes, a small "creature" mascot assembled from phone parts on the start screen, and the theremin as the signature sound. The theme never touches the users themselves (see `product.md`).
