@@ -111,7 +111,9 @@ export async function saveDiagramWithEviction(
   if (decision.evictedId !== undefined) {
     const deleteResult = await store.delete(decision.evictedId);
     if (!deleteResult.ok) {
-      return { ok: true, evictedId: undefined };
+      // Roll back the new entry to preserve capacity cap
+      await store.delete(newEntry.id);
+      return { ok: false, error: deleteResult.error };
     }
   }
 

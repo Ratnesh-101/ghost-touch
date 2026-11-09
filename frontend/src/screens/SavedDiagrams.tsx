@@ -24,7 +24,7 @@ import '../styles/saved.css';
 export interface SavedDiagramsProps {
   diagramStore: DiagramStore;
   speech: SpeechDriver;
-  onOpen: (scene: DiagramScene, title: string) => void;
+  onOpen: (scene: DiagramScene, title: string, id?: string) => void;
   onBack: () => void;
 }
 
@@ -74,7 +74,7 @@ export function SavedDiagrams({
   const handleOpen = (entry: SavedDiagram): void => {
     const msg = t('saved.opened').replace('{title}', entry.title);
     say(msg);
-    onOpen(entry.scene, entry.title);
+    onOpen(entry.scene, entry.title, entry.id);
   };
 
   const handleDeleteRequest = (entry: SavedDiagram): void => {

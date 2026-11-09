@@ -112,12 +112,25 @@ function idbPromise<T>(req: IDBRequest<T>): Promise<T> {
  * Guards against minimal mocks that don't implement addEventListener.
  */
 function waitTx(tx: unknown): Promise<void> {
+  if (!tx || typeof tx !== 'object') {
+    return Promise.resolve();
+  }
   const txObj = tx as Partial<IDBTransaction>;
-  if (txObj && typeof txObj.addEventListener === 'function') {
+  const rawAddListener = txObj.addEventListener;
+  if (typeof rawAddListener === 'function') {
+    const addListener: (type: string, listener: () => void) => void =
+      rawAddListener.bind(txObj);
     return new Promise<void>((resolve, reject) => {
       txObj.oncomplete = () => resolve();
       txObj.onerror = () => reject(txObj.error ?? new Error('Transaction error'));
       txObj.onabort = () => reject(txObj.error ?? new Error('Transaction aborted'));
+      try {
+        addListener('complete', () => resolve());
+        addListener('error', () => reject(txObj.error ?? new Error('Transaction error')));
+        addListener('abort', () => reject(txObj.error ?? new Error('Transaction aborted')));
+      } catch {
+        // Safe fallback for mocks without real event listener support
+      }
     });
   }
   return Promise.resolve();
@@ -242,10 +255,10 @@ export class IDBDiagramStore implements DiagramStore {
       try {
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
-        await idbPromise(store.put(entry));
         if (evictedId !== undefined) {
           await idbPromise(store.delete(evictedId));
         }
+        await idbPromise(store.put(entry));
         await waitTx(tx);
         return { ok: true, value: undefined };
       } finally {

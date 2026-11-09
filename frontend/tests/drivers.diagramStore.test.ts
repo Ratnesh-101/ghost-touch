@@ -426,10 +426,20 @@ describe('IDBDiagramStore — realistic IndexedDB failure paths (TQ-06)', () => 
       },
       close: vi.fn(),
       transaction: (_storeName: string, mode: string) => {
+        const snapshot = new Map(rawMap);
         let isPutOp = false;
         let isDeleteOp = false;
-        let stagedPut: SavedDiagram | null = null;
-        let stagedDeleteId: string | null = null;
+        let hasRequestError = false;
+        let requestError: Error | undefined;
+        const stagedPuts: SavedDiagram[] = [];
+        const stagedDeletes: string[] = [];
+
+        const rollback = () => {
+          rawMap.clear();
+          for (const [k, v] of snapshot) {
+            rawMap.set(k, v);
+          }
+        };
 
         const txObj = {
           mode,
@@ -438,6 +448,10 @@ describe('IDBDiagramStore — realistic IndexedDB failure paths (TQ-06)', () => 
           onerror: null as (() => void) | null,
           onabort: null as (() => void) | null,
           addEventListener: vi.fn(),
+          abort: () => {
+            rollback();
+            txObj.onabort?.();
+          },
           objectStore: (_name: string) => ({
             getAll: () => {
               const req: {
@@ -473,10 +487,12 @@ describe('IDBDiagramStore — realistic IndexedDB failure paths (TQ-06)', () => 
               } = {};
               setTimeout(() => {
                 if (options.failPutRequest) {
+                  hasRequestError = true;
+                  requestError = options.failPutRequest;
                   req.error = options.failPutRequest;
                   req.onerror?.();
                 } else {
-                  stagedPut = val;
+                  stagedPuts.push(val);
                   req.onsuccess?.();
                 }
               }, 0);
@@ -492,10 +508,12 @@ describe('IDBDiagramStore — realistic IndexedDB failure paths (TQ-06)', () => 
               } = {};
               setTimeout(() => {
                 if (options.failDeleteRequest) {
+                  hasRequestError = true;
+                  requestError = options.failDeleteRequest;
                   req.error = options.failDeleteRequest;
                   req.onerror?.();
                 } else {
-                  stagedDeleteId = key;
+                  stagedDeletes.push(key);
                   req.onsuccess?.();
                 }
               }, 0);
@@ -508,16 +526,28 @@ describe('IDBDiagramStore — realistic IndexedDB failure paths (TQ-06)', () => 
         setTimeout(() => {
           if (isDeleteOp && options.abortOnEvictTx) {
             txObj.error = options.abortOnEvictTx;
+            rollback();
             txObj.onabort?.();
             return;
           }
           if (isPutOp && options.abortOnPutTx) {
             txObj.error = options.abortOnPutTx;
+            rollback();
             txObj.onabort?.();
             return;
           }
-          if (stagedPut) rawMap.set(stagedPut.id, stagedPut);
-          if (stagedDeleteId) rawMap.delete(stagedDeleteId);
+          if (hasRequestError) {
+            txObj.error = requestError ?? new Error('Request failed in transaction');
+            rollback();
+            txObj.onabort?.();
+            return;
+          }
+          for (const key of stagedDeletes) {
+            rawMap.delete(key);
+          }
+          for (const item of stagedPuts) {
+            rawMap.set(item.id, item);
+          }
           txObj.oncomplete?.();
         }, 10);
 
@@ -612,15 +642,15 @@ describe('IDBDiagramStore — realistic IndexedDB failure paths (TQ-06)', () => 
     }
 
     // Both earlier entries must remain present and intact.
-    // Incoming diagram was also stored because store.put() runs before eviction.
+    // Eviction failed before put (R5-02), so incoming diagram was not saved.
     const listRes = await store.list();
     expect(listRes.ok).toBe(true);
     if (listRes.ok) {
-      expect(listRes.value).toHaveLength(3);
-      expect(listRes.value).toEqual([existing1, existing2, incoming]);
+      expect(listRes.value).toHaveLength(2);
+      expect(listRes.value).toEqual([existing1, existing2]);
     }
     expect(rawMap.get(existing1.id)).toEqual(existing1);
     expect(rawMap.get(existing2.id)).toEqual(existing2);
-    expect(rawMap.get(incoming.id)).toEqual(incoming);
+    expect(rawMap.has(incoming.id)).toBe(false);
   });
 });

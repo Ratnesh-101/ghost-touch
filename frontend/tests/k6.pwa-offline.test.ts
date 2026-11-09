@@ -371,31 +371,48 @@ describe('B4-04: Atomic diagram save and eviction in IndexedDB and memory store'
     }
   });
 
-  it('IDBDiagramStore supports atomic putWithEviction', async () => {
-    let putCalled = false;
-    let deleteCalled = false;
+  it('IDBDiagramStore putWithEviction deletes victim before put (R5-02, R5-09)', async () => {
+    const callOrder: string[] = [];
+    const eventListeners: Record<string, ((ev?: unknown) => void)[]> = {};
 
     const fakeFactory = {
       open: () => {
+        const fakeTx = {
+          addEventListener: vi.fn((type: string, listener: (ev?: unknown) => void) => {
+            if (!eventListeners[type]) eventListeners[type] = [];
+            eventListeners[type].push(listener);
+          }),
+          objectStore: () => ({
+            delete: (id: string) => {
+              callOrder.push(`delete:${id}`);
+              const req: Record<string, unknown> = {};
+              setTimeout(() => {
+                if (typeof req.onsuccess === 'function') {
+                  (req.onsuccess as () => void)();
+                }
+              }, 0);
+              return req;
+            },
+            put: (entry: SavedDiagram) => {
+              callOrder.push(`put:${entry.id}`);
+              const req: Record<string, unknown> = {};
+              setTimeout(() => {
+                if (typeof req.onsuccess === 'function') {
+                  (req.onsuccess as () => void)();
+                }
+                setTimeout(() => {
+                  eventListeners['complete']?.forEach((cb) => cb());
+                }, 0);
+              }, 0);
+              return req;
+            },
+          }),
+        };
+
         const fakeDb = {
           objectStoreNames: { contains: () => true },
           close: vi.fn(),
-          transaction: () => ({
-            objectStore: () => ({
-              put: () => {
-                putCalled = true;
-                const req: Record<string, unknown> = {};
-                setTimeout(() => typeof req.onsuccess === 'function' && req.onsuccess(), 0);
-                return req;
-              },
-              delete: () => {
-                deleteCalled = true;
-                const req: Record<string, unknown> = {};
-                setTimeout(() => typeof req.onsuccess === 'function' && req.onsuccess(), 0);
-                return req;
-              },
-            }),
-          }),
+          transaction: () => fakeTx,
         };
         const req: Record<string, unknown> = {};
         setTimeout(() => {
@@ -411,8 +428,67 @@ describe('B4-04: Atomic diagram save and eviction in IndexedDB and memory store'
     const res = await store.putWithEviction(makeEntry('new_d', 5000), 'old_d');
 
     expect(res.ok).toBe(true);
-    expect(putCalled).toBe(true);
-    expect(deleteCalled).toBe(true);
+    // R5-02: Victim MUST be deleted before putting new entry inside the same transaction
+    expect(callOrder).toEqual(['delete:old_d', 'put:new_d']);
+    // R5-09: Must use addEventListener for completion and aborts
+    expect(eventListeners['complete']).toBeDefined();
+    expect(eventListeners['error']).toBeDefined();
+    expect(eventListeners['abort']).toBeDefined();
+  });
+
+  it('IDBDiagramStore putWithEviction returns ok:false when put fails (quota error)', async () => {
+    const callOrder: string[] = [];
+
+    const fakeFactory = {
+      open: () => {
+        const fakeTx = {
+          addEventListener: vi.fn(),
+          objectStore: () => ({
+            delete: (id: string) => {
+              callOrder.push(`delete:${id}`);
+              const req: Record<string, unknown> = {};
+              setTimeout(() => {
+                if (typeof req.onsuccess === 'function') {
+                  (req.onsuccess as () => void)();
+                }
+              }, 0);
+              return req;
+            },
+            put: () => {
+              callOrder.push('put:failed');
+              const req: Record<string, unknown> = {
+                error: new Error('QuotaExceededError'),
+              };
+              setTimeout(() => {
+                if (typeof req.onerror === 'function') {
+                  (req.onerror as () => void)();
+                }
+              }, 0);
+              return req;
+            },
+          }),
+        };
+
+        const fakeDb = {
+          objectStoreNames: { contains: () => true },
+          close: vi.fn(),
+          transaction: () => fakeTx,
+        };
+        const req: Record<string, unknown> = {};
+        setTimeout(() => {
+          if (typeof req.onsuccess === 'function') {
+            (req.onsuccess as (ev: unknown) => void)({ target: { result: fakeDb } });
+          }
+        }, 0);
+        return req;
+      },
+    } as unknown as IDBFactory;
+
+    const store = new IDBDiagramStore(fakeFactory);
+    const res = await store.putWithEviction(makeEntry('new_d', 5000), 'old_d');
+
+    expect(res.ok).toBe(false);
+    expect(callOrder).toEqual(['delete:old_d', 'put:failed']);
   });
 });
 
