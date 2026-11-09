@@ -46,6 +46,7 @@ EXPECTED_TOP_LEVEL_PROPERTIES = frozenset(
         "bars",
         "axes",
         "facts",
+        "aspect",
     }
 )
 

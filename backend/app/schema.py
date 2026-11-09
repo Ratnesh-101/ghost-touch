@@ -32,8 +32,8 @@ class Point(BaseModel):
     """A named vertex with normalized coordinates."""
 
     id: str
-    x: float = Field(ge=0.0, le=1.0)
-    y: float = Field(ge=0.0, le=1.0)
+    x: float = Field(ge=0.0, le=1.0, allow_inf_nan=False)
+    y: float = Field(ge=0.0, le=1.0, allow_inf_nan=False)
     label: str | None = None
 
 
@@ -52,7 +52,7 @@ class Polyline(BaseModel):
     id: str
     points: list[
         Annotated[
-            list[Annotated[float, Field(ge=0.0, le=1.0)]],
+            list[Annotated[float, Field(ge=0.0, le=1.0, allow_inf_nan=False)]],
             Field(min_length=2, max_length=2),
         ]
     ]
@@ -63,19 +63,19 @@ class Bar(BaseModel):
     """A bar-chart bar with normalized geometry and a numeric value."""
 
     id: str
-    x0: float = Field(ge=0.0, le=1.0)
-    x1: float = Field(ge=0.0, le=1.0)
-    y_top: float = Field(ge=0.0, le=1.0)
-    y_base: float = Field(ge=0.0, le=1.0)
+    x0: float = Field(ge=0.0, le=1.0, allow_inf_nan=False)
+    x1: float = Field(ge=0.0, le=1.0, allow_inf_nan=False)
+    y_top: float = Field(ge=0.0, le=1.0, allow_inf_nan=False)
+    y_base: float = Field(ge=0.0, le=1.0, allow_inf_nan=False)
     label: str
-    value: float
+    value: float = Field(allow_inf_nan=False)
 
 
 class Axes(BaseModel):
     """Optional axis positions, normalized to [0, 1]."""
 
-    x_axis_y: float | None = Field(default=None, ge=0.0, le=1.0)
-    y_axis_x: float | None = Field(default=None, ge=0.0, le=1.0)
+    x_axis_y: float | None = Field(default=None, ge=0.0, le=1.0, allow_inf_nan=False)
+    y_axis_x: float | None = Field(default=None, ge=0.0, le=1.0, allow_inf_nan=False)
 
 
 class DiagramScene(BaseModel):
@@ -84,12 +84,20 @@ class DiagramScene(BaseModel):
     version: Literal[1] = 1
     kind: Literal["geometry", "function_graph", "bar_chart", "unknown"]
     title: str | None = None
-    points: list[Point] = []
-    segments: list[Segment] = []
-    polylines: list[Polyline] = []
-    bars: list[Bar] = []
+    points: list[Point] = Field(default_factory=list)
+    segments: list[Segment] = Field(default_factory=list)
+    polylines: list[Polyline] = Field(default_factory=list)
+    bars: list[Bar] = Field(default_factory=list)
     axes: Axes | None = None
-    facts: list[str] = []  # e.g. "AB = 5 cm", "angle C = 90°" — used by Ask
+    facts: list[str] = Field(
+        default_factory=list
+    )  # e.g. "AB = 5 cm", "angle C = 90°" — used by Ask
+    aspect: float = Field(
+        default=1.0,
+        gt=0.0,
+        allow_inf_nan=False,
+        description="Aspect ratio (width / height) of the diagram's bounding box",
+    )
 
     @model_validator(mode="after")
     def _check_invariants(self) -> DiagramScene:
