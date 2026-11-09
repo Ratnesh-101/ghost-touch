@@ -6,10 +6,12 @@
  * - "Go to start" button to return to the Start screen and clear hash.
  * - Never renders raw payload strings, tracebacks, or stack traces.
  * - Touch targets >= 48x48 px via `.gt-control`.
+ * - R5-04: Follows StatusText pattern (no live region when speech synthesis speaks).
  */
 
 import type { JSX } from 'react';
 import { AccessibleButton } from '../components/AccessibleButton';
+import { StatusText } from '../components/StatusText';
 import { t } from '../i18n';
 import type { ShareErrorCode } from '../share';
 
@@ -33,10 +35,13 @@ export function shareErrorMessage(code: ShareErrorCode): string {
 export interface ShareErrorProps {
   code: ShareErrorCode;
   onGoToStart: () => void;
+  canSpeak?: boolean;
 }
 
-export function ShareError({ code, onGoToStart }: ShareErrorProps): JSX.Element {
+export function ShareError({ code, onGoToStart, canSpeak }: ShareErrorProps): JSX.Element {
   const message = shareErrorMessage(code);
+  const speechAvailable =
+    canSpeak ?? (typeof window !== 'undefined' && 'speechSynthesis' in window);
 
   return (
     <main className="gt-share-error gt-lab-explore">
@@ -44,8 +49,13 @@ export function ShareError({ code, onGoToStart }: ShareErrorProps): JSX.Element 
         <h1 className="gt-share-error__title">{t('share.error.title')}</h1>
       </header>
 
-      <section className="gt-share-error__card" role="alert">
-        <p className="gt-share-error__message">{message}</p>
+      <section
+        className="gt-share-error__card"
+        role={speechAvailable ? undefined : 'alert'}
+      >
+        <StatusText className="gt-share-error__message" spoken={speechAvailable}>
+          {message}
+        </StatusText>
       </section>
 
       <footer className="gt-share-error__footer">

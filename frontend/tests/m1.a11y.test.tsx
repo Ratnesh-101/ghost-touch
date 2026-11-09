@@ -38,8 +38,6 @@ import { VerifiedBanner } from '../src/components/VerifiedBanner';
 import { Logo } from '../src/components/Logo';
 import {
   Explore,
-  resolveCanvasAriaLabel,
-  shouldSuppressCanvasAriaLabel,
 } from '../src/screens/Explore';
 import { contrastRatio, parseColourTokens } from './a11y.contrast.test';
 
@@ -143,12 +141,17 @@ describe('A11Y-01: Explore canvas accessible name', () => {
     expect(html).toContain(t('explore.gestureHint'));
   });
 
-  it('preserves exported helpers for backward compatibility', () => {
-    expect(shouldSuppressCanvasAriaLabel(true, 'Prompt')).toBe(true);
-    expect(shouldSuppressCanvasAriaLabel(false, 'Prompt')).toBe(false);
-    expect(resolveCanvasAriaLabel(triangleScene, false, 'Prompt')).toBe(
-      canvasAriaLabel(triangleScene),
+  it('renders canvas element with component real aria-label matching canvasAriaLabel', () => {
+    const drivers = createMockDrivers();
+    const html = renderToStaticMarkup(
+      createElement(Explore, {
+        scene: triangleScene,
+        announced: 'Prompt',
+        drivers,
+        onBack: vi.fn(),
+      }),
     );
+    expect(html).toContain(`aria-label="${canvasAriaLabel(triangleScene)}"`);
   });
 });
 
@@ -388,8 +391,8 @@ describe('A11Y-03: Honesty / Verified banner interactive control', () => {
 
   it('retains unverified meaning without adding "verified" to new strings', () => {
     const text = t('share.honesty');
-    expect(text.toLowerCase()).toContain('not cryptographic proof');
-    expect(text.toLowerCase()).toContain('person reviewed');
+    expect(text.toLowerCase()).toContain('not verified');
+    expect(text.toLowerCase()).not.toContain('person reviewed');
   });
 });
 

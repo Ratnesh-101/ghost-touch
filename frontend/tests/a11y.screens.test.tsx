@@ -438,9 +438,14 @@ describe('Translation parity for primary controls (Requirement 2)', () => {
   const allowedBrandWordsAndUnits = new Set([
     'Ghost Touch',
     '1.0×',
+    '0.8×',
+    '1.25×',
     '1.0x',
     '0.8x',
     '1.25x',
+    'English',
+    'हिन्दी',
+    'ગુજરાતી',
     'English (English)',
     'Hindi (हिन्दी)',
     'Gujarati (ગુજરાતી)',
@@ -614,11 +619,25 @@ describe('Translation parity for primary controls (Requirement 2)', () => {
       renderToStaticMarkup(createElement(LabSettings, { open: true, onClose: vi.fn(), drivers })),
     );
 
+    // Exclude controls that are language endonyms (the names of the languages: 'English',
+    // 'Hindi (हिन्दी)', 'Gujarati (ગુજરાતી)'). The control named 'English' is the language's
+    // own name and is legitimately identical in every UI language (R5-10 made its label plain
+    // 'English' rather than duplicate 'English (English)'), enabling users to identify and switch
+    // to their language regardless of active locale.
+    const languageEndonyms = new Set([
+      'English',
+      'हिन्दी',
+      'ગુજરાતી',
+      'English (English)',
+      'Hindi (हिन्दी)',
+      'Gujarati (ગુજરાતી)',
+    ]);
+
     for (let i = 0; i < namesEn.length; i++) {
       const en = namesEn[i] ?? '';
       const hi = namesHi[i] ?? '';
       const gu = namesGu[i] ?? '';
-      if (!allowedBrandWordsAndUnits.has(en)) {
+      if (!allowedBrandWordsAndUnits.has(en) && !languageEndonyms.has(en)) {
         expect(hi, `Missing Hindi translation for LabSettings control "${en}"`).not.toEqual(en);
         expect(gu, `Missing Gujarati translation for LabSettings control "${en}"`).not.toEqual(en);
       }

@@ -107,9 +107,9 @@ describe('LabSettings dialog semantics (renderToStaticMarkup)', () => {
     expect(html).toContain('ગુજરાતી');
 
     // Controls for rates
-    expect(html).toContain('0.8x');
-    expect(html).toContain('1.0x');
-    expect(html).toContain('1.25x');
+    expect(html).toContain('0.8×');
+    expect(html).toContain('1.0×');
+    expect(html).toContain('1.25×');
   });
 
   it('renders backdrop overlay with aria-hidden="true"', () => {

@@ -11,17 +11,17 @@
 import { useState, type JSX } from 'react';
 import { AccessibleButton } from './AccessibleButton';
 import type { Drivers, SpeechRateSetting } from '../drivers';
-import { getLang, LANG_BCP47, t } from '../i18n';
+import { formatRateMultiplier, getLang, LANG_BCP47, t } from '../i18n';
 
 interface RateSelectorProps {
   drivers: Drivers;
   className?: string;
 }
 
-const RATES: readonly { id: SpeechRateSetting; labelKey: string; multiplierText: string }[] = [
-  { id: 'slow', labelKey: 'rate.slow', multiplierText: '0.8x' },
-  { id: 'normal', labelKey: 'rate.normal', multiplierText: '1.0x' },
-  { id: 'fast', labelKey: 'rate.fast', multiplierText: '1.25x' },
+const RATES: readonly { id: SpeechRateSetting; labelKey: string }[] = [
+  { id: 'slow', labelKey: 'rate.slow' },
+  { id: 'normal', labelKey: 'rate.normal' },
+  { id: 'fast', labelKey: 'rate.fast' },
 ];
 
 export function RateSelector({ drivers, className = '' }: RateSelectorProps): JSX.Element {
@@ -47,8 +47,9 @@ export function RateSelector({ drivers, className = '' }: RateSelectorProps): JS
       role="group"
       aria-label={t('rate.label')}
     >
-      {RATES.map(({ id, labelKey, multiplierText }) => {
+      {RATES.map(({ id, labelKey }) => {
         const isSelected = currentRate === id;
+        const multiplierText = formatRateMultiplier(id);
         return (
           <AccessibleButton
             key={id}

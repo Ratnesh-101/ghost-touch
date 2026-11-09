@@ -56,22 +56,42 @@ describe('ShareError Screen and error messages', () => {
     expect(shareErrorMessage('empty')).toBe('This shared link has no diagram.');
   });
 
-  it('renders ShareError screen with role="alert" and friendly message for each code', () => {
+  it('renders ShareError screen with role="alert" when speech cannot speak, and without role="alert" when it can', () => {
     for (const code of errorCodes) {
-      const html = renderToStaticMarkup(
+      // With a speech driver that canSpeak: NO role="alert" and message text is still rendered
+      const htmlSpoken = renderToStaticMarkup(
         createElement(ShareError, {
           code,
           onGoToStart: vi.fn(),
+          canSpeak: true,
         }),
       );
-      const root = parseHtml(html);
-      const alert = getAllElements(root).filter((el) => el.attrs['role'] === 'alert');
+      const rootSpoken = parseHtml(htmlSpoken);
+      const alertsSpoken = getAllElements(rootSpoken).filter(
+        (el) => el.attrs['role'] === 'alert',
+      );
+      expect(alertsSpoken.length).toBe(0);
+      expect(htmlSpoken).not.toContain('role="alert"');
+      expect(htmlSpoken).toContain(shareErrorMessage(code));
+      expect(htmlSpoken).toContain('Go to start');
 
-      expect(alert.length).toBe(1);
-      expect(html).toContain(shareErrorMessage(code));
-      expect(html).toContain('Go to start');
-      expect(html).not.toContain('trace');
-      expect(html).not.toContain('stack');
+      // With a driver that cannot speak: role="alert" is present exactly once and message text is rendered
+      const htmlMuted = renderToStaticMarkup(
+        createElement(ShareError, {
+          code,
+          onGoToStart: vi.fn(),
+          canSpeak: false,
+        }),
+      );
+      const rootMuted = parseHtml(htmlMuted);
+      const alertsMuted = getAllElements(rootMuted).filter(
+        (el) => el.attrs['role'] === 'alert',
+      );
+      expect(alertsMuted.length).toBe(1);
+      expect(htmlMuted).toContain(shareErrorMessage(code));
+      expect(htmlMuted).toContain('Go to start');
+      expect(htmlMuted).not.toContain('trace');
+      expect(htmlMuted).not.toContain('stack');
     }
   });
 

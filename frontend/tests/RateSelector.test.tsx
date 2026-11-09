@@ -115,9 +115,9 @@ describe('RateSelector: ARIA Group Semantics & Accessible Names', () => {
     const buttons = getAllElements(root).filter((el) => el.tag === 'button');
     expect(buttons).toHaveLength(3);
 
-    expect(html).toContain('0.8x');
-    expect(html).toContain('1.0x');
-    expect(html).toContain('1.25x');
+    expect(html).toContain('0.8×');
+    expect(html).toContain('1.0×');
+    expect(html).toContain('1.25×');
   });
 
   it('provides descriptive accessible names on all rate options via aria-label', () => {
@@ -131,9 +131,9 @@ describe('RateSelector: ARIA Group Semantics & Accessible Names', () => {
 
     const names = buttons.map((btn) => getAccessibleName(btn, idMap, labelForMap));
     expect(names).toEqual([
-      'Slow speech (0.8x)',
-      'Normal speech (1.0x)',
-      'Fast speech (1.25x)',
+      'Slow speech (0.8×)',
+      'Normal speech (1.0×)',
+      'Fast speech (1.25×)',
     ]);
   });
 });

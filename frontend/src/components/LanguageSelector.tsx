@@ -58,7 +58,11 @@ export function LanguageSelector({ drivers, className = '' }: LanguageSelectorPr
               isSelected ? 'gt-lang-selector__btn--active' : ''
             }`}
             aria-pressed={isSelected}
-            aria-label={`${info.english} (${info.native})`}
+            aria-label={
+              info.english === info.native
+                ? info.english
+                : `${info.english} (${info.native})`
+            }
             onClick={() => handleSelect(lang)}
           >
             <span className="gt-lang-selector__native">{info.native}</span>
