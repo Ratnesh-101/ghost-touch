@@ -7,6 +7,7 @@
  * - encodeShare, shareUrl, decodeShare
  * - validateShareScene, sanitizeString
  * - qrDataUrl
+ * - ShareGate, honesty helpers
  *
  * Contract: docs/briefs/guide-share-contract.md § Share contract
  */
@@ -25,3 +26,14 @@ export {
 export { sanitizeString, validateShareScene } from './validate';
 
 export { qrDataUrl } from './qr';
+
+export { ShareGate, type ShareGateProps } from '../components/ShareGate';
+
+export {
+  buildHonestShareAnnouncement,
+  formatShareTitleAnnouncement,
+  honestSharedByLabel,
+  sanitizeShareName,
+  sanitizeShareTitle,
+  type HonestShareAnnouncementOptions,
+} from '../flow/share';

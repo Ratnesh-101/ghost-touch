@@ -14,7 +14,16 @@ const screenArb = fc.constantFrom<ScreenName>(...SCREEN_NAMES);
 describe('P43 — leaveByBack', () => {
   it('covers every screen the app can show', () => {
     expect([...SCREEN_NAMES].sort()).toEqual(
-      ['capture', 'correct', 'explore', 'saved', 'shareError', 'start', 'teach'].sort(),
+      [
+        'capture',
+        'correct',
+        'explore',
+        'saved',
+        'shareError',
+        'shareGate',
+        'start',
+        'teach',
+      ].sort(),
     );
   });
 
@@ -61,6 +70,7 @@ describe('P43 — leaveByBack', () => {
       needsConfirm: false,
     });
     expect(leaveByBack('shareError', { dirty: false, fromShare: false }).next).toBe('start');
+    expect(leaveByBack('shareGate', { dirty: false, fromShare: false }).next).toBe('start');
     expect(leaveByBack('explore', { dirty: false, fromShare: true })).toEqual({
       next: 'start',
       announceKey: 'start.intro',

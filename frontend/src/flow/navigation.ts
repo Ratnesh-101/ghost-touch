@@ -5,6 +5,7 @@ import type { DiagramScene } from '../core/scene';
 import type { SceneMode } from '../api/scene';
 import { verifyScene, getFindingTarget, type VerifyMode } from '../core/verify';
 import { joinAnnouncements } from './explore';
+import { sanitizeShareTitle } from './share';
 import { t } from '../i18n';
 
 /** Spoken name of a scene: its title, or its kind when it has none. */
@@ -43,8 +44,24 @@ export function exploreAnnouncement(
   scene: DiagramScene,
   mode: SceneMode | VerifyMode = 'ai',
   verifyMode?: VerifyMode,
+  options?: { honestTitle?: boolean },
 ): string {
-  const name = sceneName(scene);
+  const isShared = mode === 'shared' || verifyMode === 'shared';
+  const rawTitle = scene.title;
+  let name: string;
+  if (
+    options?.honestTitle &&
+    isShared &&
+    typeof rawTitle === 'string' &&
+    rawTitle.trim() !== ''
+  ) {
+    const clean = sanitizeShareTitle(rawTitle);
+    name = clean !== ''
+      ? t('share.titlePrefix').replace('{title}', clean)
+      : scene.kind;
+  } else {
+    name = sceneName(scene);
+  }
   const hint = `${t('explore.gestureHint')} ${t('explore.backHint')}`;
   const base =
     mode === 'raw'
@@ -79,6 +96,7 @@ export const SCREEN_NAMES = [
   'saved',
   'teach',
   'shareError',
+  'shareGate',
 ] as const;
 
 export type ScreenName = (typeof SCREEN_NAMES)[number];
@@ -116,6 +134,7 @@ export function leaveByBack(screen: ScreenName, ctx: BackContext): BackStep {
         ? { next: 'explore', announceKey: 'explore.gestureHint', needsConfirm: ctx.dirty }
         : { next: 'start', announceKey: 'start.intro', needsConfirm: ctx.dirty };
     case 'shareError':
+    case 'shareGate':
     case 'capture':
     case 'start':
       return { next: 'start', announceKey: 'start.intro', needsConfirm: false };
