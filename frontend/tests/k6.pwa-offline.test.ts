@@ -462,33 +462,26 @@ describe('B4-06 & B4-07: Render cold start timeout, retry and error mapping', ()
     expect(res.scene.title).toBe('Triangle');
   });
 
-  it('retries on HTTP 504 Gateway Timeout and speaks localized waking-up notice', async () => {
+  it('does not retry on HTTP 504 and throws SceneRequestError timeout', async () => {
     const onRetryMock = vi.fn();
-    const mockSuccessResponse = {
-      scene: { kind: 'function_graph', title: 'Sine wave' },
-      mode: 'ai',
-    };
-
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(new Response('', { status: 504 }))
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(mockSuccessResponse), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
-      );
+      .mockResolvedValueOnce(new Response('', { status: 504 }));
 
     const blob = new Blob(['fake image'], { type: 'image/jpeg' });
-    const res = await requestScene(blob, {
-      fetchImpl: fetchMock,
-      timeoutMs: 5000,
-      onRetry: onRetryMock,
+    await expect(
+      requestScene(blob, {
+        fetchImpl: fetchMock,
+        timeoutMs: 5000,
+        onRetry: onRetryMock,
+      }),
+    ).rejects.toMatchObject({
+      name: 'SceneRequestError',
+      failure: 'timeout',
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(onRetryMock).toHaveBeenCalledWith(t('capture.wakingUp'));
-    expect(res.mode).toBe('ai');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(onRetryMock).not.toHaveBeenCalled();
   });
 
   it('throws SceneRequestError with failure "gateway" when 502 persists after retry', async () => {

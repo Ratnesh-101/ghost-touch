@@ -74,7 +74,7 @@ function isBusyStatus(status: number): boolean {
 }
 
 function isGatewayStatus(status: number): boolean {
-  return status === 502 || status === 504;
+  return status === 502;
 }
 
 function getHeader(response: Response, name: string): string | null | undefined {
@@ -201,6 +201,10 @@ export async function requestScene(
         signal: controller.signal,
       });
 
+      if (response.status === 504) {
+        throw new SceneRequestError('timeout');
+      }
+
       if (isGatewayStatus(response.status)) {
         throw new SceneRequestError('gateway');
       }
@@ -212,6 +216,9 @@ export async function requestScene(
     }
 
     if (!response.ok) {
+      if (response.status === 504) {
+        throw new SceneRequestError('timeout');
+      }
       if (isGatewayStatus(response.status)) {
         throw new SceneRequestError('gateway');
       }
