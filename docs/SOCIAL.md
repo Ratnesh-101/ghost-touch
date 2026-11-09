@@ -13,7 +13,7 @@ We stitched 3 phone parts into an assistive creature in our Frankenstein's Lab r
 👁️ Vision AI for eyes (reads textbook photos, PDFs & falls back to classical Raw Mode)
 🎵 Theremin synthesizer for voice (height = pitch on curves, tones on bar charts)
 
-Supports Android TalkBack pass-through gesture (unverified on hardware). [RECOUNT] frontend + [RECOUNT] backend tests, [RECOUNT] mathematical properties verified with fast-check & Hypothesis. Spec-driven engineering by Kiro; Lab redesign built by Antigravity (agy); supervised and Round 2 gated by Claude Code.
+Supports Android TalkBack pass-through gesture (unverified on hardware). [RECOUNT] frontend + [RECOUNT] backend tests, [RECOUNT] mathematical properties verified with fast-check & Hypothesis. Spec-driven engineering by Kiro (pure core, P1–P13, Round 2 P40–P46, Round 3 P51–P57); Lab redesign, Spec Ghost & hardening by Antigravity (agy, P14–P30, P47–P50, lanes m1–m3, n1–n2, p1–p3); supervised and gated by Claude Code.
 
 Demo video: [FILL: video URL]  
 Repo & live demo: https://github.com/Ratnesh-101/ghost-touch | https://ghost-touch-iota.vercel.app  
@@ -35,9 +35,9 @@ We built Ghost Touch: a web app for budget Android phones that turns visual diag
 - **Teacher Correct Mode:** Sighted teachers can adjust detected vertices over a photo underlay and validate scenes in seconds.
 - **Offline Specimen Cards:** Right triangle, Sine wave, and Bar chart specimen cards run 100% locally with zero network requests.
 
-Ghost Touch was built through honest multi-agent pairing: formal EARS requirements, steering, 5 hooks, pure core, P1–P13, and Round 2 spec (Req 16–17, tasks 23–28, properties P40–P46) authored by Kiro; full Frankenstein Lab redesign, Teacher Correct mode (P16/P17), and offline storage (P14/P15) built by Antigravity (agy); overall supervision, Round 2 gating, and backend properties P40–P46 by Claude Code.
+Ghost Touch was built through honest multi-agent pairing: formal EARS requirements, steering, 5 hooks, pure core, P1–P13, and Round 2 spec (Req 16–17, tasks 23–28, properties P40–P46) authored by Kiro (plus Round 3 Spec Ghost review, CORE-09/NEEDS-KIRO-02 fix P51, hit-test P52–P53, and Ghostwriter core P54–P57); full Frankenstein Lab redesign, Spec Ghost build (P47–P50), Teacher Correct mode (P16/P17), offline storage (P14/P15), and hardening lanes (m1–m3, n1–n2, p1–p3) built by Antigravity (agy); overall supervision, Round 2 gating, and backend properties P40–P46 by Claude Code.
 
-Next step: in-person usability testing with blind students at the Blind People's Association (BPA) in Ahmedabad (session pending; physical phone motor validation pending). Security audits ongoing (open items CORE-09, NEEDS-KIRO-02); Guide and Share flagged OFF by default. Data privacy details in docs/PRIVACY.md.
+Next step: in-person usability testing with blind students at the Blind People's Association (BPA) in Ahmedabad (session pending; physical phone motor validation pending). Security audits ongoing (Round 2 items CORE-09 and NEEDS-KIRO-02 resolved in Round 3); Guide and Share flagged OFF by default. Data privacy details in docs/PRIVACY.md.
 
 Watch the 3-minute demo: [FILL: video URL]  
 Explore the codebase: https://github.com/Ratnesh-101/ghost-touch  
@@ -70,13 +70,13 @@ If cloud AI fails, classical OpenCV Canny edge detection (Raw Mode) guarantees t
 
 ### Post 3/4 (Spec-Driven Rigor & Multi-Agent Attribution)
 #KiroweenHackathon26 3/4: Architecture & transparent tools disclosure:
-• Kiro: formal EARS requirements, locked haptic steering, 5 hooks, pure core, PBT (P1–P13), Round 2 spec (P40–P46) & Ask fixes  
+• Kiro: formal EARS requirements, locked haptic steering, 5 hooks, pure core, PBT (P1–P13), Round 2 spec (P40–P46), Round 3 (CORE-09/P51–P53, Ghostwriter P54–P57)  
 • Kiro diagnosed and resolved the P1 subnormal float flake with a deterministic tie-rule fix  
-• Antigravity (agy): built Lab redesign, Teacher Correct (P16/P17), offline storage (P14/P15), drivers & parallel lanes  
+• Antigravity (agy): built Lab redesign, Spec Ghost (P47–P50), Teacher Correct (P16/P17), offline storage (P14/P15), drivers & hardening lanes (m1–m3, n1–n2, p1–p3)  
 • Claude Code: supervised architecture, gated Round 2 T25/T26, wrote backend properties P40–P46, evidence  
 
 ### Post 4/4 (Open Source & Next Steps)
-#KiroweenHackathon26 4/4: Radical transparency: [RECOUNT] frontend tests and [RECOUNT] backend tests pass cleanly across [RECOUNT] properties. What remains unverified on hardware is physical motor calibration, Guide/Share (flagged OFF), and trials with blind students at BPA Ahmedabad. Security audits ongoing (CORE-09, NEEDS-KIRO-02 open).
+#KiroweenHackathon26 4/4: Radical transparency: [RECOUNT] frontend tests and [RECOUNT] backend tests pass cleanly across [RECOUNT] properties. What remains unverified on hardware is physical motor calibration, Guide/Share (flagged OFF), and trials with blind students at BPA Ahmedabad. Security audits ongoing (Round 2 items CORE-09 and NEEDS-KIRO-02 resolved in Round 3).
 
 Watch the full walkthrough: [FILL: video URL]  
 Try the app or inspect the code: https://ghost-touch-iota.vercel.app  
