@@ -1962,3 +1962,46 @@ Format for each entry:
   - `backend/tests/test_k2_prompt_facts.py`
   - `docs/reports/agy-k2-prompt-facts-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — Antigravity — Lane k5-docs-honesty (Documentation Honesty & Verifiability)
+- Tool: **Antigravity** (agy).
+- What was done:
+  - Made public documentation true and aligned with `docs/reports/audit-b1-docs-honesty.md`,
+    `docs/kiro-evidence/round2.md`, `render.yaml`, `docs/PRIVACY.md`, and `docs/OWNER_CHECKLIST.md`.
+  - Replaced hard-coded test and file counts across all public documents (`README.md`,
+    `docs/KIRO_WRITEUP.md`, `docs/BLOG.md`, `docs/SOCIAL.md`, `docs/STEMERGENT_SUBMISSION.md`) with
+    `[RECOUNT]` markers for submission-day recount by the supervisor.
+  - Aligned multi-agent attribution strictly with `BUILD_LOG.md`: credited Kiro with foundational
+    specs, steering, 5 hooks, pure core, P1–P13, Round 2 spec (Requirements 16 and 17, tasks 23–28,
+    properties P40–P46), Task 24 Ask fixes, most T25/T26 code, frontend properties P43/P44, and T26
+    mutation checks; credited Claude Code with gating and committing T25/T26, writing backend
+    properties P40–P42 and P45–P46 (`backend/tests/test_round2_props.py`), and T28 evidence;
+    credited Antigravity with the Frankenstein Lab redesign, Teacher Correct, drivers, pipelines,
+    and parallel hardening/audit lanes.
+  - Corrected TalkBack exploration instructions in `docs/DEPLOY.md` to the double-tap-and-hold
+    pass-through gesture; clearly stated that TalkBack pass-through, Guide-my-finger, and Teacher
+    verify are unverified on physical hardware. Marked Guide and Share as flagged OFF by default.
+  - Reconciled vision provider fallback hierarchy: explained that Gemini is the default in codebase
+    architecture, while production deployment on Render sets OpenAI first (`VISION_PROVIDERS:
+    openai,gemini,nebius`).
+  - Removed obsolete 1x CI retry claim for P1 from `docs/BOTS.md`.
+  - Annotated broken `T00b-native-spike.md` reference in `docs/WIN_PLAN.md` noting Gate A passed.
+  - Stated explicitly that security and bug audits remain ongoing (no "bug free" or "secure"
+    claims) and listed open Round 2 items (CORE-09, NEEDS-KIRO-02).
+  - Honestly described Spec Ghost (`frontend/src/verify`, consistency check, not yet wired, parse
+    rate 35% of real scenes) and referenced `docs/PRIVACY.md` for data architecture.
+  - Added short "Known limits" lists across public documents.
+- What broke / surprising findings: None; all edits restricted strictly to designated documentation
+  files; zero source code modified; zero shell commands executed.
+- Files touched:
+  - `README.md`
+  - `docs/DEPLOY.md`
+  - `docs/BOTS.md`
+  - `docs/KIRO_WRITEUP.md`
+  - `docs/STEMERGENT_SUBMISSION.md`
+  - `docs/BLOG.md`
+  - `docs/SOCIAL.md`
+  - `docs/DEMO_SCRIPT.md`
+  - `docs/WIN_PLAN.md`
+  - `docs/reports/agy-k5-docs-honesty-report.md`
+  - `docs/BUILD_LOG.md`
