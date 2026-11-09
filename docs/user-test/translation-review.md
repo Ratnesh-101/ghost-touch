@@ -347,6 +347,20 @@ Thank you for helping review the translations for Ghost Touch!
 
 ---
 
+## 22. Ask Accuracy & Semantic Explanations (`guide.semantic.accuracy.*`)
+
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `guide.semantic.tie.tallestBar (spoken)` | There is a tie for the tallest bar between {labels}. | सबसे ऊँचे बार में {labels} के बीच बराबरी है। | સૌથી ઊંચા બારમાં {labels} વચ્ચે બરાબરી છે. | | | | |
+| `guide.semantic.tie.shortestBar (spoken)` | There is a tie for the shortest bar between {labels}. | सबसे छोटे बार में {labels} के बीच बराबरी है। | સૌથી નાના બારમાં {labels} વચ્ચે બરાબરી છે. | | | | |
+| `guide.semantic.mismatch.tallestBar (spoken)` | The tallest bar by value is {val_lbl}, but {h_lbl} is tallest in height at the {pos}. | मान के अनुसार सबसे ऊँचा बार {val_lbl} है, लेकिन ऊँचाई में {pos} पर {h_lbl} सबसे बड़ा है। | મૂલ્ય મુજબ સૌથી ઊંચો બાર {val_lbl} છે, પરંતુ ઊંચાઈમાં {pos} પર {h_lbl} સૌથી મોટો છે. | | | | |
+| `guide.semantic.mismatch.shortestBar (spoken)` | The shortest bar by value is {val_lbl}, but {h_lbl} is shortest in height at the {pos}. | मान के अनुसार सबसे छोटा बार {val_lbl} है, लेकिन ऊँचाई में {pos} पर {h_lbl} सबसे छोटा है। | મૂલ્ય મુજબ સૌથી નાનો બાર {val_lbl} છે, પરંતુ ઊંચાઈમાં {pos} પર {h_lbl} સૌથી નાનો છે. | | | | |
+| `guide.semantic.highestPoint (spoken)` | The highest point {label} is at the {pos}. | सबसे ऊँचा बिंदु {label}, {pos} है। | સૌથી ઊંચું બિંદુ {label}, {pos} છે. | | | | |
+| `guide.semantic.lowestPoint (spoken)` | The lowest point {label} is at the {pos}. | सबसे निचला बिंदु {label}, {pos} है। | સૌથી નીચું બિંદુ {label}, {pos} છે. | | | | |
+
+
+---
+
 ## 19. Suspicious Strings (Automated Analysis & Review Hints)
 
 The following items were identified during static codebase analysis as potentially problematic machine translations. These are provided as **hints only** for the native reviewer; the source code has **not** been modified.
@@ -547,6 +561,20 @@ The following spoken strings may be difficult for blind students to follow in a 
 | `share.error.badScene (spoken)` | This shared diagram could not be read. | यह साझा किया गया आरेख पढ़ा नहीं जा सका। | આ શેર કરેલી આકૃતિ વાંચી શકાઈ નથી. | | | | |
 | `share.error.empty (spoken)` | This shared link has no diagram. | इस साझा किए गए लिंक में कोई आरेख नहीं है। | આ શેર કરેલી લિંકમાં કોઈ આકૃતિ નથી. | | | | |
 | `share.error.generic (spoken)` | Something went wrong opening this shared link. | इस साझा किए गए लिंक को खोलने में कुछ गलत हो गया। | આ શેર કરેલી લિંક ખોલવામાં કંઈક ખોટું થયું. | | | | |
+
+---
+
+## 22. Ask Accuracy & Semantic Explanations (`guide.semantic.accuracy.*`)
+
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `guide.semantic.tie.tallestBar (spoken)` | There is a tie for the tallest bar between {labels}. | सबसे ऊँचे बार में {labels} के बीच बराबरी है। | સૌથી ઊંચા બારમાં {labels} વચ્ચે બરાબરી છે. | | | | |
+| `guide.semantic.tie.shortestBar (spoken)` | There is a tie for the shortest bar between {labels}. | सबसे छोटे बार में {labels} के बीच बराबरी है। | સૌથી નાના બારમાં {labels} વચ્ચે બરાબરી છે. | | | | |
+| `guide.semantic.mismatch.tallestBar (spoken)` | The tallest bar by value is {val_lbl}, but {h_lbl} is tallest in height at the {pos}. | मान के अनुसार सबसे ऊँचा बार {val_lbl} है, लेकिन ऊँचाई में {pos} पर {h_lbl} सबसे बड़ा है। | મૂલ્ય મુજબ સૌથી ઊંચો બાર {val_lbl} છે, પરંતુ ઊંચાઈમાં {pos} પર {h_lbl} સૌથી મોટો છે. | | | | |
+| `guide.semantic.mismatch.shortestBar (spoken)` | The shortest bar by value is {val_lbl}, but {h_lbl} is shortest in height at the {pos}. | मान के अनुसार सबसे छोटा बार {val_lbl} है, लेकिन ऊँचाई में {pos} पर {h_lbl} सबसे छोटा है। | મૂલ્ય મુજબ સૌથી નાનો બાર {val_lbl} છે, પરંતુ ઊંચાઈમાં {pos} પર {h_lbl} સૌથી નાનો છે. | | | | |
+| `guide.semantic.highestPoint (spoken)` | The highest point {label} is at the {pos}. | सबसे ऊँचा बिंदु {label}, {pos} है। | સૌથી ઊંચું બિંદુ {label}, {pos} છે. | | | | |
+| `guide.semantic.lowestPoint (spoken)` | The lowest point {label} is at the {pos}. | सबसे निचला बिंदु {label}, {pos} है। | સૌથી નીચું બિંદુ {label}, {pos} છે. | | | | |
+
 
 
 
