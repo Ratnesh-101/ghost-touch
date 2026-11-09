@@ -327,3 +327,5 @@
 "share.sharedUnnamed (spoken)","Shared diagram, not checked","साझा किया गया आरेख, जाँचा नहीं गया","શેર કરેલી આકૃતિ, ચકાસાયેલ નથી","","","","Fallback when name empty / stripped"
 "share.titlePrefix (spoken)","Title: {title}","शीर्षक: {title}","શીર્ષક: {title}","","","","R3 title prefix; keep {title}"
 "capture.errorTimeout (spoken)","The server took too long; please try again.","सर्वर ने बहुत लंबा समय लिया; कृपया पुनः प्रयास करें।","સર્વરે ઘણો સમય લીધો; કૃપા કરીને ફરી પ્રયાસ કરો.","","","","Scene request timeout notice"
+"correct.confirmLeave (spoken)","You have unsaved changes. Are you sure you want to leave?","आपके पास बिना सहेजे गए परिवर्तन हैं। क्या आप वाकई छोड़ना चाहते हैं?","તમારી પાસે સેવ ન કરેલા ફેરફારો છે. શું તમે ખરેખર બહાર નીકળવા માંગો છો?","","","","Confirmation dialog when leaving Teacher Correct with unsaved edits"
+"correct.stayingInEditor (spoken)","Still in correction mode.","अभी भी सुधार मोड में हैं।","હજુ પણ સુધારણા મોડમાં છો.","","","","Spoken when cancelling exit from Teacher Correct"

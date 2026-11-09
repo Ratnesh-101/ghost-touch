@@ -659,3 +659,15 @@ The following spoken strings may be difficult for blind students to follow in a 
 | `share.titlePrefix (spoken)` | Title: {title} | शीर्षक: {title} | શીર્ષક: {title} | | | | R3 title prefix; keep {title} |
 | `capture.errorTimeout (spoken)` | The server took too long; please try again. | सर्वर ने बहुत लंबा समय लिया; कृपया पुनः प्रयास करें। | સર્વરે ઘણો સમય લીધો; કૃપા કરીને ફરી પ્રયાસ કરો. | | | | Scene request timeout notice |
 | `capture.errorTimeout (spoken)` | The server took too long; please try again. | सर्वर ने बहुत लंबा समय लिया; कृपया पुनः प्रयास करें। | સર્વરે ઘણો સમય લીધો; કૃપા કરીને ફરી પ્રયાસ કરો. | | | | Scene request timeout notice |
+---
+## 25. Teacher Correct Exit Confirmation (`p2-r5-saved-fixes`)
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `correct.confirmLeave (spoken)` | You have unsaved changes. Are you sure you want to leave? | आपके पास बिना सहेजे गए परिवर्तन हैं। क्या आप वाकई छोड़ना चाहते हैं? | તમારી પાસે સેવ ન કરેલા ફેરફારો છે. શું તમે ખરેખર બહાર નીકળવા માંગો છો? | | | | Confirmation dialog when leaving Teacher Correct with unsaved edits |
+| `correct.stayingInEditor (spoken)` | Still in correction mode. | अभी भी सुधार मोड में हैं। | હજુ પણ સુધારણા મોડમાં છો. | | | | Spoken when cancelling exit from Teacher Correct |
+---
+## 25. Teacher Correct Exit Confirmation (`p2-r5-saved-fixes`)
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `correct.confirmLeave (spoken)` | You have unsaved changes. Are you sure you want to leave? | आपके पास बिना सहेजे गए परिवर्तन हैं। क्या आप वाकई छोड़ना चाहते हैं? | તમારી પાસે સેવ ન કરેલા ફેરફારો છે. શું તમે ખરેખર બહાર નીકળવા માંગો છો? | | | | Confirmation dialog when leaving Teacher Correct with unsaved edits |
+| `correct.stayingInEditor (spoken)` | Still in correction mode. | अभी भी सुधार मोड में हैं। | હજુ પણ સુધારણા મોડમાં છો. | | | | Spoken when cancelling exit from Teacher Correct |
