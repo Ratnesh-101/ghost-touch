@@ -357,10 +357,10 @@ describe('M4-04 (HIGH): Gateway 504 Timeout No-Retry & Cold-Start 502 Retry', ()
   });
 });
 
-// SKIPPED on merge: M4-10 (strip the English word "angle" from the disputed-angle target) conflicts
-// with Kiro's Requirement 18.2 property in verify.review.test.ts, which pins the exact English
-// sentence "disagree on angle B". core/verify.ts is Kiro's module: needs a Kiro decision, then un-skip.
-describe.skip('M4-10 (LOW): Disputed Angle Target Phrasing & Localization Leak Prevention', () => {
+// M4-10, un-skipped by Kiro (task 35). Decision: the word "angle" is localised through i18n
+// (`verify.angleName`), so the English sentence keeps "angle C" (Requirement 18.2) and Hindi and
+// Gujarati use their own word. The intent of agy's tests is kept: no English "angle" in hi or gu.
+describe('M4-10 (LOW): Disputed Angle Target Phrasing & Localization Leak Prevention', () => {
   let prevLang: Lang;
 
   beforeEach(() => {
@@ -372,7 +372,7 @@ describe.skip('M4-10 (LOW): Disputed Angle Target Phrasing & Localization Leak P
     setLang(prevLang);
   });
 
-  it('strips english word "angle " from finding target when angle fact is disputed', () => {
+  it('keeps "angle C" in the English sentence and carries the bare vertex for other languages', () => {
     const disputedAngleScene: DiagramScene = {
       version: 1,
       kind: 'geometry',
@@ -397,9 +397,14 @@ describe.skip('M4-10 (LOW): Disputed Angle Target Phrasing & Localization Leak P
     const res = verifyScene(disputedAngleScene);
     expect(res.status).toBe('disagree');
     expect(res.findings.length).toBeGreaterThan(0);
-    // Disputed message must reference target 'C', NOT 'angle C'
-    expect(res.findings[0]?.message).toBe(
-      "Facts and drawing disagree on C. I can't tell which is right.",
+    // English keeps the exact 18.2 sentence; the vertex alone travels with the finding.
+    const angleFinding = res.findings.find((f) => f.angleVertex !== undefined);
+    expect(angleFinding?.message).toBe(
+      "Facts and drawing disagree on angle C. I can't tell which is right.",
+    );
+    expect(angleFinding?.angleVertex).toBe('C');
+    expect(verifyCaveatForScene(disputedAngleScene, 'ai')).toBe(
+      "Facts and drawing disagree on angle C. I can't tell which is right.",
     );
   });
 
@@ -429,7 +434,7 @@ describe.skip('M4-10 (LOW): Disputed Angle Target Phrasing & Localization Leak P
     const caveat = verifyCaveatForScene(disputedAngleScene, 'ai');
     expect(caveat).toBeDefined();
     expect(caveat).not.toContain('angle');
-    expect(caveat).toContain('तथ्य और चित्र C पर असहमत हैं।');
+    expect(caveat).toContain('तथ्य और चित्र कोण C पर असहमत हैं।');
   });
 
   it('does not leak english word "angle" into Gujarati verify caveat', () => {
@@ -458,6 +463,6 @@ describe.skip('M4-10 (LOW): Disputed Angle Target Phrasing & Localization Leak P
     const caveat = verifyCaveatForScene(disputedAngleScene, 'ai');
     expect(caveat).toBeDefined();
     expect(caveat).not.toContain('angle');
-    expect(caveat).toContain('તથ્યો અને આકૃતિ C પર અસંમત છે.');
+    expect(caveat).toContain('તથ્યો અને આકૃતિ ખૂણા C પર અસંમત છે.');
   });
 });

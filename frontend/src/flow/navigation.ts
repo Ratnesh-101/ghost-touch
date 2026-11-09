@@ -3,10 +3,15 @@
  */
 import type { DiagramScene } from '../core/scene';
 import type { SceneMode } from '../api/scene';
-import { verifyScene, getFindingTarget, type VerifyMode } from '../core/verify';
+import { verifyScene, localizedFindingTarget, type VerifyMode } from '../core/verify';
 import { joinAnnouncements } from './explore';
 import { sanitizeShareTitle } from './share';
-import { t } from '../i18n';
+import { t, tf } from '../i18n';
+
+/** Words an angle's vertex in the active language ("angle B", "कोण B", "ખૂણા B"). M4-10. */
+export function spokenAngleName(vertex: string): string {
+  return tf('verify.angleName', { vertex });
+}
 
 /** Spoken name of a scene: its title, or its kind when it has none. */
 export function sceneName(scene: DiagramScene): string {
@@ -26,8 +31,8 @@ export function verifyCaveatForScene(
   const result = verifyScene(scene, { mode });
   if (result.status === 'disagree' && result.findings.length > 0) {
     const finding = result.findings[0]!;
-    const targetName = getFindingTarget(finding);
-    return t('verify.disagree').replace('{name}', targetName);
+    const targetName = localizedFindingTarget(finding, spokenAngleName);
+    return tf('verify.disagree', { name: targetName });
   }
   return null;
 }

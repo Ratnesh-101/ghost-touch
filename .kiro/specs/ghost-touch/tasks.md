@@ -282,3 +282,11 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 34.5 Requirement 19.6: check that no Spec Ghost path can say "verified" or "correct" after an edit; add a test only if one can (checked: every sentence is built from fact names, never from labels a teacher types; no path found, so no test)
   - [x] 34.6 Mutation-check each new property; gate (`tsc`, `npm test`, build); BUILD_LOG line (tool = Kiro)
   - _Requirements: 19.*_
+
+- [x] 35. M4-10: a disputed angle is named in the active language (Requirement 18.2)
+  - [x] 35.1 Decision: localise the word "angle" through i18n (option a). English stays "angle B", so the 18.2 property is unchanged; hi and gu use their own word. Requirement 18.2 and the design note updated first
+  - [x] 35.2 `core/verify.ts`: angle findings carry `angleVertex`; pure `localizedFindingTarget(finding, angleName)`; no i18n in core
+  - [x] 35.3 Key `verify.angleName` in en, hi, gu and the translation sheets; `flow/navigation.ts` and `flow/ask.ts` use it for the spoken name
+  - [x] 35.4 Un-skip the M4-10 block in `tests/n2.round4.test.ts` (agy's file), expectations moved to option a with the intent kept: no English "angle" in the hi or gu caveat
+  - [x] 35.5 P47-P50 and the 18.2 property at their run counts and green; gate; BUILD_LOG line (tool = Kiro)
+  - _Requirements: 18.2, 10.1_

@@ -17,9 +17,14 @@ import {
 } from '../api/ask';
 import type { DiagramScene } from '../core/scene';
 import { ListenError, type AudioDriver, type SpeechDriver } from '../drivers';
-import { getLang, LANG_BCP47, t } from '../i18n';
+import { getLang, LANG_BCP47, t, tf } from '../i18n';
 import { joinAnnouncements } from './explore';
-import { verifyScene, getFindingTarget, type VerifyFinding } from '../core/verify';
+import {
+  verifyScene,
+  getFindingTarget,
+  localizedFindingTarget,
+  type VerifyFinding,
+} from '../core/verify';
 
 /** Listening cue tone (Task 9.2). */
 export const LISTENING_BEEP_HZ = 660;
@@ -141,15 +146,20 @@ export function caveatForQuestion(
       }
     };
 
+    // Matching uses the English target and the bare vertex; the spoken name is localised (M4-10).
     const targetName = getFindingTarget(finding);
     addCandidate(targetName);
     addCandidate(finding.segmentId);
+    addCandidate(finding.angleVertex);
 
     for (const cand of candidates) {
       const re = new RegExp(`(?:^|[^a-zA-Z0-9_])${escapeRegExp(cand)}(?:$|[^a-zA-Z0-9_])`, 'i');
       if (re.test(trimmedQ)) {
-        const displayTarget = targetName || finding.segmentId || cand;
-        return t('verify.disagree').replace('{name}', displayTarget);
+        const spoken = localizedFindingTarget(finding, (vertex) =>
+          tf('verify.angleName', { vertex }),
+        );
+        const displayTarget = spoken || finding.segmentId || cand;
+        return tf('verify.disagree', { name: displayTarget });
       }
     }
   }

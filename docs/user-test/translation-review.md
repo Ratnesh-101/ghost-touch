@@ -614,6 +614,7 @@ The following spoken strings may be difficult for blind students to follow in a 
 | Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `verify.disagree (spoken)` | Facts and drawing disagree on {name}. I can't tell which is right. | तथ्य और चित्र {name} पर असहमत हैं। मैं नहीं बता सकता कि कौन सा सही है। | તથ્યો અને આકૃતિ {name} પર અસંમત છે. હું કહી શકતો નથી કે કયું સાચું છે. | | | | keep {name}; marked for native review; never says "verified" or "trust the text" |
+| `verify.angleName (spoken)` | angle {vertex} | कोण {vertex} | ખૂણા {vertex} | | | | New (Kiro, M4-10): fills {name} above for a disputed angle, e.g. "disagree on angle C". Gujarati uses the oblique form ખૂણા because પર follows. Needs native review. |
 
 
 ---

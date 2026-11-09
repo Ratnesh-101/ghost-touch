@@ -16,6 +16,8 @@ export interface VerifyOptions {
 export interface VerifyFinding {
   segmentId?: string;
   message: string;
+  /** Set for an angle finding: the vertex as the fact names it ("B", "ADC"). M4-10. */
+  angleVertex?: string;
 }
 
 /**
@@ -24,6 +26,20 @@ export interface VerifyFinding {
 export function getFindingTarget(finding: VerifyFinding): string {
   const match = finding.message.match(/disagree on (.+?)\./i);
   return match?.[1]?.trim() ?? finding.segmentId ?? '';
+}
+
+/**
+ * The disputed target as it should be spoken in the active language (Requirement 18.2, M4-10).
+ * For an angle finding the caller's `angleName` words the vertex ("angle B", "कोण B"); every
+ * other finding is named as in the English message. The core stays language-free.
+ */
+export function localizedFindingTarget(
+  finding: VerifyFinding,
+  angleName: (vertex: string) => string,
+): string {
+  return finding.angleVertex !== undefined
+    ? angleName(finding.angleVertex)
+    : getFindingTarget(finding);
 }
 
 export type VerifyStatus = 'consistent' | 'disagree' | 'silent';
@@ -643,11 +659,11 @@ export function verifyScene(
       if (drawnAngle !== null) {
         const angleDiff = Math.abs(drawnAngle - angleFact.value);
         if (angleDiff > angleToleranceDeg) {
-          const targetName = angleFact.vertex.toLowerCase().startsWith('angle ')
-            ? angleFact.vertex
-            : `angle ${angleFact.vertex}`;
+          const vertex = angleFact.vertex.replace(/^angle\s+/i, '');
+          // The English message keeps "angle B" (18.2); `angleVertex` lets callers word it (M4-10).
           findings.push({
-            message: VERIFY_WORDING.disagree(targetName),
+            message: VERIFY_WORDING.disagree(`angle ${vertex}`),
+            angleVertex: vertex,
           });
         }
       }
