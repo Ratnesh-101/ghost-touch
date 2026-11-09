@@ -37,9 +37,10 @@ import { SpecimenPreview } from '../components/SpecimenPreview';
 import { StatusText } from '../components/StatusText';
 import type { DiagramScene } from '../core/scene';
 import type { Drivers, SpeechRateSetting } from '../drivers';
-import { ACCEPTED_IMAGE_TYPES } from '../drivers/camera';
+import { ACCEPTED_IMAGE_TYPES, MAX_IMAGE_SIDE, prepareImage } from '../drivers/camera';
+import { defaultPdfLoader, renderFirstPage } from '../drivers/pdf';
 import { processImageFile, type FileSource } from '../flow/capture';
-import { getLang, subscribeLang, t } from '../i18n';
+import { getLang, LANG_BCP47, subscribeLang, t } from '../i18n';
 
 interface CaptureProps {
   drivers: Drivers;
@@ -80,6 +81,8 @@ export function Capture({
   const photoInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const lifetime = useRef<AbortController>(new AbortController());
+  const activePhotoUrlRef = useRef<string | null>(null);
+  const handedOffRef = useRef<boolean>(false);
 
   // Subscribe to i18n language store
   const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
@@ -115,11 +118,20 @@ export function Capture({
       controller.abort();
       photoEl?.removeEventListener('cancel', handleCancel);
       fileEl?.removeEventListener('cancel', handleCancel);
+      if (
+        !handedOffRef.current &&
+        activePhotoUrlRef.current &&
+        typeof URL !== 'undefined' &&
+        typeof URL.revokeObjectURL === 'function'
+      ) {
+        URL.revokeObjectURL(activePhotoUrlRef.current);
+        activePhotoUrlRef.current = null;
+      }
     };
   }, []);
 
   const say = (text: string): void => {
-    drivers.speech.speak(text);
+    drivers.speech.speak(text, LANG_BCP47[getLang()]);
     setStatus(text);
   };
 
@@ -160,7 +172,23 @@ export function Capture({
     const signal = lifetime.current.signal;
     busyRef.current = true;
     setBusy(true);
-    const outcome = await processImageFile(file, { audio: drivers.audio, say, signal, source });
+    let downscaledBlob: Blob | null = null;
+    const outcome = await processImageFile(file, {
+      audio: drivers.audio,
+      say,
+      signal,
+      source,
+      prepare: async (f) => {
+        const prepared = await prepareImage(f);
+        downscaledBlob = prepared;
+        return prepared;
+      },
+      renderPdf: async (f, sig) => {
+        const rendered = await renderFirstPage(f, MAX_IMAGE_SIDE, defaultPdfLoader, sig);
+        downscaledBlob = rendered;
+        return rendered;
+      },
+    });
     if (signal.aborted) {
       busyRef.current = false;
       return;
@@ -169,14 +197,26 @@ export function Capture({
     setBusy(false);
     if (outcome.kind === 'scene') {
       drivers.audio.playEarcon?.('success');
+      const blobForPhoto = downscaledBlob ?? file;
       let photoUrl: string | undefined;
       try {
         photoUrl = typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function'
-          ? URL.createObjectURL(file)
+          ? URL.createObjectURL(blobForPhoto)
           : undefined;
       } catch {
         photoUrl = undefined;
       }
+      if (
+        !handedOffRef.current &&
+        activePhotoUrlRef.current &&
+        activePhotoUrlRef.current !== photoUrl &&
+        typeof URL !== 'undefined' &&
+        typeof URL.revokeObjectURL === 'function'
+      ) {
+        URL.revokeObjectURL(activePhotoUrlRef.current);
+      }
+      activePhotoUrlRef.current = photoUrl ?? null;
+      handedOffRef.current = true;
       onScene(outcome.response.scene, outcome.response.mode, photoUrl, source);
     } else if (outcome.kind !== 'cancelled') {
       drivers.audio.playEarcon?.('error');
