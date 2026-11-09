@@ -2954,3 +2954,38 @@ Format for each entry:
   - `frontend/tests/teach.editor.test.tsx`
   - `docs/reports/agy-g1-ghostwriter-ui-report.md`
   - `docs/BUILD_LOG.md`
+## 2026-11-10 — Kiro — T38 (round-5 audit invariants as property tests; tests only, no fixes)
+- Tool: **Kiro**. Requirement 22 (the brief said 21; that number was taken by task 37), a design section and P66-P78, task 38, and four new test files: `frontend/tests/share.sanitize.prop.test.ts` (P66-P70), `share.template.prop.test.ts` (P71), `saved.eviction.prop.test.ts` (P72-P76, with a fake store that can fail `put` or `delete`, with and without `putWithEviction`), `share.honesty.prop.test.ts` (P77-P78). 200 to 300 runs each; `tsc --noEmit` 0 errors. No file under `frontend/src/` was changed.
+- Result: 6 of 13 fail, the same six on three runs. Lanes p2 and p3 had already merged into `main` (2d108ca) when the tests ran, so these are gaps the fixes left:
+  - P66 and P67: "✅Verified✅ Mrs Sharma" still sanitises to "Verified✅ Mrs Sharma".
+  - P69: "verified: and: Alice" gives "and: Alice".
+  - P77: `share.honesty` (en) says "has not verified it", and the legacy `share.verified` / `share.verifiedBy` keys remain in all three languages.
+  - P74: the non-atomic save path can report `ok: true` over the cap when deletes keep failing. This is latent; both shipped stores are atomic.
+  - P76: the in-place update takes `pinned` and `createdAt` from the caller. `App.tsx` passes the stored values, so this is a contract question for the lead.
+  - P71 (the `$` patterns), P72, P73 and P75 (cap, pinning, in-place) pass.
+  - Every failure with its seed and shrunk counterexample: `docs/reviews/kiro-round5.md`.
+
+## 2026-11-10 — agy, reviewed by Claude — Lane q1-share-sanitize (stripLeadingBadge prefix loop)
+- Implemented robust iterative prefix sanitization for `sanitizeShareName` and `sanitizeShareTitle`
+  in `frontend/src/flow/share.ts` satisfying Requirement 22.1-22.5:
+  - Replaced fragile ad-hoc regexes with a deterministic prefix scanner loop matching
+    `INVISIBLE_TOKEN` (whitespace, combining marks, directional isolates/overrides, zero-width chars,
+    math invisibles U+2060-U+2064, BOM, variation selectors U+FE00-U+FE0F), `CHECK_MARK_TOKEN`
+    (✓, ✔, ☑, √, ✅, 🗹 with optional U+FE0F), `BADGE_WORD_TOKEN` (verified, certified, सत्यापित,
+    પ્રમાણિત not followed by a letter, mark, or number), and `CONNECTOR_TOKEN` (&, standalone 'and',
+    [: , . -]).
+  - Connectors are stripped ONLY while a badge or check mark has been seen in the prefix (Req 22.5),
+    leaving ordinary text including names starting like badges or connectors ("Andrew", "Verity",
+    "Verifiedcity", "and Alice") intact while fully stripping spoof prefixes ("&verified Alice" ->
+    "Alice", "and verified, verified" -> "", "verified ✓" -> "").
+  - Preserved idempotence (Req 22.3), empty output for connector-only strings, NFKC safety, and
+    function replacer safety.
+- What broke / surprising findings:
+  - Previous regex left leading '&' untouched when followed directly by a badge word without space
+    ("&verified"), failed to strip connector "and" when preceding a badge word, and omitted unicode
+    invisible ranges U+2061-U+2064 and U+FE00-U+FE0E.
+- Files touched:
+  - `frontend/src/flow/share.ts`
+  - `docs/reports/agy-q1-share-sanitize-report.md`
+  - `docs/BUILD_LOG.md`
+
