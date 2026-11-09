@@ -656,3 +656,5 @@ The following spoken strings may be difficult for blind students to follow in a 
 | `share.sharedBy (spoken)` | Shared by {name}, not checked | {name} द्वारा साझा किया गया, जाँचा नहीं गया | {name} દ્વારા શેર કરેલ, ચકાસાયેલ નથી | | | | R1 honesty wording; keep {name} |
 | `share.sharedUnnamed (spoken)` | Shared diagram, not checked | साझा किया गया आरेख, जाँचा नहीं गया | શેર કરેલી આકૃતિ, ચકાસાયેલ નથી | | | | Fallback when name empty / stripped |
 | `share.titlePrefix (spoken)` | Title: {title} | शीर्षक: {title} | શીર્ષક: {title} | | | | R3 title prefix; keep {title} |
+| `capture.errorTimeout (spoken)` | The server took too long; please try again. | सर्वर ने बहुत लंबा समय लिया; कृपया पुनः प्रयास करें। | સર્વરે ઘણો સમય લીધો; કૃપા કરીને ફરી પ્રયાસ કરો. | | | | Scene request timeout notice |
+| `capture.errorTimeout (spoken)` | The server took too long; please try again. | सर्वर ने बहुत लंबा समय लिया; कृपया पुनः प्रयास करें। | સર્વરે ઘણો સમય લીધો; કૃપા કરીને ફરી પ્રયાસ કરો. | | | | Scene request timeout notice |
