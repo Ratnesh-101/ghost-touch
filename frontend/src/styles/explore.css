@@ -647,3 +647,73 @@
   outline-offset: 2px;
 }
 
+/* ==========================================================================
+   SHARE GATE SCREEN (GT-05)
+   ========================================================================== */
+
+.gt-share-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--gt-space-lg, 24px);
+  box-sizing: border-box;
+  text-align: center;
+  gap: var(--gt-space-lg, 24px);
+}
+
+.gt-share-gate__header {
+  width: 100%;
+}
+
+.gt-share-gate__title {
+  margin: 0;
+  font-size: var(--gt-text-2xl, 1.5rem);
+  font-weight: 800;
+  color: var(--gt-line, #39ff88);
+}
+
+.gt-share-gate__card {
+  width: 100%;
+  padding: var(--gt-space-md, 16px);
+  background: var(--gt-charcoal-light, #1c211e);
+  border: 1px solid var(--gt-copper, #c88a4b);
+  border-radius: var(--gt-radius-md, 8px);
+  box-sizing: border-box;
+}
+
+.gt-share-gate__diagram-title {
+  margin: 0 0 var(--gt-space-xs, 8px) 0;
+  font-size: var(--gt-text-lg, 1.125rem);
+  font-weight: 700;
+  color: var(--gt-bone, #f5ecd8);
+}
+
+.gt-share-gate__diagram-by {
+  margin: 0;
+  font-size: var(--gt-text-sm, 0.875rem);
+  color: var(--gt-text-muted, #a8c5b5);
+}
+
+.gt-share-gate__actions {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.gt-share-gate__open-btn {
+  min-width: 48px;
+  min-height: 48px;
+  padding: var(--gt-space-md, 16px) var(--gt-space-xl, 32px);
+  font-size: var(--gt-text-lg, 1.125rem);
+  font-weight: 700;
+  color: var(--gt-charcoal, #0b0e0c);
+  background: var(--gt-line, #39ff88);
+}
+
+

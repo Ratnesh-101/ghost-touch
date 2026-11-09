@@ -59,6 +59,13 @@ import { SavedDiagrams } from './screens/SavedDiagrams';
 import { ShareError as ShareErrorScreen, shareErrorMessage } from './screens/ShareError';
 import { Start } from './screens/Start';
 import { Teach } from './screens/Teach';
+import { ShareGate } from './components/ShareGate';
+import {
+  buildHonestShareAnnouncement,
+  honestSharedByLabel,
+  sanitizeShareName,
+  sanitizeShareTitle,
+} from './flow/share';
 import { decodeShare, ShareError, type ShareErrorCode } from './share';
 
 export type ShareRouteResolution =
@@ -94,6 +101,10 @@ export function joinShareAnnouncements(
   return `${scene}. ${verified}`;
 }
 
+export interface ResolveShareOptions {
+  honest?: boolean;
+}
+
 /**
  * Pure route resolver for shared diagram links.
  * Returns the resolved screen state, announcements, or error code.
@@ -101,6 +112,7 @@ export function joinShareAnnouncements(
 export function resolveShareRoute(
   hash: string,
   isFeatureOn: boolean = isShareEnvOn(),
+  options?: ResolveShareOptions,
 ): ShareRouteResolution {
   if (!isFeatureOn) {
     return { kind: 'ignored' };
@@ -111,22 +123,45 @@ export function resolveShareRoute(
   }
   try {
     const decoded = decodeShare(hash);
-    const sceneAnnouncement = exploreAnnouncement(decoded.scene, 'shared');
-    const verifiedName =
+    const useHonest = options?.honest ?? false;
+
+    // R3 sanitization: strip leading checkmarks and "verified"/"certified" from author name
+    const cleanName = sanitizeShareName(decoded.verifiedBy);
+
+    // Honest scene announcement with "Title: " prefix and stripped words
+    const honestSceneAnnouncement = exploreAnnouncement(
+      decoded.scene,
+      'shared',
+      'shared',
+      { honestTitle: true },
+    );
+    const honestSharedBy = honestSharedByLabel(cleanName);
+    const honestSpokenAnnouncement = buildHonestShareAnnouncement({
+      sceneAnnouncement: honestSceneAnnouncement,
+      verifiedBy: cleanName,
+    });
+
+    // Legacy announcement for backward-compatibility with k1 test suite
+    const legacySceneAnnouncement = exploreAnnouncement(decoded.scene, 'shared');
+    const legacyVerifiedName =
       decoded.verifiedBy.trim() !== '' ? decoded.verifiedBy : t('share.verified');
-    const verifiedAnnouncement = t('share.verifiedBy').replace('{name}', verifiedName);
-    const spokenAnnouncement = joinShareAnnouncements(sceneAnnouncement, verifiedAnnouncement);
+    const legacyVerifiedAnnouncement = t('share.verifiedBy').replace('{name}', legacyVerifiedName);
+    const legacySpokenAnnouncement = joinShareAnnouncements(
+      legacySceneAnnouncement,
+      legacyVerifiedAnnouncement,
+    );
+
     return {
       kind: 'explore',
       scene: decoded.scene,
       verified: {
-        by: decoded.verifiedBy,
+        by: cleanName,
         note: decoded.note,
         at: decoded.verifiedAt,
       },
-      sceneAnnouncement,
-      verifiedAnnouncement,
-      spokenAnnouncement,
+      sceneAnnouncement: useHonest ? honestSceneAnnouncement : legacySceneAnnouncement,
+      verifiedAnnouncement: useHonest ? honestSharedBy : legacyVerifiedAnnouncement,
+      spokenAnnouncement: useHonest ? honestSpokenAnnouncement : legacySpokenAnnouncement,
     };
   } catch (err) {
     const code: ShareErrorCode = err instanceof ShareError ? err.code : 'bad-format';
@@ -137,6 +172,16 @@ export function resolveShareRoute(
       errorMessage,
     };
   }
+}
+
+/**
+ * Pure route resolver for shared diagram links with R1/R3 honesty enforcement.
+ */
+export function resolveHonestShareRoute(
+  hash: string,
+  isFeatureOn: boolean = isShareEnvOn(),
+): ShareRouteResolution {
+  return resolveShareRoute(hash, isFeatureOn, { honest: true });
 }
 
 /**
@@ -159,6 +204,36 @@ export function speakShareAnnouncements(
   }
 }
 
+export interface SharedExploreViewState {
+  screen: 'explore';
+  scene: DiagramScene;
+  announced: string;
+  verified: { by: string; note: string; at: string };
+  fromShare: true;
+}
+
+/**
+ * Handles user activation tap on the share gate:
+ * Unlocks audio, plays greeting earcon, speaks diagram announcements,
+ * and transitions view state to Explore.
+ */
+export function openSharedDiagram(
+  drivers: Drivers,
+  resolution: Extract<ShareRouteResolution, { kind: 'explore' }>,
+  langBcp47: string,
+): SharedExploreViewState {
+  drivers.audio.unlock();
+  drivers.audio.playEarcon?.('start');
+  speakShareAnnouncements(drivers.speech, resolution, langBcp47);
+  return {
+    screen: 'explore',
+    scene: resolution.scene,
+    announced: resolution.sceneAnnouncement,
+    verified: resolution.verified,
+    fromShare: true,
+  };
+}
+
 type View =
   | { screen: 'start' }
   | { screen: 'capture'; announced: string }
@@ -172,7 +247,11 @@ type View =
   | { screen: 'correct'; scene: DiagramScene }
   | { screen: 'saved' }
   | { screen: 'teach'; scene?: DiagramScene }
-  | { screen: 'shareError'; code: ShareErrorCode; announced: string };
+  | { screen: 'shareError'; code: ShareErrorCode; announced: string }
+  | {
+      screen: 'shareGate';
+      resolution: Extract<ShareRouteResolution, { kind: 'explore' }>;
+    };
 
 export function App(): JSX.Element {
   const hash = useSyncExternalStore(subscribeHash, readHash, readHash);
@@ -184,15 +263,12 @@ export function App(): JSX.Element {
     if (isTeachHash(currentHash) && isTeacherActive()) {
       return { screen: 'teach' };
     }
-    const resolution = resolveShareRoute(currentHash);
+    const resolution = resolveShareRoute(currentHash, isShareEnvOn(), { honest: true });
     if (resolution.kind === 'explore') {
       lastExploreScene.current = resolution.scene;
       return {
-        screen: 'explore',
-        scene: resolution.scene,
-        announced: resolution.sceneAnnouncement,
-        verified: resolution.verified,
-        fromShare: true,
+        screen: 'shareGate',
+        resolution,
       };
     }
     if (resolution.kind === 'error') {
@@ -206,7 +282,7 @@ export function App(): JSX.Element {
   });
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const photoTracker = useRef<PhotoUrlTracker>(createPhotoUrlTracker());
-  const lastProcessedHash = useRef<string | null>(null);
+  const lastProcessedHash = useRef<string | null>(readHash());
   // The hash handler runs after the browser has already moved the URL, so it reads the screen
   // that is showing through a ref instead of a stale closure.
   const viewRef = useRef(view);
@@ -252,16 +328,12 @@ export function App(): JSX.Element {
       return;
     }
 
-    const resolution = resolveShareRoute(hash, isShareEnvOn());
+    const resolution = resolveShareRoute(hash, isShareEnvOn(), { honest: true });
     if (resolution.kind === 'explore') {
       lastExploreScene.current = resolution.scene;
-      speakShareAnnouncements(drivers.speech, resolution, LANG_BCP47[currentLang]);
       setView({
-        screen: 'explore',
-        scene: resolution.scene,
-        announced: resolution.sceneAnnouncement,
-        verified: resolution.verified,
-        fromShare: true,
+        screen: 'shareGate',
+        resolution,
       });
     } else if (resolution.kind === 'error') {
       speakShareAnnouncements(drivers.speech, resolution, LANG_BCP47[currentLang]);
@@ -271,12 +343,15 @@ export function App(): JSX.Element {
         announced: resolution.errorMessage,
       });
     } else if (hash === '' || hash === '#') {
-      // Back from `#/teach`, a shared diagram or the share error screen. This used to drop to
-      // Start in silence and throw away unsaved Teacher edits (CORE-01, Requirement 17.1).
+      // Back from `#/teach`, a shared diagram, the share gate or the share error screen.
       const current = viewRef.current;
-      const fromShare = current.screen === 'explore' && current.fromShare === true;
+      const fromShare =
+        (current.screen === 'explore' && current.fromShare === true) ||
+        current.screen === 'shareGate';
       const leaving: ScreenName | null =
-        current.screen === 'teach' || current.screen === 'shareError'
+        current.screen === 'teach' ||
+        current.screen === 'shareError' ||
+        current.screen === 'shareGate'
           ? current.screen
           : fromShare
             ? 'explore'
@@ -336,14 +411,19 @@ export function App(): JSX.Element {
   /**
    * Save a diagram entry to the store, evicting oldest unpinned entry if needed.
    * Called inside handleScene after navigation so it doesn't block exploration.
-   * All errors are spoken but never prevent exploration.
+   * GT-06: Storage failures update status text only; never speak or cancel exploration.
    */
   const saveDiagram = useCallback(
     async (scene: DiagramScene): Promise<void> => {
       try {
         const listResult = await drivers.diagramStore.list();
         if (!listResult.ok) {
-          drivers.speech.speak(t('saved.errorStorageUnavailable'), LANG_BCP47[currentLang]);
+          const err = t('saved.errorStorageUnavailable');
+          setView((prev) =>
+            prev.screen === 'explore'
+              ? { ...prev, announced: `${prev.announced} ${err}` }
+              : prev,
+          );
           return;
         }
 
@@ -360,7 +440,12 @@ export function App(): JSX.Element {
 
         const decision = applyAdd(existing, newEntry, SAVED_DIAGRAMS_CAP);
         if (!decision.ok) {
-          drivers.speech.speak(t('saved.errorAllPinned'), LANG_BCP47[currentLang]);
+          const err = t('saved.errorAllPinned');
+          setView((prev) =>
+            prev.screen === 'explore'
+              ? { ...prev, announced: `${prev.announced} ${err}` }
+              : prev,
+          );
           return;
         }
 
@@ -370,14 +455,30 @@ export function App(): JSX.Element {
 
         const putResult = await drivers.diagramStore.put(newEntry);
         if (!putResult.ok) {
-          drivers.speech.speak(t('saved.errorSave'), LANG_BCP47[currentLang]);
+          const err = t('saved.errorSave');
+          setView((prev) =>
+            prev.screen === 'explore'
+              ? { ...prev, announced: `${prev.announced} ${err}` }
+              : prev,
+          );
         }
       } catch {
-        drivers.speech.speak(t('saved.errorSave'), LANG_BCP47[currentLang]);
+        const err = t('saved.errorSave');
+        setView((prev) =>
+          prev.screen === 'explore'
+            ? { ...prev, announced: `${prev.announced} ${err}` }
+            : prev,
+        );
       }
     },
     [drivers, currentLang],
   );
+
+  const handleOpenSharedDiagram = (
+    resolution: Extract<ShareRouteResolution, { kind: 'explore' }>,
+  ): void => {
+    setView(openSharedDiagram(drivers, resolution, LANG_BCP47[currentLang]));
+  };
 
   const handleScene = (
     scene: DiagramScene,
@@ -400,7 +501,7 @@ export function App(): JSX.Element {
   // When opened via share link, goes back to start and clears hash via history.replaceState.
   const handleBack = (): void => {
     updatePhotoUrl(null);
-    if (view.screen === 'explore' && view.fromShare) {
+    if ((view.screen === 'explore' && view.fromShare) || view.screen === 'shareGate') {
       clearHash();
       const announced = t('start.intro');
       drivers.speech.speak(announced, LANG_BCP47[currentLang]);
@@ -542,6 +643,18 @@ export function App(): JSX.Element {
           drivers={drivers}
           onBack={handleTeachBack}
           onDirtyChange={setTeachDirty}
+        />
+      );
+    case 'shareGate':
+      return (
+        <ShareGate
+          onOpen={() => handleOpenSharedDiagram(view.resolution)}
+          title={
+            typeof view.resolution.scene.title === 'string'
+              ? sanitizeShareTitle(view.resolution.scene.title)
+              : undefined
+          }
+          sharedBy={view.resolution.verified.by}
         />
       );
   }
