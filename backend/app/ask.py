@@ -13,6 +13,7 @@ import math
 import os
 import re
 import time
+import unicodedata
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -424,18 +425,53 @@ def _with_reversals(ids: set[str]) -> set[str]:
     return ids | {i[::-1] for i in ids if len(i) == 2 and i.isalpha()}
 
 
-def clamp_answer(text: str) -> str:
-    """Limit a spoken answer to two sentences and about 300 characters, sanitizing for TTS."""
-    # Strip non-printable ASCII control characters
-    sanitized = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
-    # Strip markdown formatting (*, _, `, #) that native TTS might pronounce aloud
-    sanitized = re.sub(r"[*_`#]", "", sanitized)
+def clamp_answer(
+    text: str,
+    *,
+    preserve_symbols: bool = False,
+    is_model: bool | None = None,
+    strip_markdown: bool | None = None,
+) -> str:
+    """Limit a spoken answer to two sentences and about 300 characters, sanitizing for TTS.
+
+    Strips Unicode control and format characters (Cc, Cf, Zl, Zp).
+    By default, strips markdown formatting (*, _, `, #) for model text.
+    Fact and semantic answer paths pass preserve_symbols=True to retain mathematical
+    asterisks, underscores, and symbols (F3).
+    """
+    if strip_markdown is not None:
+        do_strip = strip_markdown
+    elif is_model is not None:
+        do_strip = is_model and not preserve_symbols
+    else:
+        do_strip = not preserve_symbols
+
+    # Strip Unicode control, format, and separator characters (Cc, Cf, Zl, Zp)
+    chars: list[str] = []
+    for ch in text:
+        cat = unicodedata.category(ch)
+        if cat in ("Cf", "Zl", "Zp"):
+            continue
+        if cat == "Cc":
+            if ch in ("\t", "\n", "\r"):
+                chars.append(" ")
+            continue
+        chars.append(ch)
+    sanitized = "".join(chars)
+
+    # F3: Strip markdown only for model output
+    if do_strip:
+        sanitized = re.sub(r"[*_`#]", "", sanitized)
+
     sentences = SENTENCE_END_PATTERN.split(sanitized.strip())
     clamped = " ".join(sentences[:MAX_ANSWER_SENTENCES])
     if len(clamped) > MAX_ANSWER_CHARS:
         # Reserve one character for the closing full stop so the result never exceeds the cap.
         clamped = clamped[: MAX_ANSWER_CHARS - 1].rsplit(" ", 1)[0].rstrip(",;:") + "."
     return clamped
+
+
+TOKEN_PATTERN = re.compile(r"\d+(?:\.\d+)?|[\w°²]+", re.UNICODE)
 
 
 @dataclass
@@ -468,7 +504,7 @@ def facts_lookup(scene: DiagramScene, question: str, lang: str = "en-IN") -> str
     # 1. Facts from scene.facts
     for fact in scene.facts:
         f_text = fact.strip()
-        raw_words = re.findall(r"[\w°²]+", f_text, re.UNICODE)
+        raw_words = TOKEN_PATTERN.findall(f_text)
         tokens = {normalize_token(w) for w in raw_words}
         ids = _with_reversals(
             {
@@ -482,7 +518,7 @@ def facts_lookup(scene: DiagramScene, question: str, lang: str = "en-IN") -> str
     # 2. Bars
     for bar in scene.bars:
         bar_text = f"{bar.label} = {bar.value}"
-        b_tokens = {normalize_token(w) for w in re.findall(r"[\w°²]+", bar_text, re.UNICODE)}
+        b_tokens = {normalize_token(w) for w in TOKEN_PATTERN.findall(bar_text)}
         b_tokens.update({"bar", "value"})
         b_ids = _with_reversals({bar.label.lower(), bar.id.lower()})
         candidates.append(_FactCandidate(text=bar_text, tokens=b_tokens, ids=b_ids))
@@ -491,7 +527,7 @@ def facts_lookup(scene: DiagramScene, question: str, lang: str = "en-IN") -> str
     for seg in scene.segments:
         if seg.label:
             seg_text = f"Segment {seg.label}"
-            s_tokens = {normalize_token(w) for w in re.findall(r"[\w°²]+", seg_text, re.UNICODE)}
+            s_tokens = {normalize_token(w) for w in TOKEN_PATTERN.findall(seg_text)}
             s_ids = _with_reversals({seg.label.lower(), seg.id.lower()})
             candidates.append(_FactCandidate(text=seg_text, tokens=s_tokens, ids=s_ids))
 
@@ -503,7 +539,7 @@ def facts_lookup(scene: DiagramScene, question: str, lang: str = "en-IN") -> str
     known_ids = _with_reversals(known_ids)
 
     # Tokenize question
-    q_raw = re.findall(r"[\w°²]+", question, re.UNICODE)
+    q_raw = TOKEN_PATTERN.findall(question)
     q_norm = [normalize_token(w) for w in q_raw]
     # A unit word ("cm", "degrees") is not distinctive: on its own it must not pick a fact.
     q_content = {w for w in q_norm if w not in QUESTION_STOPWORDS and w not in UNIT_TOKENS}
@@ -523,6 +559,9 @@ def facts_lookup(scene: DiagramScene, question: str, lang: str = "en-IN") -> str
             q_ids.add(wl)
     q_ids = _with_reversals(q_ids)
 
+    # F4a: Drop point-id tokens from content tokens so they don't cause spurious ties
+    q_content = q_content - {i.lower() for i in q_ids}
+
     # The student named a point or segment that this diagram does not have: do not guess.
     if unknown_ids:
         return None
@@ -530,19 +569,60 @@ def facts_lookup(scene: DiagramScene, question: str, lang: str = "en-IN") -> str
     if not q_content and not q_ids:
         return None
 
+    q_lower = question.lower()
+    is_measurement_q = any(
+        phrase in q_lower
+        for phrase in (
+            "how long",
+            "what is",
+            "how much",
+            "how many",
+            "length",
+            "value",
+            "measure",
+            "size",
+            "distance",
+            "height",
+            "width",
+            "कितना",
+            "कितनी",
+            "कितने",
+            "लंबाई",
+            "मान",
+            "કેટલું",
+            "કેટલી",
+            "કેટલા",
+            "લંબાઈ",
+            "મૂલ્ય",
+        )
+    )
+
     scored: list[tuple[int, _FactCandidate]] = []
     for cand in candidates:
         score = 10 * len(cand.ids & q_ids) + 2 * len(cand.tokens & q_content)
         if cand.is_fact and score > 0:
             score += 1
+        # F4b: Boost numeric facts when question asks for a measurement / length / value
+        if is_measurement_q and any(re.search(r"\d", t) for t in cand.tokens):
+            if len(cand.ids & q_ids) > 0 or len(cand.tokens & q_content) > 0:
+                score += 5
         scored.append((score, cand))
 
     best_score = max(score for score, _ in scored)
-    # Threshold: must have matched an identifier (>=10) or at least 2 content tokens (>=4),
-    # or a distinctive content token against a fact (score >= 3, e.g. Hindi 'क्षेत्रफल').
     if best_score < 3:
         return None
-    if best_score == 3 and not any(cand.is_fact for s, cand in scored if s == best_score):
+
+    # F4c: Require an id match, or a shared number match, or at least 2 content tokens
+    # Unrelated questions with only 1 noun (e.g. "What colour is the triangle?") must return None
+    has_id_match = any(len(cand.ids & q_ids) > 0 for s, cand in scored if s == best_score)
+    has_number_match = any(
+        any(re.search(r"\d", t) for t in (cand.tokens & q_content))
+        for s, cand in scored
+        if s == best_score
+    )
+    max_content_matches = max(len(cand.tokens & q_content) for s, cand in scored if s == best_score)
+
+    if not (has_id_match or has_number_match or max_content_matches >= 2):
         return None
 
     # Several equally good matches ("AB and BC") are all read out, at most three.
@@ -882,7 +962,7 @@ async def answer_question(
             elapsed_ms,
         )
         return AskResponse(
-            answer=spoken_ans,
+            answer=clamp_answer(spoken_ans, preserve_symbols=True),
             source="facts",
             target=validated_target,
         )
@@ -953,7 +1033,11 @@ async def answer_question(
             len(request.scene.points),
             elapsed_ms,
         )
-        return AskResponse(answer=clamp_answer(fact_answer), source="facts", target=None)
+        return AskResponse(
+            answer=clamp_answer(fact_answer, preserve_symbols=True),
+            source="facts",
+            target=None,
+        )
 
     logger.info(
         "ask processed: provider=none source=unknown question_len=%d scene_points=%d elapsed_ms=%d",
