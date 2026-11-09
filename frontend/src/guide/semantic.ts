@@ -9,6 +9,7 @@
  */
 
 import type { DiagramScene } from '../types/scene.gen';
+import { t } from '../i18n';
 import { resolveTarget, type ResolvedTarget } from './geometry';
 
 export type SemanticName =
@@ -357,7 +358,7 @@ export function resolveSemantic(
         return {
           x: bestPt.x,
           y: bestPt.y,
-          label: 'peak',
+          label: t('guide.semantic.label.peak'),
         };
       }
 
@@ -396,7 +397,7 @@ export function resolveSemantic(
         return {
           x: bestPt.x,
           y: bestPt.y,
-          label: 'lowest point',
+          label: t('guide.semantic.label.trough'),
         };
       }
 
@@ -421,7 +422,7 @@ export function resolveSemantic(
         return {
           x: y_axis_x,
           y: x_axis_y,
-          label: 'origin',
+          label: t('guide.semantic.label.origin'),
         };
       }
 
