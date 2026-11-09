@@ -11,7 +11,7 @@
  * - Accessible controls (≥48×48 px targets, spoken state changes, keyboard operable)
  */
 import { useEffect, useRef, useState, type FormEvent, type JSX, type KeyboardEvent, type PointerEvent } from 'react';
-import { requestValidate } from '../api/validate';
+import { requestValidate, type ValidateResponse } from '../api/validate';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { StatusText } from '../components/StatusText';
 import {
@@ -25,7 +25,9 @@ import {
   redo,
   renameLabel,
   undo,
+  validateSceneInvariants,
   type HistoryState,
+  type InvariantResult,
 } from '../core/correct';
 import { makeViewport, toScreen, type Viewport } from '../core/geometry';
 import type { DiagramScene, Point } from '../core/scene';
@@ -51,6 +53,54 @@ export interface CorrectProps {
   drivers: Drivers;
   onSave: (scene: DiagramScene) => void;
   onCancel: () => void;
+}
+
+export type SaveCorrectResult =
+  | { kind: 'saved'; scene: DiagramScene; messageKey: 'correct.saved' }
+  | { kind: 'saved-offline'; scene: DiagramScene; messageKey: 'correct.savedOffline' }
+  | { kind: 'invalid'; errors: string[] };
+
+export interface ExecuteCorrectSaveOptions {
+  isOnline?: boolean;
+  requestValidate?: (scene: DiagramScene) => Promise<ValidateResponse>;
+  validateInvariants?: (scene: DiagramScene) => InvariantResult;
+}
+
+/**
+ * Pure decision and execution helper for saving corrections (B4-02).
+ * Validates with backend /validate when online; falls back to local
+ * invariant validation without blocking when offline or backend unreachable.
+ */
+export async function executeCorrectSave(
+  scene: DiagramScene,
+  options: ExecuteCorrectSaveOptions = {},
+): Promise<SaveCorrectResult> {
+  const isOnline =
+    options.isOnline ?? (typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const doValidateInvariants = options.validateInvariants ?? validateSceneInvariants;
+  const doRequestValidate = options.requestValidate ?? requestValidate;
+
+  const fallback = (): SaveCorrectResult => {
+    const local = doValidateInvariants(scene);
+    if (local.ok) {
+      return { kind: 'saved-offline', scene, messageKey: 'correct.savedOffline' };
+    }
+    return { kind: 'invalid', errors: local.errors };
+  };
+
+  if (!isOnline) {
+    return fallback();
+  }
+
+  try {
+    const res = await doRequestValidate(scene);
+    if (res.ok && res.scene) {
+      return { kind: 'saved', scene: res.scene, messageKey: 'correct.saved' };
+    }
+    return { kind: 'invalid', errors: res.errors };
+  } catch {
+    return fallback();
+  }
 }
 
 export function Correct({
@@ -441,21 +491,15 @@ export function Correct({
     setIsSaving(true);
     sayAndStatus(t('correct.validating'));
 
-    try {
-      const res = await requestValidate(history.present);
-      setIsSaving(false);
-      if (res.ok && res.scene) {
-        sayAndStatus(t('correct.saved'));
-        drivers.audio.playEarcon?.('success');
-        onSave(res.scene);
-      } else {
-        const errorText = formatValidationErrors(res.errors);
-        sayAndStatus(errorText, true);
-        drivers.audio.playEarcon?.('error');
-      }
-    } catch {
-      setIsSaving(false);
-      const errorText = formatValidationErrors(['Network or server validation error']);
+    const result = await executeCorrectSave(history.present);
+    setIsSaving(false);
+
+    if (result.kind === 'saved' || result.kind === 'saved-offline') {
+      sayAndStatus(t(result.messageKey));
+      drivers.audio.playEarcon?.('success');
+      onSave(result.scene);
+    } else {
+      const errorText = formatValidationErrors(result.errors);
       sayAndStatus(errorText, true);
       drivers.audio.playEarcon?.('error');
     }
