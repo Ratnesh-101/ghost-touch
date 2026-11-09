@@ -1,0 +1,7 @@
+# Lane p1-r5-backend-fixes (backend only)
+Read AGENTS.md first. Never open `.env*`. Do NOT edit anything under `frontend/src/core/` (Kiro owns it). Create the report file named below FIRST with Status IN PROGRESS, DONE only when every item is finished (no TBD). One BUILD_LOG entry (tool = "agy, reviewed by Claude"). Every change needs a meaningful test: no always-true assertions and no tests that copy application logic into the test body; drive the real function or component. Source of the findings: the audit report named in each brief (read it for code quotes).
+Report: docs/reports/agy-p1-r5-backend-fixes-report.md. Audit: docs/reports/audit-r5-backend.md (copy it from the lane worktree gt-lane-r5-backend if not on main; the findings are restated here).
+1. backend/tests/test_n1_backend.py line ~382: `assert coords is not None or res is None` is a tautology. Replace with real assertions on the right angle the test scene should yield (read _find_right_angle in backend/app/semantic.py and the scene in that test to get the true expected target and coordinates).
+2. backend/app/main.py line ~65: ALLOWED_MIME_TYPES lacks "image/jpg" although image_utils.py normalises it to image/jpeg; add it and add a test that an upload declared image/jpg is accepted (not 415).
+3. test_m4_07_scene_vision_aborts_on_client_disconnect (test_n1_backend.py ~488): also assert the in-flight permit for that client is back to 0 after the 499 (use the limiter's count API as the other tests do).
+Do not touch validate.py CLAMP_TOLERANCE (stays 0.02) or any other behaviour.
