@@ -36,8 +36,16 @@ from pydantic import BaseModel, Field, field_validator
 from app.ask import AskRequest, AskResponse, _check_scene_size, answer_question
 from app.graphs.route import graph_scene_from_chain
 from app.image_utils import validate_image_bytes
-from app.limits import MULTIPART_OVERHEAD, RequestGuardMiddleware, default_rate_limits
+from app.limits import (
+    MULTIPART_OVERHEAD,
+    RequestGuardMiddleware,
+    default_rate_limits,
+    get_ask_in_flight_limiter,
+    get_scene_in_flight_limiter,
+    request_client_key,
+)
 from app.middleware import SecurityHeadersMiddleware
+from app.paid_budget import is_budget_exhausted
 from app.raw_mode import RawModeError, build_raw_scene
 from app.scene_cache import image_key, scene_cache
 from app.schema import DiagramScene
@@ -292,6 +300,9 @@ async def run_improve_pass(
     if sem.locked():
         logger.info("Background improve pass skipped: all improve slots are busy")
         return
+    if is_budget_exhausted():
+        logger.info("Background improve pass skipped: daily paid budget is exhausted")
+        return
     async with sem:
         await _run_improve_pass_locked(
             improve_provider, image_bytes, content_type, cache_key, validator
@@ -526,30 +537,48 @@ async def process_scene(
     if content_type not in ALLOWED_MIME_TYPES:
         raise HTTPException(
             status_code=415,
-            detail=(
-                f"Unsupported image format: '{content_type}'. "
-                "Please upload a JPEG, PNG, or WebP image."
-            ),
+            detail="Unsupported image format. Please upload a JPEG, PNG, or WebP image.",
         )
 
-    # Step 2: Content-Length check before buffering (Finding 8)
+    # Step 2: Content-Length check before buffering (Finding 8, R3-5)
     cl_header = request.headers.get("content-length")
     if cl_header:
+        if not (cl_header.isascii() and cl_header.isdigit()) or len(cl_header) > 18:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid Content-Length header.",
+            )
         try:
             if int(cl_header) > MAX_UPLOAD_SIZE:
                 raise HTTPException(
                     status_code=413,
                     detail="Image file exceeds 10 MB limit. Please upload a smaller image.",
                 )
-        except ValueError:
-            pass
+        except ValueError as err:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid Content-Length header.",
+            ) from err
 
-    # A5: Take the concurrency slot before reading upload bytes into memory
+    # C4, R3-1: Enforce per-client in-flight cap before waiting for global slot
+    client_key_val = request_client_key(request)
+    scene_in_flight = get_scene_in_flight_limiter()
+    if not scene_in_flight.acquire(client_key_val):
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                "Too many concurrent diagram requests for this client. "
+                "Please wait a moment and retry."
+            ),
+            headers={"Retry-After": "1"},
+        )
+
     sem = get_scene_semaphore()
     wait_seconds = parse_scene_queue_wait_seconds()
     try:
         await acquire_slot(sem, wait_seconds)
     except TimeoutError as exc:
+        scene_in_flight.release(client_key_val)
         raise HTTPException(
             status_code=503,
             detail="Server is busy processing other diagram requests. reason: queue_timeout",
@@ -589,7 +618,7 @@ async def process_scene(
         cached = scene_cache.get(cache_key)
         if cached is not None:
             cached_payload, cached_provider = cached
-            response.headers["X-Vision-Provider"] = cached_provider
+            response.headers["X-Vision-Provider"] = "ai"
             response.headers["X-Scene-Cache"] = "HIT"
             logger.info("scene served from cache: provider=%s", cached_provider)
             return cached_payload
@@ -680,8 +709,8 @@ async def process_scene(
 
             final_scene = val_result.scene
 
-            # Finding 11: Header is 'none' whenever mode is 'raw'
-            response.headers["X-Vision-Provider"] = "none"
+            # A8: X-Vision-Provider is 'raw' or 'ai' only (never provider names or 'none')
+            response.headers["X-Vision-Provider"] = "raw"
             elapsed_ms = int((time.monotonic() - start_time) * 1000)
             logger.info(
                 "scene processed: provider=%s mode=raw reason=%s elapsed_ms=%d",
@@ -695,9 +724,12 @@ async def process_scene(
                 "reason": reason,
             }
 
-        # Step 4: Zero providers configured -> Raw Mode immediately
+        # Step 4: Zero providers configured or budget spent -> Raw Mode immediately (C1)
         if not chain.providers:
             return await run_raw_mode("no_provider", "none")
+        if is_budget_exhausted():
+            logger.info("Daily paid budget exhausted; skipping AI and using Raw Mode immediately")
+            return await run_raw_mode("budget_exhausted", "none")
 
         provider_state = {"name": "none"}
         if total_deadline > RAW_MODE_RESERVE_SECONDS:
@@ -707,7 +739,8 @@ async def process_scene(
         ai_deadline = start_time + ai_budget
 
         def ai_payload(scene: Any, provider: str, note: str = "") -> dict[str, Any]:
-            response.headers["X-Vision-Provider"] = provider
+            # A8: Return 'ai' to client; provider name kept in server logs only
+            response.headers["X-Vision-Provider"] = "ai"
             elapsed_ms = int((time.monotonic() - start_time) * 1000)
             logger.info(
                 "scene processed: provider=%s mode=ai reason=none%s elapsed_ms=%d",
@@ -798,6 +831,7 @@ async def process_scene(
             return payload
         return await run_raw_mode(fallback_reason, provider_state["name"])
     finally:
+        scene_in_flight.release(client_key_val)
         sem.release()
 
 
@@ -811,11 +845,24 @@ async def ask_question_route(
 
     Uses vision/language provider completion with fallback to deterministic facts lookup.
     """
+    # C4, R3-1: Per-client in-flight cap (429 over cap)
+    client_key_val = request_client_key(raw_request)
+    ask_limiter = get_ask_in_flight_limiter()
+    if not ask_limiter.acquire(client_key_val):
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                "Too many concurrent ask requests for this client. Please wait a moment and retry."
+            ),
+            headers={"Retry-After": "1"},
+        )
+
     sem = get_ask_semaphore()
     wait_seconds = parse_ask_queue_wait_seconds()
     try:
         await acquire_slot(sem, wait_seconds)
     except TimeoutError as exc:
+        ask_limiter.release(client_key_val)
         raise HTTPException(
             status_code=503,
             detail="Server is busy processing other ask requests.",
@@ -843,6 +890,7 @@ async def ask_question_route(
                 with contextlib.suppress(asyncio.CancelledError):
                     await work
     finally:
+        ask_limiter.release(client_key_val)
         sem.release()
 
 
