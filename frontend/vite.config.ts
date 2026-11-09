@@ -42,8 +42,9 @@ export const pwaOptions: Partial<VitePWAOptions> = {
     ],
   },
   workbox: {
-    globPatterns: ['**/*.{js,css,html,svg,png,ico,json,woff2}'],
-    globIgnores: ['**/pdf*', '**/brand/og-image.*', '**/brand/og-image.png', '**/voice/manifest.json'],
+    globPatterns: ['**/*.{js,css,html,svg,png,ico,json,woff2,mjs}'],
+    globIgnores: ['**/*.pdf', '**/brand/og-image.*', '**/brand/og-image.png', '**/voice/manifest.json'],
+    maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
     runtimeCaching: [
       {
         urlPattern: /\/assets\/pdf.*/,
