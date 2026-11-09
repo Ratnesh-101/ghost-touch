@@ -2652,3 +2652,6 @@ Format for each entry:
 
 ## 2026-11-09 — Kiro — T37.1 (Correct mode: delete curves and bars, Requirement 21)
 - Tool: **Kiro**. Wrote the spec first: Requirement 21, a design section listing the UI lane's selection, controls and 5 i18n keys, and P62-P65. Then added `deletePolyline` and `deleteBar` to `core/correct.ts`; unlike `deleteSegment`, an unknown id returns the same scene object. Wrote `tests/correct.deleteKinds.prop.test.ts` (P62-P65, 250 runs each); 7 mutants were killed, each property killing at least one. Gate: `tsc` 0 errors, 135 files, 1851 passed, 0 skipped. `Correct.tsx` and `flow/` were not touched. Task 20.5 is ticked for the core half; the screen wiring is still to do (agy).
+
+## 2026-11-09 — Kiro — T37.2 (fc.float cleanup: checked, nothing to change)
+- Tool: **Kiro**. There is no `fc.float` left in `frontend/tests` (`git grep`). The four uses (`x`, `y`, `w`, `h` in `geometry.prop.test.ts`) were replaced with `fc.double` with the same ranges and `noNaN: true` by agy lane m2 in `22a64e4` (TQ-09); run counts unchanged. No file was edited, so no file needed skipping for recent agy edits. Tasks 37.2 and 20.9 ticked with that pointer.

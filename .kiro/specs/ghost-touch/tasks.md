@@ -145,7 +145,7 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [ ] 20.6 `tech.md` rule 1: centre-tick, axis-crossing and gesture decision logic lives in `flow/explore.ts` and calls `t()`; move the pure parts to `core/` and pass spoken text in
   - [ ] 20.7 Req 11.1 says "every scene loaded successfully" but samples are not saved (`App.tsx` `source !== 'sample'`); decide and update the requirement or the code
   - [x] 20.8 `package.json` `test:prop` finds nothing (`-t prop` matches test names, not file names); change to `vitest run .prop.test`
-  - [ ] 20.9 Replace the four remaining `fc.float` uses in `*.prop.test.ts` with `fc.double`
+  - [x] 20.9 Replace the four remaining `fc.float` uses in `*.prop.test.ts` with `fc.double` (done by agy lane m2 in `22a64e4`; checked in task 37.2)
   - [ ] 20.10 Keep `share/validate.ts` and `backend/app/validate.py` rules in sync (hand-mirrored); add a shared-fixture parity test
   - _Requirements: 9.2, 11.1, 11.3, 11.5, 11.7_
 
@@ -309,6 +309,6 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 
 - [ ] 37. Close review follow-ups 20.5 (core half), 20.9 and 20.10
   - [x] 37.1 Requirement 21, design and P62-P65 first; then `deletePolyline` and `deleteBar` in `core/correct.ts`; properties in `frontend/tests/correct.deleteKinds.prop.test.ts` (200+ runs), mutation-checked; the UI lane's controls and keys listed in design.md
-  - [ ] 37.2 Replace the remaining `fc.float` uses in `frontend/tests/*.prop.test.ts` with `fc.double` (same ranges, `noNaN: true` where the old generator could not give NaN, same run counts)
+  - [x] 37.2 (already done by agy lane m2 in `22a64e4`, TQ-09: the four `fc.float` in `geometry.prop.test.ts` became `fc.double` with the same ranges and `noNaN: true`; Kiro checked on 2026-11-09 that no `fc.float` is left in `frontend/tests`, so no file was edited) Replace the remaining `fc.float` uses in `frontend/tests/*.prop.test.ts` with `fc.double` (same ranges, `noNaN: true` where the old generator could not give NaN, same run counts)
   - [ ] 37.3 Validator parity: fixture `backend/fixtures/validator_parity.json` (named scenes, expected `accept`/`reject`, a reason key for rejects, `known_mismatch` where the two validators differ); one pytest and one vitest that run it through `backend/app/validate.py` and `frontend/src/share/validate.ts`; mismatches written up in `docs/reports/validator-parity.md`; neither validator changed
   - _Requirements: 9.2, 9.3, 21.*_
