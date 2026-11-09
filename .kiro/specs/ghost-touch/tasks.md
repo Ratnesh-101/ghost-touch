@@ -205,11 +205,11 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 25.7 Gate passes; commit `kiro: T25 ...`
   - _Requirements: 16.1 to 16.8_
 
-- [ ] 26. Bugs CORE-01 to CORE-03 and confirmed mediums
+- [x] 26. Bugs CORE-01 to CORE-03 and confirmed mediums (finished by Claude Code after Kiro was stopped; closed by Kiro 2026-11-09)
   - [x] 26.1 CORE-01: Back from `#/teach`, `#/share` and the share error screen speaks the destination, and unsaved Teacher edits need confirmation (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
   - [x] 26.2 CORE-02: axis crossings and the vertex are spoken as one utterance (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
   - [x] 26.3 CORE-03: `SavedDiagrams` does not speak or set state after unmount (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
-  - [ ] 26.4 CORE-07 combined delete message and focus; CORE-08 pointer capture try/catch; CORE-09 lost pointer capture; CORE-10 localised missing-voice notice (each only if reproduced)
+  - [x] 26.4 CORE-07 combined delete message and focus; CORE-08 pointer capture try/catch; CORE-09 lost pointer capture; CORE-10 localised missing-voice notice (each only if reproduced) (code by Kiro in T26, committed by Claude Code after Kiro was stopped; CORE-09 proven by Kiro in task 30; CORE-08 not checked on a phone)
   - [x] 26.5 NEEDS-KIRO-01: `hitTest` treats non-finite distance as a miss (a real bug in `core/`; noted in the review) (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
   - [x] 26.6 Gate passes; commit `kiro: T26 ...` (committed as `8f60415` by Claude Code after Kiro was stopped, not as `kiro: T26`; gate re-run green by Kiro 2026-11-09)
   - _Requirements: 16.12, 17.*_
@@ -247,9 +247,9 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [ ] 29.8 `docs/KIRO_WRITEUP.md`: what was Kiro's (spec, steering, hook, review, fixes) and what was agy's (module and first tests)
   - _Requirements: 18.*_
 
-- [ ] 30. CORE-09: a revoked pointer capture ends the Teacher drag
-  - [ ] 30.1 Component test (jsdom, this file only) that fails when `onLostPointerCapture` is removed: after a lost capture, a later move and lift must not move the point
-  - [ ] 30.2 Keep the handler; gate; commit
+- [x] 30. CORE-09: a revoked pointer capture ends the Teacher drag
+  - [x] 30.1 Component test (jsdom, this file only) that fails when `onLostPointerCapture` is removed: after a lost capture, a later move and lift must not move the point
+  - [x] 30.2 Keep the handler; gate; commit
   - _Requirements: 17.5_
 
 - [ ] 31. NEEDS-KIRO-02: unlabelled vertices are spoken in the active language

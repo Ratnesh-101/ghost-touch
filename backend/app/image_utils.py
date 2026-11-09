@@ -58,6 +58,58 @@ def _parse_exif_orientation(data: bytes, offset: int, length: int) -> int | None
     return None
 
 
+def get_exif_orientation(data: bytes) -> int | None:
+    """Extract EXIF orientation tag (1..8) from image bytes (JPEG), or None if missing."""
+    if len(data) < 3 or not data.startswith(b"\xff\xd8\xff"):
+        return None
+    offset = 2
+    orientation: int | None = None
+    try:
+        while offset < len(data) - 1:
+            if data[offset] != 0xFF:
+                return orientation
+            marker = data[offset + 1]
+            offset += 2
+            while marker == 0xFF and offset < len(data):
+                marker = data[offset]
+                offset += 1
+            if marker == 0xE1:
+                if offset + 2 > len(data):
+                    return orientation
+                seg_len = struct.unpack(">H", data[offset : offset + 2])[0]
+                parsed_ori = _parse_exif_orientation(data, offset, seg_len)
+                if parsed_ori is not None:
+                    orientation = parsed_ori
+                offset += seg_len
+                continue
+            if marker in (
+                0xC0,
+                0xC1,
+                0xC2,
+                0xC3,
+                0xC5,
+                0xC6,
+                0xC7,
+                0xC9,
+                0xCA,
+                0xCB,
+                0xCD,
+                0xCE,
+                0xCF,
+                0xD9,
+                0xDA,
+            ):
+                return orientation
+            else:
+                if offset + 2 > len(data):
+                    return orientation
+                length = struct.unpack(">H", data[offset : offset + 2])[0]
+                offset += length
+    except Exception:
+        return orientation
+    return orientation
+
+
 def sniff_image_dimensions(data: bytes) -> tuple[int, int] | None:
     """Extract (width, height) in pixels from the image header without full decode.
 
@@ -118,7 +170,9 @@ def sniff_image_dimensions(data: bytes) -> tuple[int, int] | None:
                     if offset + 2 > len(data):
                         return None
                     seg_len = struct.unpack(">H", data[offset : offset + 2])[0]
-                    orientation = _parse_exif_orientation(data, offset, seg_len)
+                    parsed_ori = _parse_exif_orientation(data, offset, seg_len)
+                    if parsed_ori is not None:
+                        orientation = parsed_ori
                     offset += seg_len
                     continue
                 # SOF0 through SOF15 except DHT/JPG/DAC
@@ -180,10 +234,7 @@ def validate_image_bytes(data: bytes, declared_mime: str | None = None) -> tuple
         if norm_declared != detected_mime:
             raise HTTPException(
                 status_code=415,
-                detail=(
-                    f"Declared content type '{declared_mime}' does not match "
-                    f"detected image format '{detected_mime}'."
-                ),
+                detail="Declared content type does not match detected image format.",
             )
 
     dims = sniff_image_dimensions(data)

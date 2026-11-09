@@ -12,6 +12,7 @@ reasoning, so they get no temperature and a larger token cap.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import os
 from typing import Any
@@ -19,11 +20,16 @@ from typing import Any
 import httpx
 
 from app.paid_budget import try_consume
-from app.vision._openai_compat import post_chat_completion, strip_fences
+from app.vision._openai_compat import (
+    fit_image_for_inline,
+    post_chat_completion,
+    strip_fences,
+)
 from app.vision.base import VisionError
 
 DEFAULT_MODEL = "gpt-4.1-mini"
 DEFAULT_BASE_URL = "https://api.openai.com/v1"
+INLINE_LIMIT = 1_500_000  # bytes; bounds request payload to prevent upload timeouts (B2-09)
 EXTRACT_MAX_TOKENS = 4096
 EXTRACT_MAX_TOKENS_REASONING = 16384
 COMPLETE_MAX_TOKENS = 256
@@ -44,6 +50,7 @@ class OpenAIProvider:
         api_key: str | None = None,
         model: str | None = None,
         base_url: str | None = None,
+        inline_limit: int = INLINE_LIMIT,
         client: httpx.AsyncClient | None = None,
     ) -> None:
         self.api_key = api_key if api_key is not None else os.environ.get("OPENAI_API_KEY", "")
@@ -51,6 +58,7 @@ class OpenAIProvider:
         self.base_url = (
             base_url or os.environ.get("OPENAI_BASE_URL", "").strip() or DEFAULT_BASE_URL
         ).rstrip("/")
+        self.inline_limit = inline_limit
         self._client = client
 
     def _body(self, content: Any, *, extract: bool) -> dict[str, Any]:
@@ -86,7 +94,9 @@ class OpenAIProvider:
         """Extract diagram JSON text from an image. Raises VisionError on any failure."""
         if not try_consume(1):
             raise VisionError(self.name, "paid call budget exhausted", transient=False)
-        data_url = f"data:{mime};base64,{base64.b64encode(image).decode('ascii')}"
+        fitted = await asyncio.to_thread(fit_image_for_inline, image, self.inline_limit, self.name)
+        fitted_mime = "image/jpeg" if fitted is not image else mime
+        data_url = f"data:{fitted_mime};base64,{base64.b64encode(fitted).decode('ascii')}"
         content = [
             {"type": "text", "text": prompt},
             {"type": "image_url", "image_url": {"url": data_url, "detail": "high"}},

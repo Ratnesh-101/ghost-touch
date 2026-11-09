@@ -9,7 +9,6 @@ and diagram scene validation (POST /api/v1/validate).
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import inspect
 import logging
 import os
@@ -19,6 +18,7 @@ from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
+import cv2
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -324,6 +324,15 @@ async def _run_improve_pass_locked(
         timeout = 30.0
 
     try:
+        existing_cached = scene_cache.get(cache_key)
+        if existing_cached is not None:
+            existing_payload, _ = existing_cached
+            if existing_payload.get("scene", {}).get("kind") == "function_graph":
+                logger.info(
+                    "Background improve pass skipped: preserving equation-route function graph"
+                )
+                return
+
         logger.info("Starting background improve pass using provider '%s'", improve_provider.name)
         raw_text = await improve_provider.extract(
             image_bytes,
@@ -333,6 +342,12 @@ async def _run_improve_pass_locked(
         )
         val_result = validator(raw_text)
         if val_result.scene is not None:
+            if val_result.scene.kind == "function_graph":
+                logger.info(
+                    "Background improve pass generated function_graph trace; "
+                    "skipping cache overwrite"
+                )
+                return
             improved_payload = {
                 "scene": val_result.scene.model_dump(),
                 "mode": "ai",
@@ -668,10 +683,10 @@ async def process_scene(
                     status_code=504,
                     detail="Diagram processing timed out. Please try again with a simpler image.",
                 ) from exc
-            except RawModeError as exc:
+            except (RawModeError, cv2.error) as exc:
                 raise HTTPException(
                     status_code=422,
-                    detail=f"Could not process image: {exc}. Please upload a clear diagram photo.",
+                    detail="Could not process image. Please upload a clear diagram photo.",
                 ) from exc
             except (Exception, asyncio.CancelledError):
                 cancel_event.set()
@@ -802,19 +817,64 @@ async def process_scene(
 
         payload: dict[str, Any] | None = None
         fallback_reason = "error"
-        try:
-            async with asyncio.timeout(ai_budget):
-                payload, fallback_reason = await attempt_ai()
-        except TimeoutError:
+        remaining_ai = ai_deadline - time.monotonic()
+        if remaining_ai <= 0:
             fallback_reason = "timeout"
-        except VisionError as exc:
-            logger.warning("All vision providers failed: %s", exc)
-            fallback_reason = "provider_error"
-        except HTTPException:
-            raise
-        except Exception as exc:
-            logger.error("Unexpected error in scene pipeline: %s", exc)
-            fallback_reason = "error"
+        else:
+            work = asyncio.create_task(attempt_ai())
+            handler_cancelled = False
+            try:
+                try:
+                    while True:
+                        now = time.monotonic()
+                        remaining = ai_deadline - now
+                        if remaining <= 0:
+                            work.cancel()
+                            fallback_reason = "timeout"
+                            break
+                        poll_timeout = min(ASK_DISCONNECT_POLL_SECONDS, remaining)
+                        done, _ = await asyncio.wait({work}, timeout=poll_timeout)
+                        if done:
+                            if work.cancelled():
+                                fallback_reason = "timeout"
+                            else:
+                                payload, fallback_reason = work.result()
+                            break
+                        if await request.is_disconnected():
+                            logger.info("Client disconnected during scene vision call; cancelling")
+                            work.cancel()
+                            return Response(status_code=499)
+                except TimeoutError:
+                    fallback_reason = "timeout"
+                except VisionError as exc:
+                    logger.warning("All vision providers failed: %s", exc)
+                    reason_lower = exc.reason.lower()
+                    if time.monotonic() >= ai_deadline or "deadline reached" in reason_lower:
+                        fallback_reason = "timeout"
+                    elif "budget exhausted" in reason_lower:
+                        fallback_reason = "budget_exhausted"
+                    else:
+                        fallback_reason = "provider_error"
+                except HTTPException:
+                    raise
+                except asyncio.CancelledError:
+                    handler_cancelled = True
+                    raise
+                except Exception as exc:
+                    logger.error("Unexpected error in scene pipeline: %s", exc)
+                    fallback_reason = "error"
+            finally:
+                if not work.done():
+                    work.cancel()
+                    try:
+                        await work
+                    except asyncio.CancelledError:
+                        pass
+                if handler_cancelled or (
+                    hasattr(asyncio.current_task(), "cancelling")
+                    and asyncio.current_task().cancelling() > 0
+                ):
+                    raise asyncio.CancelledError()
 
         if payload is not None:
             scene_cache.put(cache_key, payload, provider_state["name"])
@@ -876,6 +936,7 @@ async def ask_question_route(
         # Run the model call as a task so a client that hangs up mid-call frees the slot and
         # the paid request is cancelled instead of running to completion.
         work = asyncio.create_task(answer_question(request, chain))
+        handler_cancelled = False
         try:
             while True:
                 done, _ = await asyncio.wait({work}, timeout=ASK_DISCONNECT_POLL_SECONDS)
@@ -884,11 +945,21 @@ async def ask_question_route(
                 if await raw_request.is_disconnected():
                     logger.info("Client disconnected during ask processing; cancelling")
                     return Response(status_code=499)
+        except asyncio.CancelledError:
+            handler_cancelled = True
+            raise
         finally:
             if not work.done():
                 work.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
+                try:
                     await work
+                except asyncio.CancelledError:
+                    pass
+            if handler_cancelled or (
+                hasattr(asyncio.current_task(), "cancelling")
+                and asyncio.current_task().cancelling() > 0
+            ):
+                raise asyncio.CancelledError()
     finally:
         ask_limiter.release(client_key_val)
         sem.release()
@@ -923,7 +994,10 @@ async def validate_scene_route(
     ],
 ) -> ValidateResponse:
     """Validate and normalize a diagram scene for Teacher Correct mode (Req 9.3)."""
-    val_result = validator(request.scene)
+    try:
+        val_result = validator(request.scene)
+    except Exception:
+        return ValidateResponse(ok=False, scene=None, errors=["Validation failed"])
     if val_result.scene is not None:
         return ValidateResponse(ok=True, scene=val_result.scene, errors=[])
     return ValidateResponse(

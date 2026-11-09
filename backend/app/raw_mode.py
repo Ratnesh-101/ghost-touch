@@ -16,7 +16,7 @@ from collections.abc import Callable
 import cv2
 import numpy as np
 
-from app.image_utils import MAX_IMAGE_PIXELS, sniff_image_dimensions
+from app.image_utils import MAX_IMAGE_PIXELS, get_exif_orientation, sniff_image_dimensions
 from app.schema import DiagramScene, Point, Segment
 
 MAX_RAW_SEGMENTS = 300  # Requirement 8.2
@@ -69,6 +69,27 @@ def _dedupe_segments(
     return deduped
 
 
+def apply_exif_orientation(img: np.ndarray, orientation: int | None) -> np.ndarray:
+    """Rotate or flip decoded image array according to EXIF orientation tag (1..8)."""
+    if orientation is None or orientation == 1:
+        return img
+    if orientation == 2:
+        return cv2.flip(img, 1)
+    if orientation == 3:
+        return cv2.rotate(img, cv2.ROTATE_180)
+    if orientation == 4:
+        return cv2.flip(img, 0)
+    if orientation == 5:
+        return cv2.flip(cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE), 0)
+    if orientation == 6:
+        return cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+    if orientation == 7:
+        return cv2.flip(cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE), 0)
+    if orientation == 8:
+        return cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    return img
+
+
 def build_raw_scene(
     image: bytes,
     cancel_check: threading.Event | Callable[[], bool] | None = None,
@@ -95,119 +116,131 @@ def build_raw_scene(
 
     _check_cancel(cancel_check)
 
-    decoded = cv2.imdecode(np.frombuffer(image, np.uint8), cv2.IMREAD_COLOR)
-    if decoded is None:
-        raise RawModeError("Could not decode image bytes")
-
-    height, width = decoded.shape[:2]
-    if height <= 0 or width <= 0:
-        raise RawModeError("Invalid image dimensions")
-
-    if height * width > MAX_IMAGE_PIXELS:
-        raise RawModeError(
-            f"Image resolution ({width}x{height}) exceeds {MAX_IMAGE_PIXELS // 1_000_000} MP limit",
+    try:
+        decoded = cv2.imdecode(
+            np.frombuffer(image, np.uint8),
+            cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION,
         )
+        if decoded is None:
+            raise RawModeError("Could not decode image bytes")
 
-    _check_cancel(cancel_check)
+        orientation = get_exif_orientation(image)
+        if orientation is not None and orientation != 1:
+            decoded = apply_exif_orientation(decoded, orientation)
 
-    # 1x1 or <3x3 images cannot contain polygonal diagram outlines
-    if width < 3 or height < 3:
-        return DiagramScene(
-            version=1,
-            kind="unknown",
-            title=None,
-            points=[],
-            segments=[],
-            polylines=[],
-            bars=[],
-            axes=None,
-            facts=[],
-        )
+        height, width = decoded.shape[:2]
+        if height <= 0 or width <= 0:
+            raise RawModeError("Invalid image dimensions")
 
-    # Convert to grayscale first, then free the 3-channel decoded buffer
-    gray = cv2.cvtColor(decoded, cv2.COLOR_BGR2GRAY)
-    del decoded
+        if height * width > MAX_IMAGE_PIXELS:
+            raise RawModeError(
+                f"Image resolution ({width}x{height}) exceeds "
+                f"{MAX_IMAGE_PIXELS // 1_000_000} MP limit",
+            )
 
-    # Downscale to at most MAX_RAW_DIMENSION (1600 px) on the long side before edge detection (A3)
-    max_dim = max(height, width)
-    if max_dim > MAX_RAW_DIMENSION:
-        scale = MAX_RAW_DIMENSION / max_dim
-        proc_w = max(1, int(round(width * scale)))
-        proc_h = max(1, int(round(height * scale)))
-        gray = cv2.resize(gray, (proc_w, proc_h), interpolation=cv2.INTER_AREA)
-    else:
-        proc_w, proc_h = width, height
+        _check_cancel(cancel_check)
 
-    _check_cancel(cancel_check)
+        # 1x1 or <3x3 images cannot contain polygonal diagram outlines
+        if width < 3 or height < 3:
+            return DiagramScene(
+                version=1,
+                kind="unknown",
+                title=None,
+                points=[],
+                segments=[],
+                polylines=[],
+                bars=[],
+                axes=None,
+                facts=[],
+            )
 
-    if proc_w < 3 or proc_h < 3:
-        return DiagramScene(
-            version=1,
-            kind="unknown",
-            title=None,
-            points=[],
-            segments=[],
-            polylines=[],
-            bars=[],
-            axes=None,
-            facts=[],
-        )
+        # Convert to grayscale first, then free the 3-channel decoded buffer
+        gray = cv2.cvtColor(decoded, cv2.COLOR_BGR2GRAY)
+        del decoded
 
-    ksize = 5 if min(proc_w, proc_h) >= 5 else 3
-    blurred = cv2.GaussianBlur(gray, (ksize, ksize), 0)
-    del gray
-
-    _check_cancel(cancel_check)
-
-    edges = cv2.Canny(blurred, 50, 150)
-    del blurred
-
-    _check_cancel(cancel_check)
-
-    contours, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    del edges
-
-    _check_cancel(cancel_check)
-
-    # Cap contour list to the longest ~2000 before building Python objects and sorting (A3)
-    if len(contours) > MAX_RAW_CONTOURS:
-        sorted_contours = sorted(
-            contours,
-            key=lambda c: cv2.arcLength(c, True),
-            reverse=True,
-        )
-        contours = sorted_contours[:MAX_RAW_CONTOURS]
-
-    _check_cancel(cancel_check)
-
-    extracted_segments: list[tuple[float, float, float, float]] = []
-
-    for idx, contour in enumerate(contours):
-        if idx % 100 == 0:
-            _check_cancel(cancel_check)
-        perimeter = cv2.arcLength(contour, True)
-        epsilon = 0.01 * perimeter
-        approx = cv2.approxPolyDP(contour, epsilon, True)
-        num_points = len(approx)
-
-        if num_points < 2:
-            continue
-
-        if num_points == 2:
-            pt1 = approx[0][0]
-            pt2 = approx[1][0]
-            x1, y1 = float(pt1[0]), float(pt1[1])
-            x2, y2 = float(pt2[0]), float(pt2[1])
-            if math.hypot(x2 - x1, y2 - y1) > 0.0:
-                extracted_segments.append((x1, y1, x2, y2))
+        # Downscale to at most MAX_RAW_DIMENSION (1600 px) on the long side
+        # before edge detection (A3)
+        max_dim = max(height, width)
+        if max_dim > MAX_RAW_DIMENSION:
+            scale = MAX_RAW_DIMENSION / max_dim
+            proc_w = max(1, int(round(width * scale)))
+            proc_h = max(1, int(round(height * scale)))
+            gray = cv2.resize(gray, (proc_w, proc_h), interpolation=cv2.INTER_AREA)
         else:
-            for i in range(num_points):
-                pt1 = approx[i][0]
-                pt2 = approx[(i + 1) % num_points][0]
+            proc_w, proc_h = width, height
+
+        _check_cancel(cancel_check)
+
+        if proc_w < 3 or proc_h < 3:
+            return DiagramScene(
+                version=1,
+                kind="unknown",
+                title=None,
+                points=[],
+                segments=[],
+                polylines=[],
+                bars=[],
+                axes=None,
+                facts=[],
+            )
+
+        ksize = 5 if min(proc_w, proc_h) >= 5 else 3
+        blurred = cv2.GaussianBlur(gray, (ksize, ksize), 0)
+        del gray
+
+        _check_cancel(cancel_check)
+
+        edges = cv2.Canny(blurred, 50, 150)
+        del blurred
+
+        _check_cancel(cancel_check)
+
+        contours, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        del edges
+
+        _check_cancel(cancel_check)
+
+        # Cap contour list to the longest ~2000 before building Python objects and sorting (A3)
+        if len(contours) > MAX_RAW_CONTOURS:
+            sorted_contours = sorted(
+                contours,
+                key=lambda c: cv2.arcLength(c, True),
+                reverse=True,
+            )
+            contours = sorted_contours[:MAX_RAW_CONTOURS]
+
+        _check_cancel(cancel_check)
+
+        extracted_segments: list[tuple[float, float, float, float]] = []
+
+        for idx, contour in enumerate(contours):
+            if idx % 100 == 0:
+                _check_cancel(cancel_check)
+            perimeter = cv2.arcLength(contour, True)
+            epsilon = 0.01 * perimeter
+            approx = cv2.approxPolyDP(contour, epsilon, True)
+            num_points = len(approx)
+
+            if num_points < 2:
+                continue
+
+            if num_points == 2:
+                pt1 = approx[0][0]
+                pt2 = approx[1][0]
                 x1, y1 = float(pt1[0]), float(pt1[1])
                 x2, y2 = float(pt2[0]), float(pt2[1])
                 if math.hypot(x2 - x1, y2 - y1) > 0.0:
                     extracted_segments.append((x1, y1, x2, y2))
+            else:
+                for i in range(num_points):
+                    pt1 = approx[i][0]
+                    pt2 = approx[(i + 1) % num_points][0]
+                    x1, y1 = float(pt1[0]), float(pt1[1])
+                    x2, y2 = float(pt2[0]), float(pt2[1])
+                    if math.hypot(x2 - x1, y2 - y1) > 0.0:
+                        extracted_segments.append((x1, y1, x2, y2))
+    except cv2.error as exc:
+        raise RawModeError(f"OpenCV processing error: {exc}") from exc
 
     _check_cancel(cancel_check)
 

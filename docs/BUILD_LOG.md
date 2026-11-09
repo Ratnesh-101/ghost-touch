@@ -2203,3 +2203,13 @@ Format for each entry:
 - Planned before any code: tasks 29 (Spec Ghost spec after code), 30 (CORE-09 test), 31 (NEEDS-KIRO-02), 32 (hitTest PERF-01, R3-07), 33 (evidence).
 - Gate (after lanes k1, k6 and the k8 test fix landed on `main` during this task): frontend `tsc` clean, 125 files and 1713 tests pass, build ok; backend pytest 675 passed, `ruff check` and `ruff format --check` clean (74 files). Earlier in the task the backend showed 2 failures in lane k8's then-untracked test; lane k8 has since committed it with the fix (`b347a15`).
 - Files touched: `.kiro/specs/ghost-touch/tasks.md`, `docs/reviews/kiro-round2.md`, `backend/tests/test_round2_props.py` (two `max_examples` values), `docs/BUILD_LOG.md`.
+
+## 2026-11-09 — Kiro — T30 (CORE-09: a revoked pointer capture ends the Teacher drag)
+- Tool: **Kiro**. Finding from the Antigravity audit a7 (CORE-09).
+- Found: the handler was already in the code (`onLostPointerCapture={handlePointerUp}`, added by Kiro in T26, committed by Claude Code in `8f60415`), but nothing proved it. The brief said it was missing; the round 2 review row said "no change found". Both were wrong; corrected.
+- Built: `frontend/tests/teach.canvas.pointer.test.tsx`, a real component test. It mounts `TeachCanvas` with `react-dom/client` in jsdom (per-file `// @vitest-environment jsdom`; the other 125 files keep Node) and fires pointer events: grab A, drag, `lostpointercapture`, keep moving, lift. Plus a normal-drag regression test and a "lost capture after lift does not commit twice" test.
+- New dev dependency: `jsdom@31.0.0`, pinned exactly. It brings no `@types` packages (an earlier handoff warned that `@types/node` breaks 31 tests). `npm audit` shows the same 4 low advisories as before the install (`vite-plugin-pwa` > `workbox-build` > `deepmerge`); jsdom adds none.
+- What the test caught: with the handler removed, the point jumps to where the finger lifted (`expected 0.9 to be close to 0.5`), exactly the audit's scenario. With it, all 3 pass. The source was restored byte for byte after the check.
+- Gate: frontend `tsc` clean, 126 files and 1716 tests pass, build ok; backend 675 passed, `ruff check` and `ruff format --check` clean.
+- Not verified: behaviour on a phone with a real Android notification or system gesture.
+- Files touched: `frontend/tests/teach.canvas.pointer.test.tsx` (new), `frontend/package.json`, `frontend/package-lock.json`, `docs/reviews/kiro-round2.md`, `.kiro/specs/ghost-touch/tasks.md`, `docs/BUILD_LOG.md`.
