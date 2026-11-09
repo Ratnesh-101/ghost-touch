@@ -51,5 +51,6 @@
     "values are in thousands of units",
     "Q4 was the highest quarter",
     "Q1 was the lowest quarter"
-  ]
+  ],
+  "aspect": 1.0
 }

@@ -421,5 +421,6 @@
     "amplitude = 1",
     "period = 2 pi",
     "one full period is shown"
-  ]
+  ],
+  "aspect": 1.0
 }

@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "kind": "geometry",
+  "title": "Right Triangle ABC",
+  "points": [
+    {
+      "id": "A",
+      "x": 0.25,
+      "y": 0.25,
+      "label": "A"
+    },
+    {
+      "id": "B",
+      "x": 0.7,
+      "y": 0.85,
+      "label": "B"
+    },
+    {
+      "id": "C",
+      "x": 0.25,
+      "y": 0.85,
+      "label": "C"
+    }
+  ],
+  "segments": [
+    {
+      "id": "CA",
+      "a": "C",
+      "b": "A",
+      "label": "CA"
+    },
+    {
+      "id": "AB",
+      "a": "A",
+      "b": "B",
+      "label": "AB"
+    },
+    {
+      "id": "BC",
+      "a": "B",
+      "b": "C",
+      "label": "BC"
+    }
+  ],
+  "polylines": [],
+  "bars": [],
+  "axes": null,
+  "facts": [
+    "angle C = 90 degrees",
+    "AC = 4 cm",
+    "BC = 3 cm",
+    "AB = 5 cm"
+  ],
+  "aspect": 1.0
+}
