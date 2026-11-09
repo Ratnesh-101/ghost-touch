@@ -2128,3 +2128,38 @@ Format for each entry:
   - `backend/tests/test_k8_i18n.py`
   - `docs/reports/agy-k8-i18n-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — agy, reviewed by Claude — Lane k1-verify-wiring (SPEC GHOST wiring)
+- Wired SPEC GHOST verification module (`frontend/src/verify/verify.ts`) into Explore and Ask flows:
+  - On entering Explore with AI, raw, sample, or shared-link scenes, runs `verifyScene(scene, {mode})` once.
+  - If status is 'disagree', appends ONE extra sentence to the entry announcement via `joinAnnouncements`: wording from `VERIFY_WORDING` localised in `en`, `hi`, `gu` with `{name}` placeholder ("Facts and drawing disagree on {name}. I can't tell which is right.").
+  - If status is 'consistent' or 'silent', says NOTHING extra (no "all good" claim).
+  - Propagates finding to visible Explore status area through existing `announced` prop path.
+  - Implemented pure helper `caveatForQuestion(findings, question)` in `frontend/src/flow/ask.ts`: when a question mentions a disputed segment or side (with reversed ID matching and word boundary safety), prepends caveat sentence to spoken Ask answer in ONE utterance. Questions about undisputed sides are unchanged.
+  - Extended `VerifyFinding` with `target?: string; name?: string;` and populated them in `verifyScene`.
+  - Added `'verify.disagree'` to `frontend/src/i18n/index.ts` across `en`, `hi`, and `gu`. Strictly verified no key contains "verified" or "trust the text".
+  - Appended new strings to `docs/user-test/translation-review.md` and `.csv`.
+  - Created unit and integration test suite `frontend/tests/k1.verifyWiring.test.ts` (18 tests covering SPEC GHOST constraints, Explore announcements, shared-link routes, pure `caveatForQuestion`, `AskManager` integration, and i18n).
+- What broke / findings: None; all existing contracts and property tests preserved.
+- Files touched:
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/verify/verify.ts`
+  - `frontend/src/flow/navigation.ts`
+  - `frontend/src/flow/ask.ts`
+  - `frontend/src/App.tsx`
+  - `docs/user-test/translation-review.md`
+  - `docs/user-test/translation-review.csv`
+  - `frontend/tests/k1.verifyWiring.test.ts`
+  - `docs/reports/agy-k1-verify-wiring-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — agy, reviewed by Claude — Lane k1-verify-wiring (Follow-up 3: Shared-Link Test Hash Encoding Fix)
+- In `frontend/tests/k1.verifyWiring.test.ts`, corrected share hash construction in section 3 tests from `#/share/${encodeShare(payload)}` to `${SHARE_HASH_PREFIX}${encodeShare(payload)}` (`#s=`).
+- Verified payload passes `validateShareScene` and client invariants for both honest `triangle.json` (consistent, no caveat) and forged `triangle.json` ("AC = 7 cm", disagree, caveat in single spoken utterance with teacher verification line).
+- No app code changes were required (zero bugs in app code; resolver and hashRoute route prefix parsing verified).
+- Files touched:
+  - `frontend/tests/k1.verifyWiring.test.ts`
+  - `docs/reports/agy-k1-verify-wiring-report.md`
+  - `docs/BUILD_LOG.md`
+
+
