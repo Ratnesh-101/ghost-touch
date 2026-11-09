@@ -2655,3 +2655,28 @@ Format for each entry:
 
 ## 2026-11-09 — Kiro — T37.2 (fc.float cleanup: checked, nothing to change)
 - Tool: **Kiro**. There is no `fc.float` left in `frontend/tests` (`git grep`). The four uses (`x`, `y`, `w`, `h` in `geometry.prop.test.ts`) were replaced with `fc.double` with the same ranges and `noNaN: true` by agy lane m2 in `22a64e4` (TQ-09); run counts unchanged. No file was edited, so no file needed skipping for recent agy edits. Tasks 37.2 and 20.9 ticked with that pointer.
+## 2026-11-09 — agy, reviewed by Claude — Lane p4-r5-docs-fixes (Factual Claims Documentation Fixes)
+- Tool: **Antigravity** (agy, reviewed by Claude).
+- What was built:
+  - Resolved all factual discrepancies identified in audit report `docs/reports/audit-r5-docs-claims.md` across 8 documentation files in accordance with brief rules and owner overrides.
+  - Closed stale open-issue claims: Updated `README.md`, `STEMERGENT_SUBMISSION.md`, `BLOG.md`, `SOCIAL.md`, `DEMO_SCRIPT.md`, and `DEPLOY.md` to reflect that Round 2 items `CORE-09` (pointer capture) and `NEEDS-KIRO-02` (corner tone sequencing) were resolved by Kiro in Round 3.
+  - Accurate Spec Ghost status: Clarified across all scoped documents that Spec Ghost (`frontend/src/core/verify.ts`) is wired into Explore and Ask announcements by lane k1, never claims "verified", remains silent when uncertain, and parses facts on ~35% of sample and research scenes (21 of 60, measured on the sample set).
+  - Honest Share/Teach attribution: Replaced misleading "Verified by" banner copy with "Shared by [Teacher], not checked" and tap-to-open `ShareGate` user activation in `README.md`, `STEMERGENT_SUBMISSION.md`, `DEMO_SCRIPT.md`, and `PRIVACY.md`. Preserved feature flags as OFF by default and unverified on physical hardware.
+  - Hardware tuning precision: Preserved that the owner hand-tuned haptic values on their OnePlus Nord CE6 in the haptics prototype (`prototypes/haptics-test.html`) while clearly stating that end-to-end full app testing on the physical phone remains pending (`STEMERGENT_SUBMISSION.md`, `KIRO_WRITEUP.md`).
+  - Demo script corrections: Fixed impossible demo steps in `DEMO_SCRIPT.md` (corrected vertex B to vertex C for the 90-degree right angle in `triangle.json`; added `ShareGate` user tap to unlock audio; added prerequisite flags/settings notes for Guide and Share; clarified vision provider order).
+  - Multi-agent attribution matrix: Synchronized attribution across all documents with `docs/BUILD_LOG.md`, adding Kiro's Round 3 work (Tasks 29–35: Spec Ghost spec/review/move to core, hit-test optimizations P52/P53, CORE-09, NEEDS-KIRO-02 P51, Ghostwriter core addPoint/addSegment P54–P57, localized angle naming Task 35) and Antigravity's contributions (Spec Ghost fact-checking module P47–P50, k1 wiring, and post-round hardening lanes m1–m3, n1–n2, p1–p3).
+  - Invariant preservation: Preserved all `[RECOUNT]` and `[FILL]` placeholders untouched for supervisor recount. Preserved database name `ghost-touch` in `STEMERGENT_SUBMISSION.md`.
+- What broke / findings:
+  - No breakages. All documentation edits were cross-verified against current codebase state and `docs/BUILD_LOG.md`.
+- Files touched:
+  - `README.md`
+  - `docs/STEMERGENT_SUBMISSION.md`
+  - `docs/BLOG.md`
+  - `docs/SOCIAL.md`
+  - `docs/DEMO_SCRIPT.md`
+  - `docs/KIRO_WRITEUP.md`
+  - `docs/PRIVACY.md`
+  - `docs/DEPLOY.md`
+  - `docs/BUILD_LOG.md`
+  - `docs/reports/agy-p4-r5-docs-fixes-report.md`
+
