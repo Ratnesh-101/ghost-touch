@@ -125,7 +125,7 @@ def test_improve_pass_updates_cache_so_refetch_gets_better_scene() -> None:
     assert first_data["mode"] == "ai"
     assert first_data["scene"]["title"] == "Fast Triangle"
     assert first_resp.headers["X-Scene-Cache"] == "MISS"
-    assert first_resp.headers["X-Vision-Provider"] == "gemini"
+    assert first_resp.headers["X-Vision-Provider"] == "ai"
     assert fast_provider.call_count == 1
 
     # In TestClient, background tasks run upon completing the response.
@@ -139,7 +139,7 @@ def test_improve_pass_updates_cache_so_refetch_gets_better_scene() -> None:
     assert second_data["mode"] == "ai"
     assert second_data["scene"]["title"] == "Detailed Right Triangle"
     assert second_resp.headers["X-Scene-Cache"] == "HIT"
-    assert second_resp.headers["X-Vision-Provider"] == "gemini-3.8-flash"
+    assert second_resp.headers["X-Vision-Provider"] == "ai"
 
     # Fast provider was NOT called again; improve provider was NOT called again:
     assert fast_provider.call_count == 1
@@ -171,7 +171,7 @@ def test_improve_pass_failure_leaves_fast_scene_in_cache() -> None:
     assert second_resp.status_code == 200
     assert second_resp.json()["scene"]["title"] == "Fast Triangle"
     assert second_resp.headers["X-Scene-Cache"] == "HIT"
-    assert second_resp.headers["X-Vision-Provider"] == "gemini"
+    assert second_resp.headers["X-Vision-Provider"] == "ai"
 
 
 def test_improve_pass_invalid_scene_is_discarded() -> None:

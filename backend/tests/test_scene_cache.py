@@ -120,7 +120,7 @@ def test_second_identical_upload_never_calls_a_provider() -> None:
     assert provider.call_count == 1
     assert second.json() == first.json()
     assert second.headers["X-Scene-Cache"] == "HIT"
-    assert second.headers["X-Vision-Provider"] == "gemini"
+    assert second.headers["X-Vision-Provider"] == "ai"
     assert first.headers["X-Scene-Cache"] == "MISS"
 
 

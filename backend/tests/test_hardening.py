@@ -121,21 +121,21 @@ def test_concurrency_cap_third_request_waits_then_succeeds(
         app.dependency_overrides[get_provider_chain] = lambda: chain
 
         try:
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-                img_bytes = make_test_png(120, 120)
+            img_bytes = make_test_png(120, 120)
 
-                async def send_req(i: int) -> httpx.Response:
+            async def send_req(i: int) -> httpx.Response:
+                transport = httpx.ASGITransport(app=app, client=(f"10.0.0.{i}", 5000))
+                async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
                     files = {"image": (f"test_{i}.png", img_bytes, "image/png")}
                     return await client.post("/api/v1/scene", files=files)
 
-                # Fire 3 requests concurrently
-                responses = await asyncio.gather(send_req(1), send_req(2), send_req(3))
+            # Fire 3 requests concurrently
+            responses = await asyncio.gather(send_req(1), send_req(2), send_req(3))
 
-                for r in responses:
-                    assert r.status_code == 200
-                    data = r.json()
-                    assert data["mode"] == "ai"
+            for r in responses:
+                assert r.status_code == 200
+                data = r.json()
+                assert data["mode"] == "ai"
         finally:
             reset_scene_semaphore()
             app.dependency_overrides.clear()
@@ -158,25 +158,25 @@ def test_concurrency_cap_queue_timeout_returns_503(
         app.dependency_overrides[get_provider_chain] = lambda: chain
 
         try:
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-                img_bytes = make_test_png(120, 120)
+            img_bytes = make_test_png(120, 120)
 
-                async def send_req(i: int) -> httpx.Response:
+            async def send_req(i: int) -> httpx.Response:
+                transport = httpx.ASGITransport(app=app, client=(f"10.0.0.{i}", 5000))
+                async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
                     files = {"image": (f"test_{i}.png", img_bytes, "image/png")}
                     return await client.post("/api/v1/scene", files=files)
 
-                responses = await asyncio.gather(send_req(1), send_req(2), send_req(3))
-                status_codes = [r.status_code for r in responses]
+            responses = await asyncio.gather(send_req(1), send_req(2), send_req(3))
+            status_codes = [r.status_code for r in responses]
 
-                assert 503 in status_codes
-                assert status_codes.count(200) == 2
+            assert 503 in status_codes
+            assert status_codes.count(200) == 2
 
-                err_resp = next(r for r in responses if r.status_code == 503)
-                assert err_resp.headers.get("retry-after") == "5"
-                data = err_resp.json()
-                assert "detail" in data
-                assert "reason: queue_timeout" in data["detail"]
+            err_resp = next(r for r in responses if r.status_code == 503)
+            assert err_resp.headers.get("retry-after") == "5"
+            data = err_resp.json()
+            assert "detail" in data
+            assert "reason: queue_timeout" in data["detail"]
         finally:
             reset_scene_semaphore()
             app.dependency_overrides.clear()

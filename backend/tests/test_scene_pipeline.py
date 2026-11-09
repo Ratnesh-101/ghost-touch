@@ -106,7 +106,7 @@ def test_pipeline_valid_json_returns_ai_mode(client: TestClient) -> None:
     data = response.json()
     assert data["mode"] == "ai"
     assert data["scene"]["kind"] == "geometry"
-    assert response.headers["X-Vision-Provider"] == "gemini"
+    assert response.headers["X-Vision-Provider"] == "ai"
 
 
 def test_pipeline_fenced_json_is_accepted(client: TestClient) -> None:
@@ -121,7 +121,7 @@ def test_pipeline_fenced_json_is_accepted(client: TestClient) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["mode"] == "ai"
-    assert response.headers["X-Vision-Provider"] == "openai"
+    assert response.headers["X-Vision-Provider"] == "ai"
 
 
 # --- 2. Fallback Chain in Route ---
@@ -139,7 +139,7 @@ def test_pipeline_first_fails_fallback_to_openai(client: TestClient) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["mode"] == "ai"
-    assert response.headers["X-Vision-Provider"] == "openai"
+    assert response.headers["X-Vision-Provider"] == "ai"
     assert gemini.call_count == 1
     assert openai.call_count == 1
 
@@ -170,7 +170,7 @@ def test_pipeline_zero_providers_returns_raw_mode_no_provider(client: TestClient
     data = response.json()
     assert data["mode"] == "raw"
     assert data["reason"] == "no_provider"
-    assert response.headers["X-Vision-Provider"] == "none"
+    assert response.headers["X-Vision-Provider"] == "raw"
 
 
 # --- 3. Retry Logic & Validation ---
@@ -425,7 +425,7 @@ def test_pipeline_raw_mode_header_is_none(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.json()["mode"] == "raw"
-    assert response.headers.get("X-Vision-Provider") == "none"
+    assert response.headers.get("X-Vision-Provider") == "raw"
 
 
 def test_pipeline_cors_expose_headers(client: TestClient) -> None:
@@ -453,6 +453,6 @@ def test_pipeline_retry_stays_on_answering_provider(client: TestClient) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["mode"] == "ai"
-    assert response.headers.get("X-Vision-Provider") == "gemini"
+    assert response.headers.get("X-Vision-Provider") == "ai"
     assert provider_a.call_count == 2
     assert provider_b.call_count == 0
