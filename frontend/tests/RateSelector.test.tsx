@@ -276,7 +276,7 @@ describe('RateSelector: Click & Selection Handling (handleSelect)', () => {
   });
 });
 
-describe('RateSelector: Eyes-Closed Navigation Focus Handling (handleFocus)', () => {
+describe('RateSelector: Eyes-Closed Navigation Focus & Click Handling (A11Y-02)', () => {
   let prevLang: Lang;
 
   beforeEach(() => {
@@ -288,34 +288,40 @@ describe('RateSelector: Eyes-Closed Navigation Focus Handling (handleFocus)', ()
     setLang(prevLang);
   });
 
-  it('focusing slow button speaks the option label with current BCP47 language', () => {
+  it('focusing slow button does not speak; click speaks once with current BCP47 language', () => {
     const { drivers, speakMock } = createMockDrivers('normal');
     const { buttons } = renderAndCaptureTree(drivers);
 
     buttons[0]?.props.onFocus?.();
+    expect(speakMock).not.toHaveBeenCalled();
 
+    buttons[0]?.props.onClick?.();
     expect(speakMock).toHaveBeenCalledTimes(1);
-    expect(speakMock).toHaveBeenCalledWith('Slow speech', LANG_BCP47['en']);
+    expect(speakMock).toHaveBeenCalledWith('Speech rate set to slow.', LANG_BCP47['en']);
   });
 
-  it('focusing normal button speaks the option label', () => {
-    const { drivers, speakMock } = createMockDrivers('normal');
+  it('focusing normal button does not speak; click speaks once', () => {
+    const { drivers, speakMock } = createMockDrivers('slow');
     const { buttons } = renderAndCaptureTree(drivers);
 
     buttons[1]?.props.onFocus?.();
+    expect(speakMock).not.toHaveBeenCalled();
 
+    buttons[1]?.props.onClick?.();
     expect(speakMock).toHaveBeenCalledTimes(1);
-    expect(speakMock).toHaveBeenCalledWith('Normal speech', LANG_BCP47['en']);
+    expect(speakMock).toHaveBeenCalledWith('Speech rate set to normal.', LANG_BCP47['en']);
   });
 
-  it('focusing fast button speaks the option label', () => {
+  it('focusing fast button does not speak; click speaks once', () => {
     const { drivers, speakMock } = createMockDrivers('normal');
     const { buttons } = renderAndCaptureTree(drivers);
 
     buttons[2]?.props.onFocus?.();
+    expect(speakMock).not.toHaveBeenCalled();
 
+    buttons[2]?.props.onClick?.();
     expect(speakMock).toHaveBeenCalledTimes(1);
-    expect(speakMock).toHaveBeenCalledWith('Fast speech', LANG_BCP47['en']);
+    expect(speakMock).toHaveBeenCalledWith('Speech rate set to fast.', LANG_BCP47['en']);
   });
 });
 
@@ -345,9 +351,13 @@ describe('RateSelector: Multilingual Support (Hindi & Gujarati)', () => {
     expect(setRateMock).toHaveBeenCalledWith('slow');
     expect(speakMock).toHaveBeenCalledWith('बोलने की गति धीमी कर दी गई है।', 'hi-IN');
 
-    // Test focus in Hindi
+    // Test focus does not speak in Hindi; click speaks once with Hindi confirmation
     buttons[2]?.props.onFocus?.();
-    expect(speakMock).toHaveBeenCalledWith('तेज़ गति', 'hi-IN');
+    expect(speakMock).toHaveBeenCalledTimes(1);
+
+    buttons[2]?.props.onClick?.();
+    expect(speakMock).toHaveBeenCalledTimes(2);
+    expect(speakMock).toHaveBeenLastCalledWith('बोलने की गति तेज़ कर दी गई है।', 'hi-IN');
   });
 
   it('renders and speaks correctly in Gujarati (gu)', () => {
@@ -365,8 +375,12 @@ describe('RateSelector: Multilingual Support (Hindi & Gujarati)', () => {
     expect(setRateMock).toHaveBeenCalledWith('fast');
     expect(speakMock).toHaveBeenCalledWith('વાણી ગતિ ઝડપી કરી દેવામાં આવી છે.', 'gu-IN');
 
-    // Test focus in Gujarati
+    // Test focus does not speak in Gujarati; click speaks once with Gujarati confirmation
     buttons[1]?.props.onFocus?.();
-    expect(speakMock).toHaveBeenCalledWith('સામાન્ય વાણી', 'gu-IN');
+    expect(speakMock).toHaveBeenCalledTimes(1);
+
+    buttons[1]?.props.onClick?.();
+    expect(speakMock).toHaveBeenCalledTimes(2);
+    expect(speakMock).toHaveBeenLastCalledWith('વાણી ગતિ સામાન્ય કરી દેવામાં આવી છે.', 'gu-IN');
   });
 });

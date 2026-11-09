@@ -2,8 +2,8 @@
  * LanguageSelector — accessible, eyes-closed reachable language controls.
  *
  * Provides 48x48+ px targets for English, Hindi, and Gujarati.
- * Every option speaks its name on focus and gives spoken confirmation on selection.
- * Checks for system voice availability and speaks a notice if no voice exists.
+ * Native accessible names announce the language cleanly on focus without TTS collision.
+ * Selection produces exactly ONE spoken confirmation in the newly selected language.
  */
 
 import { useSyncExternalStore, type JSX } from 'react';
@@ -32,7 +32,7 @@ export function LanguageSelector({ drivers, className = '' }: LanguageSelectorPr
     setLang(lang);
     const targetBcp47 = LANG_BCP47[lang];
 
-    // Spoken confirmation in the newly selected language
+    // Spoken confirmation in the newly selected language (exactly ONE utterance, A11Y-02)
     let confirmKey = 'lang.changedEn';
     if (lang === 'hi') confirmKey = 'lang.changedHi';
     else if (lang === 'gu') confirmKey = 'lang.changedGu';
@@ -41,14 +41,8 @@ export function LanguageSelector({ drivers, className = '' }: LanguageSelectorPr
     drivers.speech.speak(confirmMessage, targetBcp47);
   };
 
-  const handleFocus = (lang: Lang): void => {
-    // Spoken option when navigating eyes-closed
-    const name = LANG_NAMES[lang].native;
-    drivers.speech.speak(name, LANG_BCP47[lang]);
-  };
-
   return (
-    <nav
+    <div
       className={`gt-lang-selector ${className}`}
       aria-label={t('lang.label')}
       role="group"
@@ -65,7 +59,6 @@ export function LanguageSelector({ drivers, className = '' }: LanguageSelectorPr
             }`}
             aria-pressed={isSelected}
             aria-label={`${info.english} (${info.native})`}
-            onFocus={() => handleFocus(lang)}
             onClick={() => handleSelect(lang)}
           >
             <span className="gt-lang-selector__native">{info.native}</span>
@@ -73,6 +66,6 @@ export function LanguageSelector({ drivers, className = '' }: LanguageSelectorPr
           </AccessibleButton>
         );
       })}
-    </nav>
+    </div>
   );
 }

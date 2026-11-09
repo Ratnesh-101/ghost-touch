@@ -3,6 +3,8 @@
  *
  * 0.8 / 1.0 / 1.25 x base speech rate.
  * Persisted in localStorage and changeable with spoken confirmation.
+ * Native accessible labels announce the rate cleanly on focus without TTS collision.
+ * Selection produces exactly ONE spoken confirmation (A11Y-02).
  * Touch targets >= 48x48 CSS px.
  */
 
@@ -39,14 +41,6 @@ export function RateSelector({ drivers, className = '' }: RateSelectorProps): JS
     drivers.speech.speak(t(confirmKey), lang);
   };
 
-  const handleFocus = (rate: SpeechRateSetting): void => {
-    let labelKey = 'rate.normal';
-    if (rate === 'slow') labelKey = 'rate.slow';
-    else if (rate === 'fast') labelKey = 'rate.fast';
-    const lang = LANG_BCP47[getLang()];
-    drivers.speech.speak(t(labelKey), lang);
-  };
-
   return (
     <div
       className={`gt-rate-selector ${className}`}
@@ -64,7 +58,6 @@ export function RateSelector({ drivers, className = '' }: RateSelectorProps): JS
             }`}
             aria-pressed={isSelected}
             aria-label={`${t(labelKey)} (${multiplierText})`}
-            onFocus={() => handleFocus(id)}
             onClick={() => handleSelect(id)}
           >
             <span className="gt-rate-selector__label">{t(labelKey)}</span>
