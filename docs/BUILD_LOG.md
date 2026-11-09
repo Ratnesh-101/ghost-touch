@@ -1817,3 +1817,83 @@ Format for each entry:
   - `backend/tests/test_h4_rawmode_uploads.py`
   - `docs/reports/agy-h4-rawmode-uploads-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-08 — agy, reviewed by Claude — Lane h3-cost-guard (Cost guards, rate limits, and spend caps)
+- Implemented global paid call daily budget and circuit breaker (C1) in `backend/app/paid_budget.py`:
+  - `try_consume(n=1) -> bool` with in-memory counter keyed by UTC date under thread lock.
+  - `PAID_CALLS_PER_DAY` env var (default 2000, 0 = off) with injectable clock for tests.
+  - Guards all paid `provider.extract` / `complete` calls across Gemini, OpenAI, Nebius, and validation/thinking retries.
+  - Graceful fallback when budget is spent to deterministic facts lookup (`/ask`) and Raw Mode (`/scene`), logging warning once per rollover.
+- Compacted `/ask` prompt construction and enforced size caps (C2):
+  - Compact serialization: `ensure_ascii=False` (prevents bloated escaping for Devanagari/accents) and no indent.
+  - Omitted redundant `Scene Element IDs` block (IDs appear only once in scene JSON).
+  - Enforced 24,000 char prompt limit (`MAX_ASK_PROMPT_CHARS`); automatically drops coordinates when over cap, and falls back to `facts_lookup` if still exceeding cap.
+- Enforced output token limits on model completions (C3):
+  - Set `max_output_tokens=256` on Gemini `complete()`.
+  - Lowered `COMPLETE_MAX_TOKENS` to 256 for OpenAI and Nebius.
+- Implemented per-client in-flight concurrency caps (C4 / R3-1):
+  - Added `ClientInFlightLimiter` in `backend/app/limits.py` with `ASK_CLIENT_MAX_CONCURRENCY` and `SCENE_CLIENT_MAX_CONCURRENCY` (default 2).
+  - Enforces cap before waiting on global semaphore, returning 429 when exceeded to prevent single-IP slot starvation on `/ask` and `/scene`.
+- Capped `/ask` provider attempts (C5):
+  - `ProviderChain.complete()` enforces `retries=0` (at most 1 attempt per provider), charging each attempt to budget.
+- Sanitized `X-Vision-Provider` header and eliminated content-type reflection (A8):
+  - `X-Vision-Provider` header returns `ai` or `raw` only; provider names (`gemini`, `openai`, `nebius`, `none`) kept in server logs only.
+  - Verified `frontend/src` does not read `X-Vision-Provider`.
+  - Removed user input reflection in 415 error detail message.
+- Throttled limiter table sweep and capped size (R3-2):
+  - Sweeps throttled to at most once per second (`MIN_SWEEP_INTERVAL_SECONDS = 1.0`).
+  - Added hard cap on `_HITS` table (50,000 keys) with eviction of oldest entries.
+- Enhanced `client_key` with ipaddress (R3-3):
+  - Groups IPv6 addresses on their /64 network (`2001:db8::1` and `2001:db8::ffff` produce same key).
+  - Strips port and brackets (`[...]:port`); canonicalizes IPv4-mapped IPv6 addresses.
+- Hardened Content-Length parsing and joined duplicate XFF headers (R3-5):
+  - Safe Content-Length validation (`isascii() and isdigit()` with try/except around `int()`), rejecting superscripts and >4300 digits with 400/413.
+  - Duplicate `X-Forwarded-For` header lines joined by comma.
+- Added variable names and safe defaults to `backend/.env.example`.
+- Added regression tests in `backend/tests/test_h3_cost_guard.py` covering C1-C5, A8, R3-1, R3-2, R3-3, R3-5.
+- Files touched:
+  - `backend/.env.example`
+  - `backend/app/ask.py`
+  - `backend/app/limits.py`
+  - `backend/app/main.py`
+  - `backend/app/paid_budget.py`
+  - `backend/app/vision/chain.py`
+  - `backend/app/vision/gemini.py`
+  - `backend/app/vision/nebius.py`
+  - `backend/app/vision/openai_provider.py`
+  - `backend/tests/test_h3_cost_guard.py`
+  - `docs/reports/agy-h3-cost-guard-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-08 — agy, reviewed by Claude — Lane h3-cost-guard Follow-up 2
+- Handled all 19 failing backend tests and 20 ruff errors across items A-G:
+  - (A) Updated legacy `X-Vision-Provider` header assertions to `"ai"` / `"raw"` across `test_improve_pass.py`, `test_scene_cache.py`, and `test_scene_pipeline.py`.
+  - (B) Restored `Scene Element IDs:` section in `app/ask.py` (`build_ask_prompt`), keeping compact formatting and f4 prompt sanitising (`QUESTION_TAG_PATTERN`).
+  - (C) Restored default retry behaviour in `ProviderChain.complete()` via `max_attempts: int | None = None` parameter, and explicitly passed `max_attempts=1` from `/ask` route.
+  - (D) Fixed `AttributeError: 'coroutine' object has no attribute 'startswith'` by making `client_key` and `_normalize_ip_key` in `app/limits.py` fully total (defensive non-string handling returns `"unknown"`).
+  - (E) Updated `test_hardening.py` concurrency cap tests to provide per-request client addresses `httpx.ASGITransport(app=app, client=(f"10.0.0.{i}", 5000))`.
+  - (F) Fixed `test_h3_cost_guard.py` in-flight tests using `TestClient(app, client=("10.0.0.X", 5000))`, wrapped async middleware test in `asyncio.run()`, and synced C2 prompt test assertions.
+  - (G) Fixed all ruff errors: wrapped long lines in `app/limits.py` and `app/main.py` (E501), added `from err` / `from initial_exc` in `app/main.py` and `app/vision/gemini.py` (B904), used `datetime.UTC` (UP017), and eliminated unused imports (F401) and variables (F841).
+- Files touched:
+  - `backend/app/ask.py`
+  - `backend/app/limits.py`
+  - `backend/app/main.py`
+  - `backend/app/paid_budget.py`
+  - `backend/app/vision/chain.py`
+  - `backend/app/vision/gemini.py`
+  - `backend/tests/test_h3_cost_guard.py`
+  - `backend/tests/test_hardening.py`
+  - `backend/tests/test_improve_pass.py`
+  - `backend/tests/test_scene_cache.py`
+  - `backend/tests/test_scene_pipeline.py`
+  - `docs/reports/agy-h3-cost-guard-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-08 — Antigravity — Lane h3-cost-guard Follow-up 5
+- Fixed failing regression tests in `backend/tests/test_h3_cost_guard.py`:
+  - `test_c2_prompt_drops_coordinates_when_over_cap`: Updated scene point count to 300 so raw prompt exceeds custom 20,000 cap (~24.4k chars) but fits within cap after coordinate dropping (~15.7k chars). Asserted prepared prompt is not None, coordinates are omitted, and `Scene Element IDs:` is preserved.
+  - `test_c4_r3_1_scene_per_client_in_flight_cap`: Generated valid tiny PNG buffers via OpenCV (`cv2.imencode`) so uploads pass `validate_image_bytes` and reach in-flight slot limiter. Configured concurrent requests via `httpx.AsyncClient` with `ASGITransport` against a slow fake provider (`delay=0.3`), asserting 429 for second concurrent request from same client (`10.0.0.5`) and 200 for a different client (`10.0.0.6`).
+- Files touched:
+  - `backend/tests/test_h3_cost_guard.py`
+  - `docs/reports/agy-h3-cost-guard-report.md`
+  - `docs/BUILD_LOG.md`
