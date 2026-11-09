@@ -2213,6 +2213,7 @@ Format for each entry:
 - Gate: frontend `tsc` clean, 126 files and 1716 tests pass, build ok; backend 675 passed, `ruff check` and `ruff format --check` clean.
 - Not verified: behaviour on a phone with a real Android notification or system gesture.
 - Files touched: `frontend/tests/teach.canvas.pointer.test.tsx` (new), `frontend/package.json`, `frontend/package-lock.json`, `docs/reviews/kiro-round2.md`, `.kiro/specs/ghost-touch/tasks.md`, `docs/BUILD_LOG.md`.
+- **Correction (Kiro's mistake):** commit `801b222` also contains the SOURCE changes of agy lane k4-scene-pipeline (`backend/app/main.py`, `backend/app/raw_mode.py`, `backend/app/image_utils.py`, `backend/app/vision/openai_provider.py`, about 430 changed lines). That work is Antigravity's, not Kiro's. Cause: while Kiro waited for another process's `index.lock`, that process staged the k4 changes in the shared index; Kiro then ran `git commit`, which commits everything staged, not only the files Kiro had added. Kiro's T30 gate ran before those changes were staged, so it did not test them; the next full gate (for `6bd9503`) did, and `main` was green with them. History was not rewritten (`801b222` already has a later commit by Claude Code, `27ef798`, which also notes this). From here on Kiro commits with `git commit -- <paths>` so only its own files are committed.
 
 ## 2026-11-09 — Antigravity — Lane k4-scene-pipeline (Backend Scene Pipeline Fixes)
 - Tool: **Antigravity** (agy, reviewed by Claude).
