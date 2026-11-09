@@ -199,3 +199,19 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 4. WHEN the last saved diagram is deleted THEN the system SHALL speak the deletion and the empty list as one utterance and SHALL return focus to the screen heading. (CORE-07)
 5. IF the browser refuses pointer capture THEN Explore SHALL carry on working; WHEN the browser revokes pointer capture THEN the Teacher canvas SHALL end the drag. (CORE-08, CORE-09)
 6. THE notice that no voice is installed for the chosen language SHALL come from the language tables. (CORE-10)
+
+### Requirement 18: Spec Ghost, an honest check of printed facts against the drawing (spec after code)
+> **Provenance, stated plainly:** this requirement was written by Kiro on 2026-11-09 AFTER the feature was built. The feature was chosen by an agent tournament (`docs/reports/feature-tournament.md`) and built by Antigravity: the module `frontend/src/verify/verify.ts`, its first tests (`frontend/tests/verify.test.ts`, P47-P50) and the wiring (lane k1). Criteria 6 and 7 below are Kiro's additions from the review; the module was changed to meet them (task 29).
+
+**User Story:** As a blind student, I want to be told when the numbers printed on a diagram do not match the shape that was drawn, so that I do not build a wrong picture in my head, and I want silence when the app cannot be sure.
+
+#### Acceptance Criteria
+1. WHEN a scene is loaded (photo in AI or Raw Mode, sample, saved diagram, or shared link) THEN the system SHALL compare the scene's parsed facts with its drawn geometry once, and IF they disagree THEN it SHALL add exactly one sentence to the scene's entry announcement, spoken as one utterance with it.
+2. THE sentence SHALL be "Facts and drawing disagree on {name}. I can't tell which is right." (with `{name}` the side, angle or bar named by the fact), translated in Hindi and Gujarati. THE check SHALL NEVER say "verified", "correct" or anything that claims the diagram is right; a consistent result SHALL add nothing.
+3. THE system SHALL compare lengths only as ratios between sides (or between bars), never as absolute sizes. A side SHALL disagree when its ratio to the others differs by more than 15 %, or 25 % when the scene came from the AI.
+4. THE system SHALL compare a stated angle with the drawn angle at that vertex and SHALL report a disagreement only when they differ by more than 8 degrees. IF the drawn angle cannot be determined (the vertex does not have exactly two incident sides and no three-letter name is given) THEN that angle SHALL be skipped.
+5. THE system SHALL stay silent WHEN fewer than two lengths (or bar values) are matched to drawn elements, WHEN any fact says the figure is "not to scale" or "not drawn to scale", or WHEN no fact can be parsed. Facts that cannot be parsed SHALL be ignored, never guessed.
+6. THE system SHALL measure drawn lengths and angles in the diagram's own proportions: horizontal distances are multiplied by the scene's `aspect` (width / height, default 1), the same rule the backend Ask uses (`semantic.py`). A scene whose drawing matches its facts SHALL never be flagged, whatever its aspect. (Kiro, review)
+7. WHEN matched lengths are given in different units THEN the system SHALL convert known length units (mm, cm, m, km, in, ft) to one unit before comparing, and IF any unit is not known THEN it SHALL stay silent. (Kiro, review)
+8. WHEN the student asks a question that names a disputed side, angle or bar (in either letter order, for example AC or CA) THEN the system SHALL put the same sentence in front of the spoken answer; questions about other elements SHALL be answered unchanged.
+9. THE check SHALL be a pure function of the scene: the same scene SHALL give the same result whatever the order of its facts or elements, and whatever uniform scale or translation is applied to its coordinates.

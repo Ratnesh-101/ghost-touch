@@ -115,6 +115,39 @@ describe('Kiro Hooks Configuration (.kiro/hooks/*.json)', () => {
     }
   });
 
+  it('verify-tests-on-save runs the Spec Ghost tests for exactly the verify files (Kiro, task 29)', () => {
+    const hookPath = path.join(hooksDir, 'verify-tests-on-save.json');
+    expect(fs.existsSync(hookPath)).toBe(true);
+    const config = JSON.parse(fs.readFileSync(hookPath, 'utf-8')) as KiroHookFile;
+    const hook = config.hooks[0]!;
+    expect(hook.trigger).toBe('PostFileSave');
+    expect(hook.action.type).toBe('command');
+    for (const file of ['tests/verify.test.ts', 'tests/verify.review.test.ts', 'tests/k1.verifyWiring.test.ts']) {
+      expect(hook.action.command).toContain(file);
+    }
+
+    const matcher = new RegExp(hook.matcher!);
+    for (const yes of [
+      'frontend/src/core/verify.ts',
+      'frontend\\src\\core\\verify.ts',
+      'frontend/src/verify/verify.ts',
+      'frontend/tests/verify.test.ts',
+      'frontend/tests/verify.review.test.ts',
+      'frontend/tests/k1.verifyWiring.test.ts',
+    ]) {
+      expect(matcher.test(yes), yes).toBe(true);
+    }
+    for (const no of [
+      'frontend/src/core/hitTest.ts',
+      'frontend/src/screens/Teach.tsx',
+      'frontend/src/components/teach/VerifyForm.tsx',
+      'frontend/tests/teach.verify.test.tsx',
+      'frontend/src/core/verify.ts.bak',
+    ]) {
+      expect(matcher.test(no), no).toBe(false);
+    }
+  });
+
   it('verifies matcher patterns correctly match expected file paths', () => {
     // CSS guard matcher
     const cssHookPath = path.join(hooksDir, 'css-guard-on-save.json');

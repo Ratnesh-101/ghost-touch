@@ -173,6 +173,10 @@ Each property maps to requirements and runs with fast-check (frontend) or Hypoth
 | P36 | **Centre tick fires once per excursion (Kiro):** the tick fires only inside the centre radius, and between two ticks the cursor must leave the 1.5× re-arm radius; a hold that stays at the centre ticks exactly once. | 13.3 |
 | P37 | **Centre tick never merges with a corner (Kiro):** a tick never fires inside the corner quiet window or in a step that emits the corner pattern; "Centre." is spoken at most once; the engine never emits the centre-tick pattern, which stays shorter than every line and corner pulse. | 13.3, 4.5 |
 | P38 | **Exit swipe is unambiguous (Kiro):** the two-finger exit swipe fires exactly for fast, downward, mostly vertical motion of both fingers, and never together with the Ask long-press. | 13.5, 13.6 |
+| P47 | **A scene built from its own facts is never flagged (agy; spec written after the code by Kiro):** a triangle whose three length facts are its own drawn side lengths times any scale (1 to 50), and a bar chart whose bar facts are its own bar heights times any scale (2 to 100), give `consistent` with no findings. Kiro added the same for scenes with `aspect` ≠ 1 and for mixed units (Requirement 18.6, 18.7). | 18.3, 18.6, 18.7 |
+| P48 | **Invariant under uniform scale and translation (agy):** scaling and translating every point of a scene (an honest and a forged triangle) does not change the status, the number of findings, the first finding's segment or its message. | 18.9 |
+| P49 | **Unsure means silent (agy):** prose-only facts, any "not to scale" / "not drawn to scale" fact (even next to wildly wrong lengths), and fewer than two matched lengths all give `silent` with no findings. | 18.5 |
+| P50 | **Order does not matter (agy):** any permutation of the facts and of the segments of the forged triangle gives the same status, finding count, first segment and message. | 18.9 |
 | P51 | **An unlabelled corner is spoken in the active language (Kiro, task 31):** the engine emits `speakKey('vertex.unlabelled', { id })` for a missing or blank label and `speak(label)` otherwise, never English text of its own; `runEffects` and `mergeAnnouncements` word the key in en, hi and gu, joined after any axis crossings; the corner pattern and quiet window are unchanged. | 4.3, 10.1 |
 | P52 | **The optimised hit test gives exactly the previous answer (Kiro, task 32, PERF-01):** on random scenes (NaN and out-of-range coordinates, dangling segments, duplicate ids, a 2000-point polyline), random letterboxed viewports, random radii and fingers aimed at the radius band, `hitTest` deep-equals a frozen copy of the previous implementation, ties included. | 4.1, 4.6 |
 | P53 | **A bar with a non-finite value is never announced (Kiro, task 32, R3-07):** a finger inside such a bar never gets a bar target for it; finite bars next to it still answer with a finite `maxValue`; no bar target ever carries NaN or Infinity. | 6.1, 6.2 |
@@ -231,6 +235,26 @@ Each property maps to requirements and runs with fast-check (frontend) or Hypoth
 | Voice notice (17.6) | The `speech.noVoiceNotice` key already exists in the `en`, `hi` and `gu` tables; the driver reads it with `t()` and fills in `{lang}`, and holds no English. Whether a device's default voice can pronounce the Hindi or Gujarati sentence is for the phone test (step 12.3). |
 
 Contract decisions A2 SEC-01, A2 SEC-04 and A5-05 are not changed by this round.
+
+## Spec Ghost: facts against the drawing (Requirement 18, spec after code)
+Built by Antigravity (module, first tests P47-P50, wiring in lane k1); this section was written by Kiro after the code, from what the code does, and records Kiro's changes from the review separately.
+
+### Module
+`frontend/src/core/verify.ts` (moved by Kiro from `frontend/src/verify/verify.ts`, which now only re-exports it so existing imports keep working). Pure: no browser API, no React, no i18n; English wording constants only, translated by the callers.
+- `parseFacts(facts, scene?)` recognises: `XY = n [unit]`, `length of (side|hypotenuse) XY is n [unit]`, `Side XY is n [unit]` / `has a length of n`, `XY: n` (a segment when the name is two letters or matches a segment), `label: n` and `label has a value of n` (bars), `angle X = n°|degrees`, `angle at (vertex) X is n°`, `m∠X`, `∠X`, three-letter angles such as `ADC`, `X is a right angle`, and `not (drawn) to scale`. Everything else is ignored.
+- `verifyScene(scene, { mode })` → `{ status: 'consistent' | 'disagree' | 'silent', findings }`. Steps: silent without facts or with "not to scale"; match each length fact to a segment by id, label, endpoint ids or endpoint labels, in either order; match bar facts by label or id; silent when fewer than two lengths are matched (segments, else bars); compare ratios (two matched lengths: their scales against each other; three or more: each scale against the median); then angles at a vertex with exactly two incident segments, or a three-letter angle.
+- Tolerances: 15 % for lengths (25 % when `mode` is `'ai'`), 8 degrees for angles.
+- Wording: `VERIFY_WORDING.disagree(name)` = "Facts and drawing disagree on {name}. I can't tell which is right."; the i18n key `verify.disagree` carries the same sentence in en, hi, gu.
+- Kiro's changes (task 29): drawn x distances are multiplied by `scene.aspect` (default 1, ignored unless finite and positive), the rule `semantic.py` already uses; matched lengths in different known units are converted to millimetres first, and an unknown unit among differing units means silent.
+
+### Wiring (lane k1, not changed by Kiro)
+- `flow/navigation.ts` `verifyCaveatForScene` and `exploreAnnouncement` add the sentence (first finding only) to the entry announcement with `joinAnnouncements`, so it is one utterance; `App.tsx` uses them for photos, samples, saved diagrams, shared links and after Correct mode.
+- `flow/ask.ts` `caveatForQuestion` puts the sentence in front of an answer whose question names a disputed element (either letter order, whole words only).
+
+### Known limits (not changed)
+- A bar chart whose value axis does not start at 0 draws bar heights that are not proportional to the values; such a chart can be flagged. Nothing in `DiagramScene` says where the axis starts.
+- With exactly two matched lengths the check cannot tell which side is wrong; it names the first one in the announcement.
+- The Explore renderer draws the unit square without `aspect`, so on a scene with `aspect` ≠ 1 the shape felt is stretched even when the check (correctly) stays silent.
 
 ## Halloween Presentation Layer
 Dark background, glowing green strokes, a small "creature" mascot assembled from phone parts on the start screen, and the theremin as the signature sound. The theme never touches the users themselves (see `product.md`).

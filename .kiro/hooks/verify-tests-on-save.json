@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Run Spec Ghost tests on verify save",
+      "trigger": "PostFileSave",
+      "description": "Runs the Spec Ghost properties P47-P50, the Kiro review tests and the k1 wiring tests when the fact-check module or its tests are saved (Requirement 18)",
+      "matcher": "frontend[\\\\/](src[\\\\/]core[\\\\/]verify\\.ts|src[\\\\/]verify[\\\\/][^\\\\/]+\\.ts|tests[\\\\/]verify[^\\\\/]*\\.test\\.ts|tests[\\\\/]k1\\.verifyWiring\\.test\\.ts)$",
+      "action": {
+        "type": "command",
+        "command": "npm --prefix frontend exec -- vitest run tests/verify.test.ts tests/verify.review.test.ts tests/k1.verifyWiring.test.ts",
+        "timeout": 120
+      }
+    }
+  ]
+}
