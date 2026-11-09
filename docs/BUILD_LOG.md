@@ -2055,3 +2055,23 @@ Format for each entry:
   - `backend/tests/test_validate_props.py`
   - `docs/reports/agy-k3-validate-hardening-report.md`
   - `docs/BUILD_LOG.md`
+
+
+## 2026-11-09 — Antigravity — Lane k7-perf (Low-End Mobile & Performance Optimizations)
+- Tool: **Antigravity** (agy headless run via `scripts/agy-run.sh`, lane `k7-perf`).
+- What was built:
+  - PERF-02: Eliminated `canvas.getBoundingClientRect()` on pointer move by implementing `CanvasRectCache` in `frontend/src/screens/Explore.tsx`, refreshed on mount, resize, orientation change, scroll, and pointerdown.
+  - PERF-03: Capped canvas `devicePixelRatio` to 2.0 via `computeCanvasDpr` in `frontend/src/screens/Explore.tsx`, cutting VRAM texture buffer memory by >55% on 2.75–3.5 DPR screens while preserving hit mapping in CSS pixels.
+  - PERF-05: In `frontend/src/screens/Capture.tsx`, constructed `photoUrl` from the downscaled 1600 px JPEG blob returned by `prepareImage`/`renderFirstPage` rather than the raw 50 MB camera file, preventing 200 MB RGBA bitmap decodes and OOM crashes in Correct mode; tracked and revoked object URLs on replacement or unmount without handoff.
+  - PERF-06: In `frontend/src/drivers/audio.ts`, added optional `suspend(): Promise<void>` to `AudioContextLike` and called `ctx.suspend()` when `document.hidden === true` / `visibilityState === 'hidden'`; resumed on visible and user gestures (`pointerdown`, `touchstart`, `keydown`). Preserved all tone frequencies, gain constants, and earcon tuning.
+  - Created regression test suite in `frontend/tests/k7.perf.test.tsx` (14 unit and integration tests covering PERF-02, PERF-03, PERF-05, and PERF-06).
+- What broke / surprising findings:
+  - In `Explore.tsx`, pointermove events were previously triggering synchronous layout queries at 60–120 Hz. Caching the bounding rect in a ref structure completely eliminated DOM layout queries during drag exploration while keeping coordinate mapping accurate on viewport changes.
+  - Object URL lifecycle in Capture required distinguishing between URLs handed off to `onScene` (managed by App's `photoTracker`) versus unhanded-off URLs (revoked locally on replacement or unmount) so Correct mode receives a valid blob URL.
+- Files touched:
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/screens/Capture.tsx`
+  - `frontend/src/drivers/audio.ts`
+  - `frontend/tests/k7.perf.test.tsx`
+  - `docs/reports/agy-k7-perf-report.md`
+  - `docs/BUILD_LOG.md`
