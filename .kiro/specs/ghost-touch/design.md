@@ -184,6 +184,10 @@ Each property maps to requirements and runs with fast-check (frontend) or Hypoth
 | P55 | **Adding a segment keeps the scene valid, or changes nothing (Kiro, task 34):** for any valid scene and two distinct existing point ids with no segment between them, `addSegment` returns a valid scene with exactly one more segment from a to b and a fresh id; for an unknown endpoint, a == b, or an existing pair in either direction it returns the same scene object. | 19.2, 19.3 |
 | P56 | **Add then undo is exact (Kiro, task 34):** applying `addPoint` or `addSegment` through `historyReducer` and then undoing gives back the previous scene object; redo gives back the edited one. | 19.5 |
 | P57 | **Bad coordinates never make a bad scene (Kiro, task 34):** for coordinates drawn from NaN, ±Infinity, huge, negative and ordinary values, `addPoint` returns either the same scene (NaN or infinite input) or a scene that passes `validateSceneInvariants`. | 19.3, 19.4 |
+| P58 | **Add point outcome (spec by Kiro, task 36, to be built by agy):** for any scene, any x, y (including NaN, ±Infinity, huge and negative) and any label, `planAddPoint` returns `added` exactly when x and y are finite and the scene has fewer points than the cap; then its scene equals `addPoint(scene, x, y, label)` with the label trimmed and cut to 60 characters, and its `id` and `label` are those of the new last point. Otherwise it returns `limit` or `badCoords` with the same scene object. The result never has more points than the cap. | 20.2, 20.5 |
+| P59 | **Add edge outcome and reason (task 36):** for any scene and any two strings, `planAddSegment` returns `samePoint` when a === b, `unknownPoint` when either is not a point id, `alreadyJoined` when a segment joins them in either direction, `limit` at the segment cap (checked in that order), each with the same scene object; otherwise `added`, with a scene equal to `addSegment(scene, a, b)`. | 20.3.3, 20.5 |
+| P60 | **Undo names what it removes (task 36):** for any scene and any successful add, `describeUndo(after, before)` names the added point's id, or both endpoints of the added edge; for a move, rename or delete it returns `undefined`, so the existing undo wording is used. | 20.4 |
+| P61 | **New strings are complete and honest (task 36):** every key in `GHOSTWRITER_KEYS` exists in `en`, `hi` and `gu`, is not blank, has the same `{placeholders}` in all three, has Hindi and Gujarati values that differ from English, and its English value contains none of "verified", "correct", "checked", "approved" (case-insensitive). Run over random placeholder values (200+ runs) through `tf()`. | 20.6, 20.7 |
 | P39 | **Validation is a fixed point (Kiro, Hypothesis, backend):** a well-formed scene passes `validate_scene` unchanged, and validating an accepted scene's own output returns the same scene. | 9.3 |
 | P40 | **Rate-limit identity resists spoofing (Kiro, Hypothesis, backend):** for any `X-Forwarded-For` the client forges, the client key equals the key of the same peer without forgery; with zero trusted hops the key is the peer address. | 16.1 |
 | P41 | **Rate-limit state is bounded (Kiro, Hypothesis, backend):** after any sequence of requests and clock advances, the limiter holds no empty window and no more keys than clients active in the last window; the limit itself never admits more than `per_minute` requests. | 16.2 |
@@ -205,7 +209,7 @@ Each property maps to requirements and runs with fast-check (frontend) or Hypoth
 | Storage full / all entries pinned | Speak "Could not save: all slots are pinned"; app continues (Req 11.5, 11.7) |
 
 ## Testing Strategy
-- **Property tests:** P1–P57 as above, each with at least 200 cases; these are the headline of the Kiro write-up. P31–P39 were added by Kiro in review (Task 19). A property that has never failed is checked by mutation: P34, P36 and P16/P31 were each confirmed to fail when the code under test was deliberately broken.
+- **Property tests:** P1–P57 as above (P58–P61 are specified for task 36 and not built yet), each with at least 200 cases; these are the headline of the Kiro write-up. P31–P39 were added by Kiro in review (Task 19). A property that has never failed is checked by mutation: P34, P36 and P16/P31 were each confirmed to fail when the code under test was deliberately broken.
 - **Unit tests:** fixtures for the three sample diagrams; provider mocked with recorded responses.
 - **Device test checklist (manual, on Nord CE6 + one budget phone):** distinguish line vs. corner with eyes closed; trace a triangle and name it; identify the highest bar; follow a sine curve and count peaks.
 - **User test (Kiroween):** at least one session with a blind student or a school for the blind, recorded with consent for the demo.
@@ -279,6 +283,59 @@ Written by Kiro before the code. Two pure edits join the existing ones in `front
 
 ### Spec Ghost after an edit (19.6)
 Checked, not changed. `verifyScene` builds every sentence from `VERIFY_WORDING.disagree(name)`, where `name` comes from the printed facts (the target of a length fact, `angle X`, or a bar label), never from a point or segment label the teacher typed. A consistent result adds nothing. So no path after an add can make Spec Ghost say "verified" or "correct", and no extra test was added. Adding a missing point or segment can make a fact match a drawn element, so a scene that was silent may now report a disagreement; that is the intended behaviour. The separate "Verified by …" line on shared links (owner decision R1) is not Spec Ghost wording and is out of scope here.
+
+## Ghostwriter in Teach mode (Requirement 20)
+Spec by Kiro, written before the code; to be built by the Antigravity lane g1. Teach screen only (`screens/Teach.tsx`); Explore is not touched.
+
+### Pure module: `frontend/src/flow/ghostwriter.ts`
+No React, no browser API. Speech text is produced with `tf()` so the screen only speaks what it is given.
+- `GHOSTWRITER_POINT_CAP = Math.min(LIMITS.maxPoints, 500)` and `GHOSTWRITER_SEGMENT_CAP = Math.min(LIMITS.maxSegments, 1000)`. The 500 and 1000 mirror the backend `MAX_SCENE_POINTS` and `MAX_SCENE_SEGMENTS` (`backend/app/validate.py`); a comment says so. Today the caps are 300 and 300, set by sharing.
+- `type GhostwriterMode = { kind: 'idle' } | { kind: 'addPoint' } | { kind: 'addEdgeFirst' } | { kind: 'addEdgeSecond'; first: string }`.
+- `planAddPoint(scene, x, y, label?) → { kind: 'added'; scene; id; label? } | { kind: 'limit' | 'badCoords'; scene }`. The checks run in order: non-finite coordinates give `badCoords`, then `points.length >= GHOSTWRITER_POINT_CAP` gives `limit`, otherwise `addPoint(scene, x, y, cleanLabel(label))`. `cleanLabel` trims, cuts to `LIMITS.maxLabel` characters and turns blank into `undefined`.
+- `planAddSegment(scene, a, b) → { kind: 'added'; scene; id; a; b } | { kind: 'samePoint' | 'unknownPoint' | 'alreadyJoined' | 'limit'; scene }`, checked in that order, then `addSegment(scene, a, b)`.
+- `describeUndo(present, previous) → { kind: 'point'; id } | { kind: 'segment'; a; b } | undefined`. It returns a value only when `present` is `previous` plus exactly one appended point or segment, with nothing else changed (same lengths otherwise and the same leading elements).
+- `ghostwriterSpeech(outcome) → string`, `undoSpeech(description) → string`, and `nextMode(mode, event) → { mode, speech? }`. The events are `pressAddPoint`, `pressAddEdge`, `canvasTap { x, y, pointId? }`, `pickPoint { id }` and `escape`. `nextMode` encodes 20.2.2, 20.2.3, 20.3.2 and 20.3.5. It does not touch the scene; the screen calls `planAddPoint` / `planAddSegment` when `nextMode` says so (`action: { kind: 'addPoint', x, y } | { kind: 'addSegment', a, b }`).
+
+### Screen wiring (`screens/Teach.tsx`)
+- The existing "Add vertex" button and `handleAddVertex` become "Add point", driven by `nextMode`. `flow/teach.ts` `addVertex` / `generateUniquePointId` are no longer used by Teach for adding (20.2.6); the lane may keep them for other callers or remove them and their tests. The lane says which in its report.
+- Canvas taps already go through `pointerToScene` (`flow/correctCanvas.ts`) and the point hit test in `flow/correct.ts`; the lane reuses both.
+- Apply: `outcome.kind === 'added'` → `applySceneEdit(outcome.scene)` (the existing helper, which uses `applyEdit`), then speak `ghostwriterSpeech(outcome)`. Any other outcome → speak only; no history change.
+- Undo: before undoing, compute `describeUndo(history.present, history.past.at(-1))`. Speak `undoSpeech(d)` when it is defined, otherwise the existing `teach.undo`.
+- Spec Ghost: no call is added. The edited scene is checked where edited scenes already are: when a shared link is opened (`exploreAnnouncement(scene, 'shared')`, Requirement 18.1).
+
+### New i18n keys (`GHOSTWRITER_KEYS`, en shown; hi and gu by the lane, marked for native review)
+| Key | English |
+|---|---|
+| `teach.addPoint` | Add point |
+| `teach.addPointArmed` | Tap the drawing where the new point goes, or press Add point again to put it in the centre. |
+| `teach.pointAddedUnlabelled` | Added {point}. (`{point}` = `tf('vertex.unlabelled', { id })`) |
+| `teach.pointAddedLabelled` | Added point {id}, labelled {label}. |
+| `teach.pointLimit` | This diagram already has {max} points, the most that can be shared. |
+| `teach.pointBadCoords` | That spot is outside the drawing. Try again. |
+| `teach.addEdge` | Add edge |
+| `teach.addEdgeFirst` | Choose the first point. |
+| `teach.addEdgeSecond` | {id} chosen. Choose the second point. |
+| `teach.edgeAdded` | Joined {a} and {b}. |
+| `teach.edgeSamePoint` | That is the same point. Choose a different second point. |
+| `teach.edgeAlreadyJoined` | {a} and {b} are already joined. |
+| `teach.edgeUnknownPoint` | That point is no longer in the diagram. |
+| `teach.edgeLimit` | This diagram already has {max} edges, the most that can be shared. |
+| `teach.addCancelled` | Adding cancelled. |
+| `teach.undidAddPoint` | Undone: point {id} removed. |
+| `teach.undidAddEdge` | Undone: edge from {a} to {b} removed. |
+After `teach.edgeSamePoint` the mode stays `addEdgeSecond` with the same first point, so the teacher can pick again. After every other add-edge outcome the mode returns to `idle`.
+
+### Tests the lane writes
+- `tests/ghostwriter.prop.test.ts`: P58-P61, 200 runs or more each.
+- `tests/ghostwriter.teach.test.tsx` (jsdom, like `teach.canvas.pointer.test.tsx`), one test each:
+  - both controls have an accessible name and are at least 48 × 48 CSS px;
+  - add point by tap and by a second press;
+  - add edge;
+  - each no-op reason is spoken;
+  - undo of each add is spoken;
+  - the point cap;
+  - Explore renders no add control.
+- An example for 20.6: a triangle whose facts give a length for `CD` while `D` and `CD` are missing is silent. After adding `D` and `CD` in Teach, `exploreAnnouncement(scene, 'shared')` contains the unchanged `verify.disagree` sentence when the drawn `CD` does not match.
 
 ## Halloween Presentation Layer
 Dark background, glowing green strokes, a small "creature" mascot assembled from phone parts on the start screen, and the theremin as the signature sound. The theme never touches the users themselves (see `product.md`).

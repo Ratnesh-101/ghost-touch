@@ -228,3 +228,29 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 4. IF x or y is NaN or infinite THEN the system SHALL NOT add a point and SHALL return the same scene object, unchanged.
 5. THE two edits SHALL be undoable and redoable through the existing `applyEdit` / `historyReducer` history, with no new action type: undo SHALL restore the previous scene exactly.
 6. AFTER any edit, Spec Ghost SHALL NOT say the scene is "verified" or "correct". An added element is the teacher's work, not a check result; the Spec Ghost wording (Requirement 18.2) is not changed.
+
+### Requirement 20: Ghostwriter in Teach mode (UI for Requirement 19)
+> Written by Kiro on 2026-11-09 before the code, for the Antigravity lane g1 (`docs/briefs/agy-g1-ghostwriter-ui.md`). Where the brief and this requirement differ, this requirement wins (AGENTS.md). "Teach screen" means `screens/Teach.tsx` (`#/teach`). The pure edits are `addPoint` and `addSegment` in `core/correct.ts` (Requirement 19).
+
+**User Story:** As a teacher preparing a diagram to share, I want to add a corner or an edge the vision model missed, and hear what I did, so that the shared diagram is complete and I can undo a mistake.
+
+#### Acceptance Criteria
+1. THE add-point and add-edge controls SHALL appear only on the Teach screen. The student Explore screen, its gestures, haptics and announcements SHALL NOT change.
+2. Add point:
+   1. THE Teach screen SHALL have an "Add point" control with an accessible name, a touch target of at least 48 × 48 CSS px, and a spoken label when focused or activated.
+   2. WHEN the control is activated THEN the system SHALL arm add-point mode and speak how to place the point. WHILE add-point mode is armed, the next tap on the canvas SHALL call `addPoint` at the tapped position converted to normalized coordinates with the existing canvas conversion, and SHALL disarm the mode.
+   3. WHILE add-point mode is armed, activating the control again SHALL place the point at the centre (0.5, 0.5), so the add works without a canvas tap (keyboard, switch access, TalkBack). The existing nudge controls then move it.
+   4. THE teacher MAY give a label; it SHALL be trimmed and limited to 60 characters (`LIMITS.maxLabel`). A blank label SHALL leave the point unlabelled.
+   5. WHEN a point is added THEN the system SHALL speak a confirmation that names the new id and, if there is one, the label. An unlabelled point SHALL be named with the existing `vertex.unlabelled` wording ("Point D").
+   6. THE existing "Add vertex" control SHALL become this "Add point" control. There SHALL be one way to add a point on the Teach screen, and it SHALL use `addPoint`, so new ids follow Requirement 19.1 (`A` … `Z`, then `P1`, `P2`, …).
+3. Add edge:
+   1. THE Teach screen SHALL have an "Add edge" control with the same accessibility rules as 20.2.1.
+   2. WHEN it is activated THEN the system SHALL speak "choose the first point". WHEN a point is chosen (canvas tap within the existing point hit radius, or the existing point selection) THEN the system SHALL speak its name and ask for the second point. WHEN the second point is chosen THEN the system SHALL call `addSegment(scene, first, second)`.
+   3. IF `addSegment` returns the same scene object THEN the system SHALL speak the reason and SHALL NOT be silent: "same point" when first and second are equal, "already joined" when a segment joins them in either direction, "point not found" when an endpoint no longer exists.
+   4. WHEN an edge is added THEN the system SHALL speak a confirmation naming both endpoints.
+   5. Activating either add control again while add-edge mode waits, or pressing Escape, SHALL cancel the pending pick, speak that it was cancelled, and change nothing.
+4. Every add SHALL be applied through the existing history (`applyEdit`, the `apply` action of `historyReducer`); a no-op SHALL NOT create a history entry. Undo and redo SHALL revert and re-apply each add. WHEN an add is undone THEN the system SHALL speak what was undone (the point's id, or both endpoints of the edge); other undos keep the existing wording.
+5. THE Teach screen SHALL refuse an add that would make the scene too big to share or to send to the backend, and SHALL speak why. The point cap is the smaller of `LIMITS.maxPoints` (`frontend/src/share/limits.ts`, 300) and the backend `MAX_SCENE_POINTS` (500), so 300 today; the segment cap is the smaller of `LIMITS.maxSegments` (300) and `MAX_SCENE_SEGMENTS` (1000). A refused add SHALL leave the scene and history unchanged.
+6. Spec Ghost (Requirement 18) SHALL treat an edited scene exactly as any other: the add path SHALL add no Spec Ghost call of its own, remove none, and SHALL NOT change, soften or suppress its sentence. A scene that was silent may report a disagreement once an added element makes a fact match the drawing; that is intended. No new string, in any language, SHALL contain "verified", "correct", "checked" or "approved" (or a translation of them).
+7. Every new user-facing string SHALL go through `t()` / `tf()`, SHALL exist in `en`, `hi` and `gu` in `frontend/src/i18n/index.ts` with the same placeholders, and SHALL be listed in `docs/user-test/translation-review.csv` and `.md` for native review. Hindi and Gujarati values SHALL NOT be the English text.
+8. THE decision logic (arming and picking state, label handling, the caps, the no-op reasons, the undo description) SHALL live in a pure module in `frontend/src/flow/` with no React and no browser API, and SHALL have property tests of at least 200 runs (P58-P61). `screens/Teach.tsx` SHALL only call it, apply the result to history and speak the returned text.
