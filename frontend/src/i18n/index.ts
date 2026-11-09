@@ -74,8 +74,7 @@ const en: Record<string, string> = {
   'capture.errorBusy': 'The server is busy right now. Please try again in a moment.',
   'capture.wakingUp': 'Waking up the server…',
   'capture.errorGateway': 'The server is waking up. Please try again in a few seconds.',
-  'capture.errorTimeout':
-    'The server took too long to respond. It may still be waking up, please try again.',
+  'capture.errorTimeout': 'The server took too long; please try again.',
   'capture.errorSample': 'Could not open that sample. Please try again.',
   'capture.errorType': 'That file type is not supported. Use a JPEG, PNG or WebP image.',
   'capture.errorSize': 'That file is too large. Maximum is 10 megabytes.',
@@ -393,8 +392,7 @@ const hi: Record<string, string> = {
   'capture.errorBusy': 'सर्वर अभी व्यस्त है। कृपया थोड़ी देर में पुन: प्रयास करें।',
   'capture.wakingUp': 'सर्वर चालू किया जा रहा है…',
   'capture.errorGateway': 'सर्वर चालू हो रहा है। कृपया कुछ सेकंड में पुनः प्रयास करें।',
-  'capture.errorTimeout':
-    'सर्वर ने प्रतिक्रिया देने में बहुत अधिक समय लिया। यह अभी भी चालू हो रहा हो सकता है, कृपया पुनः प्रयास करें।',
+  'capture.errorTimeout': 'सर्वर ने बहुत लंबा समय लिया; कृपया पुनः प्रयास करें।',
   'capture.errorSample': 'वह नमूना नहीं खोला जा सका। कृपया पुन: प्रयास करें।',
   'capture.errorType': 'वह फ़ाइल प्रकार समर्थित नहीं है। JPEG, PNG या WebP छवि का उपयोग करें।',
   'capture.errorSize': 'वह फ़ाइल बहुत बड़ी है। अधिकतम 10 मेगाबाइट है।',
@@ -711,8 +709,7 @@ const gu: Record<string, string> = {
   'capture.errorBusy': 'સર્વર અત્યારે વ્યસ્ત છે. કૃપા કરીને થોડીવારમાં ફરી પ્રયાસ કરો.',
   'capture.wakingUp': 'સર્વર શરૂ થઈ રહ્યું છે…',
   'capture.errorGateway': 'સર્વર શરૂ થઈ રહ્યું છે. કૃપા કરીને થોડી સેકંડમાં ફરી પ્રયાસ કરો.',
-  'capture.errorTimeout':
-    'સર્વરે પ્રતિસાદ આપવામાં ઘણો સમય લીધો. તે હજી પણ શરૂ થઈ રહ્યું હોઈ શકે છે, કૃપા કરીને ફરી પ્રયાસ કરો.',
+  'capture.errorTimeout': 'સર્વરે ઘણો સમય લીધો; કૃપા કરીને ફરી પ્રયાસ કરો.',
   'capture.errorSample': 'તે નમૂનો ખોલી શકાયો નથી. કૃપા કરીને ફરી પ્રયાસ કરો.',
   'capture.errorType': 'તે ફાઇલ પ્રકાર સપોર્ટેડ નથી. JPEG, PNG અથવા WebP ઇમેજ વાપરો.',
   'capture.errorSize': 'તે ફાઇલ ખૂબ મોટી છે. મહત્તમ 10 મેગાબાઇટ છે.',

@@ -14,12 +14,12 @@ import type { SceneMode } from './api/scene';
 import { isShareEnvOn } from './config/features';
 import type { DiagramScene } from './core/scene';
 import {
-  applyAdd,
   makeId,
   savedTitle,
   SAVED_DIAGRAMS_CAP,
   type SavedDiagram,
 } from './core/savedDiagrams';
+import { saveDiagramWithEviction } from './flow/saved';
 import { createBrowserDrivers, renderSceneThumbnail, type Drivers } from './drivers';
 import {
   clearHash,
@@ -414,7 +414,7 @@ export function App(): JSX.Element {
    * GT-06: Storage failures update status text only; never speak or cancel exploration.
    */
   const saveDiagram = useCallback(
-    async (scene: DiagramScene): Promise<void> => {
+    async (scene: DiagramScene, previousScene?: DiagramScene | null): Promise<void> => {
       try {
         const listResult = await drivers.diagramStore.list();
         if (!listResult.ok) {
@@ -428,34 +428,43 @@ export function App(): JSX.Element {
         }
 
         const existing = listResult.value;
+        const matchingEntry = previousScene
+          ? existing.find(
+              (e) =>
+                e.scene === previousScene ||
+                JSON.stringify(e.scene) === JSON.stringify(previousScene),
+            )
+          : undefined;
+
         const thumbnailDataUrl = renderSceneThumbnail(scene);
-        const newEntry: SavedDiagram = {
-          id: makeId(Date.now(), Math.random),
-          createdAt: Date.now(),
-          title: savedTitle(scene, currentLang),
-          thumbnailDataUrl,
-          scene,
-          pinned: false,
-        };
+        const entryToSave: SavedDiagram = matchingEntry
+          ? {
+              ...matchingEntry,
+              title: savedTitle(scene, currentLang),
+              thumbnailDataUrl,
+              scene,
+            }
+          : {
+              id: makeId(Date.now(), Math.random),
+              createdAt: Date.now(),
+              title: savedTitle(scene, currentLang),
+              thumbnailDataUrl,
+              scene,
+              pinned: false,
+            };
 
-        const decision = applyAdd(existing, newEntry, SAVED_DIAGRAMS_CAP);
-        if (!decision.ok) {
-          const err = t('saved.errorAllPinned');
-          setView((prev) =>
-            prev.screen === 'explore'
-              ? { ...prev, announced: `${prev.announced} ${err}` }
-              : prev,
-          );
-          return;
-        }
-
-        if (decision.evictedId !== undefined) {
-          await drivers.diagramStore.delete(decision.evictedId);
-        }
-
-        const putResult = await drivers.diagramStore.put(newEntry);
-        if (!putResult.ok) {
-          const err = t('saved.errorSave');
+        const result = await saveDiagramWithEviction(
+          drivers.diagramStore,
+          existing,
+          entryToSave,
+          SAVED_DIAGRAMS_CAP,
+        );
+        if (!result.ok) {
+          const key =
+            result.error === 'all_pinned'
+              ? 'saved.errorAllPinned'
+              : 'saved.errorSave';
+          const err = t(key);
           setView((prev) =>
             prev.screen === 'explore'
               ? { ...prev, announced: `${prev.announced} ${err}` }
@@ -530,9 +539,13 @@ export function App(): JSX.Element {
 
   const handleSaveCorrect = (scene: DiagramScene): void => {
     leaveCorrectEntry();
+    const previousScene =
+      view.screen === 'correct' ? view.scene : lastExploreScene.current;
+    lastExploreScene.current = scene;
     const announced = exploreAnnouncement(scene, 'ai');
     drivers.speech.speak(announced, LANG_BCP47[currentLang]);
     setView({ screen: 'explore', scene, announced });
+    void saveDiagram(scene, previousScene);
   };
 
   const handleCancelCorrect = (): void => {
