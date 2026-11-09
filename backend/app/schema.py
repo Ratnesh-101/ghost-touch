@@ -94,7 +94,8 @@ class DiagramScene(BaseModel):
     )  # e.g. "AB = 5 cm", "angle C = 90°" — used by Ask
     aspect: float = Field(
         default=1.0,
-        gt=0.0,
+        ge=0.05,
+        le=20.0,
         allow_inf_nan=False,
         description="Aspect ratio (width / height) of the diagram's bounding box",
     )

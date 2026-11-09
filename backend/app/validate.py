@@ -276,14 +276,14 @@ def _repair_coords(data: dict[str, Any], dropped_tracker: dict[str, list[Any]]) 
             v = _clamp_coord(axes.get("y_axis_x"))
             axes["y_axis_x"] = v
 
-    # Aspect (F2: optional aspect ratio float, gt 0, finite)
+    # Aspect (F2, M4-05: optional aspect ratio float, bounded between 0.05 and 20.0)
     raw_aspect = data.get("aspect")
     if raw_aspect is not None:
         if isinstance(raw_aspect, (int, float)) and not isinstance(raw_aspect, bool):
             try:
                 asp = float(raw_aspect)
                 if math.isfinite(asp) and asp > 0.0:
-                    data["aspect"] = asp
+                    data["aspect"] = max(0.05, min(20.0, asp))
                 else:
                     data["aspect"] = 1.0
             except (ValueError, TypeError):
