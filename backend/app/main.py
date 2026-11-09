@@ -64,6 +64,7 @@ logger = logging.getLogger(__name__)
 
 ALLOWED_MIME_TYPES = {
     "image/jpeg",
+    "image/jpg",
     "image/png",
     "image/webp",
 }
@@ -626,7 +627,8 @@ async def process_scene(
         del buf
 
         # Step 3: Validate magic bytes, header integrity, and resolution cap (Finding 3)
-        validate_image_bytes(image_bytes, content_type)
+        detected_mime, _, _ = validate_image_bytes(image_bytes, content_type)
+        content_type = detected_mime
 
         # A repeated image (a demo, a retry) is served from the cache of validated AI scenes, so it
         # costs no provider quota. Failures and Raw Mode results are never cached.
