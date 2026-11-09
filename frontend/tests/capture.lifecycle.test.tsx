@@ -221,7 +221,7 @@ describe('capture lifecycle, object URLs, double-tap & cancel (Findings 4, 9, 16
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       // The speech driver should have spoken capture.busy on the second click
-      expect(drivers.speech.speak).toHaveBeenCalledWith(t('capture.busy'));
+      expect(drivers.speech.speak).toHaveBeenCalledWith(t('capture.busy'), expect.anything());
       // Only one successful scene delivery
       expect(onScene).toHaveBeenCalledTimes(1);
     });
