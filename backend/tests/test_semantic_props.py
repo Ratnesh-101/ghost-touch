@@ -69,7 +69,7 @@ def random_barchart_scene(draw) -> DiagramScene:
 
 
 @given(scene=random_polylines_scene())
-@settings(max_examples=50)
+@settings(max_examples=200)
 def test_prop_peak_y_le_every_vertex(scene: DiagramScene) -> None:
     # Pure SemanticResult invariant
     pure_res = pure_semantic_target(scene, "where is the peak?", "en")
@@ -103,7 +103,7 @@ def test_prop_peak_y_le_every_vertex(scene: DiagramScene) -> None:
 
 
 @given(scene=random_polylines_scene())
-@settings(max_examples=50)
+@settings(max_examples=200)
 def test_prop_trough_y_ge_every_vertex(scene: DiagramScene) -> None:
     # Pure SemanticResult invariant
     pure_res = pure_semantic_target(scene, "where is the lowest point?", "en")
@@ -137,7 +137,7 @@ def test_prop_trough_y_ge_every_vertex(scene: DiagramScene) -> None:
 
 
 @given(scene=random_barchart_scene())
-@settings(max_examples=50)
+@settings(max_examples=200)
 def test_prop_tallest_and_shortest_bars(scene: DiagramScene) -> None:
     bar_map = {b.id: b.value for b in scene.bars}
     max_val = max(b.value for b in scene.bars)

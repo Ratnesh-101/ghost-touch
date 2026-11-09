@@ -33,7 +33,7 @@ from app.scene_cache import (
 # ---------------------------------------------------------------------------
 
 
-@settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(st.binary(min_size=0, max_size=4096))
 def test_p21_image_dimensions_never_raises_on_arbitrary_bytes(data: bytes) -> None:
     """P21: Dimension sniffing never raises on arbitrary bytes, returning None or (width, height) >= 0."""
@@ -49,7 +49,7 @@ def test_p21_image_dimensions_never_raises_on_arbitrary_bytes(data: bytes) -> No
     assert fmt is None or fmt in ("image/png", "image/jpeg", "image/webp")
 
 
-@settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(
     width=st.integers(min_value=1, max_value=65535),
     height=st.integers(min_value=1, max_value=65535),
@@ -70,7 +70,7 @@ def test_p22_image_dimensions_png_returns_encoded_size(
     assert sniff_image_format(header) == "image/png"
 
 
-@settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(
     width=st.integers(min_value=1, max_value=65535),
     height=st.integers(min_value=1, max_value=65535),
@@ -101,7 +101,7 @@ def test_p23_image_dimensions_jpeg_returns_encoded_size(
     assert sniff_image_format(jpeg_data) == "image/jpeg"
 
 
-@settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(
     raw_width=st.integers(min_value=1, max_value=65534),
     raw_height=st.integers(min_value=1, max_value=65534),
@@ -154,7 +154,7 @@ def test_p24_image_dimensions_jpeg_exif_orientation_swaps_dimensions(
 # ---------------------------------------------------------------------------
 
 
-@settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(
     image1=st.binary(min_size=1, max_size=512),
     image2=st.binary(min_size=1, max_size=512),
@@ -175,7 +175,7 @@ def test_p25_scene_cache_key_deterministic_and_collision_free(
         assert key1_a != key2
 
 
-@settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(
     max_entries=st.integers(min_value=0, max_value=15),
     items=st.lists(
@@ -204,7 +204,7 @@ def test_p26_scene_cache_size_bound_never_exceeded(
         assert not cache.enabled
 
 
-@settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(
     max_entries=st.integers(min_value=2, max_value=10),
     data_str=st.text(min_size=1, max_size=30),
@@ -244,7 +244,7 @@ def test_p27_scene_cache_get_after_put_returns_stored_scene(
         assert survived[0]["data"] == data_str
 
 
-@settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(
     ttl=st.floats(min_value=1.0, max_value=3600.0, allow_nan=False, allow_infinity=False),
     dt1=st.floats(min_value=0.0, max_value=0.99, allow_nan=False, allow_infinity=False),
@@ -283,24 +283,58 @@ def test_p28_scene_cache_ttl_expiry_monotonic(
 # ---------------------------------------------------------------------------
 
 
-@settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(
-    client_id=st.text(min_size=1, max_size=30),
     path=st.sampled_from(["/api/v1/scene", "/api/v1/ask", "/api/v1/validate"]),
-    per_minute=st.integers(min_value=1, max_value=100),
+    per_minute=st.integers(min_value=1, max_value=50),
+    existing_clients=st.lists(
+        st.text(
+            alphabet=st.characters(whitelist_categories=("Lu", "Ll", "Nd")),
+            min_size=1,
+            max_size=15,
+        ),
+        min_size=0,
+        max_size=8,
+        unique=True,
+    ),
+    fresh_client_suffix=st.text(
+        alphabet=st.characters(whitelist_categories=("Lu", "Ll", "Nd")),
+        min_size=1,
+        max_size=15,
+    ),
+    burst_counts=st.lists(st.integers(min_value=1, max_value=30), min_size=0, max_size=8),
 )
-def test_p29_limits_fresh_key_always_allowed(client_id: str, path: str, per_minute: int) -> None:
-    """P29: A client key never seen before (or after reset) is always granted on its first request."""
+def test_p29_limits_fresh_key_always_allowed(
+    path: str,
+    per_minute: int,
+    existing_clients: list[str],
+    fresh_client_suffix: str,
+    burst_counts: list[int],
+) -> None:
+    """P29: A client key never seen before is always granted on its first request,
+
+    even when multiple other client keys have active or throttled requests.
+    """
     reset_rate_limits()
     middleware = RequestGuardMiddleware(
         app=unittest.mock.AsyncMock(),
         body_limits={},
         rate_limits={path: per_minute},
     )
-    assert middleware._allow(client_id, path, per_minute) is True
+
+    # Populate rate limiter with arbitrary active / throttled clients
+    for idx, raw_client in enumerate(existing_clients):
+        c_id = f"exist_{idx}_{raw_client}"
+        burst = burst_counts[idx] if idx < len(burst_counts) else 1
+        for _ in range(burst):
+            middleware._allow(c_id, path, per_minute)
+
+    # A completely fresh client key must be allowed on its first request
+    fresh_client = f"fresh_{fresh_client_suffix}"
+    assert middleware._allow(fresh_client, path, per_minute) is True
 
 
-@settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(
     per_minute=st.integers(min_value=1, max_value=10),
     deltas=st.lists(

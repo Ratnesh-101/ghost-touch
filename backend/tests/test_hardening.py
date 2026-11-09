@@ -12,7 +12,7 @@ import cv2
 import httpx
 import numpy as np
 import pytest
-from fastapi import HTTPException, Request
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from app.image_utils import (
@@ -407,18 +407,71 @@ def test_docs_exposure_modes(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_client_disconnect_returns_499() -> None:
-    """Simulated disconnected request returns HTTP 499 before heavy processing."""
+    """A client disconnecting while queued for a slot aborts with HTTP 499
+
+    without calling the provider and frees its concurrency slot cleanly.
+    """
+    from app.ask import AskRequest
+    from app.limits import reset_in_flight_limits
+    from app.main import (
+        ask_question_route,
+        get_ask_in_flight_limiter,
+        get_ask_semaphore,
+        reset_ask_semaphore,
+    )
+    from fixtures.triangle import triangle_scene
+
+    reset_ask_semaphore()
+    reset_in_flight_limits()
+    sem = get_ask_semaphore()
+
+    class CountingProvider:
+        def __init__(self) -> None:
+            self.name = "counting"
+            self.calls = 0
+
+        async def complete(self, prompt: str, *, timeout: float) -> str:
+            self.calls += 1
+            return '{"answer": "ok"}'
+
+    provider = CountingProvider()
+    chain = ProviderChain([provider])
+    req = AskRequest(scene=triangle_scene(), question="What is the length of AB?", lang="en")
 
     async def _run() -> None:
-        scope = {
-            "type": "http",
-            "method": "POST",
-            "path": "/api/v1/scene",
-            "headers": [(b"content-type", b"image/png")],
-        }
-        mock_request = Request(scope)
-        mock_request.is_disconnected = AsyncMock(return_value=True)
+        # Step 1: saturate all concurrency slots to force the next request to queue
+        slots_held: list[bool] = []
+        while not sem.locked():
+            await sem.acquire()
+            slots_held.append(True)
 
-        assert await mock_request.is_disconnected() is True
+        raw_request = AsyncMock()
+        # Simulated client that disconnected while waiting in queue
+        raw_request.is_disconnected = AsyncMock(return_value=True)
+        raw_request.client.host = "10.0.0.1"
+        raw_request.headers.get.return_value = None
 
-    asyncio.run(_run())
+        # Step 2: schedule releasing one slot after a brief delay so queued request advances
+        async def _release_later() -> None:
+            await asyncio.sleep(0.05)
+            sem.release()
+
+        release_task = asyncio.create_task(_release_later())
+        resp = await ask_question_route(req, raw_request, chain)
+        await release_task
+
+        # Release the remaining manually saturated slots
+        for _ in slots_held[:-1]:
+            sem.release()
+
+        # Assert real route-level behaviour
+        assert resp.status_code == 499
+        assert provider.calls == 0
+        assert not sem.locked()
+        assert get_ask_in_flight_limiter().count("10.0.0.1") == 0
+
+    try:
+        asyncio.run(_run())
+    finally:
+        reset_ask_semaphore()
+        reset_in_flight_limits()
