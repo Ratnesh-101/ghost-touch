@@ -152,21 +152,40 @@ def test_p9_clamp_within_tolerance():
 
 
 def test_p9_drop_beyond_tolerance():
-    """Coordinates beyond +/-0.02 are dropped (element removed)."""
-    data = {
+    """Coordinates beyond +/-0.02 are dropped (element removed).
+
+    Two-case rule (Audit F5):
+    1. A point beyond tolerance that NO segment or fact references is dropped
+       with the scene remaining valid (P9 unreferenced case).
+    2. A point beyond tolerance that IS referenced by segments or facts causes
+       validation to reject the scene as invalid (F5 referenced case).
+    """
+    # Case 1: Unreferenced point beyond tolerance is dropped; scene remains valid
+    data_unreferenced = {
         "kind": "geometry",
         "points": [
             {"id": "A", "x": 0.5, "y": 0.5},
-            {"id": "B", "x": 0.5, "y": 1.5},  # beyond tolerance -> dropped
+            {"id": "B", "x": 0.5, "y": 1.5},  # unreferenced, beyond tolerance -> dropped
         ],
-        "segments": [{"id": "AB", "a": "A", "b": "B"}],  # dangling after B dropped
+        "segments": [],
     }
-    result = validate_scene(data)
-    # A is kept, B is dropped, segment AB is dangling and dropped
-    assert result.scene is not None
-    assert len(result.scene.points) == 1
-    assert result.scene.points[0].id == "A"
-    assert len(result.scene.segments) == 0
+    result_unreferenced = validate_scene(data_unreferenced)
+    assert result_unreferenced.scene is not None
+    assert len(result_unreferenced.scene.points) == 1
+    assert result_unreferenced.scene.points[0].id == "A"
+
+    # Case 2: Referenced point beyond tolerance makes the scene invalid (F5)
+    data_referenced = {
+        "kind": "geometry",
+        "points": [
+            {"id": "A", "x": 0.5, "y": 0.5},
+            {"id": "B", "x": 0.5, "y": 1.5},  # referenced, beyond tolerance -> dropped
+        ],
+        "segments": [{"id": "AB", "a": "A", "b": "B"}],
+    }
+    result_referenced = validate_scene(data_referenced)
+    assert result_referenced.scene is None
+    assert any("used by segments" in err for err in result_referenced.errors)
 
 
 def test_p9_dedupe_ids():
