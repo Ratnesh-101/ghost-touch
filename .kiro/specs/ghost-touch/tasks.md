@@ -267,6 +267,6 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 32.4 Properties: optimised equals oracle on random scenes including a 2000-point polyline (200+ runs); non-finite bar is never a hit; P1, P2, P8 green; each new property mutation-checked
   - _Requirements: 4.6, 6.1, 16.12_
 
-- [ ] 33. Round 3 evidence and log
-  - [ ] 33.1 `docs/kiro-evidence/round3.md`: requirement to task to test to what the test caught
-  - [ ] 33.2 BUILD_LOG entry per task (tool = Kiro); report anything unfinished
+- [x] 33. Round 3 evidence and log
+  - [x] 33.1 `docs/kiro-evidence/round3.md`: requirement to task to test to what the test caught
+  - [x] 33.2 BUILD_LOG entry per task (tool = Kiro); report anything unfinished

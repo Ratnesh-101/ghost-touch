@@ -2456,3 +2456,10 @@ Format for each entry:
 - Test first: `backend/tests/test_validate_raw_meta.py` (11 cases: int, float, bool, string, dict for each field). 7 failed before the fix, all pass after.
 - Gate: backend 716 passed, `ruff check` and `ruff format --check` clean (77 files). Frontend unchanged since the T29.8 gate (129 files, 1751 tests, `tsc` and build ok).
 - Files touched: `backend/app/validate.py`, `backend/tests/test_validate_raw_meta.py` (new), `.kiro/specs/ghost-touch/tasks.md`, `docs/BUILD_LOG.md`.
+
+## 2026-11-09 — Kiro — T33 (round 3 evidence)
+- Tool: **Kiro**. Docs only.
+- Built: `docs/kiro-evidence/round3.md`, the chain requirement to task to test to what the test caught for tasks 28-32 and 29.9, with the hit-test benchmark, the known limits, and the process mistakes (the `801b222` mis-commit, the i18n key order, jsdom added). Every round 3 task has its own BUILD_LOG entry above (T28, T30, T31, T32, T29, T29.8, T29.9).
+- Unfinished or not verified: nothing tried on a phone; hi and gu wording for "Point {id}" needs a native speaker; owner decisions still open (Spec Ghost 15% tolerance, the "Verified by" line on shared links, `TRUSTED_PROXY_HOPS`).
+- Gate: frontend `tsc` clean, 129 files and 1751 tests pass, build ok; backend 716 passed, `ruff check` and `ruff format --check` clean (77 files).
+- Files touched: `docs/kiro-evidence/round3.md` (new), `.kiro/specs/ghost-touch/tasks.md`, `docs/BUILD_LOG.md`.
