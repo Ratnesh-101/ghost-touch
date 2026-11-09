@@ -671,3 +671,21 @@ The following spoken strings may be difficult for blind students to follow in a 
 | :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
 | `correct.confirmLeave (spoken)` | You have unsaved changes. Are you sure you want to leave? | आपके पास बिना सहेजे गए परिवर्तन हैं। क्या आप वाकई छोड़ना चाहते हैं? | તમારી પાસે સેવ ન કરેલા ફેરફારો છે. શું તમે ખરેખર બહાર નીકળવા માંગો છો? | | | | Confirmation dialog when leaving Teacher Correct with unsaved edits |
 | `correct.stayingInEditor (spoken)` | Still in correction mode. | अभी भी सुधार मोड में हैं। | હજુ પણ સુધારણા મોડમાં છો. | | | | Spoken when cancelling exit from Teacher Correct |
+---
+## 25. Share Honesty & A11Y Fixes (`p3-r5-share-fixes`)
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `share.honesty (spoken)` | This diagram was shared as a link. Ghost Touch has not verified it. | यह आरेख एक लिंक के रूप में साझा किया गया है। घोस्ट टच ने इसे जाँचा नहीं है। | આ આકૃતિ લિંક તરીકે શેર કરવામાં આવી છે. ગોસ્ટ ટચે આને ચકાસ્યું નથી. | | | | R5-02 honest disclaimer; marked for native review |
+| `kind.geometry (spoken)` | Geometry diagram | ज्यामिति आरेख | ભૂમિતિ આકૃતિ | | | | R5-07 scene kind label; marked for native review |
+| `kind.function_graph (spoken)` | Function graph | फलन ग्राफ़ | વિધેય આલેખ | | | | R5-07 scene kind label; marked for native review |
+| `kind.bar_chart (spoken)` | Bar chart | बार चार्ट | સ્તંભ આલેખ | | | | R5-07 scene kind label; marked for native review |
+| `kind.unknown (spoken)` | Diagram | आरेख | આકૃતિ | | | | R5-07 scene kind label; marked for native review |
+---
+## 25. Share Honesty & A11Y Fixes (`p3-r5-share-fixes`)
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `share.honesty (spoken)` | This diagram was shared as a link. Ghost Touch has not verified it. | यह आरेख एक लिंक के रूप में साझा किया गया है। घोस्ट टच ने इसे जाँचा नहीं है। | આ આકૃતિ લિંક તરીકે શેર કરવામાં આવી છે. ગોસ્ટ ટચે આને ચકાસ્યું નથી. | | | | R5-02 honest disclaimer; marked for native review |
+| `kind.geometry (spoken)` | Geometry diagram | ज्यामिति आरेख | ભૂમિતિ આકૃતિ | | | | R5-07 scene kind label; marked for native review |
+| `kind.function_graph (spoken)` | Function graph | फलन ग्राफ़ | વિધેય આલેખ | | | | R5-07 scene kind label; marked for native review |
+| `kind.bar_chart (spoken)` | Bar chart | बार चार्ट | સ્તંભ આલેખ | | | | R5-07 scene kind label; marked for native review |
+| `kind.unknown (spoken)` | Diagram | आरेख | આકૃતિ | | | | R5-07 scene kind label; marked for native review |
