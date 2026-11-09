@@ -52,8 +52,16 @@ export function captureErrorMessage(error: unknown): string {
   if (error instanceof PdfError) {
     return pdfErrorMessage(error.reason);
   }
-  if (error instanceof SceneRequestError && error.failure === 'busy') {
-    return t('capture.errorBusy');
+  if (error instanceof SceneRequestError) {
+    if (error.failure === 'busy') {
+      return t('capture.errorBusy');
+    }
+    if (error.failure === 'gateway') {
+      return t('capture.errorGateway');
+    }
+    if (error.failure === 'timeout') {
+      return t('capture.errorTimeout');
+    }
   }
   return t('capture.error');
 }
@@ -115,7 +123,8 @@ export async function processImageFile(
     : (deps.prepare
       ? (f: Blob) => deps.prepare!(f, deps.signal)
       : (f: Blob) => prepareImage(f));
-  const request = deps.request ?? ((image, signal) => requestScene(image, { signal }));
+  const request =
+    deps.request ?? ((image, signal) => requestScene(image, { signal, onRetry: deps.say }));
 
   const announcement = isPdf
     ? `${t('capture.firstPagePdf')} ${t('capture.reading')}`

@@ -7,6 +7,7 @@
  * types; no second copy is defined here.
  */
 import type { DiagramScene } from '../core/scene';
+import { t } from '../i18n';
 
 export type SceneMode = 'ai' | 'raw';
 
@@ -20,16 +21,23 @@ export const SAMPLE_IDS = ['triangle', 'sine', 'barchart'] as const;
 export type SampleId = (typeof SAMPLE_IDS)[number];
 
 /**
- * Cold backend start on Render can take ~32 s; allow 45 s so the first
- * scene request succeeds without timing out.
+ * Cold backend start on Render can take 30 to 60 s; allow 65 s so the first
+ * scene request succeeds without timing out (Requirement B4-06).
  */
-export const SCENE_TIMEOUT_MS = 45_000;
+export const SCENE_TIMEOUT_MS = 65_000;
 
 export const DEFAULT_RETRY_AFTER_SECONDS = 3;
 export const MIN_RETRY_AFTER_SECONDS = 1;
 export const MAX_RETRY_AFTER_SECONDS = 10;
 
-export type SceneFailure = 'timeout' | 'network' | 'http' | 'bad-response' | 'aborted' | 'busy';
+export type SceneFailure =
+  | 'timeout'
+  | 'network'
+  | 'http'
+  | 'bad-response'
+  | 'aborted'
+  | 'busy'
+  | 'gateway';
 
 export class SceneRequestError extends Error {
   constructor(
@@ -63,6 +71,10 @@ export function parseRetryAfter(headerValue: string | null | undefined): number 
 
 function isBusyStatus(status: number): boolean {
   return status === 503 || status === 429;
+}
+
+function isGatewayStatus(status: number): boolean {
+  return status === 502 || status === 504;
 }
 
 function getHeader(response: Response, name: string): string | null | undefined {
@@ -99,6 +111,9 @@ export interface SceneRequestOptions {
   /** Aborting this (for example on unmount) cancels the request. */
   signal?: AbortSignal;
   fetchImpl?: typeof fetch;
+  /** Spoken / status notification callback during retry (e.g. server waking up). */
+  onRetry?: (message: string) => void;
+  say?: (message: string) => void;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -159,13 +174,22 @@ export async function requestScene(
       signal: controller.signal,
     });
 
-    if (isBusyStatus(response.status)) {
+    const isGateway = isGatewayStatus(response.status);
+    const isBusy = isBusyStatus(response.status);
+
+    if (isGateway || isBusy) {
+      if (isGateway) {
+        const announce = options.onRetry ?? options.say;
+        announce?.(t('capture.wakingUp'));
+      }
+
       const retryAfterSec = parseRetryAfter(getHeader(response, 'retry-after'));
       const waitMs = retryAfterSec * 1000;
       const elapsedMs = Date.now() - startTime;
       const remainingMs = timeoutMs - elapsedMs;
 
       if (remainingMs <= waitMs || controller.signal.aborted) {
+        if (isGateway) throw new SceneRequestError('gateway');
         throw new SceneRequestError('busy', retryAfterSec);
       }
 
@@ -177,13 +201,22 @@ export async function requestScene(
         signal: controller.signal,
       });
 
+      if (isGatewayStatus(response.status)) {
+        throw new SceneRequestError('gateway');
+      }
+
       if (isBusyStatus(response.status)) {
         const secondRetryAfter = parseRetryAfter(getHeader(response, 'retry-after'));
         throw new SceneRequestError('busy', secondRetryAfter);
       }
     }
 
-    if (!response.ok) throw new SceneRequestError('http');
+    if (!response.ok) {
+      if (isGatewayStatus(response.status)) {
+        throw new SceneRequestError('gateway');
+      }
+      throw new SceneRequestError('http');
+    }
     let data: unknown;
     try {
       data = await response.json();
