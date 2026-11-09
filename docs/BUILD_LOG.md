@@ -2569,3 +2569,47 @@ Format for each entry:
   - `frontend/tests/share.open.routing.test.tsx`
   - `docs/reports/agy-m3-shared-link-gate-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — Antigravity (agy, reviewed by Claude) — Lane n2-frontend-round4 (Frontend Fixes)
+- Tool: **Antigravity** (agy, reviewed by Claude).
+- What was built:
+  - M4-02: Consumed atomic `saveDiagramWithEviction` helper in `frontend/src/App.tsx`.
+    Ensured a failed IndexedDB `put` (quota exceeded or storage error) never deletes an unpinned
+    victim diagram prior to write verification. Preserved single spoken error utterance on failure.
+  - M4-03: Wired diagram persistence into Teacher Correct save in `frontend/src/App.tsx`.
+    Updated `lastExploreScene.current = scene` and persisted corrected diagram to `diagramStore`.
+    When an entry exists for that diagram, updates the record in-place via
+    `saveDiagramWithEviction` (preserving id and pinned status without eviction); when unsaved,
+    creates a new entry and saves atomically.
+  - M4-04: Restricted gateway retry in `frontend/src/api/scene.ts` strictly to HTTP 502 (cold-start
+    reverse proxy container boot). Disallowed retry on HTTP 504 (gateway timeout) to prevent
+    double-submitting paid AI model calls. Mapped 504 directly to `timeout` error, speaking the
+    accurate localized message "The server took too long; please try again." once. Synchronized
+    `frontend/tests/k6.pwa-offline.test.ts` to assert 504 no-retry contract.
+  - M4-09: Verified PWA precache configuration; skipped change as B4-03 requirement intentionally
+    precaches PDF worker to allow offline worksheet rendering.
+  - M4-10: In `frontend/src/verify/verify.ts`, stripped leading `"angle "` prefix from finding
+    targets to prevent English noun leakage into Hindi and Gujarati verify caveats.
+  - Added new regression test suite `frontend/tests/n2.round4.test.ts` (10 tests) covering all
+    confirmed findings.
+- What broke / findings:
+  - M4-04 required synchronizing the obsolete B4-07 test in
+    `frontend/tests/k6.pwa-offline.test.ts:465` which asserted 504 retry.
+  - M4-09 was verified as an intentional architectural decision for offline PWA operation.
+- Files touched:
+  - `frontend/src/App.tsx`
+  - `frontend/src/api/scene.ts`
+  - `frontend/src/verify/verify.ts`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/tests/k6.pwa-offline.test.ts`
+  - `frontend/tests/n2.round4.test.ts`
+  - `docs/user-test/translation-review.md`
+  - `docs/user-test/translation-review.csv`
+  - `docs/reports/agy-n2-frontend-round4-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — Claude Code — Merge of agy lanes n1, m2, m1, m3, n2
+- Gated every lane (ruff, pytest, tsc, vitest, build) and sent failures back to agy (n1 x1, m1 x2, m3 x2, n2 x1 follow-up passes). n1 had raised CLAMP_TOLERANCE to 0.05 against the spec; reverted to 0.02 in pass 2.
+- Applied lane diffs with `git apply --3way`, one commit per piece. n2's App.tsx save wiring conflicted with main: kept n2's `saveDiagramWithEviction` wiring but report storage errors as status text (GT-06: never speak) instead of speaking.
+- n2's M4-10 (strip "angle" from disputed-angle target) conflicts with Kiro's Requirement 18.2 property that pins "disagree on angle B". Not ported to `core/verify.ts` (Kiro's module); the three M4-10 tests are `describe.skip` until Kiro decides.
+- Cleanup: removed 21 merged lane worktrees/branches (owner ran cleanup-lanes.sh).
