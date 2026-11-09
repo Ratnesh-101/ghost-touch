@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import inspect
 import logging
 import os
+import threading
 import time
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
@@ -452,6 +454,40 @@ def create_app() -> FastAPI:
 app = create_app()
 
 
+def _call_raw_scene(
+    builder: Callable[..., DiagramScene],
+    image: bytes,
+    cancel_check: threading.Event | None = None,
+) -> DiagramScene:
+    """Invoke raw scene builder, passing cancel_check only if the callable accepts it."""
+    try:
+        sig = inspect.signature(builder)
+        params = sig.parameters
+        if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()):
+            return builder(image, cancel_check=cancel_check)
+        if "cancel_check" in params:
+            return builder(image, cancel_check=cancel_check)
+        if any(p.kind == inspect.Parameter.VAR_POSITIONAL for p in params.values()):
+            return builder(image, cancel_check)
+        pos_params = [
+            p
+            for p in params.values()
+            if p.kind
+            in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            )
+        ]
+        if len(pos_params) >= 2:
+            return builder(image, cancel_check)
+        return builder(image)
+    except (ValueError, TypeError):
+        try:
+            return builder(image, cancel_check=cancel_check)
+        except TypeError:
+            return builder(image)
+
+
 @router.get("/api/v1/health")
 async def health() -> dict[str, bool]:
     """Liveness probe. DoD: returns ``{"ok": true}``."""
@@ -508,43 +544,7 @@ async def process_scene(
         except ValueError:
             pass
 
-    # Read image in chunks to prevent large allocations
-    chunks: list[bytes] = []
-    total_read = 0
-    chunk_size = 64 * 1024
-    while True:
-        chunk = await image.read(chunk_size)
-        if not chunk:
-            break
-        total_read += len(chunk)
-        if total_read > MAX_UPLOAD_SIZE:
-            raise HTTPException(
-                status_code=413,
-                detail="Image file exceeds 10 MB limit. Please upload a smaller image.",
-            )
-        chunks.append(chunk)
-
-    image_bytes = b"".join(chunks)
-    if len(image_bytes) == 0:
-        raise HTTPException(
-            status_code=422,
-            detail="Empty image upload. Please provide a valid diagram image.",
-        )
-
-    # Step 3: Validate magic bytes, header integrity, and resolution cap (Finding 3)
-    validate_image_bytes(image_bytes, content_type)
-
-    # A repeated image (a demo, a retry) is served from the cache of validated AI scenes, so it
-    # costs no provider quota. Failures and Raw Mode results are never cached.
-    cache_key = image_key(image_bytes, build_prompt())
-    cached = scene_cache.get(cache_key)
-    if cached is not None:
-        cached_payload, cached_provider = cached
-        response.headers["X-Vision-Provider"] = cached_provider
-        response.headers["X-Scene-Cache"] = "HIT"
-        logger.info("scene served from cache: provider=%s", cached_provider)
-        return cached_payload
-
+    # A5: Take the concurrency slot before reading upload bytes into memory
     sem = get_scene_semaphore()
     wait_seconds = parse_scene_queue_wait_seconds()
     try:
@@ -557,6 +557,43 @@ async def process_scene(
         ) from exc
 
     try:
+        # Read image in chunks into a single bytearray to prevent multiple copies (A5)
+        buf = bytearray()
+        chunk_size = 64 * 1024
+        while True:
+            chunk = await image.read(chunk_size)
+            if not chunk:
+                break
+            if len(buf) + len(chunk) > MAX_UPLOAD_SIZE:
+                raise HTTPException(
+                    status_code=413,
+                    detail="Image file exceeds 10 MB limit. Please upload a smaller image.",
+                )
+            buf.extend(chunk)
+
+        if len(buf) == 0:
+            raise HTTPException(
+                status_code=422,
+                detail="Empty image upload. Please provide a valid diagram image.",
+            )
+
+        image_bytes = bytes(buf)
+        del buf
+
+        # Step 3: Validate magic bytes, header integrity, and resolution cap (Finding 3)
+        validate_image_bytes(image_bytes, content_type)
+
+        # A repeated image (a demo, a retry) is served from the cache of validated AI scenes, so it
+        # costs no provider quota. Failures and Raw Mode results are never cached.
+        cache_key = image_key(image_bytes, build_prompt())
+        cached = scene_cache.get(cache_key)
+        if cached is not None:
+            cached_payload, cached_provider = cached
+            response.headers["X-Vision-Provider"] = cached_provider
+            response.headers["X-Scene-Cache"] = "HIT"
+            logger.info("scene served from cache: provider=%s", cached_provider)
+            return cached_payload
+
         # SEC-03: Client disconnect check before vision processing
         if await request.is_disconnected():
             logger.info("Client disconnected before vision chain; aborting")
@@ -576,14 +613,28 @@ async def process_scene(
                 return Response(status_code=499)
 
             elapsed = time.monotonic() - start_time
-            remaining = max(0.5, total_deadline - elapsed)
+            remaining = max(0.05, total_deadline - elapsed)
+            cancel_event = threading.Event()
+            raw_task = asyncio.create_task(
+                asyncio.to_thread(
+                    _call_raw_scene,
+                    build_raw_scene,
+                    image_bytes,
+                    cancel_event,
+                )
+            )
             try:
-                # Finding 4: execute build_raw_scene in worker thread with remaining deadline
+                # Finding 4 & A3: execute build_raw_scene in worker thread with remaining deadline
                 raw_scene = await asyncio.wait_for(
-                    asyncio.to_thread(build_raw_scene, image_bytes),
+                    asyncio.shield(raw_task),
                     timeout=remaining,
                 )
             except TimeoutError as exc:
+                cancel_event.set()
+                try:
+                    await raw_task
+                except Exception:
+                    pass
                 raise HTTPException(
                     status_code=504,
                     detail="Diagram processing timed out. Please try again with a simpler image.",
@@ -593,6 +644,15 @@ async def process_scene(
                     status_code=422,
                     detail=f"Could not process image: {exc}. Please upload a clear diagram photo.",
                 ) from exc
+            except (Exception, asyncio.CancelledError):
+                cancel_event.set()
+                try:
+                    await raw_task
+                except Exception:
+                    pass
+                raise
+            finally:
+                cancel_event.set()
 
             # Finding 5: detect empty scene (blank photo) and reject unvalidated raw scenes
             if (
