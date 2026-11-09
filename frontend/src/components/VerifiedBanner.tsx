@@ -78,7 +78,7 @@ export function VerifiedBanner({
       </AccessibleButton>
 
       {hasNote && showNote && (
-        <div className="gt-verified-banner__note-body">
+        <div className="gt-verified-banner__note-body" aria-live="off">
           <p className="gt-verified-banner__note-text">
             <bdi>{cleanNote}</bdi>
           </p>

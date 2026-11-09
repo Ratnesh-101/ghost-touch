@@ -6,7 +6,7 @@
  * - Plain language errors shown; "Mark verified" disabled until valid
  * - Teacher name required (<= 60 chars)
  * - Note optional (<= 280 chars)
- * - Honest copy on screen: "Verified means a person reviewed this diagram. It is not cryptographic proof."
+ * - Honest copy on screen: "This diagram was shared as a link. Ghost Touch has not verified it."
  * - i18n copy across en, hi, gu
  * - Minimum 48x48 px touch targets
  */
@@ -20,9 +20,9 @@ import { VerifyForm } from '../src/components/teach/VerifyForm';
 import { Teach } from '../src/screens/Teach';
 import { MemoryDiagramStore, type Drivers, type SpeechRateSetting } from '../src/drivers';
 import { LIMITS } from '../src/share';
-import { setLang, t } from '../src/i18n';
+import { setLang, t, tables } from '../src/i18n';
 import type { DiagramScene } from '../src/core/scene';
-import { parseHtml, getAllElements } from './helpers/a11yDom';
+import { parseHtml, getAllElements, getTextContent } from './helpers/a11yDom';
 
 const teachCssPath = new URL('../src/styles/teach.css', import.meta.url);
 const teachCss = fs.readFileSync(teachCssPath, 'utf-8') as string;
@@ -53,10 +53,12 @@ describe('VerifyForm & Validation Blocking', () => {
   });
 
   it('renders honest copy on screen in English, Hindi, and Gujarati', () => {
+    // English
+    setLang('en');
     const honestEn = t('share.honesty');
-    expect(honestEn).toBe(
-      'Verified means a person reviewed this diagram. It is not cryptographic proof.',
-    );
+    expect(honestEn).toBe(tables.en['share.honesty']);
+    expect(honestEn).not.toContain('Verified');
+    expect(honestEn.toLowerCase()).not.toContain('person reviewed');
 
     const htmlEn = renderToStaticMarkup(
       createElement(VerifyForm, {
@@ -69,10 +71,24 @@ describe('VerifyForm & Validation Blocking', () => {
       }),
     );
     expect(htmlEn).toContain(honestEn);
+    const rootEn = parseHtml(htmlEn);
+    const noticeEn = getAllElements(rootEn).find((el) =>
+      el.attrs['class']?.includes('gt-teach__honesty-notice'),
+    );
+    expect(noticeEn).toBeDefined();
+    const noticeEnText = noticeEn ? getTextContent(noticeEn) : '';
+    expect(noticeEnText).toBe(tables.en['share.honesty']);
+    expect(noticeEnText).not.toContain('Verified');
+    expect(noticeEnText.toLowerCase()).not.toContain('person reviewed');
 
     // Hindi
     setLang('hi');
     const honestHi = t('share.honesty');
+    expect(honestHi).toBe(tables.hi['share.honesty']);
+    expect(honestHi).not.toContain('Verified');
+    expect(honestHi).not.toContain('सत्यापित');
+    expect(honestHi.toLowerCase()).not.toContain('व्यक्ति ने');
+
     const htmlHi = renderToStaticMarkup(
       createElement(VerifyForm, {
         name: 'श्रीमती शर्मा',
@@ -84,10 +100,25 @@ describe('VerifyForm & Validation Blocking', () => {
       }),
     );
     expect(htmlHi).toContain(honestHi);
+    const rootHi = parseHtml(htmlHi);
+    const noticeHi = getAllElements(rootHi).find((el) =>
+      el.attrs['class']?.includes('gt-teach__honesty-notice'),
+    );
+    expect(noticeHi).toBeDefined();
+    const noticeHiText = noticeHi ? getTextContent(noticeHi) : '';
+    expect(noticeHiText).toBe(tables.hi['share.honesty']);
+    expect(noticeHiText).not.toContain('Verified');
+    expect(noticeHiText).not.toContain('सत्यापित');
+    expect(noticeHiText.toLowerCase()).not.toContain('व्यक्ति ने');
 
     // Gujarati
     setLang('gu');
     const honestGu = t('share.honesty');
+    expect(honestGu).toBe(tables.gu['share.honesty']);
+    expect(honestGu).not.toContain('Verified');
+    expect(honestGu).not.toContain('પ્રમાણિત');
+    expect(honestGu.toLowerCase()).not.toContain('વ્યક્તિએ');
+
     const htmlGu = renderToStaticMarkup(
       createElement(VerifyForm, {
         name: 'શ્રીમતી શર્મા',
@@ -99,6 +130,16 @@ describe('VerifyForm & Validation Blocking', () => {
       }),
     );
     expect(htmlGu).toContain(honestGu);
+    const rootGu = parseHtml(htmlGu);
+    const noticeGu = getAllElements(rootGu).find((el) =>
+      el.attrs['class']?.includes('gt-teach__honesty-notice'),
+    );
+    expect(noticeGu).toBeDefined();
+    const noticeGuText = noticeGu ? getTextContent(noticeGu) : '';
+    expect(noticeGuText).toBe(tables.gu['share.honesty']);
+    expect(noticeGuText).not.toContain('Verified');
+    expect(noticeGuText).not.toContain('પ્રમાણિત');
+    expect(noticeGuText.toLowerCase()).not.toContain('વ્યક્તિએ');
   });
 
   it('disables "Mark verified" button when diagram is invalid, even if name is entered', () => {

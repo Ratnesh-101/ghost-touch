@@ -13,6 +13,7 @@
 import { useEffect, useRef, type JSX } from 'react';
 import { AccessibleButton } from './AccessibleButton';
 import { t } from '../i18n';
+import { honestSharedByLabel } from '../flow/share';
 
 export interface ShareGateProps {
   onOpen: () => void;
@@ -38,8 +39,16 @@ export function ShareGate({ onOpen, title, sharedBy }: ShareGateProps): JSX.Elem
 
       {(title || sharedBy) && (
         <section className="gt-share-gate__card">
-          {title && <p className="gt-share-gate__diagram-title">{title}</p>}
-          {sharedBy && <p className="gt-share-gate__diagram-by">{sharedBy}</p>}
+          {title && (
+            <p className="gt-share-gate__diagram-title">
+              <bdi>{title}</bdi>
+            </p>
+          )}
+          {sharedBy && (
+            <p className="gt-share-gate__diagram-by">
+              <bdi>{honestSharedByLabel(sharedBy)}</bdi>
+            </p>
+          )}
         </section>
       )}
 

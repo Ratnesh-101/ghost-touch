@@ -162,11 +162,16 @@ describe('Share Open Routing & Flow', () => {
     const gateHtml = renderToStaticMarkup(createElement(App));
 
     // 1. ShareGate is shown on load until the user taps (GT-05)
+    // Pre-tap: gate shows honest 'Shared by Mrs. Sharma, not checked' text,
+    // and does NOT yet show Explore screen or VerifiedBanner note controls
     expect(gateHtml).toContain('Open the shared diagram');
     expect(gateHtml).toContain('Right Triangle ABC');
-    expect(gateHtml).toContain('Mrs. Sharma');
+    expect(gateHtml).toContain('Shared by Mrs. Sharma, not checked');
+    expect(gateHtml).not.toContain('gt-explore');
+    expect(gateHtml).not.toContain('gt-verified-banner');
+    expect(gateHtml).not.toContain('Read note');
     expect(gateHtml).not.toContain('role="status"');
-    expect(gateHtml).not.toContain('Shared by Mrs. Sharma, not checked');
+    expect(gateHtml).not.toContain('Verified');
 
     // 2. User tap unlocks and transitions to Explore screen with honest verified banner
     const resolution = resolveShareRoute(`#s=${encoded}`, true, { honest: true });
@@ -231,7 +236,10 @@ describe('Share Open Routing & Flow', () => {
     );
     expect(exploreHtml).toContain('Right Triangle ABC');
     expect(exploreHtml).toContain('Shared by Mrs. Sharma, not checked');
+    expect(exploreHtml).toContain('gt-verified-banner');
+    expect(exploreHtml).toContain('Read note');
     expect(exploreHtml).toContain('role="status"');
+    expect(exploreHtml).not.toContain('Verified');
   });
 
   it('no network call at all (asserts fetch is NOT called)', () => {

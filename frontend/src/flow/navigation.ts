@@ -13,10 +13,26 @@ export function spokenAngleName(vertex: string): string {
   return tf('verify.angleName', { vertex });
 }
 
+/** Localized label for a scene kind (geometry, function_graph, bar_chart, unknown). */
+export function localizedSceneKind(kind: string): string {
+  switch (kind) {
+    case 'geometry':
+      return t('kind.geometry');
+    case 'function_graph':
+      return t('kind.function_graph');
+    case 'bar_chart':
+      return t('kind.bar_chart');
+    default:
+      return t('kind.unknown');
+  }
+}
+
 /** Spoken name of a scene: its title, or its kind when it has none. */
 export function sceneName(scene: DiagramScene): string {
   const title = scene.title;
-  return typeof title === 'string' && title.trim() !== '' ? title : scene.kind;
+  return typeof title === 'string' && title.trim() !== ''
+    ? title
+    : localizedSceneKind(scene.kind);
 }
 
 /**
@@ -61,9 +77,10 @@ export function exploreAnnouncement(
     rawTitle.trim() !== ''
   ) {
     const clean = sanitizeShareTitle(rawTitle);
-    name = clean !== ''
-      ? t('share.titlePrefix').replace('{title}', clean)
-      : scene.kind;
+    name =
+      clean !== ''
+        ? t('share.titlePrefix').replace('{title}', () => clean)
+        : localizedSceneKind(scene.kind);
   } else {
     name = sceneName(scene);
   }

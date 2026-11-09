@@ -12,7 +12,7 @@ import {
 } from '../src/flow/capture';
 import { exploreAnnouncement, sceneName } from '../src/flow/navigation';
 import { PdfError } from '../src/drivers/pdf';
-import { t } from '../src/i18n';
+import { getLang, setLang, t } from '../src/i18n';
 
 const response: SceneResponse = { scene: { kind: 'geometry', title: 'Right triangle' }, mode: 'ai' };
 
@@ -268,7 +268,22 @@ describe('Explore announcements', () => {
 
   it('names an AI scene by its title, or by its kind when it has none', () => {
     expect(exploreAnnouncement(response.scene, 'ai').startsWith('Right triangle.')).toBe(true);
-    expect(sceneName({ kind: 'bar_chart' })).toBe('bar_chart');
-    expect(sceneName({ kind: 'geometry', title: '   ' })).toBe('geometry');
+    expect(sceneName({ kind: 'bar_chart' })).toBe(t('kind.bar_chart'));
+    expect(sceneName({ kind: 'geometry', title: '   ' })).toBe(t('kind.geometry'));
+
+    const prevLang = getLang();
+    try {
+      setLang('hi');
+      const hiName = sceneName({ kind: 'bar_chart' });
+      expect(hiName).toBe(t('kind.bar_chart'));
+      expect(hiName).not.toBe('bar_chart');
+
+      setLang('gu');
+      const guName = sceneName({ kind: 'bar_chart' });
+      expect(guName).toBe(t('kind.bar_chart'));
+      expect(guName).not.toBe('bar_chart');
+    } finally {
+      setLang(prevLang);
+    }
   });
 });

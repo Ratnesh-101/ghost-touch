@@ -280,7 +280,7 @@ const en: Record<string, string> = {
   'share.readNote': 'Read note',
   'share.hideNote': 'Hide note',
   'share.goToStart': 'Go to start',
-  'share.honesty': 'Verified means a person reviewed this diagram. It is not cryptographic proof.',
+  'share.honesty': 'This diagram was shared as a link. Ghost Touch has not verified it.',
   'share.error.title': 'Could not open diagram',
   'share.error.tooLarge': 'This shared link is too large to open.',
   'share.error.badFormat': 'This shared link is corrupted or incomplete.',
@@ -294,6 +294,11 @@ const en: Record<string, string> = {
   'share.sharedBy': 'Shared by {name}, not checked',
   'share.sharedUnnamed': 'Shared diagram, not checked',
   'share.titlePrefix': 'Title: {title}',
+  // Diagram kind labels (Lane p3-r5-share-fixes)
+  'kind.geometry': 'Geometry diagram',
+  'kind.function_graph': 'Function graph',
+  'kind.bar_chart': 'Bar chart',
+  'kind.unknown': 'Diagram',
 
   // Teacher Editor (Lane t2-teach-editor)
   'lab.settings.teacher': 'Teacher tools',
@@ -600,7 +605,7 @@ const hi: Record<string, string> = {
   'share.readNote': 'नोट पढ़ें',
   'share.hideNote': 'नोट छिपाएं',
   'share.goToStart': 'शुरुआत पर जाएं',
-  'share.honesty': 'सत्यापित का अर्थ है कि किसी व्यक्ति ने इस आरेख की समीक्षा की है। यह कोई क्रिप्टोग्राफ़िक प्रमाण नहीं है।',
+  'share.honesty': 'यह आरेख एक लिंक के रूप में साझा किया गया है। घोस्ट टच ने इसे जाँचा नहीं है।',
   'share.error.title': 'आरेख नहीं खोला जा सका',
   'share.error.tooLarge': 'यह साझा किया गया लिंक खोलने के लिए बहुत बड़ा है।',
   'share.error.badFormat': 'यह साझा किया गया लिंक दूषित या अधूरा है।',
@@ -614,6 +619,11 @@ const hi: Record<string, string> = {
   'share.sharedBy': '{name} द्वारा साझा किया गया, जाँचा नहीं गया',
   'share.sharedUnnamed': 'साझा किया गया आरेख, जाँचा नहीं गया',
   'share.titlePrefix': 'शीर्षक: {title}',
+  // Diagram kind labels (Lane p3-r5-share-fixes)
+  'kind.geometry': 'ज्यामिति आरेख',
+  'kind.function_graph': 'फलन ग्राफ़',
+  'kind.bar_chart': 'बार चार्ट',
+  'kind.unknown': 'आरेख',
 
   // Teacher Editor (Lane t2-teach-editor)
   'lab.settings.teacher': 'शिक्षक उपकरण',
@@ -920,7 +930,7 @@ const gu: Record<string, string> = {
   'share.readNote': 'નોંધ વાંચો',
   'share.hideNote': 'નોંધ છુપાવો',
   'share.goToStart': 'શરૂઆત પર જાઓ',
-  'share.honesty': 'પ્રમાણિતનો અર્થ એ છે કે કોઈ વ્યક્તિએ આ આકૃતિની સમીક્ષા કરી છે. તે કોઈ ક્રિપ્ટોગ્રાફિક પુરાવો નથી.',
+  'share.honesty': 'આ આકૃતિ લિંક તરીકે શેર કરવામાં આવી છે. ગોસ્ટ ટચે આને ચકાસ્યું નથી.',
   'share.error.title': 'આકૃતિ ખોલી શકાઈ નથી',
   'share.error.tooLarge': 'આ શેર કરેલી લિંક ખોલવા માટે ખૂબ મોટી છે.',
   'share.error.badFormat': 'આ શેર કરેલી લિંક ખરાબ થયેલી અથવા અધૂરી છે.',
@@ -934,6 +944,11 @@ const gu: Record<string, string> = {
   'share.sharedBy': '{name} દ્વારા શેર કરેલ, ચકાસાયેલ નથી',
   'share.sharedUnnamed': 'શેર કરેલી આકૃતિ, ચકાસાયેલ નથી',
   'share.titlePrefix': 'શીર્ષક: {title}',
+  // Diagram kind labels (Lane p3-r5-share-fixes)
+  'kind.geometry': 'ભૂમિતિ આકૃતિ',
+  'kind.function_graph': 'વિધેય આલેખ',
+  'kind.bar_chart': 'સ્તંભ આલેખ',
+  'kind.unknown': 'આકૃતિ',
 
   // Teacher Editor (Lane t2-teach-editor)
   'lab.settings.teacher': 'શિક્ષક સાધનો',
