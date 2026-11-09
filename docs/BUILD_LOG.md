@@ -2193,3 +2193,13 @@ Format for each entry:
   - `docs/user-test/translation-review.csv`
   - `docs/reports/agy-k6-pwa-offline-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-09 — Kiro — T28 (finish): verify round 2 FIXED rows, tick T26-T28 where done, plan round 3 (tasks 29-33)
+- Tool: **Kiro**. The T25-T28 code and commits after Kiro was stopped (`dabd499`, `8f60415`, `1ca4cdb`) are Claude Code's and are not claimed here. This entry covers only the verification and the ticks.
+- Verified: every FIXED row in `docs/reviews/kiro-round2.md` against current `main` (39 of 42 automated checks hit; the 3 misses were stale search patterns after lanes h2 and h3 rewrote the same code, and each fix was confirmed by hand). Re-ran the mutants for P40, P41, P42, P45 and P46 against current code: all five killed, sources restored byte for byte (P40's mutant rewritten for lane h3's `_normalize_ip_key`).
+- Fixed: two P42 tests ran 80 and 60 cases, below the 200-case rule; raised to 200 (file runs in 8 s).
+- Corrected: the CORE-09 row said "no change found"; the handler is in `8f60415`. It stays OPEN until a test proves it (task 30). NEEDS-KIRO-02 stays OPEN (task 31). Low findings recorded as SKIPPED (not requested), with a decision section.
+- Ticked in `tasks.md`, each with "finished by Claude Code after Kiro was stopped" where that is true: 26.1-26.3, 26.5, 26.6, all of 27, 28.1, 28.3, 28.4. Left open: 26.4 (CORE-09), 28.2 (review not complete until 30 and 31), and the parents 26 and 28.
+- Planned before any code: tasks 29 (Spec Ghost spec after code), 30 (CORE-09 test), 31 (NEEDS-KIRO-02), 32 (hitTest PERF-01, R3-07), 33 (evidence).
+- Gate (after lanes k1, k6 and the k8 test fix landed on `main` during this task): frontend `tsc` clean, 125 files and 1713 tests pass, build ok; backend pytest 675 passed, `ruff check` and `ruff format --check` clean (74 files). Earlier in the task the backend showed 2 failures in lane k8's then-untracked test; lane k8 has since committed it with the fix (`b347a15`).
+- Files touched: `.kiro/specs/ghost-touch/tasks.md`, `docs/reviews/kiro-round2.md`, `backend/tests/test_round2_props.py` (two `max_examples` values), `docs/BUILD_LOG.md`.

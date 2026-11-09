@@ -195,7 +195,7 @@ def _guarded_client(limit: int) -> TestClient:
     return TestClient(wrapped)
 
 
-@settings(max_examples=80, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(
     route=st.sampled_from(GUARDED),
     extra=st.lists(st.integers(0, 3), min_size=2, max_size=2),
@@ -217,7 +217,7 @@ def test_p42_every_slash_variant_gets_the_same_body_limit(
     assert too_big.status_code == 413
 
 
-@settings(max_examples=60, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(
     route=st.sampled_from(["/api/v1/ask", "/api/v1/validate"]),
     variants=st.lists(

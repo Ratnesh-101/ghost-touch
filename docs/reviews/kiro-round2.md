@@ -36,21 +36,32 @@ Contract decisions A2 SEC-01, A2 SEC-04 and A5-05 were not touched. No haptic co
 | A6-09 | med | 25 | FIXED (partly NOT REPRODUCED) | The `@v7` action tags DO exist (checked against the GitHub tag lists for checkout, setup-node, setup-python, upload-artifact), so that part is NOT REPRODUCED. The missing top-level `permissions: contents: read` in `ci.yml` was real and is fixed; the file keeps its CRLF endings. Test: `security.headers.test.ts`. |
 | A6-10 | med | 25 | FIXED | Reproduced by test: 8 simultaneous improve passes put 8 provider calls in flight. `run_improve_pass` now takes a slot from a semaphore (`IMPROVE_MAX_CONCURRENCY`, default 1) and skips when none is free, because the pass is best effort. Mutation (no cap) fails both tests. |
 | A6-15 | med (suspected) | 25 | FIXED | Reproduced, but the symptom differs from the audit: a streamed body over the limit returned HTTP 400, not 500, because FastAPI turns any `Exception` raised while reading the body into a 400. `_BodyTooLarge` is now a `BaseException` so the guard can answer 413. Test: 640 KB streamed without Content-Length gives 413. Mutation (plain Exception) fails. |
-| A6-11, A6-12, A6-13, A6-14, A6-16 | low | 25 | OPEN | not requested; decision recorded at the end |
+| A6-11, A6-12, A6-13, A6-14, A6-16 | low | 25 | SKIPPED | Not requested for round 2 (the brief asked for A6-01..05 plus confirmed mediums). Not reproduced and not fixed; carried to the backlog, see "Decisions" below. |
 | CORE-01 | high | 26 | FIXED | Back from `#/teach`, a shared diagram and the share error screen now goes through `leaveByBack` (flow/navigation.ts): it always speaks the destination and asks `window.confirm` before discarding unsaved Teacher edits (App.tsx). Properties P43 (round2.navigation.prop.test.ts). Finished by Claude Code after Kiro was shut off. |
 | CORE-02 | high | 26 | FIXED | `mergeAnnouncements` (flow/explore.ts) joins axis crossings and the vertex announcement into one utterance in the three move paths of Explore.tsx. Property P44 (round2.announce.prop.test.ts). |
 | CORE-03 | high | 26 | FIXED | `loadSavedList` (flow/saved.ts) takes an `isActive` check; SavedDiagrams cleans up on unmount so a late read neither speaks nor sets state (round2.saved.test.ts). |
 | CORE-07 | med | 26 | FIXED | Delete speaks one combined message (`deletedAnnouncement`) and keeps focus on the heading (SavedDiagrams.tsx). |
 | CORE-08 | med | 26 | FIXED | `setPointerCapture` is wrapped in try/catch in Explore.tsx so a refused capture (TalkBack pass-through) no longer swallows the touch. Not proven on a phone with TalkBack: UNVERIFIED on hardware. |
-| CORE-09 | med | 26 | OPEN | Lost pointer capture handling: no change found in the T26 diff. Not done. |
+| CORE-09 | med | 26 | OPEN | Corrected 2026-11-09: the handler IS in the code (`onLostPointerCapture={handlePointerUp}` in `TeachCanvas.tsx`, added by Kiro in T26 and committed in `8f60415`); the earlier "no change found" was wrong. Still OPEN because no test shows it is needed or that it works (only a source-text check in `round2.sources.test.ts`). Task 30. |
 | CORE-10 | med | 26 | FIXED | The missing-voice notice now comes from `speech.noVoiceNotice` in en, hi and gu (speech.ts). Hindi and Gujarati wording still needs native review. |
 | CORE-13 | med | 25 | FIXED | Duplicate of A6-01 and A6-02 (same code); see those rows. |
 | NEEDS-KIRO-01 | high | 26 | FIXED | `hitTest` treats a non-finite distance as a miss (`closerVertex` and the line variant, core/hitTest.ts); property tests in hitTest.nan.prop.test.ts. |
-| NEEDS-KIRO-02 | med | 26 | OPEN | `hapticEngine.ts:132` (core): not addressed in T26. See docs/reports for the finding text. |
-| CORE-14, CORE-15, CORE-16 | low | 26 | OPEN | not requested; decision recorded at the end |
+| NEEDS-KIRO-02 | med | 26 | OPEN | `hapticEngine.ts:132` (core) still speaks `'Point ' + target.id` in every language (re-checked 2026-11-09). Task 31. |
+| CORE-14, CORE-15, CORE-16 | low | 26 | SKIPPED | Not requested for round 2. Note: CORE-16 (PDF photo overlay) was addressed by lane k7 (`242e9b6`, Capture builds `photoUrl` from the downscaled image); Kiro has not verified that change. See "Decisions" below. |
 
 ## New findings from Kiro's own checks
 
 | ID | Severity | Task | Status | Evidence / reason |
 |---|---|---|---|---|
 | K2-01 | high | 26 | FIXED | Opening #/debug while the app runs crashes React with error #300 (App returned <Debug /> before a later useCallback). Found by the CSP browser check. |
+
+## Verification of the FIXED rows (Kiro, 2026-11-09)
+After Kiro was stopped, Claude Code committed T25 to T28 (`dabd499`, `8f60415`, `1ca4cdb`) and lanes h1-h7 and k1-k8 changed several of the same files. Each FIXED row was re-checked against the current code on `main`:
+- **Code still present:** 39 of 42 automated checks found the fix and its test by name. The 3 misses were stale patterns, not lost fixes: `clamp_answer(fact_answer, preserve_symbols=True)` (lane h2 added the flag; the facts path is still clamped), the scene-JSON tag removal (lane h3 rewrote `build_ask_prompt` with compact JSON; `QUESTION_TAG_PATTERN.sub` still covers it), and `app.hooksOrder.test.ts` (the file exists; the check searched file content instead of the name).
+- **Mutants re-run against current code:** P40 (forward header read from the left), P41 (sweep deletes nothing), P42 (no path normalisation), P45 (the 301-character bug restored), P46 (no trailing punctuation stripped). All five fail as they should; every source file was restored byte for byte. The P40 mutant had to be rewritten because lane h3 changed `client_key` to `_normalize_ip_key(entries[-trusted_hops])` (IPv6 /64 grouping).
+- **One gap found and fixed:** two P42 tests ran 80 and 60 cases, below the 200-case rule in `design.md`. Raised to 200; the file still runs in 8 s.
+- **Gates (2026-11-09, final):** frontend `tsc` clean, 125 files and 1713 tests pass, build ok; backend 675 pass, ruff clean. (Mid-task the backend had 2 failures in lane k8's untracked test; lane k8 committed it with the fix in `b347a15`.)
+- **Rows corrected:** CORE-09 (the handler exists but has no test, see above). Rows left OPEN on purpose: CORE-09 (task 30) and NEEDS-KIRO-02 (task 31).
+
+## Decisions on the low findings
+A6-11 (fact budget in the /ask prompt), A6-12 (Gemini key redaction), A6-13 (manifest `scope`), A6-14 (12 MP docstring), A6-16 (Vercel preview CORS), CORE-14 (speech rate monkey-patching), CORE-15 (silent camera cancel), CORE-16 (PDF overlay): not part of the round 2 brief, so SKIPPED rather than fixed. They go to the backlog for the owner to schedule. Some may have been touched by later agy lanes (for example k7 for CORE-16); Kiro has not verified those.

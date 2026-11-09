@@ -206,26 +206,66 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - _Requirements: 16.1 to 16.8_
 
 - [ ] 26. Bugs CORE-01 to CORE-03 and confirmed mediums
-  - [ ] 26.1 CORE-01: Back from `#/teach`, `#/share` and the share error screen speaks the destination, and unsaved Teacher edits need confirmation
-  - [ ] 26.2 CORE-02: axis crossings and the vertex are spoken as one utterance
-  - [ ] 26.3 CORE-03: `SavedDiagrams` does not speak or set state after unmount
+  - [x] 26.1 CORE-01: Back from `#/teach`, `#/share` and the share error screen speaks the destination, and unsaved Teacher edits need confirmation (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
+  - [x] 26.2 CORE-02: axis crossings and the vertex are spoken as one utterance (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
+  - [x] 26.3 CORE-03: `SavedDiagrams` does not speak or set state after unmount (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
   - [ ] 26.4 CORE-07 combined delete message and focus; CORE-08 pointer capture try/catch; CORE-09 lost pointer capture; CORE-10 localised missing-voice notice (each only if reproduced)
-  - [ ] 26.5 NEEDS-KIRO-01: `hitTest` treats non-finite distance as a miss (a real bug in `core/`; noted in the review)
-  - [ ] 26.6 Gate passes; commit `kiro: T26 ...`
+  - [x] 26.5 NEEDS-KIRO-01: `hitTest` treats non-finite distance as a miss (a real bug in `core/`; noted in the review) (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
+  - [x] 26.6 Gate passes; commit `kiro: T26 ...` (committed as `8f60415` by Claude Code after Kiro was stopped, not as `kiro: T26`; gate re-run green by Kiro 2026-11-09)
   - _Requirements: 16.12, 17.*_
 
-- [ ] 27. Property tests for round 2
-  - [ ] 27.1 P40 rate-limit identity resists spoofing; P41 limiter state is bounded
-  - [ ] 27.2 P42 guards are path-normalisation invariant
-  - [ ] 27.3 P43 Back navigation is total and spoken
-  - [ ] 27.4 P44 announcements join in order without loss
-  - [ ] 27.5 P45 fact answers are bounded; P46 "don't know" ignores trailing punctuation
-  - [ ] 27.6 Each new property is confirmed to fail on a deliberately broken version
-  - [ ] 27.7 Gate passes; commit `kiro: T27 ...`
+- [x] 27. Property tests for round 2 (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
+  - [x] 27.1 P40 rate-limit identity resists spoofing; P41 limiter state is bounded (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
+  - [x] 27.2 P42 guards are path-normalisation invariant (finished by Claude Code after Kiro was stopped; Kiro raised its two slow tests from 80 and 60 to 200 cases on 2026-11-09)
+  - [x] 27.3 P43 Back navigation is total and spoken (Kiro)
+  - [x] 27.4 P44 announcements join in order without loss (Kiro)
+  - [x] 27.5 P45 fact answers are bounded; P46 "don't know" ignores trailing punctuation (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
+  - [x] 27.6 Each new property is confirmed to fail on a deliberately broken version (P43, P44: Kiro; P40-P42, P45, P46: Claude Code after Kiro was stopped, all five re-run against current code by Kiro 2026-11-09 and killed)
+  - [x] 27.7 Gate passes; commit `kiro: T27 ...` (committed as `1ca4cdb` by Claude Code after Kiro was stopped)
   - _Requirements: 16.1, 16.2, 16.5, 16.10, 17.1, 17.2_
 
 - [ ] 28. Evidence and log
-  - [ ] 28.1 `docs/kiro-evidence/round2.md`: spec to task to tests to what the tests caught
+  - [x] 28.1 `docs/kiro-evidence/round2.md`: spec to task to tests to what the tests caught (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
   - [ ] 28.2 `docs/reviews/kiro-round2.md` complete: every finding FIXED, NOT REPRODUCED or SKIPPED with a reason
-  - [ ] 28.3 `docs/BUILD_LOG.md` entry: Kiro did this work; agent-written findings and code are credited to Antigravity
-  - [ ] 28.4 Commit `kiro: T28 ...`; nothing is pushed
+  - [x] 28.3 `docs/BUILD_LOG.md` entry: Kiro did this work; agent-written findings and code are credited to Antigravity (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
+  - [x] 28.4 Commit `kiro: T28 ...`; nothing is pushed (committed as `1ca4cdb` by Claude Code after Kiro was stopped; nothing pushed)
+
+## Phase 6 — Round 3 (Kiro, 2026-11-09)
+
+> Same rules as round 2: task first, failing test before the fix, one commit per task (`kiro: T<nn> ...`), full gate before ticking, BUILD_LOG entry with tool = Kiro.
+> Do not edit while lanes k1, k4, k6 are being merged: `App.tsx`, `Explore.tsx`, `Correct.tsx`, `vite.config.ts`, `backend/app/main.py`. New i18n keys go in a separate, last commit after k1 and k6 are on `main`.
+> Tuned haptic values and `frontend/src/core` purity unchanged.
+
+- [ ] 29. Spec Ghost: spec after code (built by agy, reviewed by Kiro)
+  - [ ] 29.1 Requirement 18 in `requirements.md` (EARS), written from the tournament brief and the shipped behaviour, marked "spec after code"
+  - [ ] 29.2 Design section and properties P47-P50 in `design.md`, exactly as implemented in `frontend/src/verify/verify.ts` and `tests/verify.test.ts`
+  - [ ] 29.3 `.kiro/steering/verify.md`: consistency check, not forgery protection; never "verified"; silent when unsure
+  - [ ] 29.4 Hook `.kiro/hooks/verify-tests-on-save.json`, modelled on `run-tests-on-core-save.json`, plus a hooks-test entry
+  - [ ] 29.5 Review `verify.ts` against Requirement 18; for each contradiction write a failing test first, then fix
+  - [ ] 29.6 Move to `frontend/src/core/verify.ts` if it is pure (no browser API, no React); keep one import path for callers
+  - [ ] 29.7 Bring P47-P50 to at least 200 cases and mutation-check each
+  - [ ] 29.8 `docs/KIRO_WRITEUP.md`: what was Kiro's (spec, steering, hook, review, fixes) and what was agy's (module and first tests)
+  - _Requirements: 18.*_
+
+- [ ] 30. CORE-09: a revoked pointer capture ends the Teacher drag
+  - [ ] 30.1 Component test (jsdom, this file only) that fails when `onLostPointerCapture` is removed: after a lost capture, a later move and lift must not move the point
+  - [ ] 30.2 Keep the handler; gate; commit
+  - _Requirements: 17.5_
+
+- [ ] 31. NEEDS-KIRO-02: unlabelled vertices are spoken in the active language
+  - [ ] 31.1 Engine emits `{ kind: 'speak', textKey: 'vertex.unlabelled', params: { id } }` for an unlabelled vertex; a labelled vertex keeps `{ kind: 'speak', text }`
+  - [ ] 31.2 `runEffects` resolves `textKey` through i18n; `mergeAnnouncements` and the Explore speech helpers handle both forms
+  - [ ] 31.3 Property: unlabelled gives the key effect, labelled gives the label text; P3-P7 and the tuned values unchanged
+  - [ ] 31.4 Key `vertex.unlabelled` in `en`, `hi`, `gu` and the translation sheets (separate last commit, after k1 and k6)
+  - _Requirements: 4.3, 10.1_
+
+- [ ] 32. Hit test: PERF-01 and R3-07
+  - [ ] 32.1 Keep the current `hitTest` as a test oracle
+  - [ ] 32.2 PERF-01: bounding-box pre-checks per segment and polyline piece, endpoints transformed once, no per-segment allocation, identical results
+  - [ ] 32.3 R3-07: a bar whose value is not finite is never hit
+  - [ ] 32.4 Properties: optimised equals oracle on random scenes including a 2000-point polyline (200+ runs); non-finite bar is never a hit; P1, P2, P8 green; each new property mutation-checked
+  - _Requirements: 4.6, 6.1, 16.12_
+
+- [ ] 33. Round 3 evidence and log
+  - [ ] 33.1 `docs/kiro-evidence/round3.md`: requirement to task to test to what the test caught
+  - [ ] 33.2 BUILD_LOG entry per task (tool = Kiro); report anything unfinished
