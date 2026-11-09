@@ -72,6 +72,10 @@ const en: Record<string, string> = {
   'capture.sampleBarchart': 'Sample: bar chart',
   'capture.error': 'Something went wrong. Please try again, or pick a sample.',
   'capture.errorBusy': 'The server is busy right now. Please try again in a moment.',
+  'capture.wakingUp': 'Waking up the server…',
+  'capture.errorGateway': 'The server is waking up. Please try again in a few seconds.',
+  'capture.errorTimeout':
+    'The server took too long to respond. It may still be waking up, please try again.',
   'capture.errorSample': 'Could not open that sample. Please try again.',
   'capture.errorType': 'That file type is not supported. Use a JPEG, PNG or WebP image.',
   'capture.errorSize': 'That file is too large. Maximum is 10 megabytes.',
@@ -110,6 +114,7 @@ const en: Record<string, string> = {
   'correct.labelEmpty': 'Label cannot be empty.',
   'correct.validating': 'Validating diagram…',
   'correct.saved': 'Corrections saved.',
+  'correct.savedOffline': 'Saved without server check.',
   'correct.validationFailed': 'Validation failed: {errors}',
   'correct.noSelection': 'No element selected',
   'correct.selectedPoint': 'Selected point',
@@ -339,6 +344,7 @@ const en: Record<string, string> = {
   'teach.verifyError': 'Verification failed',
   'teach.confirmLeave': 'You have unsaved changes. Are you sure you want to leave?',
   'teach.stayingInEditor': 'Still in the editor.',
+  'verify.disagree': "Facts and drawing disagree on {name}. I can't tell which is right.",
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -377,6 +383,10 @@ const hi: Record<string, string> = {
   'capture.sampleBarchart': 'नमूना: बार चार्ट',
   'capture.error': 'कुछ गलत हो गया। कृपया पुन: प्रयास करें, या कोई नमूना चुनें।',
   'capture.errorBusy': 'सर्वर अभी व्यस्त है। कृपया थोड़ी देर में पुन: प्रयास करें।',
+  'capture.wakingUp': 'सर्वर चालू किया जा रहा है…',
+  'capture.errorGateway': 'सर्वर चालू हो रहा है। कृपया कुछ सेकंड में पुनः प्रयास करें।',
+  'capture.errorTimeout':
+    'सर्वर ने प्रतिक्रिया देने में बहुत अधिक समय लिया। यह अभी भी चालू हो रहा हो सकता है, कृपया पुनः प्रयास करें।',
   'capture.errorSample': 'वह नमूना नहीं खोला जा सका। कृपया पुन: प्रयास करें।',
   'capture.errorType': 'वह फ़ाइल प्रकार समर्थित नहीं है। JPEG, PNG या WebP छवि का उपयोग करें।',
   'capture.errorSize': 'वह फ़ाइल बहुत बड़ी है। अधिकतम 10 मेगाबाइट है।',
@@ -415,6 +425,7 @@ const hi: Record<string, string> = {
   'correct.labelEmpty': 'लेबल खाली नहीं हो सकता।',
   'correct.validating': 'आरेख का सत्यापन किया जा रहा है…',
   'correct.saved': 'सुधार सहेजे गए।',
+  'correct.savedOffline': 'सर्वर जांच के बिना सहेजा गया।',
   'correct.validationFailed': 'सत्यापन विफल: {errors}',
   'correct.noSelection': 'कोई तत्व चयनित नहीं है',
   'correct.selectedPoint': 'चयनित बिंदु',
@@ -644,6 +655,7 @@ const hi: Record<string, string> = {
   'teach.verifyError': 'सत्यापन विफल रहा',
   'teach.confirmLeave': 'आपके पास बिना सहेजे गए परिवर्तन हैं। क्या आप वाकई छोड़ना चाहते हैं?',
   'teach.stayingInEditor': 'अभी भी संपादक में हैं।',
+  'verify.disagree': 'तथ्य और चित्र {name} पर असहमत हैं। मैं नहीं बता सकता कि कौन सा सही है।',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -682,6 +694,10 @@ const gu: Record<string, string> = {
   'capture.sampleBarchart': 'નમૂનો: સ્તંભ આલેખ',
   'capture.error': 'કંઈક ખોટું થયું. કૃપા કરીને ફરી પ્રયાસ કરો, અથવા નમૂનો પસંદ કરો.',
   'capture.errorBusy': 'સર્વર અત્યારે વ્યસ્ત છે. કૃપા કરીને થોડીવારમાં ફરી પ્રયાસ કરો.',
+  'capture.wakingUp': 'સર્વર શરૂ થઈ રહ્યું છે…',
+  'capture.errorGateway': 'સર્વર શરૂ થઈ રહ્યું છે. કૃપા કરીને થોડી સેકંડમાં ફરી પ્રયાસ કરો.',
+  'capture.errorTimeout':
+    'સર્વરે પ્રતિસાદ આપવામાં ઘણો સમય લીધો. તે હજી પણ શરૂ થઈ રહ્યું હોઈ શકે છે, કૃપા કરીને ફરી પ્રયાસ કરો.',
   'capture.errorSample': 'તે નમૂનો ખોલી શકાયો નથી. કૃપા કરીને ફરી પ્રયાસ કરો.',
   'capture.errorType': 'તે ફાઇલ પ્રકાર સપોર્ટેડ નથી. JPEG, PNG અથવા WebP ઇમેજ વાપરો.',
   'capture.errorSize': 'તે ફાઇલ ખૂબ મોટી છે. મહત્તમ 10 મેગાબાઇટ છે.',
@@ -720,6 +736,7 @@ const gu: Record<string, string> = {
   'correct.labelEmpty': 'લેબલ ખાલી હોઈ શકે નહીં.',
   'correct.validating': 'આકૃતિની ચકાસણી થઈ રહી છે…',
   'correct.saved': 'સુધારા સાચવવામાં આવ્યા.',
+  'correct.savedOffline': 'સર્વર તપાસ વિના સાચવવામાં આવ્યું.',
   'correct.validationFailed': 'ચકાસણી નિષ્ફળ: {errors}',
   'correct.noSelection': 'કોઈ ઘટક પસંદ કરેલ નથી',
   'correct.selectedPoint': 'પસંદ કરેલ બિંદુ',
@@ -949,6 +966,7 @@ const gu: Record<string, string> = {
   'teach.verifyError': 'પ્રમાણીકરણ નિષ્ફળ રહ્યું',
   'teach.confirmLeave': 'તમારી પાસે સેવ ન કરેલા ફેરફારો છે. શું તમે ખરેખર બહાર નીકળવા માંગો છો?',
   'teach.stayingInEditor': 'હજુ પણ સંપાદકમાં છો.',
+  'verify.disagree': 'તથ્યો અને આકૃતિ {name} પર અસંમત છે. હું કહી શકતો નથી કે કયું સાચું છે.',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };

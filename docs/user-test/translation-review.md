@@ -606,3 +606,34 @@ The following spoken strings may be difficult for blind students to follow in a 
 
 
 
+---
+
+## 23. Consistency Verification (SPEC GHOST, `verify.*`)
+
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `verify.disagree (spoken)` | Facts and drawing disagree on {name}. I can't tell which is right. | तथ्य और चित्र {name} पर असहमत हैं। मैं नहीं बता सकता कि कौन सा सही है। | તથ્યો અને આકૃતિ {name} પર અસંમત છે. હું કહી શકતો નથી કે કયું સાચું છે. | | | | keep {name}; marked for native review; never says "verified" or "trust the text" |
+
+
+---
+
+## 23. Offline & Cold Start Resilience (`k6-pwa-offline`)
+
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `correct.savedOffline (spoken)` | Saved without server check. | सर्वर जांच के बिना सहेजा गया। | સર્વર તપાસ વિના સાચવવામાં આવ્યું. | | | | Teacher correction saved offline |
+| `capture.wakingUp (spoken)` | Waking up the server… | सर्वर चालू किया जा रहा है… | સર્વર શરૂ થઈ રહ્યું છે… | | | | Server cold-start retry notice |
+| `capture.errorGateway (spoken)` | The server is waking up. Please try again in a few seconds. | सर्वर चालू हो रहा है। कृपया कुछ सेकंड में पुनः प्रयास करें। | સર્વર શરૂ થઈ રહ્યું છે. કૃપા કરીને થોડી સેકંડમાં ફરી પ્રયાસ કરો. | | | | Cold-start 502/504 notice |
+| `capture.errorTimeout (spoken)` | The server took too long to respond. It may still be waking up, please try again. | सर्वर ने प्रतिक्रिया देने में बहुत अधिक समय लिया। यह अभी भी चालू हो रहा हो सकता है, कृपया पुनः प्रयास करें। | સર્વરે પ્રતિસાદ આપવામાં ઘણો સમય લીધો. તે હજી પણ શરૂ થઈ રહ્યું હોઈ શકે છે, કૃપા કરીને ફરી પ્રયાસ કરો. | | | | Scene request timeout notice |
+
+---
+
+## 23. Offline & Cold Start Resilience (`k6-pwa-offline`)
+
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `correct.savedOffline (spoken)` | Saved without server check. | सर्वर जांच के बिना सहेजा गया। | સર્વર તપાસ વિના સાચવવામાં આવ્યું. | | | | Teacher correction saved offline |
+| `capture.wakingUp (spoken)` | Waking up the server… | सर्वर चालू किया जा रहा है… | સર્વર શરૂ થઈ રહ્યું છે… | | | | Server cold-start retry notice |
+| `capture.errorGateway (spoken)` | The server is waking up. Please try again in a few seconds. | सर्वर चालू हो रहा है। कृपया कुछ सेकंड में पुनः प्रयास करें। | સર્વર શરૂ થઈ રહ્યું છે. કૃપા કરીને થોડી સેકંડમાં ફરી પ્રયાસ કરો. | | | | Cold-start 502/504 notice |
+| `capture.errorTimeout (spoken)` | The server took too long to respond. It may still be waking up, please try again. | सर्वर ने प्रतिक्रिया देने में बहुत अधिक समय लिया। यह अभी भी चालू हो रहा हो सकता है, कृपया पुनः प्रयास करें। | સર્વરે પ્રતિસાદ આપવામાં ઘણો સમય લીધો. તે હજી પણ શરૂ થઈ રહ્યું હોઈ શકે છે, કૃપા કરીને ફરી પ્રયાસ કરો. | | | | Scene request timeout notice |
+
