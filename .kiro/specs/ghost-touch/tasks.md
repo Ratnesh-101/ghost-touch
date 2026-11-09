@@ -244,6 +244,7 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 29.5 Review `verify.ts` against Requirement 18; for each contradiction write a failing test first, then fix
   - [x] 29.6 Move to `frontend/src/core/verify.ts` if it is pure (no browser API, no React); keep one import path for callers
   - [x] 29.7 Bring P47-P50 to at least 200 cases and mutation-check each
+  - [x] 29.9 (found by the gate, not planned) `validate_scene` must never raise when `facts` or `segments` is not a list (P9 counterexample from lane k3 code); failing test first in `backend/tests/test_validate_raw_meta.py`
   - [x] 29.8 `docs/KIRO_WRITEUP.md`: what was Kiro's (spec, steering, hook, review, fixes) and what was agy's (module and first tests)
   - _Requirements: 18.*_
 

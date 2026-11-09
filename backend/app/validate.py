@@ -540,7 +540,12 @@ def validate_scene(raw: str | dict[str, Any]) -> ValidationResult:
     errors: list[str] = []
 
     # Meta-tracking for F5 (referenced element drop prevention)
-    raw_segments = [s for s in data.get("segments", []) if isinstance(s, dict)]
+    # Only real lists are read here; wrong types are rejected or dropped later (P9: never raise).
+    segments_in = data.get("segments")
+    facts_in = data.get("facts")
+    raw_segments = [
+        s for s in (segments_in if isinstance(segments_in, list) else []) if isinstance(s, dict)
+    ]
     raw_points_used_by_segments: set[str] = set()
     for s in raw_segments:
         a, b = s.get("a"), s.get("b")
@@ -551,7 +556,9 @@ def validate_scene(raw: str | dict[str, Any]) -> ValidationResult:
 
     raw_input_meta = {
         "raw_points_used_by_segments": raw_points_used_by_segments,
-        "raw_facts": [str(f) for f in data.get("facts", []) if f is not None],
+        "raw_facts": [
+            str(f) for f in (facts_in if isinstance(facts_in, list) else []) if f is not None
+        ],
     }
 
     dropped_tracker: dict[str, list[Any]] = {
