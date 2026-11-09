@@ -638,3 +638,21 @@ The following spoken strings may be difficult for blind students to follow in a 
 | `capture.errorGateway (spoken)` | The server is waking up. Please try again in a few seconds. | सर्वर चालू हो रहा है। कृपया कुछ सेकंड में पुनः प्रयास करें। | સર્વર શરૂ થઈ રહ્યું છે. કૃપા કરીને થોડી સેકંડમાં ફરી પ્રયાસ કરો. | | | | Cold-start 502/504 notice |
 | `capture.errorTimeout (spoken)` | The server took too long to respond. It may still be waking up, please try again. | सर्वर ने प्रतिक्रिया देने में बहुत अधिक समय लिया। यह अभी भी चालू हो रहा हो सकता है, कृपया पुनः प्रयास करें। | સર્વરે પ્રતિસાદ આપવામાં ઘણો સમય લીધો. તે હજી પણ શરૂ થઈ રહ્યું હોઈ શકે છે, કૃપા કરીને ફરી પ્રયાસ કરો. | | | | Scene request timeout notice |
 
+---
+## 24. Shared Link Gate & Share Honesty (`m3-shared-link-gate`)
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `share.gate.open (button/spoken)` | Open the shared diagram | साझा किया गया आरेख खोलें | શેર કરેલી આકૃતિ ખોલો | | | | User activation gate button (GT-05) |
+| `share.gate.heading` | Shared diagram | साझा किया गया आरेख | શેર કરેલી આકૃતિ | | | | Gate screen heading |
+| `share.sharedBy (spoken)` | Shared by {name}, not checked | {name} द्वारा साझा किया गया, जाँचा नहीं गया | {name} દ્વારા શેર કરેલ, ચકાસાયેલ નથી | | | | R1 honesty wording; keep {name} |
+| `share.sharedUnnamed (spoken)` | Shared diagram, not checked | साझा किया गया आरेख, जाँचा नहीं गया | શેર કરેલી આકૃતિ, ચકાસાયેલ નથી | | | | Fallback when name empty / stripped |
+| `share.titlePrefix (spoken)` | Title: {title} | शीर्षक: {title} | શીર્ષક: {title} | | | | R3 title prefix; keep {title} |
+---
+## 24. Shared Link Gate & Share Honesty (`m3-shared-link-gate`)
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `share.gate.open (button/spoken)` | Open the shared diagram | साझा किया गया आरेख खोलें | શેર કરેલી આકૃતિ ખોલો | | | | User activation gate button (GT-05) |
+| `share.gate.heading` | Shared diagram | साझा किया गया आरेख | શેર કરેલી આકૃતિ | | | | Gate screen heading |
+| `share.sharedBy (spoken)` | Shared by {name}, not checked | {name} द्वारा साझा किया गया, जाँचा नहीं गया | {name} દ્વારા શેર કરેલ, ચકાસાયેલ નથી | | | | R1 honesty wording; keep {name} |
+| `share.sharedUnnamed (spoken)` | Shared diagram, not checked | साझा किया गया आरेख, जाँचा नहीं गया | શેર કરેલી આકૃતિ, ચકાસાયેલ નથી | | | | Fallback when name empty / stripped |
+| `share.titlePrefix (spoken)` | Title: {title} | शीर्षक: {title} | શીર્ષક: {title} | | | | R3 title prefix; keep {title} |
