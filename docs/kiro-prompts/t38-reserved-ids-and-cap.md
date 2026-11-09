@@ -1,0 +1,17 @@
+# Kiro prompt: T38, reserved ids and the point cap in core (from the round-5 Kiro-glue audit)
+
+Paste this into Kiro chat. Source: `docs/reports/audit-r5-kiro-glue.md` (in the lane worktree `gt-lane-r5-kiro-glue` until it is committed; read the findings headed `addPoint accepts reserved 'title' id` and `addPoint lacks upper-bound point limit`). Verify each claim against the code yourself before changing anything; if one is wrong, say so and write nothing for it.
+
+Spec first (Requirement 22 in requirements.md, design, task 38), then code, then tick. One commit per sub-task, no push, `git add <file>` then `git commit -m ... -- <same files>` in one command.
+
+38.1 Reserved ids (HIGH in the audit). `freeRequestedId` in `frontend/src/core/correct.ts` only checks that a requested id is unused. `renameLabel` treats the ids `title` and `scene:title` as the scene title, and `share/validate.ts` renames reserved ids (`title` becomes `el_title`) without rewriting segment endpoints, so a point added with id `title` can have its rename hit the scene title and lose its segments on a share export.
+- Requirement: a requested id that is reserved (case-insensitive: `title`, `scene:title`, `__proto__`, `constructor`, `prototype`, and any other id that `share/validate.ts` `RESERVED_IDS` or `backend/app/validate.py` treats specially; read both lists and mirror them in ONE exported constant in core) is ignored and the next free generated id is used instead, for `addPoint` and for the default id of `addSegment`. Also decide, and write down, what `validateSceneInvariants` does with a scene that already contains a reserved id (reject, or leave to the share validator).
+- Property test (P66 onward, 200 runs or more, mutation-checked): for any requested id drawn from reserved names in any letter case, with surrounding whitespace, the resulting id is never reserved, and `renameLabel` on every point id never changes `scene.title`.
+
+38.2 Point cap (MED in the audit). `addPoint` has no upper bound while `backend/app/validate.py` rejects more than 500 points and the share limit (`share/limits.ts`) is 300. Decide with the spec: either `addPoint` returns the same scene once the scene holds `LIMITS.maxPoints`, or core exposes the cap as a pure predicate that the Ghostwriter UI (Requirement 20.5) already uses. Do not duplicate the number: reuse the existing constant, and add a core-level test that the cap in `flow/ghostwriter.ts` (when agy's lane g1 lands it) and core agree. Property test: a scene at the cap is returned unchanged by `addPoint` and still passes `validateSceneInvariants`.
+
+38.3 Triage only, no fix. The same audit lists vacuous or blind property tests (finding 5). For each test it names, state in `docs/reports/t38-triage.md` whether the claim is true (quote the generator or assertion), and fix only the ones that are in your files (`frontend/tests/correct*.prop.test.ts`, `verify*.test.ts`, `ghostwriter*` if present). Do not edit tests that agy lanes own.
+
+Rules: `core/` stays pure; do not touch the tuned haptic values, `hitTest`, `App.tsx`, `Explore.tsx`, `Correct.tsx`, `Teach.tsx` or `flow/` (agy owns the UI side and is editing them). Add one BUILD_LOG line per sub-task (tool = Kiro).
+
+Done when: 38.1 and 38.2 are ticked and committed (or explicitly marked "audit claim not reproduced" with the evidence), `npm test` green with nothing skipped, `tsc --noEmit` 0 errors, and `docs/reports/t38-triage.md` exists.
