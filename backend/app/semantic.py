@@ -11,6 +11,7 @@ Completely pure value resolver decoupled from AskTarget and app.ask.
 from __future__ import annotations
 
 import math
+import re
 import unicodedata
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
@@ -43,6 +44,7 @@ class SemanticResult:
 # Coarse grid boundaries for normalized coordinates [0, 1]
 _GRID_LOW = 1.0 / 3.0
 _GRID_HIGH = 2.0 / 3.0
+MAX_ANSWER_CHARS = 300
 
 # Supported semantic features
 FEATURE_PEAK = "peak"
@@ -255,11 +257,6 @@ def normalize_semantic_text(text: str) -> str:
     return f" {collapsed} "
 
 
-def _clean_question(question: str) -> str:
-    """Legacy helper alias for normalize_semantic_text."""
-    return normalize_semantic_text(question)
-
-
 # Build normalized phrase lookup table sorted by phrase length descending
 _SEEN_PHRASES: set[str] = set()
 _NORMALIZED_PHRASES: list[tuple[str, str]] = []
@@ -335,10 +332,56 @@ def coarse_position(x: float, y: float, lang: str = "en") -> str:
     return f"{vert} {horiz}"
 
 
+def _sanitize_spoken_answer(text: str) -> str:
+    """Strip Unicode control/format characters (Cf, Cc, Zl, Zp) and clamp to 300 chars."""
+    chars: list[str] = []
+    for ch in text:
+        cat = unicodedata.category(ch)
+        if cat in ("Cf", "Zl", "Zp"):
+            continue
+        if cat == "Cc":
+            if ch in ("\t", "\n", "\r"):
+                chars.append(" ")
+            continue
+        chars.append(ch)
+    cleaned = "".join(chars).strip()
+    if len(cleaned) > MAX_ANSWER_CHARS:
+        cleaned = cleaned[: MAX_ANSWER_CHARS - 1].rsplit(" ", 1)[0].rstrip(",;:") + "."
+    return cleaned
+
+
+def _has_point_id(scene: DiagramScene, question: str) -> bool:
+    """Check if the question names any point or element ID."""
+    words = re.findall(r"[A-Za-z0-9]+", question)
+    scene_ids: set[str] = set()
+    for p in scene.points:
+        scene_ids.add(p.id.lower())
+    for s in scene.segments:
+        scene_ids.add(s.id.lower())
+        scene_ids.add(s.a.lower())
+        scene_ids.add(s.b.lower())
+    for poly in scene.polylines:
+        scene_ids.add(poly.id.lower())
+    for b in scene.bars:
+        scene_ids.add(b.id.lower())
+
+    for w in words:
+        wl = w.lower()
+        if wl in scene_ids:
+            return True
+        if 1 <= len(w) <= 3 and w.isalpha() and w.isupper() and w not in ("A", "I"):
+            return True
+    return False
+
+
 def _find_peak(
     scene: DiagramScene,
+    question: str = "",
 ) -> tuple[SemanticResult | None, tuple[float, float] | None, str | None]:
-    """Find polyline vertex with smallest y across all polylines; ties: first in document order."""
+    """Find polyline vertex with smallest y across all polylines; ties: first in document order.
+
+    F1: When no polylines exist (e.g. bar chart or geometry), falls back to bars or points.
+    """
     best_pt: tuple[float, float] | None = None
     min_y = float("inf")
 
@@ -349,25 +392,63 @@ def _find_peak(
                 min_y = py
                 best_pt = (float(pt[0]), py)
 
-    if best_pt is None:
-        return None, None, None
+    if best_pt is not None:
+        cx = max(0.0, min(1.0, best_pt[0]))
+        cy = max(0.0, min(1.0, best_pt[1]))
+        target = SemanticResult(
+            name=FEATURE_PEAK,
+            target_kind="point",
+            x=cx,
+            y=cy,
+            label="peak",
+        )
+        return target, (cx, cy), "peak"
 
-    cx = max(0.0, min(1.0, best_pt[0]))
-    cy = max(0.0, min(1.0, best_pt[1]))
-    target = SemanticResult(
-        name=FEATURE_PEAK,
-        target_kind="point",
-        x=cx,
-        y=cy,
-        label="peak",
+    # F1 fallback: if no polylines (e.g. bar chart), fall back to tallest bar
+    if scene.bars:
+        return _find_tallest_bar(scene)
+
+    # Geometry fallback: if points exist and question asks for highest point/vertex
+    q_norm = normalize_semantic_text(question)
+    wants_point = any(
+        phrase in q_norm
+        for phrase in (
+            "highest point",
+            "highest vertex",
+            "top of",
+            "top vertex",
+            "सबसे ऊँचा बिंदु",
+            "सबसे ऊंचा बिंदु",
+            "सबसे ऊँचा बिन्दु",
+            "सबसे ऊंचा बिन्दु",
+            "शीर्ष",
+            "સૌથી ઊંચું બિંદુ",
+            "સૌથી ઊંચો બિંદુ",
+            "ટોચ",
+        )
     )
-    return target, (cx, cy), "peak"
+    if scene.points and wants_point:
+        best_p = min(scene.points, key=lambda p: float(p.y))
+        lbl = best_p.label if best_p.label else best_p.id
+        target = SemanticResult(
+            name=FEATURE_PEAK,
+            target_kind="element",
+            element_id=best_p.id,
+            label=lbl,
+        )
+        return target, (float(best_p.x), float(best_p.y)), lbl
+
+    return None, None, None
 
 
 def _find_trough(
     scene: DiagramScene,
+    question: str = "",
 ) -> tuple[SemanticResult | None, tuple[float, float] | None, str | None]:
-    """Find polyline vertex with largest y across all polylines; ties: first in document order."""
+    """Find polyline vertex with largest y across all polylines; ties: first in document order.
+
+    F1: When no polylines exist (e.g. bar chart or geometry), falls back to bars or points.
+    """
     best_pt: tuple[float, float] | None = None
     max_y = float("-inf")
 
@@ -378,19 +459,52 @@ def _find_trough(
                 max_y = py
                 best_pt = (float(pt[0]), py)
 
-    if best_pt is None:
-        return None, None, None
+    if best_pt is not None:
+        cx = max(0.0, min(1.0, best_pt[0]))
+        cy = max(0.0, min(1.0, best_pt[1]))
+        target = SemanticResult(
+            name=FEATURE_TROUGH,
+            target_kind="point",
+            x=cx,
+            y=cy,
+            label="lowest point",
+        )
+        return target, (cx, cy), "lowest point"
 
-    cx = max(0.0, min(1.0, best_pt[0]))
-    cy = max(0.0, min(1.0, best_pt[1]))
-    target = SemanticResult(
-        name=FEATURE_TROUGH,
-        target_kind="point",
-        x=cx,
-        y=cy,
-        label="lowest point",
+    # F1 fallback: if no polylines (e.g. bar chart), fall back to shortest bar
+    if scene.bars:
+        return _find_shortest_bar(scene)
+
+    # Geometry fallback: if points exist and question asks for lowest point/vertex
+    q_norm = normalize_semantic_text(question)
+    wants_point = any(
+        phrase in q_norm
+        for phrase in (
+            "lowest point",
+            "lowest vertex",
+            "bottom of",
+            "bottom vertex",
+            "सबसे निचला बिंदु",
+            "सबसे निचला बिन्दु",
+            "निचला भाग",
+            "तल",
+            "સૌથી નીચું બિંદુ",
+            "સૌથી નીચો બિંદુ",
+            "તળિયું",
+        )
     )
-    return target, (cx, cy), "lowest point"
+    if scene.points and wants_point:
+        best_p = max(scene.points, key=lambda p: float(p.y))
+        lbl = best_p.label if best_p.label else best_p.id
+        target = SemanticResult(
+            name=FEATURE_TROUGH,
+            target_kind="element",
+            element_id=best_p.id,
+            label=lbl,
+        )
+        return target, (float(best_p.x), float(best_p.y)), lbl
+
+    return None, None, None
 
 
 def _find_origin(
@@ -418,23 +532,51 @@ def _find_origin(
 def _find_tallest_bar(
     scene: DiagramScene,
 ) -> tuple[SemanticResult | None, tuple[float, float] | None, str | None]:
-    """Find bar with maximum value; ties: first in document order."""
+    """Find bar with maximum value; report ties and value/height order mismatches."""
     if not scene.bars:
         return None, None, None
 
-    best_bar = None
-    max_val = float("-inf")
-    for bar in scene.bars:
-        val = float(bar.value)
-        if val > max_val:
-            max_val = val
-            best_bar = bar
+    max_val = max(float(bar.value) for bar in scene.bars)
+    tied_val_bars = [bar for bar in scene.bars if float(bar.value) == max_val]
 
-    if best_bar is None:
-        return None, None, None
+    if len(tied_val_bars) > 1:
+        labels = [b.label if b.label else b.id for b in tied_val_bars]
+        labels_str = " and ".join(labels)
+        first_bar = tied_val_bars[0]
+        cx = (float(first_bar.x0) + float(first_bar.x1)) / 2.0
+        cy = (float(first_bar.y_top) + float(first_bar.y_base)) / 2.0
+        target = SemanticResult(
+            name="tie_tallest_bar",
+            target_kind="element",
+            element_id=first_bar.id,
+            label=labels_str,
+        )
+        return target, (cx, cy), labels_str
 
+    best_bar = tied_val_bars[0]
     cx = (float(best_bar.x0) + float(best_bar.x1)) / 2.0
     cy = (float(best_bar.y_top) + float(best_bar.y_base)) / 2.0
+
+    heights = [abs(float(b.y_base) - float(b.y_top)) for b in scene.bars]
+    if max(heights) - min(heights) > 1e-4:
+        tallest_by_height = max(
+            scene.bars,
+            key=lambda b: abs(float(b.y_base) - float(b.y_top)),
+        )
+        if best_bar.id != tallest_by_height.id:
+            val_lbl = best_bar.label if best_bar.label else best_bar.id
+            h_lbl = tallest_by_height.label if tallest_by_height.label else tallest_by_height.id
+            combined_label = f"{val_lbl}|{h_lbl}"
+            cx_h = (float(tallest_by_height.x0) + float(tallest_by_height.x1)) / 2.0
+            cy_h = (float(tallest_by_height.y_top) + float(tallest_by_height.y_base)) / 2.0
+            target = SemanticResult(
+                name="mismatch_tallest_bar",
+                target_kind="element",
+                element_id=best_bar.id,
+                label=combined_label,
+            )
+            return target, (cx_h, cy_h), combined_label
+
     target = SemanticResult(
         name=FEATURE_TALLEST_BAR,
         target_kind="element",
@@ -447,23 +589,51 @@ def _find_tallest_bar(
 def _find_shortest_bar(
     scene: DiagramScene,
 ) -> tuple[SemanticResult | None, tuple[float, float] | None, str | None]:
-    """Find bar with minimum value; ties: first in document order."""
+    """Find bar with minimum value; report ties and value/height order mismatches."""
     if not scene.bars:
         return None, None, None
 
-    best_bar = None
-    min_val = float("inf")
-    for bar in scene.bars:
-        val = float(bar.value)
-        if val < min_val:
-            min_val = val
-            best_bar = bar
+    min_val = min(float(bar.value) for bar in scene.bars)
+    tied_val_bars = [bar for bar in scene.bars if float(bar.value) == min_val]
 
-    if best_bar is None:
-        return None, None, None
+    if len(tied_val_bars) > 1:
+        labels = [b.label if b.label else b.id for b in tied_val_bars]
+        labels_str = " and ".join(labels)
+        first_bar = tied_val_bars[0]
+        cx = (float(first_bar.x0) + float(first_bar.x1)) / 2.0
+        cy = (float(first_bar.y_top) + float(first_bar.y_base)) / 2.0
+        target = SemanticResult(
+            name="tie_shortest_bar",
+            target_kind="element",
+            element_id=first_bar.id,
+            label=labels_str,
+        )
+        return target, (cx, cy), labels_str
 
+    best_bar = tied_val_bars[0]
     cx = (float(best_bar.x0) + float(best_bar.x1)) / 2.0
     cy = (float(best_bar.y_top) + float(best_bar.y_base)) / 2.0
+
+    heights = [abs(float(b.y_base) - float(b.y_top)) for b in scene.bars]
+    if max(heights) - min(heights) > 1e-4:
+        shortest_by_height = min(
+            scene.bars,
+            key=lambda b: abs(float(b.y_base) - float(b.y_top)),
+        )
+        if best_bar.id != shortest_by_height.id:
+            val_lbl = best_bar.label if best_bar.label else best_bar.id
+            h_lbl = shortest_by_height.label if shortest_by_height.label else shortest_by_height.id
+            combined_label = f"{val_lbl}|{h_lbl}"
+            cx_h = (float(shortest_by_height.x0) + float(shortest_by_height.x1)) / 2.0
+            cy_h = (float(shortest_by_height.y_top) + float(shortest_by_height.y_base)) / 2.0
+            target = SemanticResult(
+                name="mismatch_shortest_bar",
+                target_kind="element",
+                element_id=best_bar.id,
+                label=combined_label,
+            )
+            return target, (cx_h, cy_h), combined_label
+
     target = SemanticResult(
         name=FEATURE_SHORTEST_BAR,
         target_kind="element",
@@ -571,7 +741,7 @@ def _build_answer(
                 FEATURE_RIGHT_ANGLE: "इस आरेख में कोई समकोण नहीं है।",
                 FEATURE_LONGEST_SIDE: "इस आरेख में कोई भुजा नहीं है।",
             }
-            return absence_hi.get(feature, "इस आरेख में यह ज्ञात नहीं है।")
+            return _sanitize_spoken_answer(absence_hi.get(feature, "इस आरेख में यह ज्ञात नहीं है।"))
 
         if base == "gu":
             absence_gu = {
@@ -583,7 +753,7 @@ def _build_answer(
                 FEATURE_RIGHT_ANGLE: "આ આકૃતિમાં કોઈ કાટખૂણો નથી.",
                 FEATURE_LONGEST_SIDE: "આ આકૃતિમાં કોઈ બાજુ નથી.",
             }
-            return absence_gu.get(feature, "આ આકૃતિ પરથી આની જાણ નથી.")
+            return _sanitize_spoken_answer(absence_gu.get(feature, "આ આકૃતિ પરથી આની જાણ નથી."))
 
         absence_en = {
             FEATURE_PEAK: "There is no peak in this diagram.",
@@ -594,71 +764,132 @@ def _build_answer(
             FEATURE_RIGHT_ANGLE: "There is no right angle in this diagram.",
             FEATURE_LONGEST_SIDE: "There are no sides in this diagram.",
         }
-        return absence_en.get(feature, "I don't know from this diagram.")
+        return _sanitize_spoken_answer(absence_en.get(feature, "I don't know from this diagram."))
 
     pos = coarse_position(coords[0], coords[1], lang)
 
+    # F10: Tie in tallest or shortest bar
+    if target.name == "tie_tallest_bar":
+        if base == "hi":
+            return _sanitize_spoken_answer(f"सबसे ऊँचे बार में {label} के बीच बराबरी है।")
+        if base == "gu":
+            return _sanitize_spoken_answer(f"સૌથી ઊંચા બારમાં {label} વચ્ચે બરાબરી છે.")
+        return _sanitize_spoken_answer(f"There is a tie for the tallest bar between {label}.")
+
+    if target.name == "tie_shortest_bar":
+        if base == "hi":
+            return _sanitize_spoken_answer(f"सबसे छोटे बार में {label} के बीच बराबरी है।")
+        if base == "gu":
+            return _sanitize_spoken_answer(f"સૌથી નાના બારમાં {label} વચ્ચે બરાબરી છે.")
+        return _sanitize_spoken_answer(f"There is a tie for the shortest bar between {label}.")
+
+    # F10: Value order versus height order mismatch
+    if target.name == "mismatch_tallest_bar":
+        val_lbl, h_lbl = (label or "|").split("|", 1)
+        if base == "hi":
+            return _sanitize_spoken_answer(
+                f"मान के अनुसार सबसे ऊँचा बार {val_lbl} है, लेकिन ऊँचाई में {pos} पर {h_lbl} सबसे बड़ा है।"
+            )
+        if base == "gu":
+            return _sanitize_spoken_answer(
+                f"મૂલ્ય મુજબ સૌથી ઊંચો બાર {val_lbl} છે, પરંતુ ઊંચાઈમાં {pos} પર {h_lbl} સૌથી મોટો છે."
+            )
+        return _sanitize_spoken_answer(
+            f"The tallest bar by value is {val_lbl}, but {h_lbl} is tallest in height at the {pos}."
+        )
+
+    if target.name == "mismatch_shortest_bar":
+        val_lbl, h_lbl = (label or "|").split("|", 1)
+        if base == "hi":
+            return _sanitize_spoken_answer(
+                f"मान के अनुसार सबसे छोटा बार {val_lbl} है, लेकिन ऊँचाई में {pos} पर {h_lbl} सबसे छोटा है।"
+            )
+        if base == "gu":
+            return _sanitize_spoken_answer(
+                f"મૂલ્ય મુજબ સૌથી નાનો બાર {val_lbl} છે, પરંતુ ઊંચાઈમાં {pos} પર {h_lbl} સૌથી નાનો છે."
+            )
+        return _sanitize_spoken_answer(
+            f"The shortest bar by value is {val_lbl}, "
+            f"but {h_lbl} is shortest in height at the {pos}."
+        )
+
+    # Bar answers (or peak/trough fallback to bars)
+    if target.name == FEATURE_TALLEST_BAR:
+        lbl = f" {label}" if label else ""
+        if base == "hi":
+            return _sanitize_spoken_answer(f"सबसे ऊँचा बार{lbl}, {pos} है।")
+        if base == "gu":
+            return _sanitize_spoken_answer(f"સૌથી ઊંચો બાર{lbl}, {pos} છે.")
+        return _sanitize_spoken_answer(f"The tallest bar{lbl} is at the {pos}.")
+
+    if target.name == FEATURE_SHORTEST_BAR:
+        lbl = f" {label}" if label else ""
+        if base == "hi":
+            return _sanitize_spoken_answer(f"सबसे छोटा बार{lbl}, {pos} है।")
+        if base == "gu":
+            return _sanitize_spoken_answer(f"સૌથી નાનો બાર{lbl}, {pos} છે.")
+        return _sanitize_spoken_answer(f"The shortest bar{lbl} is at the {pos}.")
+
+    # F1 point fallback for highest/lowest vertex
+    if target.name == FEATURE_PEAK and target.target_kind == "element":
+        lbl = f" {label}" if label else ""
+        if base == "hi":
+            return _sanitize_spoken_answer(f"सबसे ऊँचा बिंदु{lbl}, {pos} है।")
+        if base == "gu":
+            return _sanitize_spoken_answer(f"સૌથી ઊંચું બિંદુ{lbl}, {pos} છે.")
+        return _sanitize_spoken_answer(f"The highest point{lbl} is at the {pos}.")
+
+    if target.name == FEATURE_TROUGH and target.target_kind == "element":
+        lbl = f" {label}" if label else ""
+        if base == "hi":
+            return _sanitize_spoken_answer(f"सबसे निचला बिंदु{lbl}, {pos} है।")
+        if base == "gu":
+            return _sanitize_spoken_answer(f"સૌથી નીચું બિંદુ{lbl}, {pos} છે.")
+        return _sanitize_spoken_answer(f"The lowest point{lbl} is at the {pos}.")
+
     if base == "hi":
         if feature == FEATURE_PEAK:
-            return f"शिखर {pos} है।"
+            return _sanitize_spoken_answer(f"शिखर {pos} है।")
         if feature == FEATURE_TROUGH:
-            return f"सबसे निचला बिंदु {pos} है।"
+            return _sanitize_spoken_answer(f"सबसे निचला बिंदु {pos} है।")
         if feature == FEATURE_ORIGIN:
-            return f"मूल बिंदु {pos} है।"
-        if feature == FEATURE_TALLEST_BAR:
-            lbl = f" {label}" if label else ""
-            return f"सबसे ऊँचा बार{lbl}, {pos} है।"
-        if feature == FEATURE_SHORTEST_BAR:
-            lbl = f" {label}" if label else ""
-            return f"सबसे छोटा बार{lbl}, {pos} है।"
+            return _sanitize_spoken_answer(f"मूल बिंदु {pos} है।")
         if feature == FEATURE_RIGHT_ANGLE:
             lbl = f" {label}" if label else ""
-            return f"समकोण बिंदु{lbl} पर {pos} है।"
+            return _sanitize_spoken_answer(f"समकोण बिंदु{lbl} पर {pos} है।")
         if feature == FEATURE_LONGEST_SIDE:
             lbl = f" {label}" if label else ""
-            return f"सबसे लंबी भुजा{lbl}, {pos} है।"
+            return _sanitize_spoken_answer(f"सबसे लंबी भुजा{lbl}, {pos} है।")
 
     if base == "gu":
         if feature == FEATURE_PEAK:
-            return f"શિખર {pos} છે."
+            return _sanitize_spoken_answer(f"શિખર {pos} છે.")
         if feature == FEATURE_TROUGH:
-            return f"સૌથી નીચો બિંદુ {pos} છે."
+            return _sanitize_spoken_answer(f"સૌથી નીચો બિંદુ {pos} છે.")
         if feature == FEATURE_ORIGIN:
-            return f"ઉદ્ભવ બિંદુ {pos} છે."
-        if feature == FEATURE_TALLEST_BAR:
-            lbl = f" {label}" if label else ""
-            return f"સૌથી ઊંચો બાર{lbl}, {pos} છે."
-        if feature == FEATURE_SHORTEST_BAR:
-            lbl = f" {label}" if label else ""
-            return f"સૌથી નાનો બાર{lbl}, {pos} છે."
+            return _sanitize_spoken_answer(f"ઉદ્ભવ બિંદુ {pos} છે.")
         if feature == FEATURE_RIGHT_ANGLE:
             lbl = f" {label}" if label else ""
-            return f"કાટખૂણો બિંદુ{lbl} પર {pos} છે."
+            return _sanitize_spoken_answer(f"કાટખૂણો બિંદુ{lbl} પર {pos} છે.")
         if feature == FEATURE_LONGEST_SIDE:
             lbl = f" {label}" if label else ""
-            return f"સૌથી લાંબી બાજુ{lbl}, {pos} છે."
+            return _sanitize_spoken_answer(f"સૌથી લાંબી બાજુ{lbl}, {pos} છે.")
 
     # English default
     if feature == FEATURE_PEAK:
-        return f"The peak is at the {pos}."
+        return _sanitize_spoken_answer(f"The peak is at the {pos}.")
     if feature == FEATURE_TROUGH:
-        return f"The lowest point is at the {pos}."
+        return _sanitize_spoken_answer(f"The lowest point is at the {pos}.")
     if feature == FEATURE_ORIGIN:
-        return f"The origin is at the {pos}."
-    if feature == FEATURE_TALLEST_BAR:
-        lbl = f" {label}" if label else ""
-        return f"The tallest bar{lbl} is at the {pos}."
-    if feature == FEATURE_SHORTEST_BAR:
-        lbl = f" {label}" if label else ""
-        return f"The shortest bar{lbl} is at the {pos}."
+        return _sanitize_spoken_answer(f"The origin is at the {pos}.")
     if feature == FEATURE_RIGHT_ANGLE:
         lbl = f" {label}" if label else ""
-        return f"The right angle at point{lbl} is at the {pos}."
+        return _sanitize_spoken_answer(f"The right angle at point{lbl} is at the {pos}.")
     if feature == FEATURE_LONGEST_SIDE:
         lbl = f" {label}" if label else ""
-        return f"The longest side{lbl} is at the {pos}."
+        return _sanitize_spoken_answer(f"The longest side{lbl} is at the {pos}.")
 
-    return f"The target is at the {pos}."
+    return _sanitize_spoken_answer(f"The target is at the {pos}.")
 
 
 def semantic_target(
@@ -671,10 +902,14 @@ def semantic_target(
     if feature is None:
         return None
 
+    # F11: If right angle query names a point ID, bypass semantic path so facts / LLM can answer
+    if feature == FEATURE_RIGHT_ANGLE and _has_point_id(scene, question):
+        return None
+
     if feature == FEATURE_PEAK:
-        target, _, _ = _find_peak(scene)
+        target, _, _ = _find_peak(scene, question)
     elif feature == FEATURE_TROUGH:
-        target, _, _ = _find_trough(scene)
+        target, _, _ = _find_trough(scene, question)
     elif feature == FEATURE_ORIGIN:
         target, _, _ = _find_origin(scene)
     elif feature == FEATURE_TALLEST_BAR:
@@ -687,6 +922,15 @@ def semantic_target(
         target, _, _ = _find_longest_side(scene)
     else:
         target = None
+
+    if target is None:
+        # F1: On geometry without curves/bars, do not claim absence of peak for maximum/minimum
+        q_norm = normalize_semantic_text(question)
+        is_max_min = any(
+            w in q_norm for w in ("maximum", "minimum", "अधिकतम", "न्यूनतम", "મહત્તમ", "ન્યૂનતમ")
+        )
+        if is_max_min and not scene.polylines and not scene.bars:
+            return None
 
     return target
 
@@ -715,10 +959,14 @@ def semantic_ask(
     if feature is None:
         return None
 
+    # F11: If right angle query names a point ID, bypass semantic path so facts / LLM can answer
+    if feature == FEATURE_RIGHT_ANGLE and _has_point_id(scene, question):
+        return None
+
     if feature == FEATURE_PEAK:
-        target, coords, label = _find_peak(scene)
+        target, coords, label = _find_peak(scene, question)
     elif feature == FEATURE_TROUGH:
-        target, coords, label = _find_trough(scene)
+        target, coords, label = _find_trough(scene, question)
     elif feature == FEATURE_ORIGIN:
         target, coords, label = _find_origin(scene)
     elif feature == FEATURE_TALLEST_BAR:
@@ -731,6 +979,15 @@ def semantic_ask(
         target, coords, label = _find_longest_side(scene)
     else:
         target, coords, label = None, None, None
+
+    if target is None:
+        # F1: On geometry without curves/bars, do not answer 'There is no peak' for maximum/minimum
+        q_norm = normalize_semantic_text(question)
+        is_max_min = any(
+            w in q_norm for w in ("maximum", "minimum", "अधिकतम", "न्यूनतम", "મહત્તમ", "ન્યૂનતમ")
+        )
+        if is_max_min and not scene.polylines and not scene.bars:
+            return None
 
     answer = _build_answer(feature, target, coords, label, lang)
     return answer, target
