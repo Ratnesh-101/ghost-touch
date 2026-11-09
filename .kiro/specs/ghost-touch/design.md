@@ -180,6 +180,10 @@ Each property maps to requirements and runs with fast-check (frontend) or Hypoth
 | P51 | **An unlabelled corner is spoken in the active language (Kiro, task 31):** the engine emits `speakKey('vertex.unlabelled', { id })` for a missing or blank label and `speak(label)` otherwise, never English text of its own; `runEffects` and `mergeAnnouncements` word the key in en, hi and gu, joined after any axis crossings; the corner pattern and quiet window are unchanged. | 4.3, 10.1 |
 | P52 | **The optimised hit test gives exactly the previous answer (Kiro, task 32, PERF-01):** on random scenes (NaN and out-of-range coordinates, dangling segments, duplicate ids, a 2000-point polyline), random letterboxed viewports, random radii and fingers aimed at the radius band, `hitTest` deep-equals a frozen copy of the previous implementation, ties included. | 4.1, 4.6 |
 | P53 | **A bar with a non-finite value is never announced (Kiro, task 32, R3-07):** a finger inside such a bar never gets a bar target for it; finite bars next to it still answer with a finite `maxValue`; no bar target ever carries NaN or Infinity. | 6.1, 6.2 |
+| P54 | **Adding a point keeps the scene valid (Kiro, task 34):** for any valid scene, any finite x and y (including huge and negative values), any optional label and any optional id (free, taken or blank), `addPoint` returns a scene that passes `validateSceneInvariants`, has exactly one more point with a fresh id and clamped coordinates, leaves every other element equal, and does not mutate its input. | 19.1, 19.3 |
+| P55 | **Adding a segment keeps the scene valid, or changes nothing (Kiro, task 34):** for any valid scene and two distinct existing point ids with no segment between them, `addSegment` returns a valid scene with exactly one more segment from a to b and a fresh id; for an unknown endpoint, a == b, or an existing pair in either direction it returns the same scene object. | 19.2, 19.3 |
+| P56 | **Add then undo is exact (Kiro, task 34):** applying `addPoint` or `addSegment` through `historyReducer` and then undoing gives back the previous scene object; redo gives back the edited one. | 19.5 |
+| P57 | **Bad coordinates never make a bad scene (Kiro, task 34):** for coordinates drawn from NaN, ±Infinity, huge, negative and ordinary values, `addPoint` returns either the same scene (NaN or infinite input) or a scene that passes `validateSceneInvariants`. | 19.3, 19.4 |
 | P39 | **Validation is a fixed point (Kiro, Hypothesis, backend):** a well-formed scene passes `validate_scene` unchanged, and validating an accepted scene's own output returns the same scene. | 9.3 |
 | P40 | **Rate-limit identity resists spoofing (Kiro, Hypothesis, backend):** for any `X-Forwarded-For` the client forges, the client key equals the key of the same peer without forgery; with zero trusted hops the key is the peer address. | 16.1 |
 | P41 | **Rate-limit state is bounded (Kiro, Hypothesis, backend):** after any sequence of requests and clock advances, the limiter holds no empty window and no more keys than clients active in the last window; the limit itself never admits more than `per_minute` requests. | 16.2 |
@@ -201,7 +205,7 @@ Each property maps to requirements and runs with fast-check (frontend) or Hypoth
 | Storage full / all entries pinned | Speak "Could not save: all slots are pinned"; app continues (Req 11.5, 11.7) |
 
 ## Testing Strategy
-- **Property tests:** P1–P46 as above, each with at least 200 cases; these are the headline of the Kiro write-up. P31–P39 were added by Kiro in review (Task 19). A property that has never failed is checked by mutation: P34, P36 and P16/P31 were each confirmed to fail when the code under test was deliberately broken.
+- **Property tests:** P1–P57 as above, each with at least 200 cases; these are the headline of the Kiro write-up. P31–P39 were added by Kiro in review (Task 19). A property that has never failed is checked by mutation: P34, P36 and P16/P31 were each confirmed to fail when the code under test was deliberately broken.
 - **Unit tests:** fixtures for the three sample diagrams; provider mocked with recorded responses.
 - **Device test checklist (manual, on Nord CE6 + one budget phone):** distinguish line vs. corner with eyes closed; trace a triangle and name it; identify the highest bar; follow a sine curve and count peaks.
 - **User test (Kiroween):** at least one session with a blind student or a school for the blind, recorded with consent for the demo.
@@ -255,6 +259,25 @@ Built by Antigravity (module, first tests P47-P50, wiring in lane k1); this sect
 - A bar chart whose value axis does not start at 0 draws bar heights that are not proportional to the values; such a chart can be flagged. Nothing in `DiagramScene` says where the axis starts.
 - With exactly two matched lengths the check cannot tell which side is wrong; it names the first one in the announcement.
 - The Explore renderer draws the unit square without `aspect`, so on a scene with `aspect` ≠ 1 the shape felt is stretched even when the check (correctly) stays silent.
+
+## Ghostwriter: add what the AI missed (Requirement 19)
+Written by Kiro before the code. Two pure edits join the existing ones in `frontend/src/core/correct.ts`; the Teach screen hook-up is a later Antigravity lane.
+
+### Functions
+- `addPoint(scene, x, y, label?, id?) → DiagramScene`
+  - NaN or infinite x or y: return `scene` itself (19.4).
+  - Otherwise x and y go through `clamp01` (19.1).
+  - Id: `id` is used as given (trimmed) when it is not blank and not used by any point, segment, polyline or bar. Otherwise the first free id in the order `A` … `Z`, then `P1`, `P2`, … is used. Ids are unique across all element kinds because `validateSceneInvariants` checks them that way.
+  - Label: trimmed; a blank or missing label is left out of the new point (an unlabelled corner is spoken through `vertex.unlabelled`, Requirement 4).
+  - Result: `{ ...scene, points: [...points, newPoint] }`. Nothing else is copied or changed.
+- `addSegment(scene, a, b, id?) → DiagramScene`
+  - Return `scene` itself when a or b is not a point id, when a === b, or when a segment already joins a and b in either direction (19.2).
+  - Id: `id` (trimmed) when it is not blank and free; otherwise `${a}${b}`, and if that is taken `${a}${b}2`, `${a}${b}3`, … (first free).
+  - Result: `{ ...scene, segments: [...segments, { id, a, b }] }`. No label: a segment is named by its endpoints.
+- No new history action: the caller does `historyReducer(state, { type: 'apply', scene: addPoint(...) })`. A no-op returns the same object, so `applyEdit` leaves the history unchanged and undo is never offered for nothing (19.5).
+
+### Spec Ghost after an edit (19.6)
+Checked, not changed. `verifyScene` builds every sentence from `VERIFY_WORDING.disagree(name)`, where `name` comes from the printed facts (the target of a length fact, `angle X`, or a bar label), never from a point or segment label the teacher typed. A consistent result adds nothing. So no path after an add can make Spec Ghost say "verified" or "correct", and no extra test was added. Adding a missing point or segment can make a fact match a drawn element, so a scene that was silent may now report a disagreement; that is the intended behaviour. The separate "Verified by …" line on shared links (owner decision R1) is not Spec Ghost wording and is out of scope here.
 
 ## Halloween Presentation Layer
 Dark background, glowing green strokes, a small "creature" mascot assembled from phone parts on the start screen, and the theremin as the signature sound. The theme never touches the users themselves (see `product.md`).

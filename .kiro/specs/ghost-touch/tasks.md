@@ -270,3 +270,15 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 - [x] 33. Round 3 evidence and log
   - [x] 33.1 `docs/kiro-evidence/round3.md`: requirement to task to test to what the test caught
   - [x] 33.2 BUILD_LOG entry per task (tool = Kiro); report anything unfinished
+
+## Ghostwriter core (Requirement 19, spec written before the code)
+> Core half only. Do not edit `Correct.tsx`, `Teach.tsx` or `flow/`: the UI hook-up is the next Antigravity lane. Tuned haptic values and `hitTest` unchanged; `frontend/src/core` stays pure.
+
+- [x] 34. Ghostwriter: `addPoint` and `addSegment` in `core/correct.ts`
+  - [x] 34.1 Requirement 19 (EARS), design section and properties P54-P57 written before any code
+  - [x] 34.2 `addPoint(scene, x, y, label?, id?)`: rejects NaN and Infinity (same scene), clamps to [0, 1], free id given or generated (`A`..`Z`, then `P1`, `P2`, ...), optional trimmed label, immutable
+  - [x] 34.3 `addSegment(scene, a, b, id?)`: same scene for unknown endpoints, a == b or an existing pair in either direction; id `${a}${b}` with a numeric suffix when taken; immutable
+  - [x] 34.4 Properties P54-P57 in `frontend/tests/correct.ghostwriter.prop.test.ts` (fast-check, at least 200 runs each), plus an example: add the missing corner D and edge CD to the sample triangle
+  - [x] 34.5 Requirement 19.6: check that no Spec Ghost path can say "verified" or "correct" after an edit; add a test only if one can (checked: every sentence is built from fact names, never from labels a teacher types; no path found, so no test)
+  - [x] 34.6 Mutation-check each new property; gate (`tsc`, `npm test`, build); BUILD_LOG line (tool = Kiro)
+  - _Requirements: 19.*_

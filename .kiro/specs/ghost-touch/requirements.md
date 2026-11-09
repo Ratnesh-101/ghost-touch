@@ -215,3 +215,16 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 7. WHEN matched lengths are given in different units THEN the system SHALL convert known length units (mm, cm, m, km, in, ft) to one unit before comparing, and IF any unit is not known THEN it SHALL stay silent. (Kiro, review)
 8. WHEN the student asks a question that names a disputed side, angle or bar (in either letter order, for example AC or CA) THEN the system SHALL put the same sentence in front of the spoken answer; questions about other elements SHALL be answered unchanged.
 9. THE check SHALL be a pure function of the scene: the same scene SHALL give the same result whatever the order of its facts or elements, and whatever uniform scale or translation is applied to its coordinates.
+
+### Requirement 19: Ghostwriter, add what the AI missed (Teach mode only)
+> Written by Kiro on 2026-11-09 BEFORE the code (spec first). This requirement covers the two pure edits in `frontend/src/core/correct.ts` only. The Teach screen hook-up is a later Antigravity lane; it adds no new screen and no new gesture.
+
+**User Story:** As a teacher correcting a scene the vision model read, I want to add a corner or an edge it missed, so that the student feels the whole diagram and not only what the model saw.
+
+#### Acceptance Criteria
+1. WHEN the teacher adds a point at (x, y) THEN the system SHALL return a new scene with exactly one more point, whose coordinates are x and y clamped to [0, 1] and whose id is not used by any point, segment, polyline or bar of the scene. The label SHALL be optional. Every existing element SHALL stay exactly as it was, and the input scene SHALL NOT be mutated.
+2. WHEN the teacher adds a segment from point a to point b THEN the system SHALL return a new scene with exactly one more segment from a to b, IF both points exist, a and b are different, and no segment already joins a and b in either direction. OTHERWISE the system SHALL return the same scene object, unchanged.
+3. WHEN the input scene passes `validateSceneInvariants` THEN the result of adding a point or a segment SHALL also pass it.
+4. IF x or y is NaN or infinite THEN the system SHALL NOT add a point and SHALL return the same scene object, unchanged.
+5. THE two edits SHALL be undoable and redoable through the existing `applyEdit` / `historyReducer` history, with no new action type: undo SHALL restore the previous scene exactly.
+6. AFTER any edit, Spec Ghost SHALL NOT say the scene is "verified" or "correct". An added element is the teacher's work, not a check result; the Spec Ghost wording (Requirement 18.2) is not changed.

@@ -1,8 +1,8 @@
 /**
  * Pure core logic for Teacher Correct mode.
  *
- * Implements immutable diagram scene editing operations (move, rename, delete)
- * and an undo/redo history reducer.
+ * Implements immutable diagram scene editing operations (move, rename, delete,
+ * and, for Requirement 19, add a missed point or segment) and an undo/redo history reducer.
  *
  * Pure core (tech.md rule 1): no DOM, React, window, document, or navigator access.
  */
@@ -155,6 +155,87 @@ export function deleteSegment(scene: DiagramScene, segmentId: string): DiagramSc
     ...scene,
     segments,
   };
+}
+
+/** Every id used by a point, segment, polyline or bar (ids are unique across all kinds). */
+function usedIds(scene: DiagramScene): Set<string> {
+  const ids = new Set<string>();
+  for (const p of scene.points ?? []) ids.add(p.id);
+  for (const s of scene.segments ?? []) ids.add(s.id);
+  for (const pl of scene.polylines ?? []) ids.add(pl.id);
+  for (const b of scene.bars ?? []) ids.add(b.id);
+  return ids;
+}
+
+/** The requested id, trimmed, when it is not blank and not taken; otherwise undefined. */
+function freeRequestedId(id: string | undefined, used: Set<string>): string | undefined {
+  const trimmed = id?.trim();
+  return trimmed && !used.has(trimmed) ? trimmed : undefined;
+}
+
+/** First free point id: `A` to `Z`, then `P1`, `P2`, ... (Requirement 19.1). */
+function nextPointId(used: Set<string>): string {
+  for (let code = 65; code <= 90; code++) {
+    const letter = String.fromCharCode(code);
+    if (!used.has(letter)) return letter;
+  }
+  let n = 1;
+  while (used.has(`P${n}`)) n++;
+  return `P${n}`;
+}
+
+/**
+ * Add a point the vision model missed (Requirement 19.1, 19.4).
+ * NaN or infinite coordinates return the same scene. Finite coordinates are clamped to [0, 1].
+ * The id is `id` when free, otherwise the next free one (`A`..`Z`, then `P1`, `P2`, ...).
+ * A blank label is left out. Existing elements are untouched; the input is never mutated.
+ */
+export function addPoint(
+  scene: DiagramScene,
+  x: number,
+  y: number,
+  label?: string,
+  id?: string,
+): DiagramScene {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return scene;
+
+  const used = usedIds(scene);
+  const pointId = freeRequestedId(id, used) ?? nextPointId(used);
+  const trimmedLabel = label?.trim();
+  const point: Point = { id: pointId, x: clamp01(x), y: clamp01(y) };
+  if (trimmedLabel) point.label = trimmedLabel;
+
+  return { ...scene, points: [...(scene.points ?? []), point] };
+}
+
+/**
+ * Add a segment the vision model missed, between two existing distinct points (Requirement 19.2).
+ * Unknown endpoints, a === b, or an existing segment between the same two points (either
+ * direction) return the same scene. The id is `id` when free, otherwise `${a}${b}`, then
+ * `${a}${b}2`, `${a}${b}3`, ... The input is never mutated.
+ */
+export function addSegment(
+  scene: DiagramScene,
+  a: string,
+  b: string,
+  id?: string,
+): DiagramScene {
+  if (a === b) return scene;
+  const points = scene.points ?? [];
+  if (!points.some((p) => p.id === a) || !points.some((p) => p.id === b)) return scene;
+  const segments = scene.segments ?? [];
+  const joined = segments.some((s) => (s.a === a && s.b === b) || (s.a === b && s.b === a));
+  if (joined) return scene;
+
+  const used = usedIds(scene);
+  let segmentId = freeRequestedId(id, used);
+  if (segmentId === undefined) {
+    const base = `${a}${b}`;
+    segmentId = base;
+    for (let n = 2; used.has(segmentId); n++) segmentId = `${base}${n}`;
+  }
+
+  return { ...scene, segments: [...segments, { id: segmentId, a, b }] };
 }
 
 /** State container for undo/redo history. */
