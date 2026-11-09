@@ -216,7 +216,7 @@ def validate_image_bytes(data: bytes, declared_mime: str | None = None) -> tuple
 
     Returns (detected_mime, width, height).
     Raises HTTPException(415) on unrecognized or mismatched format signature.
-    Raises HTTPException(422) on truncated/corrupt image or if resolution > 40 MP.
+    Raises HTTPException(422) on truncated/corrupt image or if resolution > 12 MP.
     """
     detected_mime = sniff_image_format(data)
     if detected_mime is None:

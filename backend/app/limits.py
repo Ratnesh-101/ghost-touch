@@ -86,11 +86,15 @@ def _normalize_ip_key(raw: Any) -> str:
         if port.isdigit():
             cleaned = host
 
+    # Strip IPv6 zone index (e.g. fe80::1%eth0 -> fe80::1) before parsing (M4-06)
+    if "%" in cleaned:
+        cleaned = cleaned.split("%")[0]
+
     try:
         ip = ipaddress.ip_address(cleaned)
     except ValueError:
         # Non-IP string (e.g. "unknown" or test hostname); return as bounded string
-        return raw[:MAX_CLIENT_KEY_CHARS]
+        return cleaned[:MAX_CLIENT_KEY_CHARS]
 
     # Canonicalise IPv4-mapped IPv6 address (e.g. ::ffff:192.0.2.1 -> 192.0.2.1)
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:

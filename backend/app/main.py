@@ -536,7 +536,7 @@ async def process_scene(
 
     Pipeline:
       1. Validate file size (<=10 MB, streaming check) and content type.
-      2. Verify magic bytes and pixel resolution cap (<=40 MP) without blocking.
+      2. Verify magic bytes and pixel resolution cap (<=12 MP) without blocking.
       3. If zero providers configured -> Raw Mode (reason="no_provider").
       4. ProviderChain extracts raw JSON using the teacher-vocabulary prompt.
       5. validate_scene checks DiagramScene invariants.
@@ -575,7 +575,7 @@ async def process_scene(
                 detail="Invalid Content-Length header.",
             ) from err
 
-    # C4, R3-1: Enforce per-client in-flight cap before waiting for global slot
+    # C4, R3-1, M4-01: Enforce per-client in-flight cap before waiting for global slot
     client_key_val = request_client_key(request)
     scene_in_flight = get_scene_in_flight_limiter()
     if not scene_in_flight.acquire(client_key_val):
@@ -588,19 +588,20 @@ async def process_scene(
             headers={"Retry-After": "1"},
         )
 
+    slot_acquired = False
     sem = get_scene_semaphore()
     wait_seconds = parse_scene_queue_wait_seconds()
     try:
-        await acquire_slot(sem, wait_seconds)
-    except TimeoutError as exc:
-        scene_in_flight.release(client_key_val)
-        raise HTTPException(
-            status_code=503,
-            detail="Server is busy processing other diagram requests. reason: queue_timeout",
-            headers={"Retry-After": "5"},
-        ) from exc
+        try:
+            await acquire_slot(sem, wait_seconds)
+            slot_acquired = True
+        except TimeoutError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="Server is busy processing other diagram requests. reason: queue_timeout",
+                headers={"Retry-After": "5"},
+            ) from exc
 
-    try:
         # Read image in chunks into a single bytearray to prevent multiple copies (A5)
         buf = bytearray()
         chunk_size = 64 * 1024
@@ -676,7 +677,7 @@ async def process_scene(
             except TimeoutError as exc:
                 cancel_event.set()
                 try:
-                    await raw_task
+                    await asyncio.wait_for(asyncio.shield(raw_task), timeout=0.5)
                 except Exception:
                     pass
                 raise HTTPException(
@@ -691,7 +692,7 @@ async def process_scene(
             except (Exception, asyncio.CancelledError):
                 cancel_event.set()
                 try:
-                    await raw_task
+                    await asyncio.wait_for(asyncio.shield(raw_task), timeout=0.5)
                 except Exception:
                     pass
                 raise
@@ -891,8 +892,9 @@ async def process_scene(
             return payload
         return await run_raw_mode(fallback_reason, provider_state["name"])
     finally:
+        if slot_acquired:
+            sem.release()
         scene_in_flight.release(client_key_val)
-        sem.release()
 
 
 @router.post("/api/v1/ask", response_model=AskResponse)
@@ -905,7 +907,7 @@ async def ask_question_route(
 
     Uses vision/language provider completion with fallback to deterministic facts lookup.
     """
-    # C4, R3-1: Per-client in-flight cap (429 over cap)
+    # C4, R3-1, M4-01: Per-client in-flight cap (429 over cap)
     client_key_val = request_client_key(raw_request)
     ask_limiter = get_ask_in_flight_limiter()
     if not ask_limiter.acquire(client_key_val):
@@ -917,19 +919,20 @@ async def ask_question_route(
             headers={"Retry-After": "1"},
         )
 
+    slot_acquired = False
     sem = get_ask_semaphore()
     wait_seconds = parse_ask_queue_wait_seconds()
     try:
-        await acquire_slot(sem, wait_seconds)
-    except TimeoutError as exc:
-        ask_limiter.release(client_key_val)
-        raise HTTPException(
-            status_code=503,
-            detail="Server is busy processing other ask requests.",
-            headers={"Retry-After": "5"},
-        ) from exc
+        try:
+            await acquire_slot(sem, wait_seconds)
+            slot_acquired = True
+        except TimeoutError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="Server is busy processing other ask requests.",
+                headers={"Retry-After": "5"},
+            ) from exc
 
-    try:
         if await raw_request.is_disconnected():
             logger.info("Client disconnected before ask processing; aborting")
             return Response(status_code=499)
@@ -961,8 +964,9 @@ async def ask_question_route(
             ):
                 raise asyncio.CancelledError()
     finally:
+        if slot_acquired:
+            sem.release()
         ask_limiter.release(client_key_val)
-        sem.release()
 
 
 class ValidateRequest(BaseModel):
