@@ -1790,3 +1790,30 @@ Format for each entry:
   - `frontend/tests/h7.explore.fixes.test.ts`
   - `docs/reports/agy-h7-explore-fixes-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-08 — Antigravity — Lane h4-rawmode-uploads: Raw Mode downscaling, candidate capping, worker cancel, and upload slot holding
+- Addressed Red-Team audit findings A3 and A5 (from `docs/reports/audit-claude-redteam-backend.md` and `docs/briefs/agy-h4-rawmode-uploads.md`):
+  - A3 (FIXED): Downscale images > 1600 px on the long side before edge detection (`MAX_RAW_DIMENSION = 1600`) using area interpolation. Free 3-channel decoded buffer immediately after grayscale conversion. Cap contour list to ~2000 longest candidates (`MAX_RAW_CONTOURS = 2000`) before building Python segment objects. Cap segment list to ~2000 before deduplication (`heapq.nlargest`). Added cooperative cancellation flag (`cancel_check`) checked between OpenCV stages and loops in `raw_mode.py`. In `main.py`, on timeout the worker thread is signaled via `cancel_event.set()` and awaited with `asyncio.shield`, ensuring the worker thread halts immediately and the semaphore slot remains held until the thread finishes.
+  - A5 (FIXED): Take the concurrency slot (`get_scene_semaphore`) before reading upload bytes into memory, preventing unslotted queued requests from holding upload memory. In `post_scene`, stream upload chunks directly into a single `bytearray` buffer (`buf.extend(chunk)`) and convert to `bytes` once (`del buf`), eliminating simultaneous chunk list and joined copies. Preserved all upload size caps and status codes (413, 415, 422).
+  - Edge cases tested: blank image, all-white, 1x1, extreme aspect ratios (wide 3000x30, tall 30x3000), and 12-megapixel noisy image (generates fast, downscales, stays under 300 segments).
+  - Added new comprehensive test suite in `backend/tests/test_h4_rawmode_uploads.py` (17 test cases).
+- Follow-up fixes:
+  - Made raw mode builder invocation in `main.py` backward compatible via `_call_raw_scene`,
+    resolving `TypeError` in `test_review_fixes.py::test_raw_mode_runs_once_after_ai_timeout` when
+    monkeypatched with 1-arg callables. Existing test unchanged.
+  - Wrapped `backend/app/raw_mode.py` line 25 to fix ruff E501 (>100 chars).
+  - Aligned `backend/app/raw_mode.py` with ruff-format style (trailing commas in multi-line calls,
+    if/else cancel check, line limit 100).
+  - Follow-up 3: Fixed flakiness in `test_h4_scene_route_timeout_cancels_worker_and_holds_slot`.
+    The fake worker now polls in a loop for up to 500 iterations (5.0s) with 0.01s sleep so it
+    cannot exit before the timeout, and assertions use bounded event wait (`wait(timeout=5.0)`).
+    In `main.py`, `remaining` calculation respects configured deadlines without clamping to 0.5s
+    (`max(0.05, total_deadline - elapsed)`), and `finally: cancel_event.set()` guarantees the cancel
+    flag is set before releasing the slot and returning the response.
+- What broke / surprising findings: None; all invariants preserved and existing property tests remain fully compatible.
+- Files touched:
+  - `backend/app/raw_mode.py`
+  - `backend/app/main.py`
+  - `backend/tests/test_h4_rawmode_uploads.py`
+  - `docs/reports/agy-h4-rawmode-uploads-report.md`
+  - `docs/BUILD_LOG.md`
