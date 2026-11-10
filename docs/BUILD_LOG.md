@@ -3292,3 +3292,82 @@ Format for each entry:
 
 ## 2026-11-10 — Kiro — T40.2 (a failed save can lose an older diagram)
 - Tool: **Kiro**. The scenario as stated ("the delete succeeds, then the put fails") does not reproduce: both paths put before they delete, and the memory store checks for failure before it changes anything. The audit's literal case (`evictedId === entry.id`) is not reachable through `saveDiagramWithEviction`, but it is on a direct `MemoryDiagramStore.putWithEviction(e, e.id)`. **A real loss does reproduce** with two or more victims: P83 (`tests/saved.writeOrder.prop.test.ts`, 300 runs, the real memory store plus a fallback store, one injected failure at any call). Counterexample: cap 2, store `d0`-`d3`, update `d0`, the 3rd call fails; `put d0` ok, `delete d1` ok, `delete d2` fails, rollback, and `d1` is lost. Added Requirement 22.14. Fixed `MemoryDiagramStore.putWithEviction` (`drivers/`): it now deletes the victim before it stores, and never evicts the entry being saved; the audit-case test fails when this fix is stashed. The multi-victim fallback is in `flow/saved.ts`, for the saved lane; two P83 tests stay red until then (in `kiro-round6.md`).
+
+## 2026-11-10 — agy, reviewed by Claude — Lane z1-r6-frontend-fixes (frontend fixes, pass 2)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - Requirement 1: In `components/teach/TeachCanvas.tsx`, accepted `canvasRef` prop forwarding
+    to internal canvas element. In `screens/Teach.tsx`, moved focus to canvas via
+    `canvasRef.current?.focus()` and announced element addition upon second press of Add point and
+    upon Add edge completion, so keyboard and TalkBack users are not trapped on toolbar buttons.
+  - Requirement 2: In `components/VerifiedBanner.tsx`, updated note sanitization to use
+    `sanitizeShareTitle(note)` and teacher name to use `sanitizeShareName(by)` from `flow/share.ts`,
+    stripping checkmark emojis, invisible marks, and badge words ("verified", "certified", etc.).
+  - Requirement 3: In `flow/saved.ts` (`deletedAnnouncement`), switched `String.prototype.replace`
+    to a function replacer `() => title`, preventing template injection / corruption from `$1`, `$&`,
+    `$'`, and other special replacement patterns in user-controlled diagram titles.
+  - Requirement 6: In `flow/teach.ts`, added reserved ID checks (`RESERVED_IDS`, `isReservedId`)
+    covering `title`, `scene:title`, `__proto__`, `constructor`, `prototype`, etc. case-insensitively,
+    preventing `generateUniquePointId` and `addVertex` from generating or accepting reserved IDs.
+  - Pass 2 Reverts:
+    - Reverted Item 4: Restored `flow/navigation.ts` `leaveByBack` to main (`needsConfirm: false`
+      for `correct`). Deferred for Kiro (spec change to property P43 in
+      `round2.navigation.prop.test.ts` needed first).
+    - Reverted Item 5: Restored `drivers/diagramStore.ts` (`MemoryDiagramStore` and
+      `IDBDiagramStore.putWithEviction`) to main (delete-victim-then-put per R5-02). Deferred
+      (conflicts with R5-02 single-transaction design; audit LOW finding needs a design decision).
+  - Maintained comprehensive behavioral unit tests in `frontend/tests/z1.frontend.fixes.test.tsx`
+    for active requirements 1, 2, 3, and 6.
+- What broke / surprising findings:
+  - Supervisor gating identified that Item 4 broke Kiro property P43 (which asserts only Teacher
+    edits ask for confirmation) and Item 5 contradicted the R5-02 single-transaction design
+    tested by `tests/drivers.diagramStore.test.ts`, `tests/k6.pwa-offline.test.ts`, and P72-P76.
+    Both were reverted and deferred.
+- Files touched:
+  - `frontend/src/components/teach/TeachCanvas.tsx`
+  - `frontend/src/screens/Teach.tsx`
+  - `frontend/src/components/VerifiedBanner.tsx`
+  - `frontend/src/flow/saved.ts`
+  - `frontend/src/flow/navigation.ts`
+  - `frontend/src/drivers/diagramStore.ts`
+  - `frontend/src/flow/teach.ts`
+  - `frontend/tests/z1.frontend.fixes.test.tsx`
+  - `docs/reports/agy-z1-r6-frontend-fixes-report.md`
+  - `docs/BUILD_LOG.md`
+
+
+## 2026-11-10 — agy, reviewed by Claude — Lane z3-app-merged-fixes (App.tsx Findings from r6 Audit)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - Fix 1 (HIGH): In `frontend/src/App.tsx`, updated `handleTeachBack` to clear `teachDirty.current = false;` and `lastProcessedHash.current = '';` before calling `clearHash()`. In `frontend/src/screens/Teach.tsx`, updated `handleBack` to clear `onDirtyChange?.(false)` before `onBack()`. Eliminates duplicate `window.confirm` dialog and duplicate spoken announcements when exiting Teacher Editor via in-app Exit button.
+  - Fix 2 (HIGH): In `frontend/src/App.tsx`, removed premature assignment of `lastExploreScene.current = resolution.scene` on cold shared link load (`view` initializer) and on route resolution in the hash change listener. Assigned `lastExploreScene.current` strictly inside `handleOpenSharedDiagram` when the user taps "Open the shared diagram" on `ShareGate`, strictly preventing shared diagram data from reaching Explore state or `lastExploreScene` before user activation.
+  - Fix 3 (HIGH): In `frontend/src/i18n/index.ts`, rephrased active Teacher strings (`teach.validationTitle`, `teach.validDiagram`, `teach.invalidDiagram`, `teach.verifySection`, `teach.markVerified`, `teach.verifiedSuccess`, `teach.qrCodeAlt`, `teach.verifyError`) across English, Hindi, and Gujarati to honest phrasing without banned claim words ("verified", "correct", "checked", "approved", "सत्यापित", "પ્રમાણિત"). Appended all modified strings to `docs/user-test/translation-review.csv` and `docs/user-test/translation-review.md`. Confirmed `resolveShareRoute` in `App.tsx` defaults `honest` to `true` (`options?.honest ?? true`), preventing legacy claim strings from being spoken on any live app path.
+  - DEFERRED: Wire `needsConfirm` argument for `leaveByBack` in `App.tsx` deferred for supervisor per supervisor instructions (lane z1 adds that parameter to `flow/navigation.ts` in parallel).
+  - Tests: Built comprehensive test suite in `frontend/tests/z3.appMergedFixes.test.tsx` covering single-speech & single-confirm on exit, cold link gate isolation, `resolveShareRoute` honest default, and claim-free dictionary parity.
+- What broke / surprising findings:
+  - None. All edits maintain strict backwards compatibility and lines remain within 100 columns.
+- Files touched:
+  - `frontend/src/App.tsx`
+  - `frontend/src/screens/Teach.tsx`
+  - `frontend/src/i18n/index.ts`
+  - `docs/user-test/translation-review.csv`
+  - `docs/user-test/translation-review.md`
+  - `frontend/tests/z3.appMergedFixes.test.tsx`
+  - `docs/reports/agy-z3-app-merged-fixes-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-10 — agy, reviewed by Claude — Lane z3-app-merged-fixes (Pass 2 Follow-Up)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - Removed unused imports (`getLang`, `Lang`, `TEACH_HASH`) in
+    `frontend/tests/z3.appMergedFixes.test.tsx` for clean `tsc --noEmit`.
+  - Fixed `Fix 2` tests in `frontend/tests/z3.appMergedFixes.test.tsx`: wrapped `root.render` in
+    `await act(async () => ...)`, corrected heading selector to `.gt-share-gate__title`, and
+    made `afterEach` unmount async matching `q2.round5.test.tsx`.
+- What broke / surprising findings:
+  - Synchronous `act` in jsdom with React 18 `createRoot` rendered before effects/DOM flushed,
+    and `.gt-share-gate__heading` did not match actual heading class `.gt-share-gate__title`.
+- Files touched:
+  - `frontend/tests/z3.appMergedFixes.test.tsx`
+  - `docs/reports/agy-z3-app-merged-fixes-report.md`
+  - `docs/BUILD_LOG.md`
