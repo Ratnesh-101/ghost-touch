@@ -751,3 +751,15 @@ The following spoken strings may be difficult for blind students to follow in a 
 | `correct.nothingLeft (spoken)` | Nothing is left to feel in this diagram. Undo brings it back. | इस आरेख में महसूस करने के लिए कुछ नहीं बचा है। पूर्ववत करने से यह वापस आ जाएगा। | આ આકૃતિમાં અનુભવવા માટે કંઈ બાકી નથી. પૂર્વવત્ કરવાથી તે પાછું આવશે. | | | | marked for native review |
 | `share.honesty (spoken)` | This diagram was shared as a link. Ghost Touch cannot confirm it is right. | यह आरेख एक लिंक के रूप में साझा किया गया है। घोस्ट टच इसकी पुष्टि नहीं कर सकता कि यह सही है। | આ આકૃતિ લિંક તરીકે શેર કરવામાં આવી છે. ગોસ્ટ ટચ તે સાચી છે તેની પુષ્ટિ કરી શકતું નથી. | | | | Requirement 22.12 honest disclaimer; marked for native review |
 | `share.honesty (spoken)` | This diagram was shared as a link. Ghost Touch cannot confirm it is right. | यह आरेख एक लिंक के रूप में साझा किया गया है। घोस्ट टच इसकी पुष्टि नहीं कर सकता कि यह सही है। | આ આકૃતિ લિંક તરીકે શેર કરવામાં આવી છે. ગોસ્ટ ટચ તે સાચી છે તેની પુષ્ટિ કરી શકતું નથી. | | | | Requirement 22.12 honest disclaimer; marked for native review |
+---
+## 27. Teacher Mode & Share Claims Removal (Lane z3-app-merged-fixes)
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
+| `teach.validationTitle` | Validation status | मान्यता स्थिति | માન્યતા સ્થિતિ | | | | Lane z3: removed audit finding claim words; marked for native review |
+| `teach.validDiagram` | Diagram is valid and ready to share. | आरेख मान्य है और साझा करने के लिए तैयार है। | આકૃતિ માન્ય છે અને શેર કરવા માટે તૈયાર છે. | | | | Lane z3: rephrased away from claim words; marked for native review |
+| `teach.invalidDiagram` | Diagram validation issues: {errors} | आरेख मान्यता त्रुटियां: {errors} | આકૃતિ માન્યતા સમસ્યાઓ: {errors} | | | | Lane z3: keep {errors}; marked for native review |
+| `teach.verifySection` | Ready to share | साझा करें | શેર કરો | | | | Lane z3: rephrased away from claim words; marked for native review |
+| `teach.markVerified` | Ready to share | साझा करने के लिए तैयार | શેર કરવા માટે તૈયાર | | | | Lane z3: rephrased away from claim words; marked for native review |
+| `teach.verifiedSuccess (spoken)` | Diagram prepared for sharing and share link ready. | आरेख तैयार किया गया और साझा लिंक तैयार है। | આકૃતિ તૈયાર કરવામાં આવી અને શેર લિંક તૈયાર છે. | | | | Lane z3: rephrased away from claim words; marked for native review |
+| `teach.qrCodeAlt` | QR code to open this shared diagram | इस साझा आरेख को खोलने के लिए क्यूआर कोड | આ શેર કરેલી આકૃતિ ખોલવા માટે ક્યુઆર કોડ | | | | Lane z3: rephrased away from claim words; marked for native review |
+| `teach.verifyError (spoken)` | Sharing failed | साझा करना विफल रहा | શેર કરવાનું નિષ્ફળ રહ્યું | | | | Lane z3: rephrased away from claim words; marked for native review |
