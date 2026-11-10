@@ -32,3 +32,11 @@ Session A's retry script is `agy-retry-after-quota.sh` (starts those four, 20 s 
 | x1-w2-fixes | backend only: gemini.py key scrubbing, XFF key mismatch in limits.py, WebP VP8X sniffing (render.yaml items deferred to owner) | launched |
 | y1-w3-fixes-a | frontend: speech.ts hide-cancel, Capture.tsx cancel message, offline capture message (files q2 does not touch) | launching |
 | y2-w3-fixes-b | WAITING for q2 to merge: ShareError focus + live region on cold open, Correct intro double speech (App.tsx), Saved heading (App.tsx), Explore voice-fail focus / status text / hidden stopSpeaking | not launched |
+
+## Session A (Claude) round 6, 2026-11-10 evening
+| Lane | Scope | State |
+|---|---|---|
+| z1-r6-frontend-fixes | Teach focus, VerifiedBanner sanitise, saved.ts replacer, leaveByBack, store order, flow/teach.ts reserved ids (no App.tsx, no core) | launched |
+| z2-test-hygiene | tests only, from audit-r6-tests-tonight | launched |
+| z3-app-merged-fixes | App.tsx findings of audit-r6-merged-share-saved | QUEUED: starts only after q2 and y2 are merged (both edit App.tsx) |
+q2-frontend-round5: pass 3 done, session A is re-gating it now; session B y2 waits on it. Session A will merge q2 and announce here.
