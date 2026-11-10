@@ -266,13 +266,32 @@
 
 /* Supporting styles for point & segment list items and drag handles */
 .gt-correct__point-list,
-.gt-correct__segment-list {
+.gt-correct__segment-list,
+.gt-correct__polyline-list,
+.gt-correct__bar-list,
+.gt-correct__element-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--gt-space-xs, 8px);
+}
+
+.gt-correct__elements {
+  display: flex;
   flex-direction: column;
   gap: var(--gt-space-xs, 8px);
+}
+
+.gt-correct__element-btn {
+  font-size: var(--gt-text-sm, 0.875rem);
+  padding: 8px 12px;
+}
+
+.gt-correct__element-btn--selected {
+  border-color: var(--gt-cyan, var(--gt-green, #39ff88));
+  background: var(--gt-surface-raised, #13271f);
 }
 
 .gt-correct__list-item,

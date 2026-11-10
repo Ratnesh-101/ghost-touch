@@ -19,8 +19,6 @@ import {
   canRedo,
   canUndo,
   createHistory,
-  deletePoint,
-  deleteSegment,
   movePoint,
   redo,
   renameLabel,
@@ -37,6 +35,7 @@ import {
   getSelectedLabel,
   getSelectionAnnouncement,
   hitTestCorrect,
+  deleteSelectedElement,
   type CorrectSelection,
 } from '../flow/correct';
 import {
@@ -365,19 +364,53 @@ export function Correct({
       }
     }
 
+    // Draw bars for bar charts
+    for (const bar of curScene.bars ?? []) {
+      const bx = view.offsetX + bar.x0 * view.scale;
+      const bw = (bar.x1 - bar.x0) * view.scale;
+      const by = view.offsetY + bar.y_top * view.scale;
+      const bh = (bar.y_base - bar.y_top) * view.scale;
+
+      const isSel = selection?.kind === 'bar' && selection.id === bar.id;
+      ctx.fillStyle = isSel ? 'rgba(88, 166, 255, 0.4)' : 'rgba(57, 255, 136, 0.3)';
+      ctx.strokeStyle = isSel ? '#58a6ff' : '#39ff88';
+      ctx.lineWidth = isSel ? 4 : 2;
+      ctx.fillRect(bx, by, bw, bh);
+      ctx.strokeRect(bx, by, bw, bh);
+
+      const barLabel = bar.label?.trim()
+        ? `${bar.label.trim()} (${bar.value})`
+        : `${bar.id} (${bar.value})`;
+      drawLabelPill(ctx, barLabel, bx + bw / 2, by - 12, isSel);
+    }
+
     // Draw polylines
     for (const poly of curScene.polylines ?? []) {
       if (poly.points.length < 2) continue;
-      const start = toScreen({ x: poly.points[0]![0], y: poly.points[0]![1] }, view);
+      const isSel = selection?.kind === 'polyline' && selection.id === poly.id;
+      const p0 = poly.points[0];
+      if (!p0) continue;
+      const start = toScreen({ x: p0[0], y: p0[1] }, view);
       ctx.beginPath();
       ctx.moveTo(start.x, start.y);
       for (let i = 1; i < poly.points.length; i++) {
-        const pt = toScreen({ x: poly.points[i]![0], y: poly.points[i]![1] }, view);
+        const ptCoord = poly.points[i];
+        if (!ptCoord) continue;
+        const pt = toScreen({ x: ptCoord[0], y: ptCoord[1] }, view);
         ctx.lineTo(pt.x, pt.y);
       }
-      ctx.strokeStyle = '#2ea043';
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = isSel ? '#58a6ff' : '#2ea043';
+      ctx.lineWidth = isSel ? 6 : 3;
       ctx.stroke();
+
+      if (poly.label && poly.points.length > 0) {
+        const midIdx = Math.floor(poly.points.length / 2);
+        const midPt = poly.points[midIdx];
+        if (midPt) {
+          const sm = toScreen({ x: midPt[0], y: midPt[1] }, view);
+          drawLabelPill(ctx, poly.label, sm.x, sm.y - 12, isSel);
+        }
+      }
     }
 
     // Draw points
@@ -506,22 +539,28 @@ export function Correct({
     }
   };
 
+  const handleSelectElement = (sel: CorrectSelection): void => {
+    setSelection(sel);
+    if (sel) {
+      const announcement = getSelectionAnnouncement(history.present, sel);
+      sayAndStatus(announcement);
+    } else {
+      sayAndStatus(t('correct.noSelection'));
+    }
+  };
+
   const handleDelete = (): void => {
     if (!selection) return;
 
-    if (selection.kind === 'point') {
-      const id = selection.id;
-      const updated = deletePoint(history.present, id);
-      setHistory((h) => applyEdit(h, updated));
-      setSelection(null);
-      sayAndStatus(`${t('correct.pointDeleted')}: ${id}`);
-    } else if (selection.kind === 'segment') {
-      const id = selection.id;
-      const updated = deleteSegment(history.present, id);
-      setHistory((h) => applyEdit(h, updated));
-      setSelection(null);
-      sayAndStatus(`${t('correct.segmentDeleted')}: ${id}`);
+    const result = deleteSelectedElement(history.present, selection);
+    if (result.isNoOp) {
+      sayAndStatus(result.announcement);
+      return;
     }
+
+    setHistory((h) => applyEdit(h, result.scene));
+    setSelection(null);
+    sayAndStatus(result.announcement);
   };
 
   const handleUndo = (): void => {
@@ -644,6 +683,85 @@ export function Correct({
           onKeyDown={handleKeyDown}
         />
       </div>
+
+      {/* Accessible element selection list for keyboard and screen-reader users */}
+      {((history.present.points?.length ?? 0) > 0 ||
+        (history.present.segments?.length ?? 0) > 0 ||
+        (history.present.polylines?.length ?? 0) > 0 ||
+        (history.present.bars?.length ?? 0) > 0) && (
+        <section className="gt-correct__elements" aria-label={t('correct.photoOverlay')}>
+          <div className="gt-correct__element-list" role="list">
+            {(history.present.points ?? []).map((pt) => {
+              const label = pt.label ? `${pt.label} (${pt.id})` : pt.id;
+              const isSel = selection?.kind === 'point' && selection.id === pt.id;
+              const cls = `gt-correct__btn gt-correct__element-btn ${
+                isSel ? 'gt-correct__element-btn--selected' : ''
+              }`;
+              return (
+                <AccessibleButton
+                  key={`point-${pt.id}`}
+                  className={cls}
+                  aria-pressed={isSel}
+                  onClick={() => handleSelectElement({ kind: 'point', id: pt.id })}
+                >
+                  {`${t('correct.selectedPoint')}: ${label}`}
+                </AccessibleButton>
+              );
+            })}
+            {(history.present.segments ?? []).map((seg) => {
+              const label = seg.label ? `${seg.label} (${seg.id})` : seg.id;
+              const isSel = selection?.kind === 'segment' && selection.id === seg.id;
+              const cls = `gt-correct__btn gt-correct__element-btn ${
+                isSel ? 'gt-correct__element-btn--selected' : ''
+              }`;
+              return (
+                <AccessibleButton
+                  key={`segment-${seg.id}`}
+                  className={cls}
+                  aria-pressed={isSel}
+                  onClick={() => handleSelectElement({ kind: 'segment', id: seg.id })}
+                >
+                  {`${t('correct.selectedSegment')}: ${label}`}
+                </AccessibleButton>
+              );
+            })}
+            {(history.present.polylines ?? []).map((poly) => {
+              const label = poly.label ? `${poly.label} (${poly.id})` : poly.id;
+              const isSel = selection?.kind === 'polyline' && selection.id === poly.id;
+              const cls = `gt-correct__btn gt-correct__element-btn ${
+                isSel ? 'gt-correct__element-btn--selected' : ''
+              }`;
+              return (
+                <AccessibleButton
+                  key={`polyline-${poly.id}`}
+                  className={cls}
+                  aria-pressed={isSel}
+                  onClick={() => handleSelectElement({ kind: 'polyline', id: poly.id })}
+                >
+                  {`${t('correct.selectedPolyline')}: ${label}`}
+                </AccessibleButton>
+              );
+            })}
+            {(history.present.bars ?? []).map((bar) => {
+              const label = bar.label ? `${bar.label} (${bar.id})` : bar.id;
+              const isSel = selection?.kind === 'bar' && selection.id === bar.id;
+              const cls = `gt-correct__btn gt-correct__element-btn ${
+                isSel ? 'gt-correct__element-btn--selected' : ''
+              }`;
+              return (
+                <AccessibleButton
+                  key={`bar-${bar.id}`}
+                  className={cls}
+                  aria-pressed={isSel}
+                  onClick={() => handleSelectElement({ kind: 'bar', id: bar.id })}
+                >
+                  {`${t('correct.selectedBar')}: ${label}`}
+                </AccessibleButton>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Label Edit Panel when an element is selected */}
       {selection && (
