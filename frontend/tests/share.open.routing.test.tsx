@@ -400,7 +400,7 @@ describe('Share Open Routing & Flow', () => {
     const encoded = encodeShare(payload);
     const hash = `#s=${encoded}`;
 
-    const resolution = resolveShareRoute(hash, true);
+    const resolution = resolveShareRoute(hash, true, { honest: false });
     expect(resolution.kind).toBe('explore');
     if (resolution.kind !== 'explore') return;
 
@@ -453,7 +453,7 @@ describe('Share Open Routing & Flow', () => {
       const encoded = encodeShare(payload);
       const hash = `#s=${encoded}`;
 
-      const resolution = resolveShareRoute(hash, true);
+      const resolution = resolveShareRoute(hash, true, { honest: false });
       expect(resolution.kind).toBe('explore');
       if (resolution.kind !== 'explore') continue;
 
@@ -490,6 +490,38 @@ describe('Share Open Routing & Flow', () => {
       // Avoid double full stop
       expect(spoken).not.toContain('..');
       expect(spoken).not.toContain('।.');
+    }
+  });
+
+  it('R5-12: resolveShareRoute defaults honest to true when options omitted or empty', () => {
+    const payload: SharePayload = {
+      v: 1,
+      scene: sampleScene,
+      verifiedBy: 'Dr. Rao',
+      note: 'Note content',
+      verifiedAt: '2026-11-06T12:00:00Z',
+    };
+    const encoded = encodeShare(payload);
+    const hash = `#s=${encoded}`;
+
+    // 1. Missing options argument
+    const resNoOptions = resolveShareRoute(hash, true);
+    expect(resNoOptions.kind).toBe('explore');
+    if (resNoOptions.kind === 'explore') {
+      expect(resNoOptions.verifiedAnnouncement).toBe('Shared by Dr. Rao, not checked');
+      expect(resNoOptions.verifiedAnnouncement).not.toContain('Verified');
+      expect(resNoOptions.spokenAnnouncement).toContain('Shared by Dr. Rao, not checked');
+      expect(resNoOptions.spokenAnnouncement).not.toContain('Verified by');
+    }
+
+    // 2. Empty options object {}
+    const resEmptyOptions = resolveShareRoute(hash, true, {});
+    expect(resEmptyOptions.kind).toBe('explore');
+    if (resEmptyOptions.kind === 'explore') {
+      expect(resEmptyOptions.verifiedAnnouncement).toBe('Shared by Dr. Rao, not checked');
+      expect(resEmptyOptions.verifiedAnnouncement).not.toContain('Verified');
+      expect(resEmptyOptions.spokenAnnouncement).toContain('Shared by Dr. Rao, not checked');
+      expect(resEmptyOptions.spokenAnnouncement).not.toContain('Verified by');
     }
   });
 

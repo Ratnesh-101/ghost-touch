@@ -123,7 +123,7 @@ export function resolveShareRoute(
   }
   try {
     const decoded = decodeShare(hash);
-    const useHonest = options?.honest ?? false;
+    const useHonest = options?.honest ?? true;
 
     // R3 sanitization: strip leading checkmarks and "verified"/"certified" from author name
     const cleanName = sanitizeShareName(decoded.verifiedBy);
@@ -200,7 +200,9 @@ export function speakShareAnnouncements(
       joinShareAnnouncements(resolution.sceneAnnouncement, resolution.verifiedAnnouncement);
     speech.speak(utterance, langBcp47);
   } else if (resolution.kind === 'error') {
-    speech.speak(resolution.errorMessage, langBcp47);
+    if (speech.canSpeak) {
+      speech.speak(resolution.errorMessage, langBcp47);
+    }
   }
 }
 
@@ -358,7 +360,9 @@ export function App(): JSX.Element {
         resolution,
       });
     } else if (resolution.kind === 'error') {
-      speakShareAnnouncements(drivers.speech, resolution, LANG_BCP47[currentLang]);
+      if (drivers.speech.canSpeak) {
+        speakShareAnnouncements(drivers.speech, resolution, LANG_BCP47[currentLang]);
+      }
       setView({
         screen: 'shareError',
         code: resolution.code,
@@ -702,6 +706,7 @@ export function App(): JSX.Element {
         <ShareErrorScreen
           code={view.code}
           onGoToStart={handleGoToStart}
+          canSpeak={drivers.speech.canSpeak}
         />
       );
     case 'correct':

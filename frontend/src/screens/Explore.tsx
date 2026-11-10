@@ -49,8 +49,8 @@ import {
   type EngineState,
   type PointerHistory,
 } from '../flow/explore';
-import { canvasAriaLabel, sceneName } from '../flow/navigation';
-import { getLang, subscribeLang, LANG_BCP47, t } from '../i18n';
+import { canvasAriaLabel, exploreAnnouncement, sceneName } from '../flow/navigation';
+import { getLang, subscribeLang, LANG_BCP47, t, type Lang } from '../i18n';
 import {
   markAlivePlayed,
   markReturningFromCorrect,
@@ -244,9 +244,33 @@ export function Explore({
   const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
   const [statusMessage, setStatusMessage] = useState(announced);
 
-  // Sync statusMessage with announced prop updates without re-speaking (R5-01).
+  const deriveAnnouncement = useCallback((): string => {
+    const isRawMode =
+      isRaw ?? (scene.kind === 'unknown' || announced.includes(t('raw.announce')));
+    const mode = isRawMode ? 'raw' : verified ? 'shared' : 'ai';
+    return exploreAnnouncement(
+      scene,
+      mode,
+      undefined,
+      verified ? { honestTitle: true } : undefined,
+    );
+  }, [scene, isRaw, announced, verified]);
+
+  const prevLangRef = useRef<Lang>(currentLang);
+  useEffect(() => {
+    if (prevLangRef.current !== currentLang) {
+      prevLangRef.current = currentLang;
+      const updated = deriveAnnouncement();
+      setStatusMessage(updated);
+      lastSpokenRef.current = updated;
+    }
+  }, [currentLang, deriveAnnouncement]);
+
+  // Sync statusMessage and lastSpokenRef with announced prop updates
+  // without re-speaking (R5-01).
   useEffect(() => {
     setStatusMessage(announced);
+    lastSpokenRef.current = announced;
   }, [announced]);
   const [isBusy, setIsBusy] = useState(false);
   const [showTextFallback, setShowTextFallback] = useState(!drivers.speech.canListen);
@@ -1254,7 +1278,10 @@ export function Explore({
     <main className={`gt-explore gt-lab-explore${isGuiding ? ' gt-explore--guiding' : ''}`}>
       <header className="gt-explore__header gt-lab-header">
         <div className="gt-toolbar">
-          <SettingsLauncher drivers={drivers} speak={(text) => drivers.speech.speak(text)} />
+          <SettingsLauncher
+            drivers={drivers}
+            speak={(text) => drivers.speech.speak(text, LANG_BCP47[getLang()])}
+          />
         </div>
         <div className="gt-explore__title-row">
           <h1 className="gt-explore__title">{sceneName(scene)}</h1>
