@@ -3259,3 +3259,20 @@ Format for each entry:
 
 ## 2026-11-10 — Kiro — T39.3 (Spec Ghost language: angle fallback, English-only facts)
 - Tool: **Kiro**. Audit check: `verifyScene` always sets `angleVertex` on an angle finding (T35). So the English fallback only reached findings built by hand; the claim is right about the function, but the path is not reached in shipped code. Fixed anyway: `localizedFindingTarget` now reads "angle X" from the target when `angleVertex` is missing (Requirement 23.5). For Hindi and Gujarati facts I chose the non-goal over a parser and wrote it as Requirement 18.10. The vision prompt asks for facts in fixed English shapes, and no screen lets anyone type a fact, so a hi/gu parser would have no input. Tests are in `tests/verify.language.prop.test.ts`. P80 checks the wording is the same with and without `angleVertex` (250 runs). P81 checks that wrong hi/gu facts stay silent, with an English control that is flagged (250 runs). Two mutants killed: the fallback removed, and a "guessing" parser. No new strings.
+
+
+## 2026-11-10 — agy, reviewed by Claude — Lane z2-test-hygiene (Test Hygiene)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - Resolved all test hygiene findings from `docs/reports/audit-r6-tests-tonight.md` concerning agy-written tests.
+  - In `backend/tests/test_n1_backend.py:378-432`, replaced the tautological assertion (`assert best_seg is not None`) in `test_m4_05_semantic_calculations_safe_with_boundary_aspect` with concrete assertions verifying longest-side element ID (`AB` for `aspect=20.0`, `AC` for `aspect=0.05`), feature name, label, and midpoint coordinates across both aspect boundaries. Positioned Point C at `(0.0, 0.8)` so raw unscaled AC (0.8) strictly exceeds AB (0.5), catching any mutation that omits aspect scaling in `semantic.py:716`.
+  - In `backend/tests/test_ask_ids.py:290`, raised the Hypothesis `max_examples` run count in `test_hypothesis_unknown_id_never_gets_answer` from 100 to 200, matching project-wide standards.
+  - Formatted all test updates to ruff style within 100 columns.
+  - Recorded findings, mutation proofs, and Kiro test deferrals in `docs/reports/agy-z2-test-hygiene-report.md`.
+- What broke / surprising findings:
+  - None. Both findings resolved cleanly with no changes to production code.
+- Files touched:
+  - `backend/tests/test_n1_backend.py`
+  - `backend/tests/test_ask_ids.py`
+  - `docs/reports/agy-z2-test-hygiene-report.md`
+  - `docs/BUILD_LOG.md`
