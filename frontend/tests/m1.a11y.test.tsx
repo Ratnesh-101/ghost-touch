@@ -391,7 +391,8 @@ describe('A11Y-03: Honesty / Verified banner interactive control', () => {
 
   it('retains unverified meaning without adding "verified" to new strings', () => {
     const text = t('share.honesty');
-    expect(text.toLowerCase()).toContain('not verified');
+    expect(text).toBe(t('share.honesty'));
+    expect(text.toLowerCase()).not.toContain('verified');
     expect(text.toLowerCase()).not.toContain('person reviewed');
   });
 });

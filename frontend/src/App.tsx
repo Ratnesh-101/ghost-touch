@@ -144,8 +144,8 @@ export function resolveShareRoute(
     // Legacy announcement for backward-compatibility with k1 test suite
     const legacySceneAnnouncement = exploreAnnouncement(decoded.scene, 'shared');
     const legacyVerifiedName =
-      decoded.verifiedBy.trim() !== '' ? decoded.verifiedBy : t('share.verified');
-    const legacyVerifiedAnnouncement = t('share.verifiedBy').replace('{name}', legacyVerifiedName);
+      decoded.verifiedBy.trim() !== '' ? decoded.verifiedBy : t('legacy.verified');
+    const legacyVerifiedAnnouncement = t('legacy.verifiedBy').replace('{name}', legacyVerifiedName);
     const legacySpokenAnnouncement = joinShareAnnouncements(
       legacySceneAnnouncement,
       legacyVerifiedAnnouncement,
