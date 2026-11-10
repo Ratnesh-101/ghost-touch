@@ -3027,3 +3027,46 @@ Format for each entry:
   - `frontend/tests/ghostwriter.teach.test.tsx`
   - `docs/reports/agy-v1-g1-fixes-report.md`
   - `docs/BUILD_LOG.md`
+
+
+## 2026-11-10 — agy, reviewed by Claude — Lane r2-share-aspect (share validator keeps aspect)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - Updated `validateShareScene` in `frontend/src/share/validate.ts` to preserve `aspect` when it is
+    a finite number in [0.05, 20] (Requirement 18.6, backend schema bound), defaulting to 1 for
+    out-of-range, non-numeric (NaN, Infinity, string, boolean, null, undefined), or missing values,
+    never throwing.
+  - Verified reverse direction in `frontend/src/share/codec.ts`: `encodeShare` writes `aspect` into
+    the serialized share payload, and `decodeShare` reads `aspect` back through `validateShareScene`.
+    Legacy links without `aspect` open with default 1.
+  - Added test suite in `frontend/tests/share.aspect.test.ts` covering:
+    - `validateShareScene` keeping 1.5, 0.3, 19, and exact boundaries 0.05 and 20.
+    - Out-of-range and non-numeric fallbacks to 1 without throwing.
+    - Full round-trip encode -> decode -> validate keeping 1.5, 0.3, 19 and falling back to 1.
+    - Backward-compatibility with legacy links omitting `aspect` defaulting to 1.
+    - Spec Ghost (`verifyScene`) driven check confirming that a scene whose geometry matches facts
+      only when aspect is applied produces silence (`status: 'consistent'`), and dropping aspect
+      triggers a disagreement (`status: 'disagree'`).
+  - Read `docs/reports/validator-parity.md` and `backend/fixtures/validator_parity.json`; verified
+    aspect is not a known mismatch on verdicts (both accept), leaving fixture and report table as-is.
+- What broke / surprising findings:
+  - None. Clean addition preserving all existing validation rules, schemas, and invariants.
+- Files touched:
+  - `frontend/src/share/validate.ts`
+  - `frontend/tests/share.aspect.test.ts`
+  - `docs/reports/agy-r2-share-aspect-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-10 — Antigravity — Pass 2 test alignment for r2-share-aspect
+- Tool: **Antigravity** (agy).
+- What was done:
+  - In `frontend/tests/share.open.routing.test.tsx`, updated expected `nextView.scene` to include
+    the default `aspect: 1` returned by `validateShareScene` on validated shared diagram scenes.
+  - Confirmed all other tests under `frontend/tests/` decode and validate share scenes without
+    conflicting whole-scene assertions.
+- What broke / surprising findings:
+  - None. Clean test alignment with the preserved `aspect` property introduced in pass 1.
+- Files touched:
+  - `frontend/tests/share.open.routing.test.tsx`
+  - `docs/reports/agy-r2-share-aspect-report.md`
+  - `docs/BUILD_LOG.md`
