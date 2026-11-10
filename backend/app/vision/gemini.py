@@ -12,6 +12,7 @@ import asyncio
 import logging
 import os
 import re
+import urllib.parse
 from typing import Any
 
 from google import genai
@@ -21,6 +22,14 @@ from app.paid_budget import try_consume
 from app.vision.base import VisionError
 
 logger = logging.getLogger(__name__)
+
+# PRIVACY.md §6.2 regex scrubbers for API keys and tokens
+_BEARER = re.compile(r"Bearer\s+[A-Za-z0-9_\-\.]+", re.IGNORECASE)
+_SK_KEY = re.compile(r"(?:sk|nvapi|csk)-[A-Za-z0-9_\-]{8,}", re.IGNORECASE)
+_AIZA_KEY = re.compile(r"AIza[0-9A-Za-z_\-]{20,}", re.IGNORECASE)
+_PARAM_KEY = re.compile(
+    r"(?i)\b(key|api[_-]?key|x-goog-api-key)['\"]?\s*(=|:|\s*:\s*)\s*['\"]?([^&\s,\'\")\[\]]+)['\"]?"
+)
 
 # Process-level state: once thinking is rejected by Gemini, disable for the lifetime of process
 _process_disable_thinking: bool = False
@@ -32,11 +41,59 @@ def reset_process_thinking_state() -> None:
     _process_disable_thinking = False
 
 
-def _redact_secrets(text: str, secret: str | None) -> str:
-    """Strip secret string from message if present."""
-    if not secret:
-        return text
-    return text.replace(secret, "[REDACTED]")
+def _redact_secrets(text: Any, secret: str | None = None) -> str:
+    """Strip secret string, API keys, and bearer tokens from error text (Finding 1)."""
+    raw = str(text) if text is not None else ""
+    if not raw:
+        return ""
+
+    result = raw
+
+    # 1. Bearer tokens (PRIVACY.md §6.2)
+    result = _BEARER.sub("Bearer [REDACTED]", result)
+
+    # 2. sk / nvapi / csk keys
+    result = _SK_KEY.sub("[REDACTED]", result)
+
+    # 3. Google AIza key shape
+    result = _AIZA_KEY.sub("[REDACTED]", result)
+
+    # 4. Parameter and header keys: key=..., api_key=..., x-goog-api-key:...
+    def _param_repl(m: re.Match[str]) -> str:
+        param = m.group(1)
+        sep = m.group(2)
+        if ":" in sep:
+            return f"{param}: [REDACTED]"
+        return f"{param}=[REDACTED]"
+
+    result = _PARAM_KEY.sub(_param_repl, result)
+
+    # 5. Literal configured secret and its URL-encoded / percent-encoded variants
+    target_secret = secret if (secret and secret.strip()) else os.environ.get("GEMINI_API_KEY", "")
+    if target_secret and target_secret.strip():
+        clean_sec = target_secret.strip()
+        variants: set[str] = {clean_sec}
+        try:
+            q = urllib.parse.quote(clean_sec, safe="")
+            variants.add(q)
+            variants.add(re.sub(r"%([0-9a-fA-F]{2})", lambda m: f"%{m.group(1).lower()}", q))
+            variants.add(re.sub(r"%([0-9a-fA-F]{2})", lambda m: f"%{m.group(1).upper()}", q))
+            qp = urllib.parse.quote_plus(clean_sec, safe="")
+            variants.add(qp)
+            variants.add(re.sub(r"%([0-9a-fA-F]{2})", lambda m: f"%{m.group(1).lower()}", qp))
+            variants.add(re.sub(r"%([0-9a-fA-F]{2})", lambda m: f"%{m.group(1).upper()}", qp))
+        except Exception:
+            pass
+
+        for var in sorted(variants, key=len, reverse=True):
+            if var and len(var) >= 4:
+                result = re.sub(re.escape(var), "[REDACTED]", result, flags=re.IGNORECASE)
+
+    return result
+
+
+# Export alias matching _openai_compat.py
+redact_secrets = _redact_secrets
 
 
 def _is_thinking_error(exc: Exception) -> bool:
@@ -162,7 +219,7 @@ class GeminiProvider:
                     logger.warning(
                         "Gemini rejected thinking config (%s); retrying once without thinking "
                         "and remembering choice for process",
-                        initial_exc,
+                        _redact_secrets(str(initial_exc), self.api_key),
                     )
                     _process_disable_thinking = True
                     if not try_consume(1):
@@ -193,16 +250,16 @@ class GeminiProvider:
             code = getattr(exc, "code", None)
             raise VisionError(
                 self.name, f"API error ({exc.code}): {msg}", status_code=code
-            ) from exc
+            ) from None
         except Exception as exc:
             msg = _redact_secrets(str(exc), self.api_key)
-            raise VisionError(self.name, f"call failed: {msg}") from exc
+            raise VisionError(self.name, f"call failed: {msg}") from None
 
         try:
             text = response.text
         except Exception as exc:
             msg = _redact_secrets(str(exc), self.api_key)
-            raise VisionError(self.name, f"failed reading response text: {msg}") from exc
+            raise VisionError(self.name, f"failed reading response text: {msg}") from None
 
         if not text or not text.strip():
             raise VisionError(self.name, "empty response from gemini")
@@ -245,7 +302,7 @@ class GeminiProvider:
                     logger.warning(
                         "Gemini rejected thinking config (%s) during ask; retrying once without "
                         "thinking and remembering choice for process",
-                        initial_exc,
+                        _redact_secrets(str(initial_exc), self.api_key),
                     )
                     _process_disable_thinking = True
                     if not try_consume(1):
@@ -276,16 +333,16 @@ class GeminiProvider:
             code = getattr(exc, "code", None)
             raise VisionError(
                 self.name, f"API error ({exc.code}): {msg}", status_code=code
-            ) from exc
+            ) from None
         except Exception as exc:
             msg = _redact_secrets(str(exc), self.api_key)
-            raise VisionError(self.name, f"call failed: {msg}") from exc
+            raise VisionError(self.name, f"call failed: {msg}") from None
 
         try:
             text = response.text
         except Exception as exc:
             msg = _redact_secrets(str(exc), self.api_key)
-            raise VisionError(self.name, f"failed reading response text: {msg}") from exc
+            raise VisionError(self.name, f"failed reading response text: {msg}") from None
 
         if not text or not text.strip():
             raise VisionError(self.name, "empty response from gemini")

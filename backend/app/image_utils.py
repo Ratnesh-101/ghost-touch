@@ -128,27 +128,44 @@ def sniff_image_dimensions(data: bytes) -> tuple[int, int] | None:
         except struct.error:
             return None
 
-    # WebP: RIFF ... WEBP with VP8, VP8L, or VP8X chunks
+    # WebP: RIFF ... WEBP with VP8, VP8L, or VP8X chunks (Finding 5)
     if data.startswith(b"RIFF") and len(data) >= 12 and data[8:12] == b"WEBP":
-        chunk = data[12:16]
+        offset = 12
         try:
-            if chunk == b"VP8 " and len(data) >= 30:
-                if data[23:26] != b"\x9d\x01\x2a":
-                    return None
-                width = struct.unpack("<H", data[26:28])[0] & 0x3FFF
-                height = struct.unpack("<H", data[28:30])[0] & 0x3FFF
-                return (width, height)
-            elif chunk == b"VP8L" and len(data) >= 25:
-                if data[20] != 0x2F:
-                    return None
-                b1, b2, b3, b4 = data[21:25]
-                width = 1 + (((b2 & 0x3F) << 8) | b1)
-                height = 1 + (((b4 & 0x0F) << 10) | (b3 << 2) | ((b2 & 0xC0) >> 6))
-                return (width, height)
-            elif chunk == b"VP8X" and len(data) >= 30:
-                width = 1 + struct.unpack("<I", data[24:27] + b"\x00")[0]
-                height = 1 + struct.unpack("<I", data[27:30] + b"\x00")[0]
-                return (width, height)
+            while offset + 8 <= len(data):
+                chunk_fourcc = data[offset : offset + 4]
+                chunk_len = struct.unpack("<I", data[offset + 4 : offset + 8])[0]
+
+                if chunk_fourcc == b"VP8X":
+                    if len(data) < offset + 18:
+                        return None
+                    # Canvas width and height are 24-bit little-endian (+1 each)
+                    width = 1 + struct.unpack("<I", data[offset + 12 : offset + 15] + b"\x00")[0]
+                    height = 1 + struct.unpack("<I", data[offset + 15 : offset + 18] + b"\x00")[0]
+                    return (width, height)
+                elif chunk_fourcc == b"VP8 ":
+                    if len(data) < offset + 18:
+                        return None
+                    if data[offset + 11 : offset + 14] != b"\x9d\x01\x2a":
+                        return None
+                    width = struct.unpack("<H", data[offset + 14 : offset + 16])[0] & 0x3FFF
+                    height = struct.unpack("<H", data[offset + 16 : offset + 18])[0] & 0x3FFF
+                    return (width, height)
+                elif chunk_fourcc == b"VP8L":
+                    if len(data) < offset + 13:
+                        return None
+                    if data[offset + 8] != 0x2F:
+                        return None
+                    b1, b2, b3, b4 = data[offset + 9 : offset + 13]
+                    width = 1 + (((b2 & 0x3F) << 8) | b1)
+                    height = 1 + (((b4 & 0x0F) << 10) | (b3 << 2) | ((b2 & 0xC0) >> 6))
+                    return (width, height)
+
+                # Advance to next chunk (padded to even byte boundary)
+                next_offset = offset + 8 + chunk_len + (chunk_len % 2)
+                if next_offset <= offset:
+                    break
+                offset = next_offset
         except Exception:
             return None
         return None

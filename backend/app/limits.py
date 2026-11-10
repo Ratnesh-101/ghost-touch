@@ -16,6 +16,8 @@ from collections import defaultdict, deque
 from collections.abc import Awaitable, Callable, MutableMapping
 from typing import Any
 
+from starlette.datastructures import Headers
+
 logger = logging.getLogger(__name__)
 
 Scope = MutableMapping[str, Any]
@@ -128,6 +130,33 @@ def client_key(peer: Any, forwarded_for: Any, trusted_hops: int) -> str:
     return _normalize_ip_key(entries[-trusted_hops])
 
 
+def extract_joined_xff(headers: Any) -> str | None:
+    """Extract and join duplicate X-Forwarded-For header lines with comma (Finding 2).
+
+    Uses Starlette Headers.getlist("x-forwarded-for") joined with ", ".
+    Also supports dict or objects with get() or getlist() for compatibility.
+    """
+    if headers is None:
+        return None
+    try:
+        if hasattr(headers, "getlist"):
+            try:
+                raw_list = headers.getlist("x-forwarded-for")
+            except Exception:
+                raw_list = None
+            if isinstance(raw_list, (list, tuple)) and all(isinstance(x, str) for x in raw_list):
+                entries = [line.strip() for line in raw_list if line.strip()]
+                return ", ".join(entries) if entries else None
+
+        if hasattr(headers, "get"):
+            val = headers.get("x-forwarded-for")
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+    except Exception:
+        return None
+    return None
+
+
 _HITS: dict[tuple[str, str], deque[float]] = defaultdict(deque)
 _last_sweep: float = float("-inf")
 _sweep_count: int = 0
@@ -193,19 +222,12 @@ class RequestGuardMiddleware:
             await self.app(scope, receive, send)
             return
 
-        # R3-5: Join duplicate X-Forwarded-For header lines with comma
-        raw_headers: list[tuple[str, str]] = [
-            (k.decode("latin-1").lower(), v.decode("latin-1")) for k, v in scope.get("headers", [])
-        ]
-        headers: dict[str, str] = {}
-        xff_lines: list[str] = []
-        for k, v in raw_headers:
-            if k == "x-forwarded-for":
-                xff_lines.append(v)
-            else:
-                headers[k] = v
-        if xff_lines:
-            headers["x-forwarded-for"] = ", ".join(xff_lines)
+        # R3-5 / Finding 2: Join duplicate X-Forwarded-For header lines with comma
+        scope_headers = Headers(scope=scope)
+        joined_xff = extract_joined_xff(scope_headers)
+        headers: dict[str, str] = {k: v for k, v in scope_headers.items()}
+        if joined_xff is not None:
+            headers["x-forwarded-for"] = joined_xff
 
         if rate is not None and not self._allow(self._client_key(scope, headers), path, rate):
             await self._reject(send, 429, "Too many requests. Please wait a moment and retry.")
@@ -256,10 +278,12 @@ class RequestGuardMiddleware:
                 await self._reject(send, 413, "Request body is too large.")
 
     @staticmethod
-    def _client_key(scope: Scope, headers: dict[str, str]) -> str:
+    def _client_key(scope: Scope, headers: Any = None) -> str:
         client = scope.get("client")
         peer = str(client[0]) if client else None
-        return client_key(peer, headers.get("x-forwarded-for"), trusted_proxy_hops())
+        if headers is None:
+            headers = Headers(scope=scope)
+        return client_key(peer, extract_joined_xff(headers), trusted_proxy_hops())
 
     def _allow(self, client: str, path: str, per_minute: int, now: float | None = None) -> bool:
         global _last_sweep
@@ -383,9 +407,5 @@ def request_client_key(request: Any) -> str:
     if not isinstance(peer, str):
         peer = None
     headers = getattr(request, "headers", None)
-    xff = None
-    if headers is not None and hasattr(headers, "get"):
-        val = headers.get("x-forwarded-for")
-        if isinstance(val, str):
-            xff = val
+    xff = extract_joined_xff(headers)
     return client_key(peer, xff, trusted_proxy_hops())
