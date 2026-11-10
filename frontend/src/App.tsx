@@ -267,7 +267,6 @@ export function App(): JSX.Element {
     }
     const resolution = resolveShareRoute(currentHash, isShareEnvOn(), { honest: true });
     if (resolution.kind === 'explore') {
-      lastExploreScene.current = resolution.scene;
       return {
         screen: 'shareGate',
         resolution,
@@ -354,7 +353,6 @@ export function App(): JSX.Element {
 
     const resolution = resolveShareRoute(hash, isShareEnvOn(), { honest: true });
     if (resolution.kind === 'explore') {
-      lastExploreScene.current = resolution.scene;
       setView({
         screen: 'shareGate',
         resolution,
@@ -542,6 +540,7 @@ export function App(): JSX.Element {
   const handleOpenSharedDiagram = (
     resolution: Extract<ShareRouteResolution, { kind: 'explore' }>,
   ): void => {
+    lastExploreScene.current = resolution.scene;
     setView(openSharedDiagram(drivers, resolution, LANG_BCP47[currentLang]));
   };
 
@@ -657,6 +656,8 @@ export function App(): JSX.Element {
   };
 
   const handleTeachBack = (): void => {
+    teachDirty.current = false;
+    lastProcessedHash.current = '';
     clearHash();
     if (lastExploreScene.current) {
       const scene = lastExploreScene.current;
