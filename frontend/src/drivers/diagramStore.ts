@@ -75,10 +75,12 @@ export class MemoryDiagramStore implements DiagramStore {
 
   async putWithEviction(entry: SavedDiagram, evictedId?: string): Promise<StoreResult<void>> {
     if (this.failWith !== null) return { ok: false, error: this.failWith };
-    this.store.set(entry.id, entry);
-    if (evictedId !== undefined) {
+    // Delete the victim first, then store, as IDBDiagramStore does; never evict the entry being
+    // saved (audit R6 LOW, Requirement 22.14, Kiro task 40.2).
+    if (evictedId !== undefined && evictedId !== entry.id) {
       this.store.delete(evictedId);
     }
+    this.store.set(entry.id, entry);
     return { ok: true, value: undefined };
   }
 
