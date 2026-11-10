@@ -86,6 +86,24 @@ SHAPE_WORDS = frozenset(
 
 COLOUR_SHAPE_WORDS = COLOUR_WORDS | SHAPE_WORDS
 
+# Element IDs no element may have (Requirement 23.1). Lower-case strings.
+# Must match RESERVED_ELEMENT_IDS in frontend/src/core/correct.ts.
+RESERVED_ELEMENT_IDS: frozenset[str] = frozenset(
+    {
+        "title",
+        "scene:title",
+        "__proto__",
+        "constructor",
+        "prototype",
+        "tostring",
+        "valueof",
+        "hasownproperty",
+        "isprototypeof",
+        "propertyisenumerable",
+        "tolocalestring",
+    }
+)
+
 
 # ---------------------------------------------------------------------------
 # String sanitization & normalization (F12)
@@ -294,6 +312,114 @@ def _repair_coords(data: dict[str, Any], dropped_tracker: dict[str, list[Any]]) 
         data["aspect"] = 1.0
 
 
+def _rename_reserved_ids(data: dict[str, Any]) -> None:
+    """Rename reserved element ids to el_<id> and rewrite segment endpoint references.
+
+    Reserved element IDs (Requirement 23.1) must not appear in validated scenes.
+    Any element id whose trimmed lower-case form is in RESERVED_ELEMENT_IDS is
+    renamed to el_<id> (made unique with a _2, _3 suffix if taken). References to
+    renamed points in segment endpoints (a, b) are rewritten to match.
+    """
+    taken: set[str] = set()
+    for key in ("points", "segments", "polylines", "bars"):
+        elements = data.get(key)
+        if not isinstance(elements, list):
+            continue
+        for elem in elements:
+            if isinstance(elem, dict):
+                eid = elem.get("id")
+                if isinstance(eid, str) and eid:
+                    taken.add(eid)
+
+    point_renames: dict[str, str] = {}
+    point_renames_lower: dict[str, str] = {}
+
+    # 1. Rename reserved IDs in points and track mappings
+    pts = data.get("points")
+    if isinstance(pts, list):
+        for p in pts:
+            if not isinstance(p, dict):
+                continue
+            eid = p.get("id")
+            if not isinstance(eid, str):
+                continue
+            cleaned = eid.strip()
+            if cleaned.lower() in RESERVED_ELEMENT_IDS:
+                taken.discard(eid)
+                base = f"el_{cleaned}"
+                new_id = base
+                counter = 2
+                while new_id in taken:
+                    new_id = f"{base}_{counter}"
+                    counter += 1
+                p["id"] = new_id
+                taken.add(new_id)
+                point_renames[eid] = new_id
+                point_renames[cleaned] = new_id
+                point_renames_lower[cleaned.lower()] = new_id
+
+    # 2. Rename reserved IDs in segments and rewrite endpoint references
+    segs = data.get("segments")
+    if isinstance(segs, list):
+        for s in segs:
+            if not isinstance(s, dict):
+                continue
+            eid = s.get("id")
+            if isinstance(eid, str):
+                cleaned = eid.strip()
+                if cleaned.lower() in RESERVED_ELEMENT_IDS:
+                    taken.discard(eid)
+                    base = f"el_{cleaned}"
+                    new_id = base
+                    counter = 2
+                    while new_id in taken:
+                        new_id = f"{base}_{counter}"
+                        counter += 1
+                    s["id"] = new_id
+                    taken.add(new_id)
+
+            a = s.get("a")
+            if isinstance(a, str):
+                if a in point_renames:
+                    s["a"] = point_renames[a]
+                elif a.strip() in point_renames:
+                    s["a"] = point_renames[a.strip()]
+                elif a.strip().lower() in point_renames_lower:
+                    s["a"] = point_renames_lower[a.strip().lower()]
+
+            b = s.get("b")
+            if isinstance(b, str):
+                if b in point_renames:
+                    s["b"] = point_renames[b]
+                elif b.strip() in point_renames:
+                    s["b"] = point_renames[b.strip()]
+                elif b.strip().lower() in point_renames_lower:
+                    s["b"] = point_renames_lower[b.strip().lower()]
+
+    # 3. Rename reserved IDs in polylines and bars
+    for key in ("polylines", "bars"):
+        elements = data.get(key)
+        if not isinstance(elements, list):
+            continue
+        for elem in elements:
+            if not isinstance(elem, dict):
+                continue
+            eid = elem.get("id")
+            if not isinstance(eid, str):
+                continue
+            cleaned = eid.strip()
+            if cleaned.lower() in RESERVED_ELEMENT_IDS:
+                taken.discard(eid)
+                base = f"el_{cleaned}"
+                new_id = base
+                counter = 2
+                while new_id in taken:
+                    new_id = f"{base}_{counter}"
+                    counter += 1
+                elem["id"] = new_id
+                taken.add(new_id)
+
+
 def _dedupe_ids(data: dict[str, Any]) -> None:
     """Rename duplicate element ids by appending _2, _3, etc."""
     seen: set[str] = set()
@@ -497,6 +623,7 @@ def validate_scene(raw: str | dict[str, Any]) -> ValidationResult:
 
     Repair rules (silent):
     - Clamp coordinates within +/-0.02 of [0, 1]; drop elements beyond.
+    - Rename reserved element IDs to el_<id> and rewrite segment endpoints.
     - Drop dangling segments (endpoint ids not in points).
     - Dedupe element ids before dangling segment resolution.
     - Normalise inverted bars (min/max on x0/x1 and y_top/y_base).
@@ -585,7 +712,8 @@ def validate_scene(raw: str | dict[str, Any]) -> ValidationResult:
         # 4. Repair coordinates and drop out-of-bounds/non-finite elements (F6, B2-05)
         _repair_coords(data, dropped_tracker)
 
-        # 5. Dedupe element IDs BEFORE dangling segments (F15)
+        # 5. Rename reserved element IDs and dedupe IDs BEFORE dangling segments (F15)
+        _rename_reserved_ids(data)
         _dedupe_ids(data)
 
         # 6. Drop dangling segments (F7: never raises on unhashable endpoints)
