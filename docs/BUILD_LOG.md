@@ -3250,3 +3250,6 @@ Format for each entry:
   - `frontend/tests/q2.round5.test.tsx`
   - `docs/reports/agy-q2-frontend-round5-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-10 — Kiro — T39.1 (reserved ids, audit r5-kiro-glue HIGH)
+- Tool: **Kiro**. Checked first with a probe. `addPoint(…, 'title')` did make a point `title`, and `renameLabel` then changed the scene title (claim right). The share export did **not** drop the segment: `validateShareScene` renames the endpoints to `el_title` too (claim wrong; P79 pins the real behaviour). Added `RESERVED_ELEMENT_IDS` and `isReservedId` to `core/correct.ts`. `addPoint` and `addSegment` ignore a reserved requested id, the generated segment id skips reserved ids (`ti` + `tle`), and `validateSceneInvariants` reports reserved ids. `share/validate.ts` now uses the core list (the same set, so behaviour is unchanged). P79 in `tests/correct.reservedIds.prop.test.ts` (5 tests, 250 runs); 5 mutants killed. Gate: `tsc` 0 errors, 146 files, 1978 passed. The backend validator keeps reserved ids as they are; whether it should rename them is listed in the report.
