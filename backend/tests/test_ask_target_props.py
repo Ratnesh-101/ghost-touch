@@ -107,7 +107,7 @@ def test_prop_validate_ask_target_on_triangle(raw_target: Any) -> None:
 # ---------------------------------------------------------------------------
 
 
-@settings(max_examples=100, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=200, suppress_health_check=[HealthCheck.too_slow])
 @given(
     scene=random_scene(),
     raw_target=st.one_of(arbitrary_target_junk(), target_like_dict()),
@@ -136,7 +136,7 @@ def test_prop_validate_ask_target_on_random_scenes(scene: DiagramScene, raw_targ
 # ---------------------------------------------------------------------------
 
 
-@settings(max_examples=150, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=200, suppress_health_check=[HealthCheck.too_slow])
 @given(text=st.text(max_size=300))
 def test_prop_parse_model_output_safe_pipeline(text: str) -> None:
     scene = triangle_scene()

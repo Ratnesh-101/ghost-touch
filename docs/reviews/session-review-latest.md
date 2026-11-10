@@ -1,17 +1,21 @@
-# Session review (Kiro, T34 Ghostwriter core + T35 M4-10): 2026-11-09
+# Session review
+Reviewer: Kiro | Verdict: SHIP
 
-**Verdict: SHIP** (uncommitted; nothing pushed; not tried on a phone)
+Scope: the only changed file is `backend/tests/test_ask_target_props.py` (Kiro-owned, matches `test_*_props.py`). It was changed on request (task 19.8).
 
-Kiro-owned files changed: `frontend/src/core/correct.ts` (`addPoint`, `addSegment`), `frontend/src/core/verify.ts` (`angleVertex`, `localizedFindingTarget`), `frontend/tests/correct.ghostwriter.prop.test.ts` (new, P54-P57), `.kiro/specs/ghost-touch/{requirements,design,tasks}.md` (Requirement 19, the 18.2 angle-name sentence, tasks 34-35). Others: `flow/ask.ts`, `flow/navigation.ts`, `i18n/index.ts` (`verify.angleName`), `tests/n2.round4.test.ts` (agy's; M4-10 un-skipped), `tests/verify.angleName.test.ts` (new), the translation sheets and `docs/BUILD_LOG.md`.
+## Findings
+| # | Severity | File:line | Problem | Fix |
+|---|---|---|---|---|
+| 1 | Info | backend/tests/test_ask_ids.py:290 | `max_examples=100`. This is a Hypothesis test but not a `*_props.py` file, so it is outside the P1–P13 requirement. | Optional: raise to 200 for consistency. |
 
-1. **Architecture:** pass. No React, browser API or i18n import in `frontend/src/core` (the one grep hit is a comment). `verify.ts` stays language-free: callers pass the angle wording. Browser-facing text is resolved in `flow/` through `tf()`.
-2. **Tuned haptic values:** pass. No diff to `hapticEngine.ts`, `hitTest.ts` or `pitch.ts`.
-3. **Properties:** pass. P1-P13 present; no `numRuns` below 200 in any `*.prop.test.ts`. P54-P57 run 250 cases each; P47-P50 (200) and the 18.2 property (250) were not touched. Mutants: 12 killed for T34, 3 for T35.
-4. **TEMP stubs:** pass. None in `frontend/src` or `backend/app`.
-5. **tasks.md:** pass. Tasks 34 and 35 are fully ticked and match the code; both specs were written before the code.
+## Checklist
+- [x] Architecture: test-only change. No core/ or browser API code touched.
+- [x] Haptic values: no tuned values touched. Only `max_examples` changed, so no drift from tech.md.
+- [x] Property tests ≥200 cases: all `backend/tests/*_props.py` settings are ≥200. The edits are lines 110 (100→200) and 139 (150→200). Frontend `*.prop.test.ts` files all use numRuns ≥200.
+- [x] No TEMP stubs: no `*.stub.ts` or `*_stub.py` files exist under `frontend/src` or `backend/app`.
+- [x] tasks.md: 19.8 is already `[x]`, which matches the change.
+- Test run: `pytest tests/test_ask_target_props.py` ran 3 tests, all passed. The other property files were not re-run. The P1–P13 mapping was not checked individually.
+- Git diff: 1 file, 2 lines. No scope creep.
 
-Gate: `tsc` 0 errors; `npm test` 134 files, 1845 passed, 0 skipped; build ok. The backend was not touched in T34/T35 and was not re-run.
-
-Notes (not blocking):
-- `verify.angleName` hi "कोण {vertex}" and gu "ખૂણા {vertex}" (the oblique form before પર) need a native speaker's review.
-- T35 edited `flow/ask.ts` and `flow/navigation.ts`. The T34 "no flow/" rule was for that task only; the agy Ghostwriter UI lane should rebase on these.
+## Needs from Kiro
+- None
