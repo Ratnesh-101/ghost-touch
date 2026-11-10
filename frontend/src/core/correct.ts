@@ -228,8 +228,50 @@ function nextPointId(used: Set<string>): string {
   return `P${n}`;
 }
 
+/** Two points closer than this on both axes share a position (Requirement 23.6). */
+export const COINCIDENT_EPSILON = 1e-6;
+/** Distance a new point is moved off an occupied spot, per ring (Requirement 23.6). */
+export const NUDGE_STEP = 0.04;
+const NUDGE_RINGS = 25;
+/** Right, below, left, above, then the diagonals (y grows downwards). */
+const NUDGE_DIRECTIONS: readonly (readonly [number, number])[] = [
+  [1, 0],
+  [0, 1],
+  [-1, 0],
+  [0, -1],
+  [1, 1],
+  [-1, 1],
+  [1, -1],
+  [-1, -1],
+];
+
+function isOccupied(points: readonly Point[], x: number, y: number): boolean {
+  return points.some(
+    (p) => Math.abs(p.x - x) <= COINCIDENT_EPSILON && Math.abs(p.y - y) <= COINCIDENT_EPSILON,
+  );
+}
+
+/**
+ * The spot itself when no point is there, else the first free in-range nudge (Requirement 23.6),
+ * else undefined.
+ */
+function freeSpot(points: readonly Point[], x: number, y: number): { x: number; y: number } | undefined {
+  if (!isOccupied(points, x, y)) return { x, y };
+  for (let ring = 1; ring <= NUDGE_RINGS; ring++) {
+    for (const [dx, dy] of NUDGE_DIRECTIONS) {
+      const cx = x + dx * ring * NUDGE_STEP;
+      const cy = y + dy * ring * NUDGE_STEP;
+      if (cx < 0 || cx > 1 || cy < 0 || cy > 1) continue;
+      if (!isOccupied(points, cx, cy)) return { x: cx, y: cy };
+    }
+  }
+  return undefined;
+}
+
 /**
  * Add a point the vision model missed (Requirement 19.1, 19.4).
+ * When a point already sits at the (clamped) spot, the new one is nudged next to it so neither
+ * hides the other (Requirement 23.6).
  * NaN or infinite coordinates return the same scene. Finite coordinates are clamped to [0, 1].
  * The id is `id` when free, otherwise the next free one (`A`..`Z`, then `P1`, `P2`, ...).
  * A blank label is left out. Existing elements are untouched; the input is never mutated.
@@ -242,11 +284,13 @@ export function addPoint(
   id?: string,
 ): DiagramScene {
   if (!Number.isFinite(x) || !Number.isFinite(y)) return scene;
+  const spot = freeSpot(scene.points ?? [], clamp01(x), clamp01(y));
+  if (spot === undefined) return scene;
 
   const used = usedIds(scene);
   const pointId = freeRequestedId(id, used) ?? nextPointId(used);
   const trimmedLabel = label?.trim();
-  const point: Point = { id: pointId, x: clamp01(x), y: clamp01(y) };
+  const point: Point = { id: pointId, x: spot.x, y: spot.y };
   if (trimmedLabel) point.label = trimmedLabel;
 
   return { ...scene, points: [...(scene.points ?? []), point] };

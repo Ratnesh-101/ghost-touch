@@ -1,18 +1,30 @@
-# Session review (Kiro, T37: delete curves/bars, fc.float check, validator parity): 2026-11-09
+# Session review (Kiro, T39: round-5 audit items for core and tests): 2026-11-10
 
-**Verdict: SHIP** (committed as `ad0dd9c`, `316a97a`, `88035f9`; the spec landed in `aed5e3d`; nothing pushed)
+**Verdict: SHIP** (nothing pushed; nothing tried on a phone)
 
-Kiro-owned files changed this session: `frontend/src/core/correct.ts` (`deletePolyline`, `deleteBar`), `frontend/tests/correct.deleteKinds.prop.test.ts` (new, P62-P65) and `.kiro/specs/ghost-touch/{requirements,design,tasks}.md` (Requirement 21, its design section, P62-P65, task 37, and the 20.5/20.9/20.10 ticks). Not Kiro-owned: the parity fixture, its two tests, `docs/reports/validator-parity.md` and `docs/BUILD_LOG.md`. `backend/app/main.py` also changed in this range, from agy lane p1 (`0da7a82`, image/jpg uploads), not from this session.
+**Test totals at the end of T39:** frontend 149 files, **1989 tests passed, 0 skipped**; `tsc --noEmit` 0 errors; build ok. Backend **783 passed**, 0 skipped; `ruff check` and `ruff format --check` clean (79 files).
 
-1. **Architecture:** pass. The two new functions are pure, immutable and import nothing new; no browser API or React in `frontend/src/core` (the one grep hit is a comment). `Correct.tsx`, `flow/` and the other screens were not touched. Neither validator was changed.
-2. **Tuned haptic values:** pass. No diff to `hapticEngine.ts`, `hitTest.ts` or `pitch.ts`.
-3. **Properties:** pass. P1-P13 present; no `numRuns` below 200 in any `*.prop.test.ts`. P62-P65 run 250 cases each; 7 mutants killed, each property kills at least one. No `fc.float` left (replaced by agy m2 in `22a64e4`).
-4. **TEMP stubs:** pass. None in `frontend/src` or `backend/app`.
-5. **tasks.md:** pass. 37 and 37.1-37.3 are ticked and match the commits. 20.5 (core half), 20.9 and 20.10 are ticked with pointers to 37. Task 36 is still unticked, which is correct: the agy lane has not built it.
+Commits: `de00897` (pending spec and review notes, tasks 36-38), `a004b04` (39.0), `d520aca` + `a3a1e2d` (spec), `538d8eb` + `1c612b9` (39.1), `8076e86` + `8664992` (39.2 and its tsc fix), `030af85` (39.3), `f257be7` (39.4), and the 39.5 commit.
 
-Gate: frontend `tsc` 0 errors, 136 files, 1884 passed, 0 skipped, build ok; backend 750 passed, `ruff check` and `ruff format --check` clean.
+## Audit claims, checked against the code
+| Item | Claim | Verdict | Evidence |
+|---|---|---|---|
+| 39.1 | `addPoint` accepts `title`; a rename then changes the scene title | **Right** | A probe gave point `title`, then `renameLabel(…, 'title', 'Top')` set `scene.title` to "Top" and left the point "Apex" |
+| 39.1 | The share export drops the point's segment | **Wrong** | `validateShareScene` renames the point *and* the endpoints: `titleB: el_title-B`. P79 pins it |
+| 39.2 | >500 points can be saved offline through `addPoint` | **Not reachable today** | `addPoint` has one caller, `flow/ghostwriter.ts`, which caps at 300; Correct has no add |
+| 39.3 | `localizedFindingTarget` falls back to English | Right for hand-built findings; `verifyScene` always sets `angleVertex` | Fixed anyway (P80) |
+| 39.3 | Hindi and Gujarati facts are ignored | Right, and now intended | Requirement 18.10: the vision prompt asks for English fact shapes, and no screen lets anyone type a fact (P81) |
+| 39.4 | Three tests can pass vacuously | **Right** | A "never disagree" mutant passes the old 18.2 property (1 passed) and fails the new one |
+| 39.5 | Coincident points make the earlier one unselectable | **Right** | `hitTestPoint` takes the later point on a tie |
 
-Findings (not blocking this session; each needs an owner decision, see `docs/reports/validator-parity.md`):
-- **High:** `validateShareScene` drops `aspect`, so Spec Ghost checks every shared scene at aspect 1 (against Requirement 18.6).
-- The share validator accepts a colour-only label (Requirement 3.6), drops a segment named in a fact (F5) and speaks a NaN bar value as 0.
-- 20.5's screen half (curve and bar selection and delete on Correct) is still open for an agy lane; design.md lists the controls and 5 i18n keys.
+## Checks
+1. **Architecture:** pass. Every change to `frontend/src/core` is pure; no browser API or React. No file under `screens/`, `flow/` or `App.tsx` was edited. `share/validate.ts` only swaps its reserved-id set for the identical core one.
+2. **Tuned haptic values and `hitTest`:** unchanged.
+3. **Properties:** P79-P82 added at 250 runs; every new or tightened test is mutation-checked: 5 + 2 + 2 + 5 + 5 mutants, all killed. P66-P78 pass under 9 recorded seeds and 3 fresh ones. No `numRuns` below 200.
+4. **TEMP stubs:** none.
+5. **tasks.md:** 38, 38.4, 39 and 39.0-39.5 ticked; every one matches a commit.
+
+## Needs someone else (not done here)
+- **UI lane (flow/ and screens/):** `planAddPoint` should report a nudge (`nudgedFrom`), and Teach should speak `teach.pointNudged` in en, hi and gu (design.md, "Round-5 core fixes").
+- **Backend decision:** `validate.py` keeps reserved ids such as `title`. A model scene with such an id passes the backend but now fails `validateSceneInvariants`. Teach and share are unaffected, because the share validator renames first. Renaming in the backend too would align them.
+- **My process slips, fixed:** two parallel commit races, once for the spec files and once for the 39.1 BUILD_LOG line. Each was fixed with an extra commit. 39.2 was first committed without running `tsc` (it used `node:fs`) and fixed in `8664992`.

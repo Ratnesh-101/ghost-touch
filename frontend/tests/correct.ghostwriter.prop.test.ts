@@ -144,8 +144,16 @@ describe('P54: addPoint keeps the scene valid and adds exactly one point (19.1, 
 
         const added = newPoints[newPoints.length - 1]!;
         expect(allIds(scene)).not.toContain(added.id);
-        expect(added.x).toBe(Math.max(0, Math.min(1, x)));
-        expect(added.y).toBe(Math.max(0, Math.min(1, y)));
+        const cx = Math.max(0, Math.min(1, x));
+        const cy = Math.max(0, Math.min(1, y));
+        // Requirement 23.6 (task 39.5): an occupied spot is nudged; a free one is kept exactly.
+        const occupied = oldPoints.some((p) => Math.abs(p.x - cx) <= 1e-6 && Math.abs(p.y - cy) <= 1e-6);
+        if (occupied) {
+          expect(oldPoints.every((p) => Math.abs(p.x - added.x) > 1e-6 || Math.abs(p.y - added.y) > 1e-6)).toBe(true);
+        } else {
+          expect(added.x).toBe(cx);
+          expect(added.y).toBe(cy);
+        }
         const trimmed = id?.trim();
         if (trimmed && !allIds(scene).includes(trimmed)) expect(added.id).toBe(trimmed);
         const want = label?.trim();

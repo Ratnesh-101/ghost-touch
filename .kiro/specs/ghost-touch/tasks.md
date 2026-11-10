@@ -326,11 +326,11 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 ## Round-5 audit items for core and tests (task 39; sources `docs/reports/audit-r5-kiro-glue.md`, `docs/reports/audit-u1-g1.md`, `docs/reviews/kiro-round5.md`)
 > Each audit claim is checked against the code first; a wrong claim is written up with the evidence and gets no code. Spec before code. Do not edit `screens/`, `flow/`, `App.tsx`, `hitTest` or the tuned haptic values; a fix that needs one is listed in the report.
 
-- [ ] 39. Close the core and test items from the round-5 audits
+- [x] 39. Close the core and test items from the round-5 audits
   - [x] 39.0 Rerun the four round-5 property files (P66-P78) with the recorded seeds and fresh ones; all green, so 38 and 38.4 are ticked and `docs/reviews/kiro-round5.md` updated
   - [x] 39.1 (HIGH) Reserved ids: `RESERVED_ELEMENT_IDS` / `isReservedId` in core, used by `addPoint`, `addSegment`, `validateSceneInvariants` and `share/validate.ts`; P79 (200+ runs), mutation-checked. Audit check: the `renameLabel` claim is right; the claim that the share export drops the segment is wrong (the share validator renames the endpoints too)
   - [x] 39.2 (MED) Point cap stays with the caller (23.4); `tests/caps.agree.test.ts` checks the Ghostwriter caps against the share and backend limits. Audit check: `addPoint` has one caller (`flow/ghostwriter.ts`), which already caps at 300, so the >500 offline-save scenario is not reachable through `addPoint` today
   - [x] 39.3 (MED) `localizedFindingTarget` without `angleVertex` (P80); English-only facts written into Requirement 18.10 as a non-goal, pinned by P81
   - [x] 39.4 (LOW) Tighten the 18.2 property (a forged side must be flagged), `verify.angleName.test.ts` (go through `verifyScene` and an independent expected sentence) and P56 (a pair that always adds, plus redo); mutation-check each
-  - [ ] 39.5 (LOW) Coincident points: nudge (23.6), P82; the UI lane's string `teach.pointNudged` is in design.md
+  - [x] 39.5 (LOW) Coincident points: nudge (23.6), P82; the UI lane's string `teach.pointNudged` is in design.md
   - _Requirements: 18.10, 23.*_
