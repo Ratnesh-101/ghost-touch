@@ -5,7 +5,6 @@
  * is still open, and a callback that applies the result.
  */
 import {
-  applyAdd,
   orderForDisplay,
   SAVED_DIAGRAMS_CAP,
   type SavedDiagram,
@@ -89,33 +88,61 @@ export async function saveDiagramWithEviction(
   newEntry: SavedDiagram,
   cap: number = SAVED_DIAGRAMS_CAP,
 ): Promise<SaveWithEvictionResult> {
-  const decision = applyAdd(existing, newEntry, cap);
-  if (!decision.ok) {
-    return { ok: false, error: 'all_pinned' };
+  const prior = existing.find((e) => e.id === newEntry.id);
+  const entryToSave: SavedDiagram = prior
+    ? {
+        ...newEntry,
+        pinned: prior.pinned,
+        createdAt: prior.createdAt,
+      }
+    : newEntry;
+
+  const isUpdate = prior !== undefined;
+  // Calculate surplus to ensure the store never exceeds cap (Req 22.7, 22.9, 22.11)
+  const targetSurplus = Math.max(0, existing.length + (isUpdate ? 0 : 1) - cap);
+
+  let evictedIds: string[] = [];
+  if (targetSurplus > 0) {
+    // Pick unpinned victims ordered by oldest createdAt
+    const candidates = existing
+      .filter((e) => e.id !== entryToSave.id && !e.pinned)
+      .sort((a, b) => a.createdAt - b.createdAt);
+
+    if (candidates.length < targetSurplus) {
+      return { ok: false, error: 'all_pinned' };
+    }
+    evictedIds = candidates.slice(0, targetSurplus).map((c) => c.id);
   }
 
-  if (typeof store.putWithEviction === 'function') {
-    const res = await store.putWithEviction(newEntry, decision.evictedId);
+  const primaryEvictedId = evictedIds[0];
+
+  if (typeof store.putWithEviction === 'function' && evictedIds.length <= 1) {
+    const res = await store.putWithEviction(entryToSave, primaryEvictedId);
     if (!res.ok) {
       return { ok: false, error: res.error };
     }
-    return { ok: true, evictedId: decision.evictedId };
+    return { ok: true, evictedId: primaryEvictedId };
   }
 
-  // Evict-after-successful-put: put first, delete victim only if put succeeds
-  const putResult = await store.put(newEntry);
+  // Non-atomic store path:
+  // Evict-after-successful-put: put first, delete victims only if put succeeds
+  const putResult = await store.put(entryToSave);
   if (!putResult.ok) {
     return { ok: false, error: putResult.error };
   }
 
-  if (decision.evictedId !== undefined) {
-    const deleteResult = await store.delete(decision.evictedId);
+  for (const victimId of evictedIds) {
+    const deleteResult = await store.delete(victimId);
     if (!deleteResult.ok) {
-      // Roll back the new entry to preserve capacity cap
-      await store.delete(newEntry.id);
+      // Roll back the put to preserve capacity cap
+      if (isUpdate && prior) {
+        await store.put(prior);
+      } else {
+        await store.delete(entryToSave.id);
+      }
       return { ok: false, error: deleteResult.error };
     }
   }
 
-  return { ok: true, evictedId: decision.evictedId };
+  return { ok: true, evictedId: primaryEvictedId };
 }
