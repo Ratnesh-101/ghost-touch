@@ -215,11 +215,100 @@ describe('processImageFile', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it('maps capture errors to user-friendly messages', () => {
+  function setNavigatorOnLine(onLine: boolean | undefined): () => void {
+    const origNav = globalThis.navigator;
+    if (typeof origNav === 'undefined') {
+      if (onLine !== undefined) {
+        Object.defineProperty(globalThis, 'navigator', {
+          value: { onLine },
+          configurable: true,
+          writable: true,
+        });
+        return () => {
+          delete (globalThis as Record<string, unknown>).navigator;
+        };
+      }
+      return () => {};
+    }
+    const desc = Object.getOwnPropertyDescriptor(origNav, 'onLine');
+    Object.defineProperty(origNav, 'onLine', {
+      value: onLine,
+      configurable: true,
+      writable: true,
+    });
+    return () => {
+      if (desc) {
+        Object.defineProperty(origNav, 'onLine', desc);
+      } else {
+        delete (origNav as unknown as Record<string, unknown>).onLine;
+      }
+    };
+  }
+
+  it('speaks the offline message when upload fails with a network error while offline', async () => {
+    const restoreNav = setNavigatorOnLine(false);
+    try {
+      const { audio, say, said, controller } = setup();
+      const request = vi.fn().mockRejectedValue(new SceneRequestError('network'));
+      const outcome = await processImageFile(jpeg(), {
+        audio, say, prepare: (file) => Promise.resolve(file), request, signal: controller.signal,
+      });
+      expect(outcome.kind).toBe('failed');
+      expect(said).toEqual(['Reading your diagram', t('capture.errorOffline')]);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      restoreNav();
+    }
+  });
+
+  it('maps every failure kind to the appropriate message, including network', () => {
+    // When online or in node test environment (navigator.onLine !== false), network failure
+    // maps to generic error for backwards compatibility
     expect(captureErrorMessage(new SceneRequestError('busy'))).toBe(t('capture.errorBusy'));
-    expect(captureErrorMessage(new SceneRequestError('http'))).toBe(t('capture.error'));
+    expect(captureErrorMessage(new SceneRequestError('gateway'))).toBe(t('capture.errorGateway'));
+    expect(captureErrorMessage(new SceneRequestError('timeout'))).toBe(t('capture.errorTimeout'));
     expect(captureErrorMessage(new SceneRequestError('network'))).toBe(t('capture.error'));
+    expect(captureErrorMessage(new SceneRequestError('http'))).toBe(t('capture.error'));
+    expect(captureErrorMessage(new SceneRequestError('bad-response'))).toBe(t('capture.error'));
+    expect(captureErrorMessage(new SceneRequestError('aborted'))).toBe(t('capture.error'));
+
+    // PdfError reasons
+    expect(captureErrorMessage(new PdfError('password'))).toBe(t('capture.errorPdfPassword'));
+    expect(captureErrorMessage(new PdfError('invalid'))).toBe(t('capture.errorPdfInvalid'));
+    expect(captureErrorMessage(new PdfError('empty'))).toBe(t('capture.errorPdfEmpty'));
+    expect(captureErrorMessage(new PdfError('timeout'))).toBe(t('capture.errorPdfTimeout'));
+
+    // Unknown errors fall back to generic error
     expect(captureErrorMessage(new Error('unknown'))).toBe(t('capture.error'));
+    expect(captureErrorMessage('non-error string')).toBe(t('capture.error'));
+
+    // When truly offline (navigator.onLine === false), network failure maps to capture.errorOffline
+    const restoreNav = setNavigatorOnLine(false);
+    try {
+      expect(captureErrorMessage(new SceneRequestError('network'))).toBe(
+        t('capture.errorOffline'),
+      );
+
+      // Localized network error message
+      const prevLang = getLang();
+      try {
+        setLang('hi');
+        expect(captureErrorMessage(new SceneRequestError('network'))).toBe(
+          t('capture.errorOffline'),
+        );
+        expect(captureErrorMessage(new SceneRequestError('network'))).toContain('ऑफ़लाइन');
+
+        setLang('gu');
+        expect(captureErrorMessage(new SceneRequestError('network'))).toBe(
+          t('capture.errorOffline'),
+        );
+        expect(captureErrorMessage(new SceneRequestError('network'))).toContain('ઑફલાઇન');
+      } finally {
+        setLang(prevLang);
+      }
+    } finally {
+      restoreNav();
+    }
   });
 
   it('speaks the error when the image cannot be prepared', async () => {

@@ -276,7 +276,7 @@ describe('capture lifecycle, object URLs, double-tap & cancel (Findings 4, 9, 16
       }
     });
 
-    it('onCancel restores idle state and does not speak (silent)', () => {
+    it('onCancel restores idle state and speaks cancel message once', () => {
       const drivers = createDrivers();
       const onScene = vi.fn();
 
@@ -293,7 +293,10 @@ describe('capture lifecycle, object URLs, double-tap & cancel (Findings 4, 9, 16
 
       renderToStaticMarkup(createElement(TestWrapper));
 
-      const findNodes = (node: unknown, predicate: (n: { type?: unknown; props?: unknown }) => boolean): unknown[] => {
+      const findNodes = (
+        node: unknown,
+        predicate: (n: { type?: unknown; props?: unknown }) => boolean,
+      ): unknown[] => {
         if (!node || typeof node !== 'object') return [];
         const result: unknown[] = [];
         const n = node as { type?: unknown; props?: { children?: unknown } };
@@ -318,16 +321,20 @@ describe('capture lifecycle, object URLs, double-tap & cancel (Findings 4, 9, 16
       );
       const photoInput = inputs[0] as { props: { onCancel: () => void } };
 
-      const speakCountBefore = (drivers.speech.speak as unknown as { mock: { calls: unknown[] } }).mock.calls.length;
+      const speakCalls = (
+        drivers.speech.speak as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls;
+      const speakCountBefore = speakCalls.length;
       // Trigger cancel event
       photoInput.props.onCancel();
 
-      // Silent: no new speech
-      const speakCountAfter = (drivers.speech.speak as unknown as { mock: { calls: unknown[] } }).mock.calls.length;
-      expect(speakCountAfter).toBe(speakCountBefore);
+      // Exactly one utterance with localized cancel message from i18n table
+      expect(speakCalls.length - speakCountBefore).toBe(1);
+      expect(speakCalls.at(-1)?.[0]).toBe(t('capture.cancelled'));
+      expect(onScene).not.toHaveBeenCalled();
     });
 
-    it('onChange with empty file list restores idle state and is silent', async () => {
+    it('onChange with empty file list restores idle state and speaks cancel message once', async () => {
       const drivers = createDrivers();
       const onScene = vi.fn();
 
@@ -344,7 +351,10 @@ describe('capture lifecycle, object URLs, double-tap & cancel (Findings 4, 9, 16
 
       renderToStaticMarkup(createElement(TestWrapper));
 
-      const findNodes = (node: unknown, predicate: (n: { type?: unknown; props?: unknown }) => boolean): unknown[] => {
+      const findNodes = (
+        node: unknown,
+        predicate: (n: { type?: unknown; props?: unknown }) => boolean,
+      ): unknown[] => {
         if (!node || typeof node !== 'object') return [];
         const result: unknown[] = [];
         const n = node as { type?: unknown; props?: { children?: unknown } };
@@ -367,15 +377,21 @@ describe('capture lifecycle, object URLs, double-tap & cancel (Findings 4, 9, 16
         capturedCapture,
         (n) => n.type === 'input' && (n.props as { type?: string })?.type === 'file',
       );
-      const photoInput = inputs[0] as { props: { onChange: (e: { target: { files: File[]; value: string } }) => Promise<void> } };
+      const photoInput = inputs[0] as {
+        props: { onChange: (e: { target: { files: File[]; value: string } }) => Promise<void> };
+      };
 
-      const speakCountBefore = (drivers.speech.speak as unknown as { mock: { calls: unknown[] } }).mock.calls.length;
+      const speakCalls = (
+        drivers.speech.speak as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls;
+      const speakCountBefore = speakCalls.length;
 
       // Empty selection event
       await photoInput.props.onChange({ target: { files: [], value: '' } });
 
-      const speakCountAfter = (drivers.speech.speak as unknown as { mock: { calls: unknown[] } }).mock.calls.length;
-      expect(speakCountAfter).toBe(speakCountBefore);
+      // Exactly one utterance with localized cancel message from i18n table
+      expect(speakCalls.length - speakCountBefore).toBe(1);
+      expect(speakCalls.at(-1)?.[0]).toBe(t('capture.cancelled'));
       expect(onScene).not.toHaveBeenCalled();
     });
   });

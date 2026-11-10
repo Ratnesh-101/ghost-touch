@@ -214,3 +214,131 @@ describe('WebSpeechDriver.listen', () => {
     expect(rec.abort).toHaveBeenCalledTimes(1);
   });
 });
+
+class FakeDocument {
+  hidden = false;
+  visibilityState = 'visible';
+  listeners: Record<string, Array<(ev: unknown) => void>> = {};
+
+  addEventListener(type: string, listener: (ev: unknown) => void): void {
+    if (!this.listeners[type]) this.listeners[type] = [];
+    this.listeners[type]!.push(listener);
+  }
+
+  removeEventListener(type: string, listener: (ev: unknown) => void): void {
+    if (!this.listeners[type]) return;
+    this.listeners[type] = this.listeners[type]!.filter((l) => l !== listener);
+  }
+
+  dispatchEvent(type: string, ev: unknown = {}): void {
+    const list = this.listeners[type] ?? [];
+    for (const l of list) l(ev);
+  }
+}
+
+class FakeWindow {
+  listeners: Record<string, Array<(ev: unknown) => void>> = {};
+
+  addEventListener(type: string, listener: (ev: unknown) => void): void {
+    if (!this.listeners[type]) this.listeners[type] = [];
+    this.listeners[type]!.push(listener);
+  }
+
+  removeEventListener(type: string, listener: (ev: unknown) => void): void {
+    if (!this.listeners[type]) return;
+    this.listeners[type] = this.listeners[type]!.filter((l) => l !== listener);
+  }
+
+  dispatchEvent(type: string, ev: unknown = {}): void {
+    const list = this.listeners[type] ?? [];
+    for (const l of list) l(ev);
+  }
+}
+
+describe('WebSpeechDriver tab lifecycle (visibilitychange & pagehide)', () => {
+  it('cancels speech when document becomes hidden, and a later speak() works', () => {
+    const doc = new FakeDocument();
+    const { host, calls, utterances } = speechHost();
+    host.document = doc;
+    const driver = new WebSpeechDriver(host);
+
+    driver.speak('Exploring diagram');
+    expect(calls).toEqual(['cancel', 'speak']);
+    expect(utterances.at(-1)?.text).toBe('Exploring diagram');
+
+    // Simulate tab hidden / app backgrounded
+    doc.hidden = true;
+    doc.visibilityState = 'hidden';
+    doc.dispatchEvent('visibilitychange');
+
+    expect(calls).toEqual(['cancel', 'speak', 'cancel']);
+
+    // Page restored to visible
+    doc.hidden = false;
+    doc.visibilityState = 'visible';
+    doc.dispatchEvent('visibilitychange');
+    // cancel() should not be called again on un-hiding
+    expect(calls).toEqual(['cancel', 'speak', 'cancel']);
+
+    // Later speak works normally
+    driver.speak('Welcome back');
+    expect(calls).toEqual(['cancel', 'speak', 'cancel', 'cancel', 'speak']);
+    expect(utterances.at(-1)?.text).toBe('Welcome back');
+  });
+
+  it('cancels speech when pagehide fires on window', () => {
+    const win = new FakeWindow();
+    const { host, calls } = speechHost();
+    host.window = win;
+    const driver = new WebSpeechDriver(host);
+
+    driver.speak('Test utterance');
+    expect(calls).toEqual(['cancel', 'speak']);
+
+    win.dispatchEvent('pagehide');
+    expect(calls).toEqual(['cancel', 'speak', 'cancel']);
+  });
+
+  it('dispose() tears down lifecycle listeners and cancels speech', () => {
+    const doc = new FakeDocument();
+    const win = new FakeWindow();
+    const { host, calls } = speechHost();
+    host.document = doc;
+    host.window = win;
+    const driver = new WebSpeechDriver(host);
+
+    expect(doc.listeners['visibilitychange']?.length).toBe(1);
+    expect(win.listeners['pagehide']?.length).toBe(1);
+
+    driver.dispose();
+    expect(calls).toEqual(['cancel']);
+    expect(doc.listeners['visibilitychange']?.length).toBe(0);
+    expect(win.listeners['pagehide']?.length).toBe(0);
+
+    // Subsequent visibilitychange or pagehide does nothing
+    doc.hidden = true;
+    doc.dispatchEvent('visibilitychange');
+    win.dispatchEvent('pagehide');
+    expect(calls).toEqual(['cancel']);
+  });
+
+  it('listen() works alongside speech lifecycle listeners and cancels on hide', async () => {
+    const doc = new FakeDocument();
+    const win = new FakeWindow();
+    const rec = new FakeRecognition();
+    const { host } = speechHost(rec);
+    host.document = doc;
+    host.window = win;
+    const driver = new WebSpeechDriver(host);
+
+    const promise = driver.listen();
+    expect(rec.start).toHaveBeenCalledTimes(1);
+
+    // Trigger tab hide while listening
+    doc.hidden = true;
+    doc.dispatchEvent('visibilitychange');
+
+    await expect(promise).rejects.toMatchObject({ message: 'cancelled' });
+    expect(rec.abort).toHaveBeenCalled();
+  });
+});
