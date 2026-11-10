@@ -3144,3 +3144,28 @@ Format for each entry:
   - `docs/user-test/translation-review.md`
   - `docs/reports/agy-t1-kiro-oracles-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-10 — agy, reviewed by Claude — Lane w1-docs-refresh (Docs Refresh)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - Refreshed all outward-facing documents (`README.md`, `docs/STEMERGENT_SUBMISSION.md`, `docs/KIRO_WRITEUP.md`, `docs/BLOG.md`, `docs/SOCIAL.md`, `docs/DEMO_SCRIPT.md`) with features landed on main over the last two days.
+  - Documented Ghostwriter in Teach mode (Kiro Requirement 19/20, tasks 34/36, pure addPoint/addSegment in `core/correct.ts`, agy lane g1 UI in `flow/ghostwriter.ts` and `screens/Teach.tsx`, audit fixes v1).
+  - Documented disputed-angle wording per language (Kiro Task 35, `verify.angleName`: "angle C" in English, "कोण C" in Hindi, "ખૂણા C" in Gujarati).
+  - Documented Round-5 audits and their fixes: backend permits, aspect bounds [0.05, 20.0], `image/jpg` MIME acceptance (lane p1); saved-diagram atomic eviction and in-place save (lane p2); share-name prefix sanitiser and honest share wording ("Shared by <name>, not checked"), ShareError single announcement, a11y labels (lanes p3, q1); P1..P99 point IDs in `/ask` (lane p5).
+  - Documented Kiro's test-first property oracles for Requirements 21 and 22 (P66–P78): noted which pass (P71, P72, P73, P75, and P66–P70 after lane q1 prefix scanner fix) and which remain pending in repo (P74, P76, P77/P78).
+  - Documented Spec Ghost per-language wording and fact checking status (~35% parse rate on sample set, 21 of 60 scenes).
+  - Synchronized Kiro, Antigravity, and Claude Code attribution matrices across all documents matching `BUILD_LOG.md`.
+  - Added optional Beat C (Ghostwriter in Teach mode: Teach, Add point, tap, hear confirmation, undo) to `docs/DEMO_SCRIPT.md`.
+  - Preserved owner's hardware sentence, feature flags default OFF, and all `[RECOUNT]` / `[FILL]` markers.
+- What broke / surprising findings:
+  - None. All edits strictly confined to scoped documentation files without any source, test, or i18n edits.
+- Files touched:
+  - `README.md`
+  - `docs/STEMERGENT_SUBMISSION.md`
+  - `docs/KIRO_WRITEUP.md`
+  - `docs/BLOG.md`
+  - `docs/SOCIAL.md`
+  - `docs/DEMO_SCRIPT.md`
+  - `docs/reports/agy-w1-docs-refresh-report.md`
+  - `docs/BUILD_LOG.md`
+
