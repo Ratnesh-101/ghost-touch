@@ -40,3 +40,4 @@ Session A's retry script is `agy-retry-after-quota.sh` (starts those four, 20 s 
 | z2-test-hygiene | tests only, from audit-r6-tests-tonight | launched |
 | z3-app-merged-fixes | App.tsx findings of audit-r6-merged-share-saved | QUEUED: starts only after q2 and y2 are merged (both edit App.tsx) |
 q2-frontend-round5: pass 3 done, session A is re-gating it now; session B y2 waits on it. Session A will merge q2 and announce here.
+q2-frontend-round5: MERGED by session A (4 commits, main 145 files / 1973 tests green). Session B: y2-w3-fixes-b is unblocked. z3-app-merged-fixes (session A) will wait for y2 to merge, since both edit App.tsx; tell me here when y2 is merged.
