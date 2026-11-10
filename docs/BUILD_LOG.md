@@ -2989,3 +2989,41 @@ Format for each entry:
   - `docs/reports/agy-q1-share-sanitize-report.md`
   - `docs/BUILD_LOG.md`
 
+
+## 2026-11-10 — agy, reviewed by Claude — Lane v1-g1-fixes (Ghostwriter UI audit fixes)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - Addressed Finding 1 (HIGH) & Finding 2 (MED): Removed `onFocus` speech from Add point and
+    Add edge toolbar buttons in `frontend/src/screens/Teach.tsx`. Retained `aria-label` on all
+    controls for screen readers. Programmatic focus restoration (e.g. `addPointBtnRef.current?.focus()`
+    after `handleDeleteSelected` or `handleUndo`) no longer triggers speech or cancels the just-queued
+    deletion / undo announcement (`synth.cancel()`). Also prevents double-speech / speech clipping
+    on mobile tap where focus precedes click.
+  - Addressed Finding 3 (MED): Rewrote `TeachCanvas handles keyboard events` in
+    `frontend/tests/teach.editor.test.tsx` as a real behavioral jsdom test. Dispatched keydown events
+    for `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, `Delete`, `Backspace`, `Escape`, `Ctrl+Z`,
+    `Ctrl+Y`, and `Ctrl+Shift+Z`, asserting exact invocations and arguments on `onNudgePoint`,
+    `onDeleteSelected`, `onSelect`, `onUndo`, and `onRedo`.
+  - Addressed Finding 4 (MED): Rewrote label edit form test in `frontend/tests/teach.editor.test.tsx`
+    as an end-to-end component behavior test. Verified form absence and Delete button disabled when
+    idle; simulated canvas pointer selection of vertex `pA`, verifying form presence and populated
+    input value; dispatched Delete button activation, asserting element removal, form removal, and
+    that the deletion confirmation is the final text spoken.
+  - Addressed Finding 5 (LOW): Restructured P59 in `frontend/tests/ghostwriter.prop.test.ts` to assert
+    sound invariants directly (scene preservation on rejection, segment monotonicity, endpoint binding,
+    bidirectional idempotency, self-loop contract, completeness) instead of mirroring the implementation's
+    if-else branching logic.
+  - Addressed Finding 6 (LOW): Documented in `frontend/tests/ghostwriter.teach.test.tsx` that `badCoords`
+    and `unknownPoint` are unreachable via UI interactions by design (pointer coords are clamped to [0, 1]
+    and picks only hit existing geometry), justifying the direct pure-flow contract test cases.
+  - Finding 7 (LOW): Duplicate positions on vertex additions deferred per product decision instruction.
+- What broke / surprising findings:
+  - None; programmatic focus cancellation was fully resolved by eliminating focus speech on buttons,
+    maintaining standard screen reader behavior where `aria-label` provides the accessible name.
+- Files touched:
+  - `frontend/src/screens/Teach.tsx`
+  - `frontend/tests/teach.editor.test.tsx`
+  - `frontend/tests/ghostwriter.prop.test.ts`
+  - `frontend/tests/ghostwriter.teach.test.tsx`
+  - `docs/reports/agy-v1-g1-fixes-report.md`
+  - `docs/BUILD_LOG.md`
