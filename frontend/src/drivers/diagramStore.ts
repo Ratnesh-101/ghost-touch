@@ -116,20 +116,36 @@ function waitTx(tx: unknown): Promise<void> {
     return Promise.resolve();
   }
   const txObj = tx as Partial<IDBTransaction>;
-  const rawAddListener = txObj.addEventListener;
-  if (typeof rawAddListener === 'function') {
-    const addListener: (type: string, listener: () => void) => void =
-      rawAddListener.bind(txObj);
+  // Only wait if the transaction implementation supports completion events (real IDBTransaction or full mock).
+  // Minimal unit test mocks that only stub objectStore() resolve immediately.
+  if (typeof txObj.addEventListener === 'function' || 'oncomplete' in txObj) {
     return new Promise<void>((resolve, reject) => {
-      txObj.oncomplete = () => resolve();
-      txObj.onerror = () => reject(txObj.error ?? new Error('Transaction error'));
-      txObj.onabort = () => reject(txObj.error ?? new Error('Transaction aborted'));
-      try {
-        addListener('complete', () => resolve());
-        addListener('error', () => reject(txObj.error ?? new Error('Transaction error')));
-        addListener('abort', () => reject(txObj.error ?? new Error('Transaction aborted')));
-      } catch {
-        // Safe fallback for mocks without real event listener support
+      let settled = false;
+      const onDone = (): void => {
+        if (!settled) {
+          settled = true;
+          resolve();
+        }
+      };
+      const onFail = (err?: unknown): void => {
+        if (!settled) {
+          settled = true;
+          reject(err ?? txObj.error ?? new Error('Transaction aborted or failed'));
+        }
+      };
+
+      txObj.oncomplete = onDone;
+      txObj.onerror = () => onFail(txObj.error ?? new Error('Transaction error'));
+      txObj.onabort = () => onFail(txObj.error ?? new Error('Transaction aborted'));
+
+      if (typeof txObj.addEventListener === 'function') {
+        try {
+          txObj.addEventListener('complete', onDone);
+          txObj.addEventListener('error', () => onFail(txObj.error ?? new Error('Transaction error')));
+          txObj.addEventListener('abort', () => onFail(txObj.error ?? new Error('Transaction aborted')));
+        } catch {
+          // Safe fallback for mocks without real event listener support
+        }
       }
     });
   }

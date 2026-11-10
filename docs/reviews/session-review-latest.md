@@ -1,17 +1,23 @@
-# Session review (Kiro, T34 Ghostwriter core + T35 M4-10): 2026-11-09
+# Session review
+Reviewer: Kiro | Verdict: FIX FIRST (verification pending only)
 
-**Verdict: SHIP** (uncommitted; nothing pushed; not tried on a phone)
+## Scope
+Only file edited this session: `frontend/src/drivers/diagramStore.ts` (Task 20.1, `waitTx`).
+No Kiro-owned files were touched (`core/**`, `*.prop.test.ts`, `schema.py`, `validate.py`, `.kiro/**`), so haptic values, property tests P1–P13 and TEMP stubs were not affected and were not re-checked.
 
-Kiro-owned files changed: `frontend/src/core/correct.ts` (`addPoint`, `addSegment`), `frontend/src/core/verify.ts` (`angleVertex`, `localizedFindingTarget`), `frontend/tests/correct.ghostwriter.prop.test.ts` (new, P54-P57), `.kiro/specs/ghost-touch/{requirements,design,tasks}.md` (Requirement 19, the 18.2 angle-name sentence, tasks 34-35). Others: `flow/ask.ts`, `flow/navigation.ts`, `i18n/index.ts` (`verify.angleName`), `tests/n2.round4.test.ts` (agy's; M4-10 un-skipped), `tests/verify.angleName.test.ts` (new), the translation sheets and `docs/BUILD_LOG.md`.
+## Findings
+| # | Severity | File:line | Problem | Fix |
+|---|---|---|---|---|
+| 1 | Medium | tests / tsc | Tests and type-check were NOT run (Node not on PATH in the session). | Run `vitest --run tests/drivers.diagramStore.test.ts tests/k6.pwa-offline.test.ts` and `tsc --noEmit` in `frontend/`. |
+| 2 | Low | diagramStore.ts `waitTx` | Mock transactions that never fire a completion event now hang instead of resolving early (intended: real commit is awaited). | Ensure any new mocks fire `complete`. |
 
-1. **Architecture:** pass. No React, browser API or i18n import in `frontend/src/core` (the one grep hit is a comment). `verify.ts` stays language-free: callers pass the angle wording. Browser-facing text is resolved in `flow/` through `tf()`.
-2. **Tuned haptic values:** pass. No diff to `hapticEngine.ts`, `hitTest.ts` or `pitch.ts`.
-3. **Properties:** pass. P1-P13 present; no `numRuns` below 200 in any `*.prop.test.ts`. P54-P57 run 250 cases each; P47-P50 (200) and the 18.2 property (250) were not touched. Mutants: 12 killed for T34, 3 for T35.
-4. **TEMP stubs:** pass. None in `frontend/src` or `backend/app`.
-5. **tasks.md:** pass. Tasks 34 and 35 are fully ticked and match the code; both specs were written before the code.
+## Checks
+- [x] Architecture: IndexedDB stays in `drivers/`; no browser APIs added to `core/`.
+- [x] Exports and `DiagramStore` interface unchanged.
+- [x] `waitTx` always hooks oncomplete/onerror/onabort; resolves on complete, rejects on error/abort.
+- [x] All store methods close the db in `finally`.
+- [ ] tasks.md checkbox for 20.1: not ticked (builder rule); tick only after tests pass.
+- [ ] Tests green: unverified.
 
-Gate: `tsc` 0 errors; `npm test` 134 files, 1845 passed, 0 skipped; build ok. The backend was not touched in T34/T35 and was not re-run.
-
-Notes (not blocking):
-- `verify.angleName` hi "कोण {vertex}" and gu "ખૂણા {vertex}" (the oblique form before પર) need a native speaker's review.
-- T35 edited `flow/ask.ts` and `flow/navigation.ts`. The T34 "no flow/" rule was for that task only; the agy Ghostwriter UI lane should rebase on these.
+## Needs from Kiro (core changes I should make)
+- None
