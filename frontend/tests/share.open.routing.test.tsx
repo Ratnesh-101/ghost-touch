@@ -28,7 +28,7 @@ import { MemoryDiagramStore, type Drivers } from '../src/drivers';
 import { Explore } from '../src/screens/Explore';
 import { ShareGate } from '../src/components/ShareGate';
 import { clearHash } from '../src/drivers/hashRoute';
-import { encodeShare, LIMITS, type SharePayload } from '../src/share';
+import { encodeShare, LIMITS, validateShareScene, type SharePayload } from '../src/share';
 import { exploreAnnouncement } from '../src/flow/navigation';
 import { setLang } from '../src/i18n';
 import { parseHtml, getAllElements } from './helpers/a11yDom';
@@ -216,9 +216,12 @@ describe('Share Open Routing & Flow', () => {
     expect(testDrivers.audio.unlock).toHaveBeenCalledTimes(1);
     expect(testDrivers.audio.playEarcon).toHaveBeenCalledWith('start');
     expect(testDrivers.speech.speak).toHaveBeenCalledTimes(1);
+    const expectedScene = validateShareScene(sampleScene);
+    expect(expectedScene.ok).toBe(true);
+    if (!expectedScene.ok) return;
     expect(nextView).toEqual({
       screen: 'explore',
-      scene: sampleScene,
+      scene: expectedScene.scene,
       announced: resolution.sceneAnnouncement,
       verified: resolution.verified,
       fromShare: true,

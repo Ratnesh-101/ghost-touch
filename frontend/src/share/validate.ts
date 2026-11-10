@@ -123,6 +123,7 @@ function clampCoord(val: unknown): { val: number; ok: boolean } {
  * - Duplicate element IDs are de-duplicated (_2, _3, ...).
  * - Enforces caps: <=300 points, <=300 segments, <=2000 polyline points, <=60 bars, labels <=60.
  * - At least one drawable element is required.
+ * - Aspect ratio kept when finite number in [0.05, 20]; defaults to 1 otherwise.
  * - Unknown extra properties are dropped.
  */
 export function validateShareScene(
@@ -156,6 +157,17 @@ export function validateShareScene(
       : raw.title === null
         ? null
         : undefined;
+
+  // Aspect processing (Requirement 18.6: keep finite in [0.05, 20], fallback to 1)
+  let aspect = 1;
+  if (
+    typeof raw.aspect === 'number' &&
+    Number.isFinite(raw.aspect) &&
+    raw.aspect >= 0.05 &&
+    raw.aspect <= 20
+  ) {
+    aspect = raw.aspect;
+  }
 
   // Caps checks
   if (Array.isArray(raw.points) && raw.points.length > LIMITS.maxPoints) {
@@ -418,6 +430,7 @@ export function validateShareScene(
     segments,
     polylines,
     bars,
+    aspect,
   };
   if (title !== undefined) {
     cleanedScene.title = title;
