@@ -461,3 +461,38 @@ describe('P35 — Corrupt storage never crashes the reader (Requirement 11.7)', 
     );
   });
 });
+
+describe('Task 20.4 — savedTitle localized kind names (Req 11.1)', () => {
+  const base = (kind: SceneKind, labels: string[] = []): DiagramScene => ({
+    version: 1,
+    kind,
+    title: null,
+    points: labels.map((label, i) => ({ id: `p${i}`, x: 0.1, y: 0.1, label })),
+    segments: [],
+    polylines: [],
+    bars: [],
+    axes: null,
+  });
+
+  it('speaks Hindi kind names', () => {
+    expect(savedTitle(base('geometry'), 'hi')).toBe('ज्यामिति');
+    expect(savedTitle(base('function_graph'), 'hi')).toBe('फलन ग्राफ़');
+    expect(savedTitle(base('bar_chart'), 'hi')).toBe('बार चार्ट');
+    expect(savedTitle(base('unknown'), 'hi')).toBe('आरेख');
+    expect(savedTitle(base('geometry', ['A', 'B']), 'hi')).toBe('ज्यामिति: A, B');
+  });
+
+  it('speaks Gujarati kind names', () => {
+    expect(savedTitle(base('geometry'), 'gu')).toBe('ભૂમિતિ');
+    expect(savedTitle(base('function_graph'), 'gu')).toBe('વિધેય આલેખ');
+    expect(savedTitle(base('bar_chart'), 'gu')).toBe('સ્તંભ આલેખ');
+    expect(savedTitle(base('unknown'), 'gu')).toBe('આકૃતિ');
+    expect(savedTitle(base('bar_chart', ['X']), 'gu')).toBe('સ્તંભ આલેખ: X');
+  });
+
+  it('keeps the raw kind for en and unrecognized languages', () => {
+    expect(savedTitle(base('geometry'), 'en')).toBe('geometry');
+    expect(savedTitle(base('geometry'), 'fr')).toBe('geometry');
+    expect(savedTitle(base('geometry'))).toBe('geometry');
+  });
+});
