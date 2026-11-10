@@ -3276,3 +3276,10 @@ Format for each entry:
   - `backend/tests/test_ask_ids.py`
   - `docs/reports/agy-z2-test-hygiene-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-10 — Kiro — T39.4 (three tests that could pass vacuously)
+- Tool: **Kiro**. All three audit claims checked and confirmed.
+  - **18.2 (`verify.review.test.ts`):** added a property where one side is always forged by 1.5-5x. It must be flagged in every mode, with exactly the agreed sentence naming that side. A "never disagree" mutant fails the new property and passes the old one (`-t agreed`: 1 failed, 1 passed), which proves the old one was vacuous. The old property is kept and now also bans "approved".
+  - **`verify.angleName.test.ts`:** the hand-built finding is replaced by a forged angle at C in four phrasings and three languages, run through `verifyScene` and `verifyCaveatForScene` and compared with the sentences written out in the test. Killed: "the angle check never fires".
+  - **P56:** the segment pair is now the new point plus another point, so the add always happens. Segment undo and redo, a double redo, and an explicit `a == b` no-op are checked. Killed: "addSegment always a no-op" (the old P56 passed it through its no-op branch) and "redo broken".
+- All at 250 runs.

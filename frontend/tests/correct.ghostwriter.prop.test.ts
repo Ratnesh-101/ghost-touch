@@ -267,16 +267,25 @@ describe('P56: add then undo restores the previous scene exactly (19.5)', () => 
         expect(u1.past).toEqual(start.past);
         expect(historyReducer(u1, { type: 'redo' }).present).toBe(withPoint);
 
-        const ids = (withPoint.points ?? []).map((p) => p.id);
-        const withSeg = addSegment(withPoint, ids[i % ids.length]!, ids[j % ids.length]!);
+        // Tightened in task 39.4 (audit r5-kiro-glue LOW): the old pair (ids[i], ids[j]) could
+        // collide or be joined already, which skipped the segment undo. The new point is joined to
+        // nothing, so joining it to any other point always adds a segment.
+        const added = (withPoint.points ?? []).at(-1)!.id;
+        const others = (withPoint.points ?? []).map((p) => p.id).filter((id) => id !== added);
+        const other = others[i % others.length]!;
+        const withSeg = addSegment(withPoint, added, other);
+        expect(withSeg).not.toBe(withPoint);
         const h2 = historyReducer(h1, { type: 'apply', scene: withSeg });
-        if (withSeg === withPoint) {
-          expect(h2).toBe(h1); // a no-op adds nothing to undo
-        } else {
-          const u2 = historyReducer(h2, { type: 'undo' });
-          expect(u2.present).toBe(withPoint);
-          expect(historyReducer(u2, { type: 'undo' }).present).toBe(scene);
-        }
+        const u2 = historyReducer(h2, { type: 'undo' });
+        expect(u2.present).toBe(withPoint);
+        expect(historyReducer(u2, { type: 'redo' }).present).toBe(withSeg);
+        const u3 = historyReducer(u2, { type: 'undo' });
+        expect(u3.present).toBe(scene);
+        const r3 = historyReducer(historyReducer(u3, { type: 'redo' }), { type: 'redo' });
+        expect(r3.present).toBe(withSeg);
+        // A no-op (same point twice, chosen by j) adds nothing to undo.
+        const same = [added, ...others][j % (others.length + 1)]!;
+        expect(historyReducer(h2, { type: 'apply', scene: addSegment(withSeg, same, same) })).toBe(h2);
       }),
       RUNS,
     );

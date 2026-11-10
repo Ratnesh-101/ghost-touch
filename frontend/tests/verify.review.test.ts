@@ -231,9 +231,34 @@ describe('Requirement 18.2 — the sentence never claims the diagram is right', 
           const result = verifyScene(triangle345([`AB = ${x} cm`, `BC = ${y} cm`, `CA = ${z} cm`, `angle B = ${(x * 7) % 180} degrees`]), { mode });
           for (const f of result.findings) {
             expect(f.message).toMatch(/^Facts and drawing disagree on (AB|BC|CA|angle B)\. I can't tell which is right\.$/);
-            expect(f.message).not.toMatch(/verified|correct|trust|checked/i);
+            expect(f.message).not.toMatch(/verified|correct|trust|checked|approved/i);
           }
           if (result.status !== 'disagree') expect(result.findings).toEqual([]);
+        },
+      ),
+      { numRuns: 250 },
+    );
+  });
+
+  // Tightened in task 39.4 (audit r5-kiro-glue LOW): the property above passes when the check
+  // finds nothing, so a verifier that always stays silent would pass it. Here one side is always
+  // forged by a factor of at least 1.5, which must be flagged in every mode (the error is at least
+  // 1/3, over the 25 % AI tolerance), and the sentence must name exactly that side.
+  it('a forged side is always flagged, and named in the agreed sentence (250 runs)', () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.5, max: 40, noNaN: true }),
+        fc.double({ min: 1.5, max: 5, noNaN: true }),
+        fc.constantFrom('AB', 'BC', 'CA'),
+        fc.constantFrom('ai', 'raw', 'sample', 'shared' as const),
+        (scale, factor, forged, mode) => {
+          const honest: Record<string, number> = { AB: 3, BC: 4, CA: 5 };
+          const facts = Object.entries(honest).map(([side, len]) => `${side} = ${len * scale * (side === forged ? factor : 1)} cm`);
+          const result = verifyScene(triangle345([...facts, 'angle B = 90 degrees']), { mode });
+          expect(result.status).toBe('disagree');
+          expect(result.findings.map((f) => f.message)).toEqual([
+            `Facts and drawing disagree on ${forged}. I can't tell which is right.`,
+          ]);
         },
       ),
       { numRuns: 250 },

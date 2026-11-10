@@ -60,24 +60,30 @@ describe('M4-10: the angle word follows the language', () => {
     }
   });
 
-  it('any vertex name is passed through unchanged and the English word never leaks (200 runs)', () => {
+  // Tightened in task 39.4 (audit r5-kiro-glue LOW): the old version built the finding by hand, so
+  // it never ran verifyScene. This one forges the printed angle at C, goes through the real check
+  // and the real caveat, and compares with the sentences written out in EXPECTED above.
+  it('a forged angle at C, in any wording and language, gives exactly the expected caveat (250 runs)', () => {
     fc.assert(
       fc.property(
-        fc.stringMatching(/^[A-Za-z0-9]{1,3}$/),
+        fc.oneof(fc.integer({ min: 0, max: 80 }), fc.integer({ min: 100, max: 180 })),
+        fc.constantFrom(
+          (v: number) => `angle C = ${v} degrees`,
+          (v: number) => `angle at C is ${v}°`,
+          (v: number) => `∠C = ${v}°`,
+          (v: number) => `m∠C = ${v}°`,
+        ),
         fc.constantFrom<Lang>('en', 'hi', 'gu'),
-        (vertex, lang) => {
+        (value, phrase, lang) => {
           setLang(lang);
-          const finding: VerifyFinding = {
-            message: `Facts and drawing disagree on angle ${vertex}. I can't tell which is right.`,
-            angleVertex: vertex,
-          };
-          const name = localizedFindingTarget(finding, spokenAngleName);
-          expect(name.endsWith(` ${vertex}`)).toBe(true);
-          if (lang === 'en') expect(name).toBe(`angle ${vertex}`);
-          else expect(name.slice(0, -vertex.length - 1)).not.toMatch(/angle/i);
+          const scene: DiagramScene = { ...forgedAngle, facts: [phrase(value), 'AC = 4 cm', 'BC = 3 cm', 'AB = 5 cm'] };
+          const { status, findings } = verifyScene(scene, { mode: 'ai' });
+          expect(status).toBe('disagree');
+          expect(findings.some((f) => f.angleVertex === 'C')).toBe(true);
+          expect(verifyCaveatForScene(scene, 'ai')).toBe(EXPECTED[lang]);
         },
       ),
-      { numRuns: 200 },
+      { numRuns: 250 },
     );
   });
 });
