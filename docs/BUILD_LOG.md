@@ -3169,3 +3169,6 @@ Format for each entry:
   - `docs/reports/agy-w1-docs-refresh-report.md`
   - `docs/BUILD_LOG.md`
 
+
+## 2026-11-10 — Kiro — T39.0 (round-5 properties rerun; task 38 closed)
+- Tool: **Kiro**. Reran P66-P78 (the four round-5 property files, not changed): all 13 pass under each of the 9 recorded seeds and 3 fresh ones. I pinned the seed with a temporary vitest setup file calling `fc.configureGlobal`, showed it works (the same seed gives the same values), then deleted it. Every gap was closed by an agy code fix (`3fdad91`, `3a6353d`, `c3855b6`); none by amending Requirement 22. I committed the four property files (written in task 38 and left untracked) and ticked 38 and 38.4. `docs/reviews/kiro-round5.md` now has the rerun table.

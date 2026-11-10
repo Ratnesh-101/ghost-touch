@@ -1,6 +1,8 @@
 # Kiro round 5: the audit invariants as property tests (task 38)
 
-**Status: properties written, awaiting agy fixes.** 13 properties (P66-P78, Requirement 22) in four new test files. **6 fail, 7 pass.** The same six fail on three consecutive runs. Nothing was fixed; no file under `frontend/src/` was changed.
+**Status (2026-11-10, task 39.0): all 13 properties pass. Task 38 is closed.** See "Rerun" at the end. The text below is the original record of the first run.
+
+**Original status: properties written, awaiting agy fixes.** 13 properties (P66-P78, Requirement 22) in four new test files. **6 fail, 7 pass.** The same six fail on three consecutive runs. Nothing was fixed; no file under `frontend/src/` was changed.
 
 **Read this first: the fixes had already merged.** The brief said the three agy lanes had not merged. By the time the tests ran, `main` was at `2d108ca`, and lanes p1-p5, q1, q2, r1 and r2 were all ancestors of it (`git merge-base --is-ancestor`). So these properties ran against the **fixed** code. A failure below is a gap the round-5 fixes left, not a fix still to come.
 
@@ -91,3 +93,29 @@ Every failure below gives its fast-check `seed` and `path`. To replay one exactl
 - **Needs a different fake:** saved audit R5-02 (`IDBDiagramStore` puts before it deletes) needs a quota-aware fake `IDBFactory`. Its fix is in `24c629f`, but no property checks it.
 - **Pure, but outside the brief's list:** share audit R5-07 (`sceneName` falls back to the raw `scene.kind`).
 - **Backend audit:** its three findings are about tests and an allowed MIME list. They have no invariant that fits a fast-check property; lane p1 fixed them with example tests.
+
+## Rerun (Kiro, task 39.0, 2026-11-10)
+
+**All 13 properties pass on `main` at `4cb2d83`. That holds under every recorded seed and under fresh ones.** The four test files were not changed, and no property was weakened or amended.
+
+**How the seeds were pinned:** the files take no seed parameter, and they were not edited for the rerun. A temporary vitest config added a setup file that called `fc.configureGlobal({ seed: Number(process.env.FC_SEED) })`. A probe showed this pins fast-check: the same seed gave the same values twice (`937312435` → `2147483636, 235503222, -27` both times), and a different seed gave different values. The temporary files were deleted afterwards. Each run covered all four files, 13 tests.
+
+| Seed | Origin | Result |
+|---|---|---|
+| -831805181 | P66 | 13 / 13 pass |
+| -1958317831 | P67 | 13 / 13 pass |
+| 1764458590 | P69 | 13 / 13 pass |
+| -1871874011 | P69 (earlier run) | 13 / 13 pass |
+| 370149271 | P69 (earlier run) | 13 / 13 pass |
+| -325525499 | P77 | 13 / 13 pass |
+| 937312435 | P74 (also pinned as an explicit example in the file) | 13 / 13 pass |
+| -2112622909 | P76 | 13 / 13 pass |
+| 1471220698 | P76 (earlier run) | 13 / 13 pass |
+| 208728081, -1149123449, 1338720837 | fresh, random | 13 / 13 pass each |
+
+A global seed replays the run from its start; the recorded `path` values apply only to the original single property, so they were not used. The P74 counterexample does not depend on a seed, because it runs as a fixed example every time.
+
+**What closed each gap:** all of them were code fixes; none came from amending Requirement 22.
+- P66, P67, P69: share-name sanitiser, `3fdad91` (agy, Requirement 22.1-22.5).
+- P74 and P76: `saveDiagramWithEviction`, `3a6353d` (agy, Requirement 22.7-22.11). P76 was fixed in the function, so the caller no longer owns the preservation; Requirement 22.11 stands as written.
+- P77: legacy `share.verified*` keys renamed and `share.honesty` reworded, `c3855b6` (agy, Requirement 22.12).
