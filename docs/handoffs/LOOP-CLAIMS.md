@@ -29,4 +29,6 @@ Session A's retry script is `agy-retry-after-quota.sh` (starts those four, 20 s 
 | w1-docs-refresh | docs only: README, STEMERGENT, KIRO_WRITEUP, BLOG, SOCIAL, DEMO_SCRIPT up to date with Ghostwriter, T35, audit fixes (no counts) | MERGED (f10bc22) |
 | w2-backend-security-audit | read-only audit of the whole backend (cost guards, cache, prompt injection, logging) | launching |
 | w3-eyes-closed-audit | read-only audit of the app flows as an eyes-closed user | launching |
-| x1-w2-fixes | backend only: gemini.py key scrubbing, XFF key mismatch in limits.py, WebP VP8X sniffing (render.yaml items deferred to owner) | launching |
+| x1-w2-fixes | backend only: gemini.py key scrubbing, XFF key mismatch in limits.py, WebP VP8X sniffing (render.yaml items deferred to owner) | launched |
+| y1-w3-fixes-a | frontend: speech.ts hide-cancel, Capture.tsx cancel message, offline capture message (files q2 does not touch) | launching |
+| y2-w3-fixes-b | WAITING for q2 to merge: ShareError focus + live region on cold open, Correct intro double speech (App.tsx), Saved heading (App.tsx), Explore voice-fail focus / status text / hidden stopSpeaking | not launched |
