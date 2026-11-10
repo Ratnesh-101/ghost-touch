@@ -731,3 +731,23 @@ The following spoken strings may be difficult for blind students to follow in a 
 | `teach.addCancelled (spoken)` | Adding cancelled. | जोड़ना रद्द किया गया। | ઉમેરવાનું રદ કર્યું. | | | | Cancelled notice; marked for native review |
 | `teach.undidAddPoint (spoken)` | Undone: point {id} removed. | पूर्ववत: बिंदु {id} हटाया गया। | પૂર્વવત્: બિંદુ {id} દૂર કર્યું. | | | | Undo point notice; keep {id}; marked for native review |
 | `teach.undidAddEdge (spoken)` | Undone: edge from {a} to {b} removed. | पूर्ववत: {a} से {b} तक का किनारा हटाया गया। | પૂર્વવત્: {a} થી {b} સુધીનો કાંઠો દૂર કર્યો. | | | | Undo edge notice; keep {a}, {b}; marked for native review |
+---
+## 26. Teacher Correct Mode: Delete Curves & Bars (`r1-correct-delete-curves`)
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `correct.selectedPolyline (spoken)` | Selected curve | चयनित वक्र | પસંદ કરેલ વક્ર | | | | marked for native review |
+| `correct.selectedBar (spoken)` | Selected bar | चयनित बार | પસંદ કરેલ બાર | | | | marked for native review |
+| `correct.polylineDeleted (spoken)` | Deleted curve | वक्र हटाया गया | વક્ર કાઢી નાખ્યો | | | | marked for native review |
+| `correct.barDeleted (spoken)` | Deleted bar | बार हटाया गया | બાર કાઢી નાખ્યો | | | | marked for native review |
+| `correct.nothingLeft (spoken)` | Nothing is left to feel in this diagram. Undo brings it back. | इस आरेख में महसूस करने के लिए कुछ नहीं बचा है। पूर्ववत करने से यह वापस आ जाएगा। | આ આકૃતિમાં અનુભવવા માટે કંઈ બાકી નથી. પૂર્વવત્ કરવાથી તે પાછું આવશે. | | | | marked for native review |
+---
+## 26. Teacher Correct Mode: Delete Curves & Bars (`r1-correct-delete-curves`)
+| Key | English | Hindi | Gujarati | Hindi OK? | Gujarati OK? | Better wording | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `correct.selectedPolyline (spoken)` | Selected curve | चयनित वक्र | પસંદ કરેલ વક્ર | | | | marked for native review |
+| `correct.selectedBar (spoken)` | Selected bar | चयनित बार | પસંદ કરેલ બાર | | | | marked for native review |
+| `correct.polylineDeleted (spoken)` | Deleted curve | वक्र हटाया गया | વક્ર કાઢી નાખ્યો | | | | marked for native review |
+| `correct.barDeleted (spoken)` | Deleted bar | बार हटाया गया | બાર કાઢી નાખ્યો | | | | marked for native review |
+| `correct.nothingLeft (spoken)` | Nothing is left to feel in this diagram. Undo brings it back. | इस आरेख में महसूस करने के लिए कुछ नहीं बचा है। पूर्ववत करने से यह वापस आ जाएगा। | આ આકૃતિમાં અનુભવવા માટે કંઈ બાકી નથી. પૂર્વવત્ કરવાથી તે પાછું આવશે. | | | | marked for native review |
+| `share.honesty (spoken)` | This diagram was shared as a link. Ghost Touch cannot confirm it is right. | यह आरेख एक लिंक के रूप में साझा किया गया है। घोस्ट टच इसकी पुष्टि नहीं कर सकता कि यह सही है। | આ આકૃતિ લિંક તરીકે શેર કરવામાં આવી છે. ગોસ્ટ ટચ તે સાચી છે તેની પુષ્ટિ કરી શકતું નથી. | | | | Requirement 22.12 honest disclaimer; marked for native review |
+| `share.honesty (spoken)` | This diagram was shared as a link. Ghost Touch cannot confirm it is right. | यह आरेख एक लिंक के रूप में साझा किया गया है। घोस्ट टच इसकी पुष्टि नहीं कर सकता कि यह सही है। | આ આકૃતિ લિંક તરીકે શેર કરવામાં આવી છે. ગોસ્ટ ટચ તે સાચી છે તેની પુષ્ટિ કરી શકતું નથી. | | | | Requirement 22.12 honest disclaimer; marked for native review |
