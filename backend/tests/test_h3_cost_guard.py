@@ -511,9 +511,9 @@ def test_a8_x_vision_provider_header_and_no_echo() -> None:
             "/api/v1/scene",
             files={"image": ("diagram.png", png_bytes, "image/png")},
         )
-        if resp.status_code == 200:
-            assert resp.headers["X-Vision-Provider"] == "raw"
-            assert resp.headers["X-Vision-Provider"] not in ("gemini", "openai", "nebius", "none")
+        assert resp.status_code == 200
+        assert resp.headers["X-Vision-Provider"] == "raw"
+        assert resp.headers["X-Vision-Provider"] not in ("gemini", "openai", "nebius", "none")
     finally:
         app.dependency_overrides.clear()
 
@@ -636,6 +636,11 @@ def test_r3_5_duplicate_xff_header_lines_joined() -> None:
 
     # With TRUSTED_PROXY_HOPS=1, rightmost entry was the second XFF line: 2001:db8::1
     with patch.dict(os.environ, {"TRUSTED_PROXY_HOPS": "1"}):
+        # 1. Directly extract from ASGI scope headers without manual pre-joining
+        key_from_scope = guard._client_key(scope_duplicate_xff)
+        assert key_from_scope == "2001:db8::/64"
+
+        # 2. Backward compatibility with pre-extracted dict
         headers_dict = guard._client_key(
             scope_duplicate_xff,
             {"x-forwarded-for": "1.1.1.1, 2001:db8::1"},
