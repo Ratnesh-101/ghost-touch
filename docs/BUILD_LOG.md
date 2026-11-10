@@ -3027,3 +3027,23 @@ Format for each entry:
   - `frontend/tests/ghostwriter.teach.test.tsx`
   - `docs/reports/agy-v1-g1-fixes-report.md`
   - `docs/BUILD_LOG.md`
+
+
+## 2026-11-11 — Antigravity (Head Orchestrator) & Kiro CLI Workers — Automated Verification & Pre-Test Audit
+- Tool: **Antigravity (Orchestrator) + 3 Kiro CLI Workers (headless)**.
+- What was done:
+  - Installed frontend and backend runtime test environments cleanly on Windows host.
+  - Executed full frontend Vitest suite: 138 test files, 1,919 passed, 0 failed.
+  - Executed TypeScript compilation (`tsc --noEmit`) and Vite production PWA build: 24 precache assets generated.
+  - Dispatched 3 parallel Kiro CLI workers in non-interactive mode (`--no-interactive -a --trust-workspace`):
+    - **Worker 1 (Backend Specialist):** Ran Pytest with Hypothesis in `.venv` (782 passed, 1 skipped, 0 failed); verified $[0, 1]$ coordinate bounds, clamping, dangling reference pruning in `validate.py`, and $\le 300$ segment Douglas-Peucker reduction in `raw_mode.py`.
+    - **Worker 2 (Mobile Haptics & Audio Specialist):** Audited `haptics.ts`, `speech.ts`, `audio.ts`, and `explore.ts`; verified strict conformance to `tech.md` constants (line 80ms/70ms, corner `[50, 90, 50]`, quiet 450ms, centre tick 25ms, vertex radius 22, line radius 14).
+    - **Worker 3 (PWA & Offline Specialist):** Audited `diagramStore.ts`, `savedDiagrams.ts`, and `vite.config.ts`; confirmed IndexedDB `'ghost-touch'` store safety boundaries and FIFO eviction guarantees.
+  - Verified `ruff check` (all clean) and `ruff format --check` (79 files clean).
+  - Updated official test recounts in `docs/STEMERGENT_SUBMISSION.md` with verified 2,701 passing tests.
+- What broke / surprising findings:
+  - Documentation references `ghost-touch-db` in some notes, while the live code uses `'ghost-touch'` as the IndexedDB database name.
+  - Pytest client disconnect tests emit 4 minor runtime warnings on Starlette/httpx test client mocks; zero test failures.
+- Files touched:
+  - `docs/STEMERGENT_SUBMISSION.md`
+  - `docs/BUILD_LOG.md`
