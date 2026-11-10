@@ -22,3 +22,10 @@ agy returned RESOURCE_EXHAUSTED (429) "Individual quota reached ... Resets in 50
 Session A's retry script is `agy-retry-after-quota.sh` (starts those four, 20 s apart, at 01:52). Session B's v1 relaunch is separate. Total after the reset: 5 lanes at once; if the quota is hit again, the second wave should wait for the first to finish.
 | r6-tests-tonight | session A | read-only audit of tests added tonight | launched 2026-11-10 |
 | r6-merged-share-saved | session A | read-only audit of merged share/saved/teach code | launched 2026-11-10 |
+
+## Session B (Claude) after the 08:00 push
+| Lane | Scope | State |
+|---|---|---|
+| w1-docs-refresh | docs only: README, STEMERGENT, KIRO_WRITEUP, BLOG, SOCIAL, DEMO_SCRIPT up to date with Ghostwriter, T35, audit fixes (no counts) | launching |
+| w2-backend-security-audit | read-only audit of the whole backend (cost guards, cache, prompt injection, logging) | launching |
+| w3-eyes-closed-audit | read-only audit of the app flows as an eyes-closed user | launching |
