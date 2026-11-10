@@ -383,7 +383,7 @@ def test_m4_05_semantic_calculations_safe_with_boundary_aspect() -> None:
         points=[
             Point(id="A", x=0.0, y=0.0),
             Point(id="B", x=0.5, y=0.0),
-            Point(id="C", x=0.0, y=0.5),
+            Point(id="C", x=0.0, y=0.8),
         ],
         segments=[Segment(id="AB", a="A", b="B"), Segment(id="AC", a="A", b="C")],
     )
@@ -395,8 +395,40 @@ def test_m4_05_semantic_calculations_safe_with_boundary_aspect() -> None:
     assert coords == (0.0, 0.0)
     assert lbl == "A"
 
-    best_seg, _, _ = _find_longest_side(scene_high)
-    assert best_seg is not None
+    best_seg_high, coords_high, lbl_high = _find_longest_side(scene_high)
+    assert best_seg_high is not None
+    assert best_seg_high.element_id == "AB"
+    assert best_seg_high.name == "longest_side"
+    assert best_seg_high.label == "AB"
+    assert coords_high == (0.25, 0.0)
+    assert lbl_high == "AB"
+
+    # Low aspect boundary (0.05): vertical segment AC (0.8) dominates
+    # horizontal segment AB (0.5 * 0.05 = 0.025).
+    scene_low = DiagramScene(
+        kind="geometry",
+        aspect=0.05,
+        points=[
+            Point(id="A", x=0.0, y=0.0),
+            Point(id="B", x=0.5, y=0.0),
+            Point(id="C", x=0.0, y=0.8),
+        ],
+        segments=[Segment(id="AB", a="A", b="B"), Segment(id="AC", a="A", b="C")],
+    )
+    res_low, coords_low, lbl_low = _find_right_angle(scene_low)
+    assert res_low is not None
+    assert res_low.element_id == "A"
+    assert res_low.name == "right_angle"
+    assert coords_low == (0.0, 0.0)
+    assert lbl_low == "A"
+
+    best_seg_low, coords_low_side, lbl_low_side = _find_longest_side(scene_low)
+    assert best_seg_low is not None
+    assert best_seg_low.element_id == "AC"
+    assert best_seg_low.name == "longest_side"
+    assert best_seg_low.label == "AC"
+    assert coords_low_side == (0.0, 0.4)
+    assert lbl_low_side == "AC"
 
 
 def test_m4_05_semantic_ask_unexpected_exception_falls_through_in_ask() -> None:

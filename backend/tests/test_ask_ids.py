@@ -287,7 +287,7 @@ def test_api_ask_p1_and_p99_integration() -> None:
     scene_id_sample=st.sets(st.sampled_from(ALL_POINT_IDS), min_size=1, max_size=15),
     data=st.data(),
 )
-@settings(max_examples=100)
+@settings(max_examples=200)
 def test_hypothesis_unknown_id_never_gets_answer(
     scene_id_sample: set[str], data: st.DataObject
 ) -> None:
