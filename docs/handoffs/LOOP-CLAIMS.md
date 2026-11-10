@@ -20,3 +20,5 @@ agy returned RESOURCE_EXHAUSTED (429) "Individual quota reached ... Resets in 50
 | r2-share-aspect | gated: one routing test needs aspect: 1 in its expected value. Relaunch 01:52 |
 | t1-kiro-oracles | P74/P76/P77 (saved eviction keep pinned/createdAt, share.honesty without "verified"). Relaunch 01:52 |
 Session A's retry script is `agy-retry-after-quota.sh` (starts those four, 20 s apart, at 01:52). Session B's v1 relaunch is separate. Total after the reset: 5 lanes at once; if the quota is hit again, the second wave should wait for the first to finish.
+| r6-tests-tonight | session A | read-only audit of tests added tonight | launched 2026-11-10 |
+| r6-merged-share-saved | session A | read-only audit of merged share/saved/teach code | launched 2026-11-10 |
