@@ -13,7 +13,7 @@ We stitched 3 phone parts into an assistive creature in our Frankenstein's Lab r
 👁️ Vision AI for eyes (reads textbook photos, PDFs & falls back to classical Raw Mode)
 🎵 Theremin synthesizer for voice (height = pitch on curves, tones on bar charts)
 
-Supports Android TalkBack pass-through gesture (unverified on hardware). [RECOUNT] frontend + [RECOUNT] backend tests, [RECOUNT] mathematical properties verified with fast-check & Hypothesis. Spec-driven engineering by Kiro (pure core, P1–P13, Round 2 P40–P46, Round 3 P51–P57); Lab redesign, Spec Ghost & hardening by Antigravity (agy, P14–P30, P47–P50, lanes m1–m3, n1–n2, p1–p3); supervised and gated by Claude Code.
+Supports Android TalkBack pass-through gesture (unverified on hardware). 1,922 frontend + 782 backend tests (2,704 passing, 0 failing), 57 mathematical properties verified with fast-check & Hypothesis. Spec-driven engineering by Kiro (pure core, P1–P13, Round 2 P40–P46, Round 3 P51–P57); Lab redesign, Spec Ghost & hardening by Antigravity (agy, P14–P30, P47–P50, lanes m1–m3, n1–n2, p1–p3); supervised and gated by Claude Code.
 
 Demo video: [FILL: video URL]  
 Repo & live demo: https://github.com/Ratnesh-101/ghost-touch | https://ghost-touch-iota.vercel.app  
@@ -76,7 +76,7 @@ If cloud AI fails, classical OpenCV Canny edge detection (Raw Mode) guarantees t
 • Claude Code: supervised architecture, gated Round 2 T25/T26, wrote backend properties P40–P46, evidence  
 
 ### Post 4/4 (Open Source & Next Steps)
-#KiroweenHackathon26 4/4: Radical transparency: [RECOUNT] frontend tests and [RECOUNT] backend tests pass cleanly across [RECOUNT] properties. What remains unverified on hardware is physical motor calibration, Guide/Share (flagged OFF), and trials with blind students at BPA Ahmedabad. Security audits ongoing (Round 2 items CORE-09 and NEEDS-KIRO-02 resolved in Round 3).
+#KiroweenHackathon26 4/4: Radical transparency: 1,922 frontend tests and 782 backend tests pass cleanly across 57 properties. What remains unverified on hardware is physical motor calibration, Guide/Share (flagged OFF), and trials with blind students at BPA Ahmedabad. Security audits ongoing (Round 2 items CORE-09 and NEEDS-KIRO-02 resolved in Round 3).
 
 Watch the full walkthrough: [FILL: video URL]  
 Try the app or inspect the code: https://ghost-touch-iota.vercel.app  

@@ -128,7 +128,7 @@ Ghost Touch defines five agent hooks in `.kiro/hooks/` to automate quality gates
 
 ## 5. Property-Based Testing (P1–P57)
 
-A core judging pillar of Kiroween is technological rigor. Ghost Touch uses **fast-check** in the frontend and **Hypothesis** in the backend to verify 57 mathematical and behavioural invariants across thousands of randomized diagram topologies, viewports, and interaction sequences ([RECOUNT] property suites across frontend and backend):
+A core judging pillar of Kiroween is technological rigor. Ghost Touch uses **fast-check** in the frontend and **Hypothesis** in the backend to verify 57 mathematical and behavioural invariants across thousands of randomized diagram topologies, viewports, and interaction sequences (57 properties, P1–P57, across frontend and backend):
 
 | # | Property Invariant | Engine / Layer | Validates | Description |
 |---|---|---|---|---|
@@ -305,10 +305,10 @@ Git log history shows over 300 commits authored under the repository owner's nam
 ## 10. Verification & Proof
 
 All claims in this document are supported by automated test suites in the repository:
-- **Frontend:** [RECOUNT] unit and property tests passing across [RECOUNT] test files (`npm --prefix frontend test`), on TypeScript 7, React 19, Vite 8 and Vitest 5.
-- **Backend:** [RECOUNT] tests collected and passing (`backend/.venv/Scripts/python -m pytest backend`).
+- **Frontend:** 1,922 unit and property tests passing across 138 test files (`npm --prefix frontend test`), on TypeScript 7, React 19, Vite 8 and Vitest 5.
+- **Backend:** 782 tests across 25 test files collected and passing (2,704 total passing automated tests, 0 failing) (`backend/.venv/Scripts/python -m pytest backend`).
 - **Formatting & Type-Checking:** Strict TypeScript checking (`npm --prefix frontend exec -- tsc -p frontend --noEmit`) and Ruff verification (`backend/.venv/Scripts/python -m ruff check backend`, `backend/.venv/Scripts/python -m ruff format --check backend`) run clean with 0 errors.
 - **Production Build:** Production bundle and PWA service worker compile cleanly (`npm --prefix frontend run build`).
-- **Submission Day Verification:** Verified on main as of 2026-11-06: 1203 frontend tests in 82 files, 422 backend tests, and clean passes for tsc, ruff check, ruff format --check, and production build (re-run on submission day: [RECOUNT] frontend across [RECOUNT] files, [RECOUNT] backend tests).
+- **Submission Day Verification:** Verified on main as of 2026-11-06: 1203 frontend tests in 82 files, 422 backend tests, and clean passes for tsc, ruff check, ruff format --check, and production build (re-run on submission day: 1,922 frontend tests across 138 files, 782 backend tests across 25 files).
 
 Ghost Touch demonstrates that combining spec-driven architecture, property-based testing, and disciplined multi-agent orchestration yields robust, accessible software engineered for real-world impact.
