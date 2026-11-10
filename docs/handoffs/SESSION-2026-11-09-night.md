@@ -24,4 +24,20 @@ Spend caps on Gemini/OpenAI/Nebius dashboards; confirm Render X-Forwarded-For sh
 Decision made tonight: the hardware-tuning sentence stays (haptic values WERE tuned by hand on the owner's OnePlus Nord CE6 in the prototype) but must say full-app phone testing is still pending.
 
 ## STATE AT STOP
-(filled in at the end of the session)
+As of 2026-11-10 ~02:10 (session B, Claude). All local commits, nothing pushed.
+
+MERGED by session B tonight, each gated green before commit: n1, m2, m1, m3, n2, p1 (backend audit fixes), p2 (saved diagrams), p4 (docs claims), p5 (backend P-numbered ids), v1 (Ghostwriter UI audit fixes). p3 and g1 (Ghostwriter UI, Kiro task 36) were merged by session A; p3's patch was already on main.
+Round-5 and u1 audits are in docs/reports/audit-r5-*.md and audit-u1-g1.md. Every HIGH finding from them is fixed on main, EXCEPT what is listed below.
+
+NOT MERGED, owned by session A (do not duplicate; read docs/handoffs/LOOP-CLAIMS.md first): q2-frontend-round5 (Explore language switch, caveatForQuestion language, ShareError double speech, resolveShareRoute default), r1-correct-delete-curves (Correct UI for deletePolyline/deleteBar), r2-share-aspect (share validator keeps aspect), t1 (Kiro oracles P74, P76, P77). q2, r1, r2 finished with exit 0 before the quota hit; q1 was merged by A after the reset.
+Full frontend gate on main at the last run: tsc 0 errors, 1929 tests pass, 3 fail. The 3 failures are Kiro's oracles P74 (failed delete must not report ok:true over the cap), P76 (updating an existing id keeps pinned and createdAt) and P77 (no share.* string may contain 'verified' / सत्यापित / પ્રમાણિત; the merged share.honesty wording 'Ghost Touch has not verified it' contains it, so reword it, e.g. 'has not been checked by Ghost Touch', in en, hi, gu, and send hi/gu to native review). These are what t1 is for.
+Backend: 783 pytest pass, ruff clean (last run after p5).
+
+KNOWN, not done:
+- agy quota: 429 RESOURCE_EXHAUSTED hit at 00:57 (reset about 01:48). It is shared by all sessions; a lane that exits with status 3 and an IN PROGRESS report did no work: rerun it with a new run name.
+- The Ghostwriter duplicate-position question (two points at the same place) is a product decision for the owner; v1 did not change it.
+- Kiro: still has uncommitted .kiro/specs edits and docs/reviews/session-review-latest.md; also owes the core fixes (addPoint reserved id 'title' and 500 cap are partly handled by the UI cap of 300; parseFacts hi/gu; localizedFindingTarget English fallback; vacuous 18.2 and P56 tests) and a stray tests/zz_replay.tmp.test.ts with a tsc error if it still exists.
+- Final test recount for the [RECOUNT] markers has NOT been done and the old s1-recount diff in gt-lane-s1-recount is stale: do the recount last, after everything above merges.
+- Old worktrees: cleanup-lanes.sh (owner ran it once). New merged lanes to add to its list: p1, p2, p4, p5, v1, u1-g1-audit, r5-*, plus the duplicate q1-frontend-lang (its run was stopped on purpose; it has no useful work).
+- Memory pressure: a gate run was killed once by the memory reaper; run one gate at a time, and do not restart a reaped job until memory is free.
+
