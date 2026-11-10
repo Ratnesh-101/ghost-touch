@@ -49,7 +49,7 @@ export async function loadSavedList(
  * the same utterance, because a second `speak` would cut the first off (CORE-07).
  */
 export function deletedAnnouncement(title: string, remaining: number): string {
-  const deleted = t('saved.deleted').replace('{title}', title);
+  const deleted = t('saved.deleted').replace('{title}', () => title);
   return remaining > 0 ? deleted : joinAnnouncements([deleted, t('saved.empty')]);
 }
 

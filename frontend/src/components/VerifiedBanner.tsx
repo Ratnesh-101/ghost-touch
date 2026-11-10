@@ -15,7 +15,11 @@
 import { useState, type JSX } from 'react';
 import { AccessibleButton } from './AccessibleButton';
 import { t } from '../i18n';
-import { honestSharedByLabel, sanitizeShareName } from '../flow/share';
+import {
+  honestSharedByLabel,
+  sanitizeShareName,
+  sanitizeShareTitle,
+} from '../flow/share';
 
 export interface VerifiedBannerProps {
   by: string;
@@ -30,8 +34,7 @@ export function VerifiedBanner({
   onSpeak,
 }: VerifiedBannerProps): JSX.Element {
   const [showNote, setShowNote] = useState(false);
-  const rawNote = typeof note === 'string' ? note.trim() : '';
-  const cleanNote = rawNote.replace(/^[✓✔☑√\s]+/u, '');
+  const cleanNote = sanitizeShareTitle(note);
   const hasNote = cleanNote.length > 0;
 
   const handleToggleNote = (): void => {
