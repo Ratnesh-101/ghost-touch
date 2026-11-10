@@ -126,7 +126,7 @@ Ghost Touch defines five agent hooks in `.kiro/hooks/` to automate quality gates
 
 ---
 
-## 5. Property-Based Testing (P1–P78)
+## 5. Property-Based Testing (P1–P84)
 
 A core judging pillar of Kiroween is technological rigor. Ghost Touch uses **fast-check** in the frontend and **Hypothesis** in the backend to check the mathematical and behavioural invariants listed below across thousands of randomized diagram topologies, viewports, and interaction sequences ([RECOUNT] property suites across frontend and backend):
 
@@ -182,6 +182,11 @@ A core judging pillar of Kiroween is technological rigor. Ghost Touch uses **fas
 | **P71** | Share template replacer safety | `frontend/tests/share.template.prop.test.ts` | Req 22.6 | Titles with regex meta-characters (`$&`, `$'`, `$1`) cannot corrupt template announcements. |
 | **P72–P76** | Saved diagram eviction invariants | `frontend/tests/saved.eviction.prop.test.ts` | Req 22.7–22.11 | Cap bound, pinned entry immunity, atomic eviction rollback, and in-place update preservation. |
 | **P77–P78** | Share honesty copy invariants | `frontend/tests/share.honesty.prop.test.ts` | Req 22.12–22.13 | Honest non-contradictory wording and absence of misleading verification badges. |
+| **P79** | Reserved ids are never used | `frontend/tests/correct.reservedIds.prop.test.ts` | Req 23.1–23.3 | `addPoint`/`addSegment` never assign a reserved id (any case); invariants reject one; the share validator renames endpoints too. |
+| **P80–P81** | Spec Ghost language | `frontend/tests/verify.language.prop.test.ts` | Req 23.5, 18.10 | Angle wording is the same with or without `angleVertex`; Hindi and Gujarati facts are silent, never guessed. |
+| **P82** | No two points share a position | `frontend/tests/correct.coincident.prop.test.ts` | Req 23.6 | `addPoint` nudges off an occupied spot; existing points never move. |
+| **P83** | A failed save never loses an entry | `frontend/tests/saved.writeOrder.prop.test.ts` | Req 22.14 | Memory store and fallback, one injected failure anywhere. **Red over the cap until a lane fixes `flow/saved.ts`.** |
+| **P84** | Reserved ids renamed, segments kept | `frontend/tests/share.reservedIds.prop.test.ts` | Req 24.2–24.3 | Oracle for lane a1. **Red until a1 merges.** |
 
 ### 5.1 Authorship and Attribution Disclosure
 We state plainly:
@@ -200,6 +205,43 @@ We state plainly:
 - **Validator parity fixture (Task 37.3):** Authored by **Kiro** (`backend/fixtures/validator_parity.json`, pytest and Vitest parity runners, discrepancies documented in `docs/reports/validator-parity.md`).
 - **Round-5 audit invariant properties P66 through P78 (Task 38):** Authored by **Kiro** as test-first property oracles (Requirement 22, covering share sanitization P66–P70, template replacers P71, eviction invariants P72–P76, and honesty copy P77–P78). All of P66–P78 pass in the repository as of the last full run: the fixes came from agy lanes q1 (share-name sanitisation), p2 and t1 (saved-diagram eviction and in-place update, share copy), reviewed by Claude Code.
 - **Round-5 audit fixes:** Built by **Antigravity** across lanes p1 (backend MIME `image/jpg`, permit release), p2 (saved diagram atomic eviction and in-place save), p3 (share honesty copy, ShareError single announcement, a11y labels), p5 (P1..P99 IDs in /ask), and q1 (share-name prefix loop sanitization for Req 22), reviewed by Claude Code.
+- **Round-5 core and test items, properties P79 through P82 (Task 39):** authored by **Kiro**. This covers Requirement 23, the reserved-id list in core, the decision that the point cap belongs to the caller, the angle wording that no longer needs `angleVertex`, English-only facts stated as non-goal 18.10, the nudge for coincident points, and three tests tightened so they cannot pass vacuously. Each audit claim was checked against the code first; two were wrong or not reachable (below).
+- **Round-6 decisions and oracles, P43 amended, P83 and P84 (Task 40):** **Kiro** wrote Requirement 24 and 22.14, the exact `leaveByBack` signature, and the tests, **before the code**. Kiro also fixed `MemoryDiagramStore.putWithEviction` in `drivers/`. The code these tests wait for is in `flow/`, `App.tsx` and the validators, which **Antigravity** lanes own; until those lanes merge, the tests listed in `docs/reviews/kiro-round6.md` are red **on purpose**.
+
+### 5.2 What the properties caught in Tasks 34-40 (with counterexamples)
+Bugs that a property found, or confirmed, in code already on `main`. In each case, who wrote the property and who wrote the fix are stated separately.
+
+| Property | What it caught | Counterexample (shrunk) | Fixed by |
+|---|---|---|---|
+| P66, P67 (Kiro) | A check mark straight after a badge word survived the share-name sanitiser, so a spoofed name still began with "Verified" | `"verified✓"` returned unchanged; in practice `"✅Verified✅ Mrs Sharma"` gave `"Verified✅ Mrs Sharma"` (seeds `-831805181`, `-1958317831`) | Antigravity, `3fdad91` |
+| P69 (Kiro) | A connector was left at the front after a badge was stripped | `"verified, and:Alice"` gave `"and:Alice"` | Antigravity, `3fdad91` |
+| P74 (Kiro) | Over the cap, a save could report `ok: true` after a failed delete | cap 2, deletes broken, a save in place gave `{"ok":true}` with 3 entries (seed `937312435`, now a fixed example) | Antigravity, `3a6353d` |
+| P76 (Kiro) | An in-place update took `pinned` and `createdAt` from the caller | saving `d0` again with `pinned: true` pinned the stored entry | Antigravity, `3a6353d` |
+| P77 (Kiro) | Share strings said "verified" in en, hi and gu | `share.verified` = "Verified", "सत्यापित", "પ્રમાણિત"; `share.honesty` (en) contained "verified" | Antigravity, `c3855b6` |
+| P79 (Kiro, task 39.1) | `addPoint` accepted the reserved id `title`; renaming that point then renamed the scene title | `addPoint(scene, 0.5, 0.2, 'Apex', 'title')`, then `renameLabel(…, 'title', 'Top')` set `scene.title` to "Top" | Kiro |
+| P82 (Kiro, task 39.5) | Two adds at the centre stacked two points, and the earlier one could never be selected again | `C`, then two adds at (0.5, 0.5) | Kiro (nudge) |
+| Tightened 18.2 property (Kiro, task 39.4) | The old 18.2 property passed against a verifier that never reports anything | the "never disagree" mutant: old property passed, new one failed | Kiro (test) |
+| P83 (Kiro, task 40.2) | **Open.** A failed save over the cap loses an older diagram | cap 2, store `d0`-`d3`, update `d0`, 3rd call fails: `put d0` ok, `delete d1` ok, `delete d2` fails, rollback, and `d1` is gone (seed `1120139535`) | Waiting on an Antigravity lane (`flow/saved.ts`) |
+| P84 + parity `reserved_*` (Kiro, task 40.3) | **Open.** Renaming a reserved id to `el_…` collides with an id already in the scene, so a segment joins the wrong point or loops onto itself; the backend keeps reserved ids | points `el___proto__`, `__proto__`, `title`; segment `__proto__`-`el___proto__` ends up joining `el___proto__` to itself (seed `855832413`) | Waiting on Antigravity lane a1 |
+| P43 amended (Kiro, task 40.1) | **Open.** The Back policy says Correct never needs a confirmation, though the Correct screen asks | `leaveByBack('correct', { correctDirty: true, … })` gives `needsConfirm: false` | Waiting on the navigation lane |
+
+Audit claims these checks showed to be wrong or not reachable:
+- "The share export drops the point's segment" (39.1): the share validator renames the endpoints too.
+- "More than 500 points can be saved offline through `addPoint`" (39.2): `addPoint`'s only caller already caps at 300.
+- "A delete succeeds and then the put fails" (40.2): both save paths put before they delete. The loss that does happen is the multi-victim one above.
+
+**Properties that found nothing** (P80, P81, the rest of P66-P78): they pin behaviour, and a mutation check shows each one fails on a deliberately broken version.
+
+**Mutation checks in Task 39: 19, all killed.**
+- 39.1: 5 (requested id not checked, generated segment id not checked, case-sensitive check, invariants ignore reserved ids, share validator stops renaming).
+- 39.2: 2 (Ghostwriter cap set to 500, backend cap set to 400).
+- 39.3: 2 (fallback removed, a "guessing" fact parser).
+- 39.4: 5 (never disagree, run twice to compare the old and new 18.2 properties; angle check never fires; `addSegment` always a no-op; redo broken).
+- 39.5: 5 (no nudge, nudge out of range, nudge onto an occupied spot, nudge on every add, existing point moved).
+
+Earlier tasks in this range: 12 mutants for P54-P57, 3 for task 35, 7 for P62-P65, all killed.
+
+**What was not done:** none of this was tried on a phone. TalkBack, Guide, Share and the Ghostwriter controls are tested only in jsdom and in properties; nothing here was checked on hardware.
 
 ---
 

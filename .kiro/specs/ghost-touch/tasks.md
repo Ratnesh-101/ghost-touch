@@ -338,9 +338,9 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 ## Round-6 spec decisions and test-first oracles (task 40)
 > Do not edit `screens/`, `flow/`, `App.tsx`, the tuned haptic values or `hitTest` (agy lanes are in them). Tests that wait on a lane are listed in `docs/reviews/kiro-round6.md`.
 
-- [ ] 40. Round-6 decisions, oracles and write-up
+- [x] 40. Round-6 decisions, oracles and write-up (Kiro's part; the code the red tests wait for is listed in docs/reviews/kiro-round6.md)
   - [x] 40.1 Back from Correct: decision (a) in Requirement 24.1 and design.md (exact `leaveByBack` signature); P43 amended test-first (red until the lane implements `correctDirty`)
   - [x] 40.2 Write order over the cap: reproduce with generators and injected failures; Requirement 22.14; P83 for the memory store and the fallback; fix `MemoryDiagramStore.putWithEviction` order (drivers); the fallback fix in `flow/saved.ts` is for an agy lane
   - [x] 40.3 Lane a1 oracles: `reserved_*` parity cases checked structurally on both sides; P84 for the share validator (200+ runs); red cases recorded in `kiro-round6.md`
-  - [ ] 40.4 `docs/KIRO_WRITEUP.md` for tasks 34-40: real bugs caught by P66-P82 with counterexamples, the 19 mutation checks of task 39, honest Kiro/agy split; no test totals, no hardware claims
+  - [x] 40.4 `docs/KIRO_WRITEUP.md` for tasks 34-40: real bugs caught by P66-P82 with counterexamples, the 19 mutation checks of task 39, honest Kiro/agy split; no test totals, no hardware claims
   - _Requirements: 22.14, 24.*_

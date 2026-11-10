@@ -55,3 +55,12 @@ Tests written before the code they check. Each red test below waits on an Antigr
 ## Not red
 - P83 "at the cap", P83 "the audit case", and every earlier parity case: green.
 - `tsc --noEmit`: 0 errors.
+
+## Full run after task 40 (2026-11-10)
+The red tests are exactly the ones listed above; nothing else fails and nothing is skipped. `tsc --noEmit` has 0 errors; ruff is clean.
+- **Frontend, 6 red:**
+  - `round2.navigation.prop.test.ts` ×2 (section 1)
+  - `saved.writeOrder.prop.test.ts` ×2 (section 2)
+  - `share.reservedIds.prop.test.ts` ×1 (section 4)
+  - `validator.parity.test.ts` `reserved_rename_collides` ×1 (section 3)
+- **Backend, 3 red:** `test_backend_reserved_ids_renamed_and_segments_kept`, for the three `reserved_*` cases (section 3).

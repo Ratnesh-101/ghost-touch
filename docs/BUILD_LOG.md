@@ -3374,3 +3374,11 @@ Format for each entry:
 
 ## 2026-11-10 — Kiro — T40.3 (test-first oracles for lane a1)
 - Tool: **Kiro**. Added three `reserved_*` cases to `validator_parity.json` (35 cases now) with `"structural": true`. Both parity tests now also check the output scene: no reserved id, unique ids, and the same segments between the same points (matched by position). Added P84 (`tests/share.reservedIds.prop.test.ts`, 250 runs). Red until a1: the backend fails all 3 structural cases (keeps `title` and the others); the share validator fails `reserved_rename_collides` and P84. Both show the same bug: renaming to `el_…` collides with an existing id, so a segment joins the wrong point or loops onto itself (seed `855832413`). My first P84 generator did not find it; I added collision pairs. Counterexamples are in `docs/reviews/kiro-round6.md`. Neither validator was changed.
+
+## 2026-11-10 — Kiro — T40.4 (write-up for tasks 34-40)
+- Tool: **Kiro**. Docs only. `docs/KIRO_WRITEUP.md` changes:
+  - §5 heading and table now cover P1-P84; P83 and P84 are marked red until their lanes merge.
+  - §5.1 gains task 39 and task 40 attribution: Kiro wrote the specs, tests and core fixes; Antigravity owns the lane code the red tests wait for.
+  - New §5.2 lists the bugs P66-P84 caught, each with its shrunk counterexample and who fixed it, plus the audit claims shown wrong.
+  - It records the 19 task-39 mutation checks by name.
+- No test totals and no hardware claims (TalkBack, Guide, Share and Ghostwriter are tested only in jsdom and properties). The full run after task 40 has exactly the red tests listed in `docs/reviews/kiro-round6.md` (frontend 6, backend 3); `tsc` has 0 errors.
