@@ -3172,3 +3172,81 @@ Format for each entry:
 
 ## 2026-11-10 — Kiro — T39.0 (round-5 properties rerun; task 38 closed)
 - Tool: **Kiro**. Reran P66-P78 (the four round-5 property files, not changed): all 13 pass under each of the 9 recorded seeds and 3 fresh ones. I pinned the seed with a temporary vitest setup file calling `fc.configureGlobal`, showed it works (the same seed gives the same values), then deleted it. Every gap was closed by an agy code fix (`3fdad91`, `3a6353d`, `c3855b6`); none by amending Requirement 22. I committed the four property files (written in task 38 and left untracked) and ticked 38 and 38.4. `docs/reviews/kiro-round5.md` now has the rerun table.
+
+## 2026-11-10 — agy, reviewed by Claude — Lane q2-frontend-round5 (Frontend, Language & App.tsx Round-5 Fixes)
+- What was built:
+  - kiro-glue #1: In `frontend/src/screens/Explore.tsx`, dynamically rebuilds announcement and
+    synchronizes status card text (`statusMessage`) and repeat-speech buffer
+    (`lastSpokenRef.current`) upon mid-session language switch (`currentLang`) using
+    `deriveAnnouncement()`; passed `LANG_BCP47[getLang()]` to SettingsLauncher speak callback so
+    speech uses the active language tag.
+  - kiro-glue #2: In `frontend/src/flow/ask.ts`, wired caller language (`deps.lang` / `activeLang`)
+    into `caveatForQuestion(findings, question, lang)` with UI language as last fallback; formatted
+    `verify.angleName` and `verify.disagree` in caller language so Hindi/Gujarati queries receive
+    Hindi/Gujarati caveats instead of English.
+  - kiro-glue #4: In `frontend/src/flow/ask.ts`, expanded `caveatForQuestion` candidate extraction:
+    when dispute target is an angle with a 3-letter vertex code (e.g. "ADC"), also matches the
+    single-letter vertex ("D", "angle at D"), while ignoring questions about unrelated vertices.
+  - R5-12 / App.tsx ShareError single-speech: In `frontend/src/App.tsx`, passed
+    `canSpeak={drivers.speech.canSpeak}` to `<ShareErrorScreen>` and guarded
+    `speakShareAnnouncements` with `if (speech.canSpeak)` so Web Speech synthesis speaks when
+    available (and ShareError omits assertive live alert) and ShareError mounts alert when speech
+    is disabled, ensuring exactly one spoken announcement fires.
+  - R5-12 / resolveShareRoute honest default: In `frontend/src/App.tsx`, defaulted `honest` to `true`
+    (`options?.honest ?? true`) so shared diagram routes without explicit `{ honest: false }` never
+    silently emit legacy "Verified" wording. Updated legacy tests in `share.open.routing.test.tsx`
+    to pass `{ honest: false }` and added assertions for missing and empty options objects.
+  - Test suite: Created `frontend/tests/q2.round5.test.tsx` covering all 5 items end-to-end with
+    real component mounting and DOM assertions.
+- What broke / surprising findings:
+  - In `share.open.routing.test.tsx`, legacy tests calling `resolveShareRoute(hash, true)` failed
+    because they asserted legacy `"Verified by ..."` string; resolved by explicitly passing
+    `{ honest: false }` to legacy contract tests and adding assertions verifying that omitted and
+    empty options default to `"Shared by <name>, not checked"`.
+- Files touched:
+  - `frontend/src/flow/ask.ts`
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/App.tsx`
+  - `frontend/tests/share.open.routing.test.tsx`
+  - `frontend/tests/q2.round5.test.tsx`
+  - `docs/reports/agy-q2-frontend-round5-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-10 — agy, reviewed by Claude — Lane q2-frontend-round5 (Pass 2 Follow-Up)
+- What was built:
+  - Cleaned up TypeScript compilation errors: removed unused `tf` from `frontend/src/flow/ask.ts`;
+    removed unused `SpeechDriver` and `t` from `frontend/tests/q2.round5.test.tsx`; typed mock
+    `getRate` return value as `SpeechRateSetting`; eliminated read-only property mutation on
+    `speech.canSpeak` by parameterizing `createMockDrivers({ canSpeak })`.
+  - Added `// @vitest-environment jsdom` pragma to `frontend/tests/q2.round5.test.tsx` so real DOM
+    rendering and event tests run under Vitest's jsdom environment.
+  - Updated `frontend/tests/k1.verifyWiring.test.ts` Section 3 expectations to construct expected
+    announcements using honest i18n keys (`share.titlePrefix`, `share.sharedBy`, `share.honesty`),
+    aligning with the honest default introduced in Item 5 while preserving caveat/no-caveat checks.
+- What broke / surprising findings:
+  - `k1.verifyWiring.test.ts` expected legacy announcement format without "Title: " prefix and with
+    legacy "Verified by" wording; resolved by updating expectation to honest wording mandated by
+    R1/R3 and Item 5.
+- Files touched:
+  - `frontend/src/flow/ask.ts`
+  - `frontend/tests/q2.round5.test.tsx`
+  - `frontend/tests/k1.verifyWiring.test.ts`
+  - `docs/reports/agy-q2-frontend-round5-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-10 — agy, reviewed by Claude — Lane q2-frontend-round5 (Pass 3 Follow-Up)
+- What was built:
+  - Isolated pdfjs worker imports in `frontend/tests/q2.round5.test.tsx` by mocking
+    `../src/screens/Capture`, `../src/drivers/pdf`, and `pdfjs-dist/build/pdf.worker.min.mjs?url`
+    with inert stubs before dynamically importing App routing functions (`resolveShareRoute`,
+    `speakShareAnnouncements`).
+  - Allowed `q2.round5.test.tsx` to load cleanly and execute under jsdom without Vite URL query
+    rejection errors (`Denied ID .../node_modules/pdfjs-dist/build/pdf.worker.min.mjs?url`).
+- What broke / surprising findings:
+  - Under jsdom environment, Vite's dev/test transform rejects `pdfjs-dist` worker URL imports
+    transitive to `App.tsx` -> `Capture.tsx` -> `pdf.ts`; resolved by stubbing PDF capture modules
+    and dynamically importing App helpers inside `beforeAll`.
+- Files touched:
+  - `frontend/tests/q2.round5.test.tsx`
+  - `docs/reports/agy-q2-frontend-round5-report.md`
+  - `docs/BUILD_LOG.md`
