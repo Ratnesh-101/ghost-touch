@@ -383,6 +383,10 @@ const en: Record<string, string> = {
   'teach.addCancelled': 'Adding cancelled.',
   'teach.undidAddPoint': 'Undone: point {id} removed.',
   'teach.undidAddEdge': 'Undone: edge from {a} to {b} removed.',
+  // y1-w3-fixes-a: capture cancel feedback & offline error guidance
+  'capture.cancelled': 'No photo was taken. Choose Take photo, Choose image, or a sample.',
+  'capture.errorOffline':
+    'You are offline. Samples still work. Try again when you are connected.',
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -734,6 +738,10 @@ const hi: Record<string, string> = {
   'teach.addCancelled': 'जोड़ना रद्द किया गया।',
   'teach.undidAddPoint': 'पूर्ववत: बिंदु {id} हटाया गया।',
   'teach.undidAddEdge': 'पूर्ववत: {a} से {b} तक का किनारा हटाया गया।',
+  // y1-w3-fixes-a: capture cancel feedback & offline error guidance
+  'capture.cancelled': 'कोई फोटो नहीं ली गई। फोटो लें, छवि चुनें, या कोई नमूना चुनें।',
+  'capture.errorOffline':
+    'आप ऑफ़लाइन हैं। नमूने अभी भी काम करते हैं। कनेक्ट होने पर पुनः प्रयास करें।',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -1085,6 +1093,11 @@ const gu: Record<string, string> = {
   'teach.addCancelled': 'ઉમેરવાનું રદ કર્યું.',
   'teach.undidAddPoint': 'પૂર્વવત્: બિંદુ {id} દૂર કર્યું.',
   'teach.undidAddEdge': 'પૂર્વવત્: {a} થી {b} સુધીનો કાંઠો દૂર કર્યો.',
+  // y1-w3-fixes-a: capture cancel feedback & offline error guidance
+  'capture.cancelled':
+    'કોઈ ફોટો લેવામાં આવ્યો નથી. ફોટો લો, ઇમેજ પસંદ કરો, અથવા નમૂનો પસંદ કરો.',
+  'capture.errorOffline':
+    'તમે ઑફલાઇન છો. નમૂનાઓ હજુ પણ કામ કરે છે. તમે કનેક્ટ થાઓ ત્યારે ફરી પ્રયાસ કરો.',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };

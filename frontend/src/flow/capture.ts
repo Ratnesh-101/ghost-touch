@@ -62,6 +62,12 @@ export function captureErrorMessage(error: unknown): string {
     if (error.failure === 'timeout') {
       return t('capture.errorTimeout');
     }
+    if (error.failure === 'network') {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        return t('capture.errorOffline');
+      }
+      return t('capture.error');
+    }
   }
   return t('capture.error');
 }

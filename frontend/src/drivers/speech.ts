@@ -80,6 +80,8 @@ export interface SpeechDriver {
   hasVoiceFor?(lang: string): boolean;
   /** Reset missing voice notice warning for a language */
   resetVoiceNotice?(lang?: string): void;
+  /** Teardown lifecycle listeners and cancel speech if any */
+  dispose?(): void;
 }
 
 // --- minimal browser surface (so tests can pass fakes) ----------------------
@@ -182,6 +184,8 @@ function defaultHost(): SpeechHost {
     createUtterance:
       synth === undefined ? undefined : (text) => new SpeechSynthesisUtterance(text),
     createRecognition: Recognition === undefined ? undefined : () => new Recognition(),
+    window: typeof window !== 'undefined' ? window : undefined,
+    document: typeof document !== 'undefined' ? document : undefined,
   };
 }
 
@@ -199,8 +203,36 @@ export class WebSpeechDriver implements SpeechDriver {
   private lastSpokenText = '';
   private warnedMissingLangs = new Set<string>();
   private isSpeakingNotice = false;
+  private readonly win?: {
+    addEventListener(type: string, listener: (ev: unknown) => void): void;
+    removeEventListener(type: string, listener: (ev: unknown) => void): void;
+  };
+  private readonly doc?: {
+    addEventListener(type: string, listener: (ev: unknown) => void): void;
+    removeEventListener(type: string, listener: (ev: unknown) => void): void;
+    readonly hidden?: boolean;
+    readonly visibilityState?: string;
+  };
+  private readonly onVisibilityChange?: () => void;
+  private readonly onPageHide?: () => void;
+  private disposed = false;
 
-  constructor(private readonly host: SpeechHost = defaultHost()) {}
+  constructor(private readonly host: SpeechHost = defaultHost()) {
+    this.win = host.window ?? (typeof window !== 'undefined' ? window : undefined);
+    this.doc = host.document ?? (typeof document !== 'undefined' ? document : undefined);
+
+    this.onVisibilityChange = () => {
+      if (this.doc && (this.doc.hidden === true || this.doc.visibilityState === 'hidden')) {
+        this.host.synth?.cancel();
+      }
+    };
+    this.onPageHide = () => {
+      this.host.synth?.cancel();
+    };
+
+    this.doc?.addEventListener('visibilitychange', this.onVisibilityChange);
+    this.win?.addEventListener('pagehide', this.onPageHide);
+  }
 
   get canSpeak(): boolean {
     return this.host.synth !== undefined && this.host.createUtterance !== undefined;
@@ -287,6 +319,18 @@ export class WebSpeechDriver implements SpeechDriver {
     this.host.synth?.cancel();
   }
 
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    if (this.onVisibilityChange && this.doc) {
+      this.doc.removeEventListener('visibilitychange', this.onVisibilityChange);
+    }
+    if (this.onPageHide && this.win) {
+      this.win.removeEventListener('pagehide', this.onPageHide);
+    }
+    this.host.synth?.cancel();
+  }
+
   cancelListen(): void {
     this.cancelActive?.('cancelled');
   }
@@ -299,8 +343,8 @@ export class WebSpeechDriver implements SpeechDriver {
     // A second call (for example a double-tap) replaces the first session.
     this.cancelActive?.('failed', false);
 
-    const win = this.host.window ?? (typeof window !== 'undefined' ? window : undefined);
-    const doc = this.host.document ?? (typeof document !== 'undefined' ? document : undefined);
+    const win = this.win;
+    const doc = this.doc;
 
     return new Promise<string>((resolve, reject) => {
       const recognition = createRecognition();

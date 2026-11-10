@@ -83,6 +83,7 @@ export function Capture({
   const lifetime = useRef<AbortController>(new AbortController());
   const activePhotoUrlRef = useRef<string | null>(null);
   const handedOffRef = useRef<boolean>(false);
+  const lastCancelTimeRef = useRef<number>(0);
 
   // Subscribe to i18n language store
   const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
@@ -151,6 +152,11 @@ export function Capture({
   const handleCancel = (): void => {
     busyRef.current = false;
     setBusy(false);
+    const now = Date.now();
+    if (now - lastCancelTimeRef.current > 300) {
+      lastCancelTimeRef.current = now;
+      say(t('capture.cancelled'));
+    }
     takeButton.current?.focus();
   };
 
