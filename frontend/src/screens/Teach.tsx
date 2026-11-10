@@ -646,7 +646,6 @@ export function Teach({
               type="button"
               className="gt-control gt-btn gt-btn--secondary"
               onClick={handleAddPoint}
-              onFocus={() => speak(t('teach.addPoint'))}
               aria-pressed={gwMode.kind === 'addPoint'}
               aria-label={t('teach.addPoint')}
             >
@@ -658,7 +657,6 @@ export function Teach({
               type="button"
               className="gt-control gt-btn gt-btn--secondary"
               onClick={handleAddEdge}
-              onFocus={() => speak(t('teach.addEdge'))}
               aria-pressed={gwMode.kind === 'addEdgeFirst' || gwMode.kind === 'addEdgeSecond'}
               aria-label={t('teach.addEdge')}
             >
