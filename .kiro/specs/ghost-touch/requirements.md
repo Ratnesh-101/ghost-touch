@@ -268,3 +268,29 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 5. WHEN the input scene passes `validateSceneInvariants` THEN the result SHALL also pass it.
 6. Both deletions SHALL be undoable and redoable through the existing `applyEdit` / `historyReducer` history with no new action type. Undo SHALL restore the previous scene object exactly; an unknown id SHALL create no history entry.
 7. THE core SHALL allow deleting the last drawable element of a scene. Whether a scene with nothing left to feel may be shared or explored is decided by the validators (`share/validate.ts`, `backend/app/validate.py`), not by these edits.
+
+### Requirement 22: Round-5 audit invariants, pinned as property tests before the fixes merge
+> Written by Kiro on 2026-11-09 before the tests (task 38). The brief asked for "Requirement 21"; that number is taken by the delete-curves-and-bars spec (commit aed5e3d), so this is Requirement 22 and the properties are P66-P78. Source: `docs/reports/audit-r5-share-a11y.md` (R5-01, R5-02, R5-06), `docs/reports/audit-r5-saved-api.md` (R5-06 and the cap and pinning rules around it), and the fix briefs `docs/briefs/agy-p2-r5-saved-fixes.md` and `docs/briefs/agy-p3-r5-share-fixes.md`. These are tests only: no source file is edited by this requirement. They were written while lanes p2 (saved diagrams) and p3 (share and accessibility) were believed unmerged; both had in fact merged into `main` (2d108ca) before the tests first ran, so a failure is a gap the fixes left, not a fix still to come. The failing list with shrunk counterexamples is `docs/reviews/kiro-round5.md`.
+
+**User Story:** As the maintainer, I want the invariants behind the round-5 HIGH findings written as property tests before any fix merges, so that each fix lane proves its change against one fixed oracle, and a later edit cannot quietly reopen the hole.
+
+#### Definitions
+- A **badge word** is "verified" or "certified" in any letter case, "सत्यापित" or "પ્રમાણિત", when the character after it is not a letter, a combining mark or a number (so "Verifiedcity" is a name, and "Verified✅" is a badge).
+- A **check mark** is one of ✓ ✔ ☑ √ ✅ 🗹, optionally followed by U+FE0F.
+- An **invisible mark** is a directional character (U+200E, U+200F, U+202A-U+202E, U+2066-U+2069), a zero-width character (U+200B-U+200D, U+2060, U+FEFF), a variation selector, or a combining mark.
+- A **connector** is "and" (any case), "&", or one of `: , . -`.
+
+#### Acceptance Criteria
+1. FOR ANY string built from badge words, check marks, invisible marks, whitespace, connectors and ordinary text in any order, THE result of `sanitizeShareName` and of `sanitizeShareTitle` SHALL NOT begin with a badge word, a check mark, an invisible mark or whitespace.
+2. WHEN the input contains at least one badge word or check mark and nothing else except invisible marks, whitespace and connectors, THEN both functions SHALL return the empty string.
+3. FOR ANY input, `f(f(x))` SHALL equal `f(x)` for both functions.
+4. WHEN a prefix that contains at least one badge is followed by ordinary text that contains neither the word "and" nor "&", THEN the result SHALL end with that ordinary text and SHALL contain neither the word "and" nor "&" (no connector is left over from stripping).
+5. WHEN the input is ordinary text with no badge, check mark, invisible mark or connector at its start, THEN both functions SHALL return it unchanged. A name such as "Andrew", "Verity" or "Verifiedcity" is ordinary text.
+6. WHEN an author name or a title contains `$`, `$&`, `$'`, `` $` ``, `$1` or `$$`, THEN, in `en`, `hi` and `gu`, `honestSharedByLabel`, `formatShareTitleAnnouncement`, `exploreAnnouncement` (shared mode, `honestTitle`) and `buildHonestShareAnnouncement` SHALL each contain that name or title exactly once and SHALL NOT contain a literal `{name}` or `{title}`.
+7. FOR ANY sequence of saves, pins, unpins and one-shot failures of `put` and `delete`, against a `DiagramStore` with and without `putWithEviction`, and for any cap in {2, 3, 5, `SAVED_DIAGRAMS_CAP`}, THE store SHALL hold at most `cap` entries after every step of `saveDiagramWithEviction`, whether the save succeeded or not.
+8. THE same sequences SHALL never remove an entry that was pinned before the save.
+9. WHEN `delete` fails after a successful `put`, including when every later `delete` also fails, THEN `saveDiagramWithEviction` SHALL NOT return `ok: true` while the store holds more than `cap` entries.
+10. WHEN the saved entry has the id of an entry already in the store, THEN a successful save SHALL leave the number of entries unchanged, remove no other entry, evict nothing, and store the new title, thumbnail and scene under that id; a failed save SHALL leave the store exactly as it was.
+11. WHEN the saved entry has the id of an entry already in the store, THEN the stored entry SHALL keep the existing `pinned` and `createdAt`, even if the entry passed in carries other values (brief p2: "preserve pinned/createdAt when updating in place").
+12. FOR EVERY key that starts with `share.` in `en`, `hi` and `gu`, THE string SHALL NOT contain "verified" (any case), "सत्यापित" or "પ્રમાણિત", not even in a negation; and `share.sharedBy` and `share.sharedUnnamed` SHALL remain in every language and still say "not checked" in that language ("not checked", "जाँचा नहीं गया", "ચકાસાયેલ નથી").
+13. THE properties SHALL live in new files under `frontend/tests/` named `*.prop.test.ts`, run at least 200 times each, and SHALL NOT be skipped, weakened or `.fails`-marked. `tsc --noEmit` SHALL stay at 0 errors. No file under `frontend/src/`, `core/` or the tuned haptic values SHALL change in this task.

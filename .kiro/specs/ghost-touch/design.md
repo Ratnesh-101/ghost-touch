@@ -192,6 +192,19 @@ Each property maps to requirements and runs with fast-check (frontend) or Hypoth
 | P63 | **An unknown id changes nothing (Kiro, task 37.1):** for any valid scene and any id that is not a polyline id (or not a bar id), including the ids of points, segments and the other kind, the function returns the same scene object. | 21.3 |
 | P64 | **Delete then undo is exact (Kiro, task 37.1):** applying either deletion through `historyReducer` and undoing gives back the previous scene object, and redo gives back the edited one. A no-op leaves the history unchanged. | 21.6 |
 | P65 | **Other kinds are untouched (Kiro, task 37.1):** after either deletion, `points`, `segments`, `axes`, `facts`, `title`, `kind`, `aspect` and the other element kind are the same references as before. | 21.1, 21.2 |
+| P66 | **Sanitised share text never begins with a badge (Kiro, task 38):** for any string mixed from badge words (English in any case, Hindi, Gujarati), check marks with or without U+FE0F, invisible marks, whitespace, connectors and ordinary text, `sanitizeShareName` and `sanitizeShareTitle` return a string that does not begin with a badge word, a check mark, an invisible mark or whitespace. 300 runs. | 22.1 |
+| P67 | **Only badges sanitise to nothing (Kiro, task 38):** for any non-empty mix of badge words, check marks, invisible marks, whitespace and connectors with at least one badge, both functions return the empty string. 300 runs. | 22.2 |
+| P68 | **Sanitising is idempotent (Kiro, task 38):** for any mix as in P66, `f(f(x))` equals `f(x)` for both functions. 300 runs. | 22.3 |
+| P69 | **No connector is left over and the name is kept (Kiro, task 38):** for a badge prefix (with connectors) followed by ordinary text that has no "and" and no "&", the result ends with that text and contains neither the word "and" nor "&". 300 runs. | 22.4 |
+| P70 | **Ordinary text is not over-stripped (Kiro, task 38):** for names such as Andrew, Verity, Verifiedcity, Certifiedx, Hindi and Gujarati names, joined by single spaces, both functions return the input unchanged. 300 runs. | 22.5 |
+| P71 | **A name or title with `$` patterns appears exactly once (Kiro, task 38):** for any language in en, hi, gu and any name and title built from words and the patterns `$`, `$&`, `$'`, `` $` ``, `$1`, `$$`, `honestSharedByLabel`, `formatShareTitleAnnouncement` (both announcement shapes), `exploreAnnouncement` (shared, `honestTitle`) and `buildHonestShareAnnouncement` contain the name or title exactly once and no literal `{name}` or `{title}`. 300 runs. | 22.6 |
+| P72 | **The saved store never ends above its cap (Kiro, task 38):** for any sequence of saves, pins, unpins and one-shot put and delete failures, on a store with and without `putWithEviction`, and any cap in 2, 3, 5, `SAVED_DIAGRAMS_CAP`, the store holds at most `cap` entries after every `saveDiagramWithEviction`, whatever it returned. 300 runs. | 22.7 |
+| P73 | **A pinned entry is never evicted (Kiro, task 38):** over the same sequences, every id that was pinned before a save is still in the store after it. 300 runs. | 22.8 |
+| P74 | **A failed delete never reports success over the cap (Kiro, task 38):** over the same sequences plus a persistent delete failure, whenever `saveDiagramWithEviction` returns `ok: true` the store holds at most `cap` entries. 300 runs. | 22.9 |
+| P75 | **Saving an existing id updates it in place (Kiro, task 38):** a successful save of an id that is already stored keeps the entry count, removes no other entry, evicts nothing and stores the new title, thumbnail and scene; a failed one leaves the store as it was. 300 runs. | 22.10 |
+| P76 | **Updating in place keeps pinned and createdAt (Kiro, task 38):** a successful save of an id that is already stored keeps the stored `pinned` and `createdAt` even when the entry passed in has other values. 300 runs. | 22.11 |
+| P77 | **No share string claims verification (Kiro, task 38):** for every `share.` key and each of en, hi, gu (every pair is run as an explicit example, then 300 random pairs), the string contains no "verified" (any case), "सत्यापित" or "પ્રમાણિત". | 22.12 |
+| P78 | **The honest "not checked" strings stay (Kiro, task 38):** for each of en, hi, gu, `share.sharedBy` and `share.sharedUnnamed` exist, say "not checked" in that language, and still contain the `{name}` placeholder where they had it. 200 runs. | 22.12 |
 | P39 | **Validation is a fixed point (Kiro, Hypothesis, backend):** a well-formed scene passes `validate_scene` unchanged, and validating an accepted scene's own output returns the same scene. | 9.3 |
 | P40 | **Rate-limit identity resists spoofing (Kiro, Hypothesis, backend):** for any `X-Forwarded-For` the client forges, the client key equals the key of the same peer without forgery; with zero trusted hops the key is the peer address. | 16.1 |
 | P41 | **Rate-limit state is bounded (Kiro, Hypothesis, backend):** after any sequence of requests and clock advances, the limiter holds no empty window and no more keys than clients active in the last window; the limit itself never admits more than `per_minute` requests. | 16.2 |
@@ -369,6 +382,44 @@ Written by Kiro before the code (task 37.1).
 
   `correct.nothingLeft` is spoken after a delete leaves no point, segment, polyline or bar.
 - **Tests the lane writes:** selection and hit priority for curves and bars; deleting each kind from the screen; the spoken text in en, hi and gu; and undo after a curve or bar delete.
+
+## Round-5 audit invariants as property tests (Requirement 22)
+Written by Kiro before the tests (task 38). Tests only: no file under `frontend/src/` changes. Lanes p2 and p3 had already merged into `main` (2d108ca) when these first ran, so they test the fixed code. Files, all new and all `*.prop.test.ts` so the agy lanes cannot edit them (AGENTS.md rule 1):
+
+| File | Properties | Pins |
+|---|---|---|
+| `frontend/tests/share.sanitize.prop.test.ts` | P66-P70 | `sanitizeShareName`, `sanitizeShareTitle` (`flow/share.ts`); audit R5-01 |
+| `frontend/tests/share.template.prop.test.ts` | P71 | the four announcement builders in `flow/share.ts` and `flow/navigation.ts`; audit R5-06 |
+| `frontend/tests/saved.eviction.prop.test.ts` | P72-P76 | `saveDiagramWithEviction` (`flow/saved.ts`); audit R5-06 and the pinning and in-place rules of brief p2 |
+| `frontend/tests/share.honesty.prop.test.ts` | P77-P78 | the `share.` keys of `tables` in `i18n/index.ts`; audit R5-02 |
+
+### Sanitising oracle (P66-P70)
+- Input is built from items, each either a word-like item (badge word, "and", an ordinary name) or a mark-like item (check mark, invisible mark, whitespace, "&"). Two word-like items are always joined by a separator (a space or one of `: , . -`), so the generator never makes "verifiedcertified" and then calls it a badge. A word-like item may be followed directly by a mark-like item, and the other way round: "Verified✅ Name" and "✅Verified Name" are the spoofs the properties exist for.
+- "Begins with" is checked with regular expressions on the output only; the sanitiser's own regular expressions are never reused. A badge word counts only when the next character is not a letter, a combining mark or a number, so "Verifiedcity" is a legitimate name and is checked as one by P70.
+- Counterexamples are shown with non-ASCII characters escaped as `\u{..}`, because the interesting ones are invisible.
+- Decision: P66 and P67 include the case where a badge word is directly followed by a mark ("verified✓"). The audit lists check marks before a badge word, not after it, but the mark-after form is the same spoof: "✅Verified✅ Mrs Sharma" is still shown as "Verified✅ Mrs Sharma" by the merged fix. It is in scope.
+
+### Template oracle (P71)
+- The name is `Mr <word><patterns><word>` and the title `Fig <word><patterns><word>`, so they differ and neither contains the other. "Exactly once" is a count of non-overlapping occurrences. The patterns are the five the brief lists plus `$$`, which `String.prototype.replace` also treats specially. Braces never occur in generated text, so a literal `{name}` can only come from a failed substitution.
+- The scene for `exploreAnnouncement` is `{ kind: 'unknown', title }`, which `verifyScene` stays silent on, so the announcement is the title line only.
+- The language is switched with `setLang` and restored in `finally`.
+
+### Fake store (P72-P76)
+`makeFake(atomic)` returns a `DiagramStore` over a `Map`. It has `list`, `get`, `put`, `delete`, and `putWithEviction` only when `atomic` is true, so both branches of `saveDiagramWithEviction` run.
+- Failures are armed by sequence steps: `failPut` and `failDelete` fail the next `put` (or `putWithEviction`) and the next `delete` once; `breakDeletes` and `healDeletes` (P74 only) make every `delete` fail until healed. A one-shot failure hits at most one call per save, so a correct implementation can always roll back and the cap properties are satisfiable. With `putWithEviction`, an armed failure aborts the whole call and nothing changes, like the IndexedDB transaction.
+- Steps: `save` (a slot in a pool of twice the cap, an arbitrary `createdAt`, an arbitrary `pinned`), `pin` (set or clear `pinned` on an existing entry, written straight into the map as the UI does), `failPut`, `failDelete`. The store passed as `existing` is its real list at that moment, as `App.tsx` does.
+- Each save records the store before and after, the entry and the result. P72 to P76 are checks on those records.
+
+### Honesty oracle (P77-P78)
+- Keys are the union of the `share.` keys of the three tables. The effective string of a key missing in one language is the English one, as `t()` falls back to it.
+- Every pair (language, key) is also passed to `fc.assert` as an explicit example, so the check is exhaustive and does not depend on the random draw reaching it.
+- The rule is stricter than the audit's suggested replacement: a negation ("has not verified it", "सत्यापित नहीं") also fails. The only exception the rule needs is the existing "not checked" wording, and that wording uses other words, so no exemption list exists.
+
+### Not pinned here, and why
+Three groups of round-5 findings are not covered by P66-P78. They are listed with the same wording in `docs/reviews/kiro-round5.md`.
+- **Behind React or `App.tsx`, no pure seam:** saved audit R5-01 (Explore status text), R5-03 and R5-05 (concurrent saves and matching by JSON in `App.tsx`), R5-04, R5-07 and R5-08 (the Correct screen); share audit R5-04, R5-05, R5-08, R5-09, R5-10, R5-11 (components) and R5-12 (a default in `App.tsx`).
+- **Needs a different fake:** saved audit R5-02 (`IDBDiagramStore.putWithEviction` puts before it deletes) needs a quota-aware fake `IDBFactory`; it is the next candidate after this task.
+- **Pure, but outside the brief's list:** share audit R5-07 (`sceneName` falls back to the raw `scene.kind`, which is an English code word spoken in Hindi and Gujarati).
 
 ## Halloween Presentation Layer
 Dark background, glowing green strokes, a small "creature" mascot assembled from phone parts on the start screen, and the theremin as the signature sound. The theme never touches the users themselves (see `product.md`).

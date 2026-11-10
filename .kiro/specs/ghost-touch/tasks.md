@@ -312,3 +312,13 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 37.2 (already done by agy lane m2 in `22a64e4`, TQ-09: the four `fc.float` in `geometry.prop.test.ts` became `fc.double` with the same ranges and `noNaN: true`; Kiro checked on 2026-11-09 that no `fc.float` is left in `frontend/tests`, so no file was edited) Replace the remaining `fc.float` uses in `frontend/tests/*.prop.test.ts` with `fc.double` (same ranges, `noNaN: true` where the old generator could not give NaN, same run counts)
   - [x] 37.3 Validator parity: fixture `backend/fixtures/validator_parity.json` (named scenes, expected `accept`/`reject`, a reason key for rejects, `known_mismatch` where the two validators differ); one pytest and one vitest that run it through `backend/app/validate.py` and `frontend/src/share/validate.ts`; mismatches written up in `docs/reports/validator-parity.md`; neither validator changed
   - _Requirements: 9.2, 9.3, 21.*_
+
+## Round-5 audit invariants as property tests (task 38; spec written before the tests)
+> Tests only. Do not edit `frontend/src/`, `core/`, the tuned haptic values, `App.tsx`, `Explore.tsx`, `Correct.tsx` or `Teach.tsx`. Lanes p2 (saved diagrams) and p3 (share and accessibility) had already merged into `main` (2d108ca) when these first ran; the properties that still fail are gaps those fixes left, listed in `docs/reviews/kiro-round5.md`. Do not skip, weaken or `.fails`-mark them to get a green run.
+
+- [ ] 38. Pin the round-5 invariants behind the HIGH findings as property tests (status: properties written, awaiting agy fixes for the gaps in docs/reviews/kiro-round5.md)
+  - [x] 38.1 Requirement 22, the design section, P66-P78 (Requirement 21 and P62-P65 were already taken by task 37)
+  - [x] 38.2 `frontend/tests/share.sanitize.prop.test.ts` (P66-P70), `share.template.prop.test.ts` (P71), `saved.eviction.prop.test.ts` (P72-P76), `share.honesty.prop.test.ts` (P77-P78); 200+ runs each; `tsc --noEmit` 0 errors
+  - [x] 38.3 Run them; every failing property with its shrunk counterexample and replay seed in `docs/reviews/kiro-round5.md`
+  - [ ] 38.4 After an agy lane fixes the gaps in `docs/reviews/kiro-round5.md` (or the lead accepts one as intended and Requirement 22 is amended first): rerun all four files with the recorded seeds and fresh ones; every property green; then tick 38
+  - _Requirements: 22.*_
