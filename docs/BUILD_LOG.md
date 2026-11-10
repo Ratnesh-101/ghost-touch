@@ -3382,3 +3382,119 @@ Format for each entry:
   - New §5.2 lists the bugs P66-P84 caught, each with its shrunk counterexample and who fixed it, plus the audit claims shown wrong.
   - It records the 19 task-39 mutation checks by name.
 - No test totals and no hardware claims (TalkBack, Guide, Share and Ghostwriter are tested only in jsdom and properties). The full run after task 40 has exactly the red tests listed in `docs/reviews/kiro-round6.md` (frontend 6, backend 3); `tsc` has 0 errors.
+
+## 2026-11-10 — agy, reviewed by Claude — Lane x1-w2-fixes (backend security fixes)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - Finding 1 (HIGH, `gemini.py`): Implemented regex secret scrubbing (`_BEARER`, `_SK_KEY`,
+    `_AIZA_KEY`, `_PARAM_KEY`, and URL/percent-encoded variants of the configured API key) in
+    `_redact_secrets`, ensuring all exception messages, logs, and `VisionError` messages are
+    scrubbed. Aligns implementation with `docs/PRIVACY.md` §6.2.
+  - Finding 2 (MED, `limits.py`): Added `extract_joined_xff` leveraging Starlette
+    `Headers.getlist("x-forwarded-for")` joined with `", "`. Updated both `RequestGuardMiddleware`
+    rate limiter and route `request_client_key` in-flight concurrency limiter to derive client
+    keys from identical joined XFF values, closing per-client concurrency bypass.
+  - Finding 5 (LOW, `image_utils.py`): Updated WebP sniffer to loop through RIFF chunks and parse
+    extended WebP VP8X canvas width and height (24-bit little-endian +1) when preceded by
+    metadata chunks (e.g. ICCP, EXIF), preserving 12 MP cap and format validation.
+  - Strengthened tests in `backend/tests/test_h3_cost_guard.py` (strict status code assert and
+    real ASGI scope duplicate XFF header extraction) and added comprehensive suite
+    `backend/tests/test_x1_w2_fixes.py` driving real functions across all hops (0, 1, 2), secret
+    forms, and WebP variants.
+  - Deferred Findings 3 and 4 (`render.yaml` proxy headers and env vars) per owner decision.
+- What broke / surprising findings:
+  - None. Clean remediation of security and privacy audit findings with strict assertions.
+- Files touched:
+  - `backend/app/vision/gemini.py`
+  - `backend/app/limits.py`
+  - `backend/app/image_utils.py`
+  - `backend/tests/test_h3_cost_guard.py`
+  - `backend/tests/test_x1_w2_fixes.py`
+  - `docs/reports/agy-x1-w2-fixes-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-10 — Antigravity — Lane x1-w2-fixes Pass 2 (supervisor gating fixes)
+- Tool: **Antigravity**.
+- What was done:
+  - Robust XFF Extraction (`backend/app/limits.py`): In `extract_joined_xff`, only consume
+    `headers.getlist(...)` when it returns a list or tuple of strings; if it returns a coroutine,
+    Mock, None, non-iterable, or raises an exception, safely fall back to
+    `headers.get("x-forwarded-for")` when string, else None. Preserves `", "` joining for Starlette
+    `Headers` and never raises.
+  - Case-Insensitive Secret Redaction (`backend/app/vision/gemini.py`): Made configured key and
+    URL-encoded/percent-encoded variants scrubbed case-insensitively using `re.IGNORECASE` and
+    escaped regex, alongside case-insensitive `_AIZA_KEY` shape matching.
+  - Suppressed Exception Chaining Leakage (`backend/app/vision/gemini.py`): Used `from None` when
+    raising `VisionError` to prevent raw exceptions containing endpoint URLs with API keys from
+    persisting in `__cause__`.
+  - Pytest Async Alignment (`backend/tests/test_x1_w2_fixes.py`): Switched async extraction test to
+    use `asyncio.run(...)` matching the rest of the backend test suite, avoiding native pytest
+    unhandled coroutine failures. Added tests for coroutine/Mock `getlist` fallbacks.
+- What broke / surprising findings:
+  - 3 existing disconnect tests in `test_fix_ask_regression.py`, `test_hardening.py`, and
+    `test_round2_security.py` mock `request.headers` with `AsyncMock`, where `headers.getlist(...)`
+    returned a coroutine. Handled via graceful type validation and fallback.
+- Files touched:
+  - `backend/app/limits.py`
+  - `backend/app/vision/gemini.py`
+  - `backend/tests/test_x1_w2_fixes.py`
+  - `docs/reports/agy-x1-w2-fixes-report.md`
+  - `docs/BUILD_LOG.md`
+## 2026-11-10 — agy, reviewed by Claude — Lane y1-w3-fixes-a (Frontend Eyes-Closed Audit Fixes)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - Addressed scoped findings from `docs/reports/audit-w3-eyes-closed.md`:
+  - HIGH 3: In `frontend/src/drivers/speech.ts`, added `visibilitychange` and `pagehide`
+    lifecycle listeners to `WebSpeechDriver`. When `document.hidden` becomes true (or `pagehide`
+    occurs), cancels `synth.cancel()` to prevent queued speech freezing on Android Chrome and
+    bursting out upon tab return. Added `dispose()` to teardown listeners and cancel speech cleanly.
+  - MED: In `frontend/src/screens/Capture.tsx`, updated `handleCancel` to speak and display
+    `t('capture.cancelled')` ("No photo was taken. Choose Take photo, Choose image, or a sample.")
+    and refocus "Take photo". Added 300 ms debounce to guarantee the cancel path speaks exactly
+    once even when both cancel and empty change events fire. Added `capture.cancelled` in `en`,
+    `hi`, `gu` to `frontend/src/i18n/index.ts`.
+  - MED: In `frontend/src/flow/capture.ts`, mapped `SceneRequestError` with `failure === 'network'`
+    to `t('capture.errorOffline')` ("You are offline. Samples still work. Try again when you are
+    connected."). Added `capture.errorOffline` in `en`, `hi`, `gu` to `frontend/src/i18n/index.ts`.
+  - Documented new strings in `docs/user-test/translation-review.csv` and `.md` for native review.
+  - Added unit tests in `frontend/tests/drivers.speech.test.ts`,
+    `frontend/tests/flow.capture.test.ts`, and `frontend/tests/capture.cancel.test.tsx`.
+- What broke / surprising findings:
+  - In `Capture.tsx`, dismissing the system camera file picker or permissions dialog can emit both
+    a native `cancel` event and a `change` event with empty file list. A 300 ms timestamp guard in
+    `handleCancel` deduplicates the two events so `say(t('capture.cancelled'))` speaks exactly once.
+- Files touched:
+  - `frontend/src/drivers/speech.ts`
+  - `frontend/src/screens/Capture.tsx`
+  - `frontend/src/flow/capture.ts`
+  - `frontend/src/i18n/index.ts`
+  - `docs/user-test/translation-review.csv`
+  - `docs/user-test/translation-review.md`
+  - `frontend/tests/drivers.speech.test.ts`
+  - `frontend/tests/flow.capture.test.ts`
+  - `frontend/tests/capture.cancel.test.tsx`
+  - `docs/reports/agy-y1-w3-fixes-a-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-10 — Antigravity — Pass 2 alignment for y1-w3-fixes-a (Supervisor gating fixes)
+- Tool: **Antigravity** (agy, reviewed by Claude).
+- What was done:
+  - In `frontend/tests/capture.cancel.test.tsx`, added `vi.mock('../src/drivers/pdf')` with inert
+    factory before imports to avoid Vite URL import error on `pdf.worker.min.mjs?url`.
+  - In `frontend/tests/capture.lifecycle.test.tsx`, updated 2 legacy cancel tests to assert the
+    single localized `t('capture.cancelled')` utterance and renamed titles removing "silent".
+  - In `frontend/src/flow/capture.ts`, restricted `capture.errorOffline` mapping strictly to
+    `navigator.onLine === false`; online and node environments fall through to generic error.
+  - In `frontend/tests/flow.capture.test.ts`, verified online/node generic error fallback and set
+    `onLine: false` explicitly for the true-offline test case.
+  - Added pass-2 note to `docs/reports/agy-y1-w3-fixes-a-report.md`.
+- What broke / surprising findings:
+  - None. All line lengths strictly maintained within 100 columns.
+- Files touched:
+  - `frontend/tests/capture.cancel.test.tsx`
+  - `frontend/tests/capture.lifecycle.test.tsx`
+  - `frontend/src/flow/capture.ts`
+  - `frontend/tests/flow.capture.test.ts`
+  - `docs/reports/agy-y1-w3-fixes-a-report.md`
+  - `docs/BUILD_LOG.md`
+
