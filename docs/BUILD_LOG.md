@@ -3070,3 +3070,77 @@ Format for each entry:
   - `frontend/tests/share.open.routing.test.tsx`
   - `docs/reports/agy-r2-share-aspect-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-10 — agy, reviewed by Claude — Lane r1-correct-delete-curves (Correct screen UI for Requirement 21)
+- Implemented UI and flow logic for selecting and deleting polylines (curves) and bars on the Correct screen:
+  - Extended `CorrectSelection` in `frontend/src/flow/correct.ts` with `{ kind: 'polyline'; id: string }` and `{ kind: 'bar'; id: string }`.
+  - Added pure `hitTestPolyline` (within `HIT_SEGMENT_RADIUS_PX`) and `hitTestBar` (inside bar rectangle) functions.
+  - Updated `hitTestCorrect` to enforce strict priority order: point > segment > polyline > bar.
+  - Updated `getSelectedLabel` and `getSelectionAnnouncement` to name curves and bars by label, otherwise by id.
+  - Added pure `isSceneEmpty` and `deleteSelectedElement` coordinating element deletion via `deletePoint`, `deleteSegment`, `deletePolyline`, and `deleteBar`.
+  - Configured no-op handling: if an element id is unknown, the same scene object is returned, no history entry is created, and `correct.noSelection` is spoken.
+  - Wired empty diagram speech: when deleting the last drawable element, `correct.nothingLeft` is joined with the deletion message.
+  - Updated `frontend/src/screens/Correct.tsx` canvas rendering to highlight selected curves and bars, draw bar chart geometry, and render an accessible selection list for keyboard/screen-reader navigation.
+  - Added 5 new i18n keys (`correct.selectedPolyline`, `correct.selectedBar`, `correct.polylineDeleted`, `correct.barDeleted`, `correct.nothingLeft`) across `en`, `hi`, and `gu` in `frontend/src/i18n/index.ts`.
+  - Appended translation rows marked for native review to `docs/user-test/translation-review.csv` and `docs/user-test/translation-review.md`.
+  - Added unit, flow, and component test suite `frontend/tests/correctCurvesBars.test.ts`.
+- What broke / surprising findings:
+  - None. Line lengths kept strictly within 100 columns and no forbidden words used.
+- Files touched:
+  - `frontend/src/flow/correct.ts`
+  - `frontend/src/screens/Correct.tsx`
+  - `frontend/src/styles/correct.css`
+  - `frontend/src/i18n/index.ts`
+  - `docs/user-test/translation-review.csv`
+  - `docs/user-test/translation-review.md`
+  - `frontend/tests/correctCurvesBars.test.ts`
+  - `docs/reports/agy-r1-correct-delete-curves-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-10 — agy, reviewed by Claude — Lane r1-correct-delete-curves (follow-up pass 2)
+- Remedied TypeScript strict indexed access error in `frontend/tests/correctCurvesBars.test.ts`
+  with `getTableEntry` helper guarding undefined table entries for `noUncheckedIndexedAccess`.
+- Resolved `AssertionError expected '' to be 'bare_bar'` in `frontend/src/flow/correct.ts`:
+  `getSelectedLabel` and `getSelectionAnnouncement` now check for non-empty trimmed label strings,
+  ensuring unlabelled bars/curves fall back to their id per `design.md` ("otherwise by id") and
+  announce clearly to screen readers.
+- What broke / surprising findings:
+  - None. Line lengths maintained strictly within 100 columns.
+- Files touched:
+  - `frontend/src/flow/correct.ts`
+  - `frontend/src/screens/Correct.tsx`
+  - `frontend/tests/correctCurvesBars.test.ts`
+  - `docs/reports/agy-r1-correct-delete-curves-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-10 — agy, reviewed by Claude — Lane t1-kiro-oracles (P74, P76, P77 pass)
+- What was done:
+  - P76 (Req 22.11): Fixed in-place update in `saveDiagramWithEviction`
+    (`frontend/src/flow/saved.ts`) so when saving an entry with an existing ID, the stored entry
+    keeps its original `pinned` and `createdAt` values while adopting `title`, `thumbnailDataUrl`,
+    and `scene` from the new entry, in both atomic (`putWithEviction`) and non-atomic (`put`) paths.
+  - P74 (Req 22.9): Fixed cap enforcement in `saveDiagramWithEviction`
+    (`frontend/src/flow/saved.ts`) so that if a victim delete or rollback fails, or if the store
+    starts with surplus entries over the cap, all surplus unpinned entries are evicted and failure
+    never reports `ok: true` while the store is over `cap`.
+  - P77 (Req 22.12): Reworded `share.honesty` across `en`, `hi`, and `gu` in
+    `frontend/src/i18n/index.ts` to "Ghost Touch cannot confirm it is right" (and Hindi/Gujarati
+    equivalents) without banned words ("verified", "सत्यापित", "પ્રમાણિત") or personification.
+  - Moved legacy backward-compatibility keys `share.verified` and `share.verifiedBy` to
+    `legacy.verified` and `legacy.verifiedBy` in `frontend/src/i18n/index.ts` and updated
+    `frontend/src/App.tsx`.
+  - Updated legacy test assertion in `frontend/tests/m1.a11y.test.tsx` to read `t('share.honesty')`.
+  - Recorded rewritten honesty translations in `docs/user-test/translation-review.csv` and `.md`.
+- What broke / surprising findings:
+  - In `brokenDeleteScenarioArb`, a sequence breaking all deletes causes initial rollback delete
+    to fail and leaves the store over cap; subsequent saves previously reported `ok: true` because
+    `applyAdd` assumed at most 1 item needed eviction. Calculating total target surplus fixed it.
+- Files touched:
+  - `frontend/src/flow/saved.ts`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/App.tsx`
+  - `frontend/tests/m1.a11y.test.tsx`
+  - `docs/user-test/translation-review.csv`
+  - `docs/user-test/translation-review.md`
+  - `docs/reports/agy-t1-kiro-oracles-report.md`
+  - `docs/BUILD_LOG.md`
