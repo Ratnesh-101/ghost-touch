@@ -37,9 +37,11 @@ export function localizedFindingTarget(
   finding: VerifyFinding,
   angleName: (vertex: string) => string,
 ): string {
-  return finding.angleVertex !== undefined
-    ? angleName(finding.angleVertex)
-    : getFindingTarget(finding);
+  if (finding.angleVertex !== undefined) return angleName(finding.angleVertex);
+  const target = getFindingTarget(finding);
+  // A finding built without `angleVertex` still names "angle X" (Requirement 23.5).
+  const angle = /^angle\s+(\S+)$/i.exec(target);
+  return angle ? angleName(angle[1]!) : target;
 }
 
 export type VerifyStatus = 'consistent' | 'disagree' | 'silent';
