@@ -3371,3 +3371,6 @@ Format for each entry:
   - `frontend/tests/z3.appMergedFixes.test.tsx`
   - `docs/reports/agy-z3-app-merged-fixes-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-10 — Kiro — T40.3 (test-first oracles for lane a1)
+- Tool: **Kiro**. Added three `reserved_*` cases to `validator_parity.json` (35 cases now) with `"structural": true`. Both parity tests now also check the output scene: no reserved id, unique ids, and the same segments between the same points (matched by position). Added P84 (`tests/share.reservedIds.prop.test.ts`, 250 runs). Red until a1: the backend fails all 3 structural cases (keeps `title` and the others); the share validator fails `reserved_rename_collides` and P84. Both show the same bug: renaming to `el_…` collides with an existing id, so a segment joins the wrong point or loops onto itself (seed `855832413`). My first P84 generator did not find it; I added collision pairs. Counterexamples are in `docs/reviews/kiro-round6.md`. Neither validator was changed.

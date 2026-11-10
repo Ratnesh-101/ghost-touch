@@ -65,3 +65,45 @@ def test_backend_verdict(case: dict[str, Any]) -> None:
     assert got == want["verdict"], f"{case['name']}: {result.errors}"
     if got == "reject":
         assert reason_of(result.errors) == want["reason"], result.errors
+
+
+# Lane a1 oracle (Kiro, task 40.3, Requirement 24.2). Same list as RESERVED_ELEMENT_IDS in
+# frontend/src/core/correct.ts. Red until lane a1 renames reserved ids in validate.py.
+RESERVED_IDS = frozenset(
+    {
+        "title",
+        "scene:title",
+        "__proto__",
+        "constructor",
+        "prototype",
+        "tostring",
+        "valueof",
+        "hasownproperty",
+        "isprototypeof",
+        "propertyisenumerable",
+        "tolocalestring",
+    }
+)
+STRUCTURAL = [c for c in CASES if c.get("structural")]
+
+
+def _position_pairs(points: list[Any], segments: list[Any]) -> list[tuple[Any, ...]]:
+    def get(o: Any, k: str) -> Any:
+        return o[k] if isinstance(o, dict) else getattr(o, k)
+
+    where = {get(p, "id"): (get(p, "x"), get(p, "y")) for p in points}
+    return sorted(tuple(sorted((where[get(s, "a")], where[get(s, "b")]))) for s in segments)
+
+
+@pytest.mark.parametrize("case", STRUCTURAL, ids=[c["name"] for c in STRUCTURAL])
+def test_backend_reserved_ids_renamed_and_segments_kept(case: dict[str, Any]) -> None:
+    raw = case["scene"]
+    result = validate_scene(copy.deepcopy(raw))
+    assert result.scene is not None, result.errors
+    s = result.scene
+    ids = [e.id for e in (*s.points, *s.segments, *s.polylines, *s.bars)]
+    assert len(ids) == len(set(ids)), f"duplicate ids: {ids}"
+    reserved = [i for i in ids if i.strip().lower() in RESERVED_IDS]
+    assert reserved == [], f"reserved ids left: {reserved}"
+    assert len(s.segments) == len(raw["segments"])
+    assert _position_pairs(s.points, s.segments) == _position_pairs(raw["points"], raw["segments"])

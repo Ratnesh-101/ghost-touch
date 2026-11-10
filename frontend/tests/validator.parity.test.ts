@@ -9,6 +9,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import { validateShareScene } from '../src/share/validate';
+import { isReservedId } from '../src/core/correct';
+import type { DiagramScene } from '../src/core/scene';
 import parity from '../../backend/fixtures/validator_parity.json';
 
 interface Verdict {
@@ -21,6 +23,7 @@ interface ParityCase {
   scene: unknown;
   expected: Verdict;
   known_mismatch?: boolean;
+  structural?: boolean;
   backend?: Verdict;
   frontend?: Verdict;
 }
@@ -63,6 +66,31 @@ describe('validator parity: frontend/src/share/validate.ts', () => {
       const got = result.ok ? 'accept' : 'reject';
       expect(got, `${c.name}: ${result.ok ? '' : result.errors.join(' | ')}`).toBe(want.verdict);
       if (!result.ok) expect(reasonOf(result.errors)).toBe(want.reason);
+    });
+  }
+});
+
+/** Each segment as the sorted pair of its endpoint positions, so renamed ids still compare. */
+function positionPairs(scene: Pick<DiagramScene, 'points' | 'segments'>): string[] {
+  const where = new Map((scene.points ?? []).map((p) => [p.id, `${p.x},${p.y}`]));
+  return (scene.segments ?? []).map((s) => [where.get(s.a), where.get(s.b)].sort().join(' | ')).sort();
+}
+
+// Lane a1 oracle (Kiro, task 40.3, Requirement 24.2). Cases with `structural: true` also check the
+// output: no reserved id, unique ids, the same segments joining the same points.
+describe('validator parity: reserved ids are renamed and segments kept (24.2)', () => {
+  for (const c of CASES.filter((x) => x.structural)) {
+    it(c.name, () => {
+      const raw = c.scene as DiagramScene;
+      const result = validateShareScene(structuredClone(c.scene));
+      expect(result.ok, result.ok ? '' : result.errors.join(' | ')).toBe(true);
+      if (!result.ok) return;
+      const s = result.scene;
+      const ids = [...(s.points ?? []), ...(s.segments ?? []), ...(s.polylines ?? []), ...(s.bars ?? [])].map((e) => e.id);
+      expect(new Set(ids).size, `ids: ${ids.join(', ')}`).toBe(ids.length);
+      expect(ids.filter(isReservedId)).toEqual([]);
+      expect(s.segments).toHaveLength(raw.segments!.length);
+      expect(positionPairs(s)).toEqual(positionPairs(raw));
     });
   }
 });

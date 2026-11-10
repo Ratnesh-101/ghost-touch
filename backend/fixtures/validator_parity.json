@@ -11543,6 +11543,164 @@
     "verdict": "reject",
     "reason": "too_many_bars"
    }
+  },
+  {
+   "name": "reserved_title_with_segment",
+   "structural": true,
+   "note": "Lane a1 oracle (Kiro, task 40.3, Requirement 24.2): accept, no reserved id, unique ids, every segment joins the same two points (matched by position). A point called title joined to B.",
+   "scene": {
+    "version": 1,
+    "kind": "geometry",
+    "points": [
+     {
+      "id": "title",
+      "x": 0.5,
+      "y": 0.2
+     },
+     {
+      "id": "B",
+      "x": 0.9,
+      "y": 0.9
+     },
+     {
+      "id": "A",
+      "x": 0.1,
+      "y": 0.9
+     }
+    ],
+    "segments": [
+     {
+      "id": "tB",
+      "a": "title",
+      "b": "B"
+     },
+     {
+      "id": "AB",
+      "a": "A",
+      "b": "B"
+     }
+    ]
+   },
+   "expected": {
+    "verdict": "accept"
+   }
+  },
+  {
+   "name": "reserved_case_variants",
+   "structural": true,
+   "note": "Lane a1 oracle (Kiro, task 40.3, Requirement 24.2): accept, no reserved id, unique ids, every segment joins the same two points (matched by position). Title, TITLE, scene:title, __proto__, constructor, and a segment id valueOf.",
+   "scene": {
+    "version": 1,
+    "kind": "geometry",
+    "points": [
+     {
+      "id": "Title",
+      "x": 0.1,
+      "y": 0.1
+     },
+     {
+      "id": "TITLE",
+      "x": 0.2,
+      "y": 0.1
+     },
+     {
+      "id": "scene:title",
+      "x": 0.3,
+      "y": 0.1
+     },
+     {
+      "id": "__proto__",
+      "x": 0.4,
+      "y": 0.1
+     },
+     {
+      "id": "constructor",
+      "x": 0.5,
+      "y": 0.1
+     },
+     {
+      "id": "B",
+      "x": 0.9,
+      "y": 0.9
+     }
+    ],
+    "segments": [
+     {
+      "id": "s1",
+      "a": "Title",
+      "b": "B"
+     },
+     {
+      "id": "s2",
+      "a": "TITLE",
+      "b": "B"
+     },
+     {
+      "id": "s3",
+      "a": "scene:title",
+      "b": "B"
+     },
+     {
+      "id": "s4",
+      "a": "__proto__",
+      "b": "B"
+     },
+     {
+      "id": "s5",
+      "a": "constructor",
+      "b": "B"
+     },
+     {
+      "id": "valueOf",
+      "a": "Title",
+      "b": "TITLE"
+     }
+    ]
+   },
+   "expected": {
+    "verdict": "accept"
+   }
+  },
+  {
+   "name": "reserved_rename_collides",
+   "structural": true,
+   "note": "Lane a1 oracle (Kiro, task 40.3, Requirement 24.2): accept, no reserved id, unique ids, every segment joins the same two points (matched by position). title is renamed while a point el_title already exists.",
+   "scene": {
+    "version": 1,
+    "kind": "geometry",
+    "points": [
+     {
+      "id": "title",
+      "x": 0.5,
+      "y": 0.2
+     },
+     {
+      "id": "el_title",
+      "x": 0.2,
+      "y": 0.6
+     },
+     {
+      "id": "B",
+      "x": 0.9,
+      "y": 0.9
+     }
+    ],
+    "segments": [
+     {
+      "id": "t1",
+      "a": "title",
+      "b": "B"
+     },
+     {
+      "id": "t2",
+      "a": "el_title",
+      "b": "B"
+     }
+    ]
+   },
+   "expected": {
+    "verdict": "accept"
+   }
   }
  ]
 }
