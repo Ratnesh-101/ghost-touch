@@ -62,22 +62,49 @@ export function isTeacherActive(settingOn: boolean = getStoredTeacherSetting()):
 }
 
 /**
+ * Reserved prototype keys and system IDs disallowed as element IDs (case-insensitive).
+ * Defined locally until T39 exports one shared constant from core.
+ */
+export const RESERVED_IDS = new Set<string>([
+  'title',
+  'scene:title',
+  '__proto__',
+  'constructor',
+  'prototype',
+  'tostring',
+  'valueof',
+  'hasownproperty',
+  'isprototypeof',
+  'propertyisenumerable',
+  'tolocalestring',
+]);
+
+export function isReservedId(id: string): boolean {
+  return RESERVED_IDS.has(id.trim().toLowerCase());
+}
+
+/**
  * Generate a new unique vertex point ID not already present in the scene.
  * Accepts either a DiagramScene or an array of Points for backward-compatibility.
  * Checks points, segments, polylines, and bars to avoid duplicate ID collisions.
+ * Never produces a reserved ID (title, scene:title, __proto__, constructor, prototype, etc.).
  */
 export function generateUniquePointId(sceneOrPoints: DiagramScene | Point[] = []): string {
   const ids = new Set<string>();
   if (Array.isArray(sceneOrPoints)) {
-    for (const p of sceneOrPoints) ids.add(p.id);
+    for (const p of sceneOrPoints) ids.add(p.id.toLowerCase());
   } else {
-    for (const p of sceneOrPoints.points ?? []) ids.add(p.id);
-    for (const s of sceneOrPoints.segments ?? []) ids.add(s.id);
-    for (const poly of sceneOrPoints.polylines ?? []) ids.add(poly.id);
-    for (const b of sceneOrPoints.bars ?? []) ids.add(b.id);
+    for (const p of sceneOrPoints.points ?? []) ids.add(p.id.toLowerCase());
+    for (const s of sceneOrPoints.segments ?? []) ids.add(s.id.toLowerCase());
+    for (const poly of sceneOrPoints.polylines ?? []) ids.add(poly.id.toLowerCase());
+    for (const b of sceneOrPoints.bars ?? []) ids.add(b.id.toLowerCase());
   }
   let counter = ids.size + 1;
-  while (ids.has(`p${counter}`) || ids.has(`p_${counter}`)) {
+  while (
+    ids.has(`p${counter}`.toLowerCase()) ||
+    ids.has(`p_${counter}`.toLowerCase()) ||
+    isReservedId(`p${counter}`)
+  ) {
     counter++;
   }
   return `p${counter}`;
@@ -85,6 +112,7 @@ export function generateUniquePointId(sceneOrPoints: DiagramScene | Point[] = []
 
 /**
  * Add a new vertex to the scene at the given normalized coordinates (default [0.5, 0.5]).
+ * Never assigns a reserved ID (title, scene:title, __proto__, constructor, prototype, etc.).
  */
 export function addVertex(
   scene: DiagramScene,
@@ -94,13 +122,14 @@ export function addVertex(
 ): { scene: DiagramScene; newPointId: string } {
   const currentPoints = scene.points ?? [];
   const allIds = new Set<string>();
-  for (const p of currentPoints) allIds.add(p.id);
-  for (const s of scene.segments ?? []) allIds.add(s.id);
-  for (const poly of scene.polylines ?? []) allIds.add(poly.id);
-  for (const b of scene.bars ?? []) allIds.add(b.id);
+  for (const p of currentPoints) allIds.add(p.id.toLowerCase());
+  for (const s of scene.segments ?? []) allIds.add(s.id.toLowerCase());
+  for (const poly of scene.polylines ?? []) allIds.add(poly.id.toLowerCase());
+  for (const b of scene.bars ?? []) allIds.add(b.id.toLowerCase());
 
-  const pointId = id && !allIds.has(id)
-    ? id
+  const isCandidateValid = id && !allIds.has(id.toLowerCase()) && !isReservedId(id);
+  const pointId = isCandidateValid
+    ? id!
     : generateUniquePointId(scene);
 
   const x = coords ? clamp01(coords.x) : 0.5;

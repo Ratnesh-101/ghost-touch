@@ -191,6 +191,7 @@ export function Teach({
   const loadBtnRef = useRef<HTMLButtonElement>(null);
   const addPointBtnRef = useRef<HTMLButtonElement>(null);
   const addEdgeBtnRef = useRef<HTMLButtonElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const speak = (text: string): void => {
     drivers.speech.speak(text, LANG_BCP47[activeLang]);
@@ -286,7 +287,10 @@ export function Teach({
           : true,
       sayAndStatus,
       focusHeading: () => headingRef.current?.focus(),
-      onBack,
+      onBack: () => {
+        onDirtyChange?.(false);
+        onBack();
+      },
     });
   };
 
@@ -343,6 +347,7 @@ export function Teach({
           applySceneEdit(outcome.scene);
           setSelection({ kind: 'point', id: outcome.id });
           sayAndStatus(ghostwriterSpeech(outcome));
+          canvasRef.current?.focus();
         } else {
           sayAndStatus(ghostwriterSpeech(outcome), true);
         }
@@ -356,6 +361,7 @@ export function Teach({
           applySceneEdit(outcome.scene);
           setSelection({ kind: 'segment', id: outcome.id });
           sayAndStatus(ghostwriterSpeech(outcome));
+          canvasRef.current?.focus();
         } else {
           sayAndStatus(
             ghostwriterSpeech(outcome),
@@ -626,6 +632,7 @@ export function Teach({
         {/* Left Column: Canvas and Editing Controls */}
         <div className="gt-teach__left-col">
           <TeachCanvas
+            canvasRef={canvasRef}
             scene={history.present}
             selection={selection}
             onSelect={handleSelect}

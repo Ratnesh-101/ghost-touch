@@ -15,6 +15,7 @@ import {
   type JSX,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  type RefObject,
 } from 'react';
 import { makeViewport, toScreen, type Viewport } from '../../core/geometry';
 import type { DiagramScene, Point } from '../../core/scene';
@@ -30,6 +31,7 @@ import type { GhostwriterMode } from '../../flow/ghostwriter';
 import { t } from '../../i18n';
 
 export interface TeachCanvasProps {
+  canvasRef?: RefObject<HTMLCanvasElement | null>;
   scene: DiagramScene;
   selection: CorrectSelection;
   onSelect: (selection: CorrectSelection) => void;
@@ -44,6 +46,7 @@ export interface TeachCanvasProps {
 }
 
 export function TeachCanvas({
+  canvasRef: propCanvasRef,
   scene,
   selection,
   onSelect,
@@ -56,7 +59,8 @@ export function TeachCanvas({
   onCanvasTap,
   onEscape,
 }: TeachCanvasProps): JSX.Element {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const internalCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasRef = propCanvasRef ?? internalCanvasRef;
   const isDraggingRef = useRef(false);
   const dragPointIdRef = useRef<string | null>(null);
   const dragCoordsRef = useRef<{ x: number; y: number } | null>(null);
