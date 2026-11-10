@@ -421,6 +421,23 @@ Three groups of round-5 findings are not covered by P66-P78. They are listed wit
 - **Needs a different fake:** saved audit R5-02 (`IDBDiagramStore.putWithEviction` puts before it deletes) needs a quota-aware fake `IDBFactory`; it is the next candidate after this task.
 - **Pure, but outside the brief's list:** share audit R5-07 (`sceneName` falls back to the raw `scene.kind`, which is an English code word spoken in Hindi and Gujarati).
 
+## Round-5 core fixes (Requirement 23, task 39)
+Written by Kiro before the code.
+- `core/correct.ts` exports `RESERVED_ELEMENT_IDS` (a `ReadonlySet<string>`, lower case) and `isReservedId(id)` (trim, lower-case, look up). `freeRequestedId` rejects reserved ids. The generated segment id (`${a}${b}`, `${a}${b}2`, …) skips reserved ids as well as taken ones. Generated point ids (`A`…`Z`, `P1`, …) can never be reserved.
+- `validateSceneInvariants` adds `Reserved ID: '<id>'` for any point, segment, polyline or bar whose id is reserved.
+- `share/validate.ts` imports `isReservedId` instead of keeping its own set; the set is the same, so share behaviour does not change (checked by the parity fixture and the share tests).
+- Point cap: none in core (23.4). `tests/caps.agree.test.ts` reads `MAX_SCENE_POINTS` and `MAX_SCENE_SEGMENTS` from `backend/app/validate.py` and checks `GHOSTWRITER_POINT_CAP === Math.min(LIMITS.maxPoints, MAX_SCENE_POINTS)`, and likewise for segments.
+- `core/verify.ts` `localizedFindingTarget`: with no `angleVertex`, a target matching `/^angle\s+(\S+)$/i` is worded by `angleName(vertex)`.
+- Coincident points: `addPoint` computes the clamped spot, then, when a point is within `COINCIDENT_EPSILON` of it, walks the nudge order of 23.6 and takes the first free in-range candidate. `COINCIDENT_EPSILON` and `NUDGE_STEP` are exported. With `NUDGE_STEP` 0.04 a nudged point is about 16 CSS px away on a 400 px canvas; `hitTestPoint` picks the nearest point, so each one is selected by tapping on it.
+- **For the Ghostwriter UI lane (not built here):** after an add, if the new point's position differs from the tapped (clamped) spot, speak a new key `teach.pointNudged`: "Added {point} next to {other}, so it does not cover it." (`{point}` as in `teach.pointAddedUnlabelled`, `{other}` the point that was there), in en, hi and gu. `planAddPoint` would need to return the nudge (for example `nudgedFrom: otherId`); that is a `flow/` change.
+
+| Property | Statement | Req |
+|---|---|---|
+| P79 | **Reserved ids are never used (Kiro, task 39.1):** for any valid scene and any requested id, including every reserved id in random case and with spaces, `addPoint` and `addSegment` never produce an element whose id is reserved, and the result passes `validateSceneInvariants`; endpoints whose concatenation is reserved still get a non-reserved segment id. A scene that already holds a reserved id fails `validateSceneInvariants`. | 23.1-23.3 |
+| P80 | **Angle wording does not depend on `angleVertex` (Kiro, task 39.3):** for any vertex name and language, a finding with `angleVertex` and the same finding without it are worded the same, and neither contains the English word "angle" in hi or gu. | 23.5 |
+| P81 | **Non-English facts are silent (Kiro, task 39.3):** for scenes whose facts are Hindi or Gujarati sentences built from random lengths and angles, `verifyScene` returns `silent` with no findings. | 18.10 |
+| P82 | **No two points share a position (Kiro, task 39.5):** starting from any valid scene without coincident points, any sequence of `addPoint` calls with any finite coordinates gives a scene where no two points are within `COINCIDENT_EPSILON`, all coordinates are in [0, 1], existing points are unchanged, and a non-coincident add keeps the clamped spot exactly. | 23.6 |
+
 ## Halloween Presentation Layer
 Dark background, glowing green strokes, a small "creature" mascot assembled from phone parts on the start screen, and the theremin as the signature sound. The theme never touches the users themselves (see `product.md`).
 
