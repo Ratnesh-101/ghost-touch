@@ -43,14 +43,29 @@ describe('P43 — leaveByBack', () => {
     );
   });
 
-  it('asks before discarding unsaved Teacher edits, and only then (200+ runs)', () => {
+  // Amended by Kiro in task 40.1 (Requirement 24.1, decision (a)): Correct with unsaved
+  // corrections asks too, through its own flag `correctDirty`. Written before the lane adds the
+  // field, so this is red until then (docs/reviews/kiro-round6.md). `ctx` is a variable, not a
+  // literal, so the extra field type-checks against today's BackContext.
+  it('asks before discarding unsaved Teach or Correct edits, and only then (200+ runs)', () => {
     fc.assert(
-      fc.property(screenArb, fc.boolean(), fc.boolean(), (screen, dirty, fromShare) => {
-        const step = leaveByBack(screen, { dirty, fromShare });
-        expect(step.needsConfirm).toBe(screen === 'teach' && dirty);
+      fc.property(screenArb, fc.boolean(), fc.boolean(), fc.boolean(), fc.boolean(), (screen, dirty, correctDirty, fromShare, hasScene) => {
+        const ctx = { dirty, correctDirty, fromShare, hasScene };
+        const step = leaveByBack(screen, ctx);
+        expect(step.needsConfirm).toBe((screen === 'teach' && dirty) || (screen === 'correct' && correctDirty));
       }),
       { numRuns: 300 },
     );
+  });
+
+  it('keeps the two editors apart: Teacher edits never block leaving Correct, and the reverse', () => {
+    const teachOnly = { dirty: true, correctDirty: false, fromShare: false };
+    const correctOnly = { dirty: false, correctDirty: true, fromShare: false };
+    expect(leaveByBack('correct', teachOnly).needsConfirm).toBe(false);
+    expect(leaveByBack('teach', correctOnly).needsConfirm).toBe(false);
+    expect(leaveByBack('correct', correctOnly)).toEqual({ next: 'explore', announceKey: 'explore.gestureHint', needsConfirm: true });
+    // A caller that omits the flag (today's App.tsx) never gets a confirmation from Correct.
+    expect(leaveByBack('correct', { dirty: true, fromShare: false }).needsConfirm).toBe(false);
   });
 
   it('never leaves the user on a screen they were trying to leave, except Start (200+ runs)', () => {
