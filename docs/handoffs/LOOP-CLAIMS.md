@@ -26,6 +26,7 @@ Session A's retry script is `agy-retry-after-quota.sh` (starts those four, 20 s 
 ## Session B (Claude) after the 08:00 push
 | Lane | Scope | State |
 |---|---|---|
-| w1-docs-refresh | docs only: README, STEMERGENT, KIRO_WRITEUP, BLOG, SOCIAL, DEMO_SCRIPT up to date with Ghostwriter, T35, audit fixes (no counts) | launching |
+| w1-docs-refresh | docs only: README, STEMERGENT, KIRO_WRITEUP, BLOG, SOCIAL, DEMO_SCRIPT up to date with Ghostwriter, T35, audit fixes (no counts) | MERGED (f10bc22) |
 | w2-backend-security-audit | read-only audit of the whole backend (cost guards, cache, prompt injection, logging) | launching |
 | w3-eyes-closed-audit | read-only audit of the app flows as an eyes-closed user | launching |
+| x1-w2-fixes | backend only: gemini.py key scrubbing, XFF key mismatch in limits.py, WebP VP8X sniffing (render.yaml items deferred to owner) | launching |
