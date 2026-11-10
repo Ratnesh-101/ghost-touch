@@ -17,7 +17,7 @@ import {
 } from '../api/ask';
 import type { DiagramScene } from '../core/scene';
 import { ListenError, type AudioDriver, type SpeechDriver } from '../drivers';
-import { getLang, LANG_BCP47, t, tf } from '../i18n';
+import { getLang, LANG_BCP47, tables, t, type Lang } from '../i18n';
 import { joinAnnouncements } from './explore';
 import {
   verifyScene,
@@ -107,6 +107,31 @@ function escapeRegExp(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/** Helper translating a dot-path key in the specified language (falling back to English). */
+function tForLang(lang: Lang, key: string): string {
+  const table = tables[lang];
+  if (table && key in table) {
+    return table[key] ?? key;
+  }
+  const enTable = tables.en;
+  if (enTable && key in enTable) {
+    return enTable[key] ?? key;
+  }
+  return key;
+}
+
+function tfForLang(
+  lang: Lang,
+  key: string,
+  params: Readonly<Record<string, string>>,
+): string {
+  return tForLang(lang, key).replace(
+    /\{(\w+)\}/g,
+    (whole: string, name: string) =>
+      Object.prototype.hasOwnProperty.call(params, name) ? (params[name] ?? whole) : whole,
+  );
+}
+
 /**
  * Pure helper for Ask flow: checks if the question names a segment, side, or element
  * that appears in a 'disagree' finding (Requirement 3).
@@ -115,12 +140,14 @@ function escapeRegExp(str: string): string {
  * - Matches by target, name, or segmentId (case-insensitive).
  * - For 2-character segment names/ids (e.g. "AC" or "CA"), accepts reversed order.
  * - Matches on word boundaries so "AC" does not falsely match "ACTION" or "BACK".
- * - If matched, returns the localised caveat sentence: "Facts and drawing disagree on {name}. I can't tell which is right."
+ * - For angle disputes with 3-letter vertex codes ("ADC"), matches vertex point ("D").
+ * - Returns caveat localized in caller's language (`lang`), falling back to UI language.
  * - If no match, returns null.
  */
 export function caveatForQuestion(
   findings: readonly VerifyFinding[] | undefined | null,
   question: string,
+  lang?: string,
 ): string | null {
   if (!findings || findings.length === 0 || !question) {
     return null;
@@ -128,6 +155,10 @@ export function caveatForQuestion(
 
   const trimmedQ = question.trim();
   if (!trimmedQ) return null;
+
+  const base = lang ? (lang.split('-')[0]?.toLowerCase() as Lang) : null;
+  const resolvedLang = base || getLang();
+  const safeLang: Lang = resolvedLang in tables ? resolvedLang : getLang();
 
   for (const finding of findings) {
     const candidates = new Set<string>();
@@ -142,7 +173,12 @@ export function caveatForQuestion(
       }
       if (/^angle\s+([a-zA-Z0-9]+)$/i.test(tVal)) {
         const vertex = tVal.replace(/^angle\s+/i, '').trim();
-        if (vertex) candidates.add(vertex);
+        if (vertex) {
+          candidates.add(vertex);
+          if (vertex.length === 3 && /^[a-zA-Z0-9]{3}$/.test(vertex)) {
+            candidates.add(vertex.charAt(1));
+          }
+        }
       }
     };
 
@@ -152,14 +188,24 @@ export function caveatForQuestion(
     addCandidate(finding.segmentId);
     addCandidate(finding.angleVertex);
 
+    // If finding targets an angle with a 3-letter vertex code,
+    // also match the single-letter vertex point (kiro-glue #4).
+    if (
+      finding.angleVertex &&
+      finding.angleVertex.length === 3 &&
+      /^[a-zA-Z0-9]{3}$/.test(finding.angleVertex)
+    ) {
+      candidates.add(finding.angleVertex.charAt(1));
+    }
+
     for (const cand of candidates) {
       const re = new RegExp(`(?:^|[^a-zA-Z0-9_])${escapeRegExp(cand)}(?:$|[^a-zA-Z0-9_])`, 'i');
       if (re.test(trimmedQ)) {
         const spoken = localizedFindingTarget(finding, (vertex) =>
-          tf('verify.angleName', { vertex }),
+          tfForLang(safeLang, 'verify.angleName', { vertex }),
         );
         const displayTarget = spoken || finding.segmentId || cand;
-        return tf('verify.disagree', { name: displayTarget });
+        return tfForLang(safeLang, 'verify.disagree', { name: displayTarget });
       }
     }
   }
@@ -276,7 +322,7 @@ export class AskManager {
           ? deps.formatAnswer(response.answer, response.target)
           : response.answer;
         const findings = deps.findings ?? (deps.scene ? verifyScene(deps.scene).findings : []);
-        const caveat = caveatForQuestion(findings, question);
+        const caveat = caveatForQuestion(findings, question, activeLang);
         const finalAnswer = caveat ? joinAnnouncements([caveat, baseAnswer]) : baseAnswer;
         deps.say(finalAnswer);
       } catch {
@@ -380,7 +426,7 @@ export class AskManager {
           ? deps.formatAnswer(response.answer, response.target)
           : response.answer;
         const findings = deps.findings ?? (deps.scene ? verifyScene(deps.scene).findings : []);
-        const caveat = caveatForQuestion(findings, question);
+        const caveat = caveatForQuestion(findings, question, activeLang);
         const finalAnswer = caveat ? joinAnnouncements([caveat, baseAnswer]) : baseAnswer;
         deps.say(finalAnswer);
       } catch {

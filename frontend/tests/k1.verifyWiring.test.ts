@@ -219,9 +219,22 @@ describe('K1 Verify Wiring — SPEC GHOST (Lane k1-verify-wiring)', () => {
       expect(resolution.kind).toBe('explore');
       if (resolution.kind === 'explore') {
         expect(resolution.sceneAnnouncement).not.toContain('Facts and drawing disagree');
-        expect(resolution.spokenAnnouncement).toBe(
-          'Right Triangle ABC. Double-tap and hold, then drag to feel the diagram. You start at the centre. Press Back to leave. Verified by Teacher Alice',
+        const expectedTitle = t('share.titlePrefix').replace(
+          '{title}',
+          honestTriangleScene.title!,
         );
+        const expectedHonest = t('share.sharedBy').replace('{name}', 'Teacher Alice');
+        const expectedScene = [
+          `${expectedTitle}. Double-tap and hold, then drag to feel the diagram.`,
+          `You start at the centre. Press Back to leave.`,
+        ].join(' ');
+        expect(resolution.sceneAnnouncement).toBe(expectedScene);
+        const expectedSpoken = [
+          `${expectedTitle}. Double-tap and hold, then drag to feel the diagram.`,
+          `You start at the centre. Press Back to leave.`,
+          `${expectedHonest}. ${t('share.honesty')}`,
+        ].join(' ');
+        expect(resolution.spokenAnnouncement).toBe(expectedSpoken);
 
         const speech = createMockSpeechDriver();
         speakShareAnnouncements(speech, resolution, 'en-IN');
@@ -230,33 +243,52 @@ describe('K1 Verify Wiring — SPEC GHOST (Lane k1-verify-wiring)', () => {
       }
     });
 
-    it('forged shared scene ("AC = 7 cm") gets the caveat joined with verified line in ONE utterance', () => {
-      const payload: SharePayload = {
-        v: 1,
-        scene: forgedTriangleScene,
-        verifiedBy: 'Teacher Bob',
-        note: 'Check the hypotenuse',
-        verifiedAt: '2026-11-09T08:00:00Z',
-      };
-      const hash = `${SHARE_HASH_PREFIX}${encodeShare(payload)}`;
-      const resolution = resolveShareRoute(hash, true);
+    it(
+      'forged shared scene ("AC = 7 cm") gets the caveat joined ' +
+        'with verified line in ONE utterance',
+      () => {
+        const payload: SharePayload = {
+          v: 1,
+          scene: forgedTriangleScene,
+          verifiedBy: 'Teacher Bob',
+          note: 'Check the hypotenuse',
+          verifiedAt: '2026-11-09T08:00:00Z',
+        };
+        const hash = `${SHARE_HASH_PREFIX}${encodeShare(payload)}`;
+        const resolution = resolveShareRoute(hash, true);
 
-      expect(resolution.kind).toBe('explore');
-      if (resolution.kind === 'explore') {
-        expect(resolution.sceneAnnouncement).toContain(
-          "Facts and drawing disagree on AC. I can't tell which is right.",
-        );
-        expect(resolution.spokenAnnouncement).toBe(
-          "Right Triangle ABC. Double-tap and hold, then drag to feel the diagram. You start at the centre. Press Back to leave. Facts and drawing disagree on AC. I can't tell which is right. Verified by Teacher Bob",
-        );
+        expect(resolution.kind).toBe('explore');
+        if (resolution.kind === 'explore') {
+          expect(resolution.sceneAnnouncement).toContain(
+            "Facts and drawing disagree on AC. I can't tell which is right.",
+          );
+          const expectedTitle = t('share.titlePrefix').replace(
+            '{title}',
+            forgedTriangleScene.title!,
+          );
+          const expectedHonest = t('share.sharedBy').replace('{name}', 'Teacher Bob');
+          const expectedScene = [
+            `${expectedTitle}. Double-tap and hold, then drag to feel the diagram.`,
+            `You start at the centre. Press Back to leave.`,
+            `Facts and drawing disagree on AC. I can't tell which is right.`,
+          ].join(' ');
+          expect(resolution.sceneAnnouncement).toBe(expectedScene);
+          const expectedSpoken = [
+            `${expectedTitle}. Double-tap and hold, then drag to feel the diagram.`,
+            `You start at the centre. Press Back to leave.`,
+            `Facts and drawing disagree on AC. I can't tell which is right.`,
+            `${expectedHonest}. ${t('share.honesty')}`,
+          ].join(' ');
+          expect(resolution.spokenAnnouncement).toBe(expectedSpoken);
 
-        const speech = createMockSpeechDriver();
-        speakShareAnnouncements(speech, resolution, 'en-IN');
-        // Critical Requirement: EXACTLY ONE speak call (never a second speak)
-        expect(speech.speak).toHaveBeenCalledTimes(1);
-        expect(speech.spokenUtterances[0]).toBe(resolution.spokenAnnouncement);
-      }
-    });
+          const speech = createMockSpeechDriver();
+          speakShareAnnouncements(speech, resolution, 'en-IN');
+          // Critical Requirement: EXACTLY ONE speak call (never a second speak)
+          expect(speech.speak).toHaveBeenCalledTimes(1);
+          expect(speech.spokenUtterances[0]).toBe(resolution.spokenAnnouncement);
+        }
+      },
+    );
   });
 
   describe('4. Ask Flow Pure Helper (caveatForQuestion)', () => {
