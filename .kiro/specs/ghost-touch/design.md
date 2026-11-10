@@ -438,6 +438,45 @@ Written by Kiro before the code.
 | P81 | **Non-English facts are silent (Kiro, task 39.3):** for scenes whose facts are Hindi or Gujarati sentences built from random lengths and angles, `verifyScene` returns `silent` with no findings. | 18.10 |
 | P82 | **No two points share a position (Kiro, task 39.5):** starting from any valid scene without coincident points, any sequence of `addPoint` calls with any finite coordinates gives a scene where no two points are within `COINCIDENT_EPSILON`, all coordinates are in [0, 1], existing points are unchanged, and a non-coincident add keeps the clamped spot exactly. | 23.6 |
 
+## Round-6 decisions (Requirement 24 and 22.14, task 40)
+Written by Kiro before the tests. The code changes are for Antigravity lanes, because `flow/` and the validators are being edited by them; Kiro's tests go in first and are red until those lanes merge (listed in `docs/reviews/kiro-round6.md`).
+
+### Back from Correct (24.1, decision (a))
+Chosen over (b) because the policy table is the only place a test can see Back's behaviour; with (b), P43 would keep describing an app that no longer exists. Exact signature for the lane:
+```ts
+export interface BackContext {
+  /** The Teacher editor holds changes that were not saved or shared. */
+  dirty: boolean;
+  /** The Correct screen holds corrections that were not saved. Default false. */
+  correctDirty?: boolean;
+  fromShare: boolean;
+  hasScene?: boolean;
+}
+export function leaveByBack(screen: ScreenName, ctx: BackContext): BackStep;
+// needsConfirm === (screen === 'teach' && ctx.dirty) || (screen === 'correct' && ctx.correctDirty === true)
+```
+`next` and `announceKey` for `correct` are unchanged (`explore`, `explore.gestureHint`). `App.tsx` passes the Correct screen's dirty state as `correctDirty`. P43 is amended to this formula over all screens and all three flags; it must still fail on a policy that ignores either flag.
+
+### Failed saves never lose entries (22.14)
+Evidence, measured by P83:
+- **The audit's literal case (`entry.id === evictedId`) is not reachable through `saveDiagramWithEviction`**, because victims are filtered with `e.id !== entryToSave.id`.
+- The prompt's "delete succeeds, then put fails" order is not reachable either: both paths put before they delete, and `MemoryDiagramStore` checks for failure once, before it changes anything.
+- **A real loss does happen on the fallback path with two or more victims.** That path is taken by every store, the memory store included, when `evictedIds.length > 1`, which happens after an earlier save left the store over the cap. The sequence is:
+  1. The put succeeds.
+  2. The first victim delete succeeds.
+  3. The second victim delete fails.
+  4. The rollback removes only the new entry, so the first victim is gone and the save reports `ok: false`.
+
+Fix for the saved-diagrams lane (`flow/saved.ts`, not Kiro's): on a failed victim delete, re-put every victim already deleted before rolling back the new entry (or delete no victim until all deletes are known to succeed, for example one `putWithEviction` per victim). `MemoryDiagramStore.putWithEviction` is changed by Kiro to delete the victim before it stores the entry, and to skip the delete when `evictedId === entry.id`, matching `IDBDiagramStore` (audit R6 LOW).
+
+| Property | Statement | Req |
+|---|---|---|
+| P43 (amended, task 40.1) | For every screen and every `dirty`, `correctDirty`, `fromShare`, `needsConfirm` equals `(teach && dirty) or (correct && correctDirty)`. | 24.1 |
+| P83 (task 40.2) | For the real `MemoryDiagramStore` and a fallback store without `putWithEviction`, any starting contents (also over the cap), any new or existing entry, any cap in {2, 3, 5} and any single failing mutating call: when the save returns `ok: false`, every entry that was in the store before is still there with the same content. Also, `MemoryDiagramStore.putWithEviction(e, e.id)` keeps `e`. | 22.14 |
+| P84 (task 40.3) | For random scenes whose ids mix reserved ids in any case, `el_`-prefixed ids and ordinary ids, `validateShareScene` accepts; the result has no reserved id, unique ids, no dangling segment, the same number of segments, and every segment joins the same two points (matched by position). | 24.2, 24.3 |
+
+The parity fixture gains `reserved_*` cases with `"structural": true`; both parity tests then also check the output scene against 24.2.
+
 ## Halloween Presentation Layer
 Dark background, glowing green strokes, a small "creature" mascot assembled from phone parts on the start screen, and the theremin as the signature sound. The theme never touches the users themselves (see `product.md`).
 

@@ -296,6 +296,8 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 12. FOR EVERY key that starts with `share.` in `en`, `hi` and `gu`, THE string SHALL NOT contain "verified" (any case), "सत्यापित" or "પ્રમાણિત", not even in a negation; and `share.sharedBy` and `share.sharedUnnamed` SHALL remain in every language and still say "not checked" in that language ("not checked", "जाँचा नहीं गया", "ચકાસાયેલ નથી").
 13. THE properties SHALL live in new files under `frontend/tests/` named `*.prop.test.ts`, run at least 200 times each, and SHALL NOT be skipped, weakened or `.fails`-marked. `tsc --noEmit` SHALL stay at 0 errors. No file under `frontend/src/`, `core/` or the tuned haptic values SHALL change in this task.
 
+14. (Kiro, task 40.2) WHEN `saveDiagramWithEviction` returns `ok: false`, THEN every entry that was in the store before the call SHALL still be in it, with its stored content, for any store with or without `putWithEviction` and any single failing `put` or `delete`. A failed save SHALL never lose an entry that was in the store before it.
+
 ### Requirement 23: Round-5 audit fixes in the pure core (task 39)
 > Written by Kiro on 2026-11-10 before the code, from `docs/reports/audit-r5-kiro-glue.md`, `docs/reports/audit-u1-g1.md` and `docs/reviews/kiro-round5.md`. Each audit claim was checked against the code first; where the code disagrees with the audit, this requirement follows the code and task 39 records the evidence.
 
@@ -309,3 +311,13 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 5. `localizedFindingTarget` SHALL word a disputed angle with the caller's `angleName` whether or not the finding carries `angleVertex`; a finding whose target is "angle X" SHALL be treated as an angle finding with vertex X.
 6. WHEN `addPoint` would place the new point at the position of an existing point (both coordinates within `COINCIDENT_EPSILON` = 1e-6 after clamping) THEN it SHALL place it at the first free position from a fixed nudge order instead: steps of `NUDGE_STEP` = 0.04 to the right, below, left, above, then the four diagonals, ring by ring out to 25 steps, skipping positions outside [0, 1] or within `COINCIDENT_EPSILON` of a point. IF no position is free THEN it SHALL return the same scene. Existing points SHALL NOT move. (Rejecting the add instead would make `planAddPoint` report the previous point as added, because it reads the last point; nudging keeps every caller correct.)
 7. No string added for these criteria, in any language, SHALL contain "verified", "correct", "checked" or "approved".
+
+### Requirement 24: Round-6 spec decisions (task 40)
+> Written by Kiro on 2026-11-10 before the tests, from `docs/reports/audit-r6-merged-share-saved.md` and the briefs for lanes a1 and p2. The code for 24.1 and 24.2 is in `flow/` and the validators, which Antigravity lanes own; Kiro writes the spec and the failing tests first.
+
+**User Story:** As a teacher, I want Back to protect my unsaved corrections on every editing screen in the same way, and I want a point I name `title` to stay connected when I share or save the diagram.
+
+#### Acceptance Criteria
+1. Back (decision (a) in task 40.1). THE pure navigation policy `leaveByBack` SHALL ask for confirmation exactly WHEN the screen being left is Teach with unsaved Teacher edits, OR Correct with unsaved corrections; on every other screen and in every other state it SHALL NOT. The Correct flag SHALL be separate from the Teacher flag, because both editors can hold edits at the same time. The confirmation in `screens/Correct.tsx` (lane p2) and the policy SHALL agree, so a test of the policy describes the app.
+2. Reserved ids in the validators (lane a1). WHEN a scene contains an element whose id is reserved (Requirement 23.1, any case) THEN both `share/validate.ts` and `backend/app/validate.py` SHALL accept the scene. The result SHALL contain no reserved id, every element id SHALL be unique, and every segment SHALL still join the same two points it joined before, with its endpoints rewritten to the renamed ids. A renamed id SHALL NOT take the id of another element that is already in the scene (for example a point that is already called `el_title`).
+3. THE segment count after the share validator SHALL equal the count before, for scenes whose segments all join existing, distinct points.
