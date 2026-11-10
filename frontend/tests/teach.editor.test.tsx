@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Interactive Editing and Keyboard Operation Tests for Teach screen & TeachCanvas.
  *
@@ -11,7 +12,8 @@
  * - 48x48 px touch targets and accessible names
  */
 
-import { createElement } from 'react';
+import { act, createElement } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Teach } from '../src/screens/Teach';
@@ -21,10 +23,27 @@ import { MemoryDiagramStore, type Drivers, type SpeechRateSetting } from '../src
 import { setLang, t } from '../src/i18n';
 import { parseHtml, getAllElements } from './helpers/a11yDom';
 
+declare global {
+  var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
+}
+
+const CANVAS_SIZE = 400;
+
+let container: HTMLDivElement;
+let testRoot: Root;
+let restoreRect: () => void;
+let restoreContext: () => void;
+
 function createMockDrivers(): Drivers {
   return {
     haptics: { supported: true, lastResult: null, vibrate: vi.fn(), stop: vi.fn() },
-    audio: { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), playEarcon: vi.fn(), state: 'locked' },
+    audio: {
+      unlock: vi.fn(),
+      setTone: vi.fn(),
+      beep: vi.fn(),
+      playEarcon: vi.fn(),
+      state: 'locked',
+    },
     speech: {
       speak: vi.fn(),
       listen: vi.fn(),
@@ -75,10 +94,47 @@ const sampleFunctionGraph: DiagramScene = {
 describe('Teach screen & TeachCanvas interactive editing', () => {
   beforeEach(() => {
     setLang('en');
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+    const proto = HTMLCanvasElement.prototype;
+    const originalRect = proto.getBoundingClientRect;
+    proto.getBoundingClientRect = function rect(): DOMRect {
+      return {
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: CANVAS_SIZE,
+        bottom: CANVAS_SIZE,
+        width: CANVAS_SIZE,
+        height: CANVAS_SIZE,
+        toJSON: () => ({}),
+      } as DOMRect;
+    };
+    restoreRect = () => {
+      proto.getBoundingClientRect = originalRect;
+    };
+
+    const originalContext = proto.getContext;
+    proto.getContext = (() => null) as typeof proto.getContext;
+    restoreContext = () => {
+      proto.getContext = originalContext;
+    };
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    testRoot = createRoot(container);
   });
 
   afterEach(() => {
+    act(() => {
+      testRoot.unmount();
+    });
+    container.remove();
+    restoreRect();
+    restoreContext();
     vi.restoreAllMocks();
+    globalThis.IS_REACT_ACT_ENVIRONMENT = undefined;
   });
 
   it('renders screen heading, toolbar, and canvas with accessible attributes', () => {
@@ -98,14 +154,14 @@ describe('Teach screen & TeachCanvas interactive editing', () => {
     expect(html).toContain(t('teach.undo'));
     expect(html).toContain(t('teach.redo'));
 
-    const root = parseHtml(html);
-    const canvas = getAllElements(root).find((el) => el.tag === 'canvas');
+    const parsedRoot = parseHtml(html);
+    const canvas = getAllElements(parsedRoot).find((el) => el.tag === 'canvas');
     expect(canvas).toBeDefined();
     expect(canvas?.attrs['role']).toBe('img');
     expect(canvas?.attrs['tabindex']).toBe('0');
     expect(canvas?.attrs['aria-label']).toContain('Diagram editor canvas');
 
-    const buttons = getAllElements(root).filter((el) => el.tag === 'button');
+    const buttons = getAllElements(parsedRoot).filter((el) => el.tag === 'button');
     const addPointBtn = buttons.find(
       (b) =>
         b.attrs['aria-label'] === t('teach.addPoint') ||
@@ -125,16 +181,22 @@ describe('Teach screen & TeachCanvas interactive editing', () => {
       }),
     );
 
-    const root = parseHtml(html);
-    const buttons = getAllElements(root).filter((el) => el.tag === 'button');
+    const parsedRoot = parseHtml(html);
+    const buttons = getAllElements(parsedRoot).filter((el) => el.tag === 'button');
 
-    const deleteBtn = buttons.find((b) => b.children.some((c) => typeof c === 'string' && c.includes('Delete')));
+    const deleteBtn = buttons.find((b) =>
+      b.children.some((c) => typeof c === 'string' && c.includes('Delete')),
+    );
     expect(deleteBtn?.attrs['disabled']).toBeDefined();
 
-    const undoBtn = buttons.find((b) => b.children.some((c) => typeof c === 'string' && c.includes('Undo')));
+    const undoBtn = buttons.find((b) =>
+      b.children.some((c) => typeof c === 'string' && c.includes('Undo')),
+    );
     expect(undoBtn?.attrs['disabled']).toBeDefined();
 
-    const redoBtn = buttons.find((b) => b.children.some((c) => typeof c === 'string' && c.includes('Redo')));
+    const redoBtn = buttons.find((b) =>
+      b.children.some((c) => typeof c === 'string' && c.includes('Redo')),
+    );
     expect(redoBtn?.attrs['disabled']).toBeDefined();
   });
 
@@ -146,22 +208,116 @@ describe('Teach screen & TeachCanvas interactive editing', () => {
     const onUndo = vi.fn();
     const onRedo = vi.fn();
 
-    // Directly test TeachCanvas handlers with selection
-    const htmlWithSelection = renderToStaticMarkup(
-      createElement(TeachCanvas, {
-        scene: sampleTriangle,
-        selection: { kind: 'point', id: 'pA' },
-        onSelect,
-        onMovePoint,
-        onNudgePoint,
-        onDeleteSelected,
-        onUndo,
-        onRedo,
-      }),
-    );
+    act(() => {
+      testRoot.render(
+        createElement(TeachCanvas, {
+          scene: sampleTriangle,
+          selection: { kind: 'point', id: 'pA' },
+          onSelect,
+          onMovePoint,
+          onNudgePoint,
+          onDeleteSelected,
+          onUndo,
+          onRedo,
+        }),
+      );
+    });
 
-    expect(htmlWithSelection).toContain('<canvas');
-    expect(htmlWithSelection).toContain('role="img"');
+    const canvas = container.querySelector('canvas');
+    expect(canvas).not.toBeNull();
+    expect(canvas?.getAttribute('role')).toBe('img');
+
+    // Arrow keys nudge selected point (STEP = 0.02)
+    act(() => {
+      canvas!.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
+      );
+    });
+    expect(onNudgePoint).toHaveBeenCalledWith('pA', 0, -0.02);
+
+    act(() => {
+      canvas!.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+      );
+    });
+    expect(onNudgePoint).toHaveBeenCalledWith('pA', 0, 0.02);
+
+    act(() => {
+      canvas!.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }),
+      );
+    });
+    expect(onNudgePoint).toHaveBeenCalledWith('pA', -0.02, 0);
+
+    act(() => {
+      canvas!.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
+      );
+    });
+    expect(onNudgePoint).toHaveBeenCalledWith('pA', 0.02, 0);
+
+    // Delete / Backspace removes selected element
+    act(() => {
+      canvas!.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true }),
+      );
+    });
+    expect(onDeleteSelected).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      canvas!.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }),
+      );
+    });
+    expect(onDeleteSelected).toHaveBeenCalledTimes(2);
+
+    // Escape clears selection
+    act(() => {
+      canvas!.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      );
+    });
+    expect(onSelect).toHaveBeenCalledWith(null);
+
+    // Ctrl+Z triggers undo
+    act(() => {
+      canvas!.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'z',
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+    expect(onUndo).toHaveBeenCalledTimes(1);
+
+    // Ctrl+Y triggers redo
+    act(() => {
+      canvas!.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'y',
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+    expect(onRedo).toHaveBeenCalledTimes(1);
+
+    // Ctrl+Shift+Z triggers redo
+    act(() => {
+      canvas!.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'z',
+          ctrlKey: true,
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+    expect(onRedo).toHaveBeenCalledTimes(2);
   });
 
   it('renders function graph axis range inputs only when kind === "function_graph"', () => {
@@ -192,18 +348,65 @@ describe('Teach screen & TeachCanvas interactive editing', () => {
     expect(funcHtml).toContain('id="gt-teach-axis-x"');
   });
 
-  it('renders label edit form when element is selected', () => {
+  it('renders label edit form on selection and removes element on Delete with spoken confirmation', () => {
+    const spoken: string[] = [];
     const drivers = createMockDrivers();
-    // Simulate Teach screen rendered with selected element
-    const html = renderToStaticMarkup(
-      createElement(Teach, {
-        initialScene: sampleTriangle,
-        drivers,
-        onBack: vi.fn(),
-      }),
-    );
+    drivers.speech.speak = vi.fn((text: string) => {
+      spoken.push(text);
+    });
 
-    // Initial state has no selection
-    expect(html).not.toContain('gt-teach__label-form');
+    act(() => {
+      testRoot.render(
+        createElement(Teach, {
+          initialScene: sampleTriangle,
+          drivers,
+          onBack: vi.fn(),
+        }),
+      );
+    });
+
+    // 1. Initial state has no selection: form is not present, Delete is disabled
+    expect(container.querySelector('.gt-teach__label-form')).toBeNull();
+
+    const buttons = Array.from(container.querySelectorAll('button'));
+    const deleteBtn = buttons.find((b) => b.textContent?.trim() === t('teach.delete'));
+    expect(deleteBtn).toBeDefined();
+    expect(deleteBtn?.disabled).toBe(true);
+
+    // 2. Select vertex pA (located at norm x: 0.1, y: 0.2 -> screen 40, 80 on 400x400 canvas)
+    const canvas = container.querySelector('canvas');
+    expect(canvas).not.toBeNull();
+    act(() => {
+      canvas!.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          clientX: 40,
+          clientY: 80,
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+        }),
+      );
+    });
+
+    // Form appears with vertex label
+    expect(container.querySelector('.gt-teach__label-form')).not.toBeNull();
+    const input = container.querySelector('#gt-teach-label-input') as HTMLInputElement;
+    expect(input).not.toBeNull();
+    expect(input.value).toBe('Vertex A');
+    expect(deleteBtn?.disabled).toBe(false);
+
+    // 3. Activate Delete button: vertex is deleted, form disappears, confirmation is last spoken
+    spoken.length = 0;
+    act(() => {
+      deleteBtn!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
+
+    // Form disappears after deletion
+    expect(container.querySelector('.gt-teach__label-form')).toBeNull();
+
+    // Spoken confirmation is emitted and is the last thing spoken (not canceled by focus)
+    const expectedConfirmation = `${t('teach.delete')}: pA`;
+    expect(spoken).toContain(expectedConfirmation);
+    expect(spoken[spoken.length - 1]).toBe(expectedConfirmation);
   });
 });

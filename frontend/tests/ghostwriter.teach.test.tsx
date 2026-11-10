@@ -238,13 +238,18 @@ describe('Ghostwriter in Teach mode (Task 36)', () => {
     pointerDownCanvas(0.8, 0.8); // Pick B while still in addEdgeSecond
     expect(spokenTexts.some((s) => s.includes('already joined'))).toBe(true);
 
-    // 3. Unknown point (pure flow contract)
+    // 3. Unknown point & 4. Bad coordinates (pure flow contract):
+    // NOTE: In the Teach UI, pointer coordinates are clamped to [0, 1] by pointerToScene
+    // (correctCanvas.ts) so badCoords cannot be produced via direct canvas taps.
+    // Likewise, point picking in addEdge mode only resolves existing points via
+    // hitTestCorrect, so unknownPoint cannot be produced via direct canvas taps.
+    // We assert their speech mapping directly on the pure flow contract here
+    // because the UI cannot produce these invalid inputs by design.
     const scene = createTestScene();
     const unknownRes = planAddSegment(scene, 'A', 'Z');
     expect(unknownRes.kind).toBe('unknownPoint');
     expect(ghostwriterSpeech(unknownRes)).toBe(t('teach.edgeUnknownPoint'));
 
-    // 4. Bad coordinates (pure flow contract)
     const badCoordsRes = planAddPoint(scene, NaN, 0.5);
     expect(badCoordsRes.kind).toBe('badCoords');
     expect(ghostwriterSpeech(badCoordsRes)).toBe(t('teach.pointBadCoords'));

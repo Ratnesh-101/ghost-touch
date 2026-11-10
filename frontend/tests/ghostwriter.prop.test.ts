@@ -143,7 +143,7 @@ describe('P58: Add point outcome', () => {
 
 describe('P59: Add edge outcome and reason', () => {
   it(
-    'returns samePoint, unknownPoint, alreadyJoined, limit in order, else added',
+    'asserts invariant properties directly: preservation, monotonicity, and idempotency',
     () => {
       fc.assert(
         fc.property(
@@ -171,25 +171,74 @@ describe('P59: Add edge outcome and reason', () => {
               (s) => (s.a === a && s.b === b) || (s.a === b && s.b === a),
             );
 
-            if (a === b) {
-              expect(outcome.kind).toBe('samePoint');
+            // Invariant 1: Preservation — any rejection leaves the scene unmodified
+            if (outcome.kind !== 'added') {
               expect(outcome.scene).toBe(scene);
-            } else if (!hasA || !hasB) {
-              expect(outcome.kind).toBe('unknownPoint');
-              expect(outcome.scene).toBe(scene);
-            } else if (joined) {
-              expect(outcome.kind).toBe('alreadyJoined');
-              expect(outcome.scene).toBe(scene);
-            } else if (segments.length >= GHOSTWRITER_SEGMENT_CAP) {
-              expect(outcome.kind).toBe('limit');
-              expect(outcome.scene).toBe(scene);
-            } else {
-              expect(outcome.kind).toBe('added');
-              if (outcome.kind !== 'added') throw new Error('expected added');
-              const expectedScene = addSegment(scene, a, b);
-              expect(outcome.scene).toEqual(expectedScene);
+            }
+
+            // Invariant 2: Addition state invariants — monotonicity, endpoint binding, idempotency
+            if (outcome.kind === 'added') {
+              expect(outcome.scene.segments?.length).toBe(segments.length + 1);
+              expect(outcome.scene.points).toBe(scene.points);
               expect(outcome.a).toBe(a);
               expect(outcome.b).toBe(b);
+
+              const newSeg = outcome.scene.segments?.find((s) => s.id === outcome.id);
+              expect(newSeg).toBeDefined();
+              expect(
+                (newSeg?.a === a && newSeg?.b === b) || (newSeg?.a === b && newSeg?.b === a),
+              ).toBe(true);
+
+              // Idempotency: immediately re-adding the same edge is rejected as alreadyJoined
+              const reAddForward = planAddSegment(outcome.scene, a, b);
+              expect(reAddForward.kind).toBe('alreadyJoined');
+              expect(reAddForward.scene).toBe(outcome.scene);
+
+              const reAddReverse = planAddSegment(outcome.scene, b, a);
+              expect(reAddReverse.kind).toBe('alreadyJoined');
+              expect(reAddReverse.scene).toBe(outcome.scene);
+            }
+
+            // Invariant 3: Outcome kinds soundly imply their contractual preconditions
+            switch (outcome.kind) {
+              case 'samePoint':
+                expect(a).toBe(b);
+                break;
+              case 'unknownPoint':
+                expect(a).not.toBe(b);
+                expect(!hasA || !hasB).toBe(true);
+                break;
+              case 'alreadyJoined':
+                expect(a).not.toBe(b);
+                expect(hasA && hasB).toBe(true);
+                expect(joined).toBe(true);
+                break;
+              case 'limit':
+                expect(a).not.toBe(b);
+                expect(hasA && hasB).toBe(true);
+                expect(joined).toBe(false);
+                expect(segments.length).toBeGreaterThanOrEqual(GHOSTWRITER_SEGMENT_CAP);
+                break;
+              case 'added':
+                expect(a).not.toBe(b);
+                expect(hasA && hasB).toBe(true);
+                expect(joined).toBe(false);
+                expect(segments.length).toBeLessThan(GHOSTWRITER_SEGMENT_CAP);
+                break;
+            }
+
+            // Invariant 4: Self-loop contract holds for any input
+            expect(planAddSegment(scene, a, a).kind).toBe('samePoint');
+
+            // Invariant 5: When all conditions for edge addition hold, outcome is added
+            if (
+              a !== b &&
+              hasA &&
+              hasB &&
+              !joined &&
+              segments.length < GHOSTWRITER_SEGMENT_CAP
+            ) {
+              expect(outcome.kind).toBe('added');
             }
           },
         ),
