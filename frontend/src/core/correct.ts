@@ -187,10 +187,34 @@ function usedIds(scene: DiagramScene): Set<string> {
   return ids;
 }
 
-/** The requested id, trimmed, when it is not blank and not taken; otherwise undefined. */
+/**
+ * Ids no element may have (Requirement 23.1), lower case. `renameLabel` reads `title` and
+ * `scene:title` as the scene title; the rest are object-prototype names. The share validator
+ * renames them to `el_…`.
+ */
+export const RESERVED_ELEMENT_IDS: ReadonlySet<string> = new Set([
+  'title',
+  'scene:title',
+  '__proto__',
+  'constructor',
+  'prototype',
+  'tostring',
+  'valueof',
+  'hasownproperty',
+  'isprototypeof',
+  'propertyisenumerable',
+  'tolocalestring',
+]);
+
+/** True when `id` is reserved, ignoring case and surrounding spaces (Requirement 23.1). */
+export function isReservedId(id: string): boolean {
+  return RESERVED_ELEMENT_IDS.has(id.trim().toLowerCase());
+}
+
+/** The requested id, trimmed, when it is not blank, not taken and not reserved; otherwise undefined. */
 function freeRequestedId(id: string | undefined, used: Set<string>): string | undefined {
   const trimmed = id?.trim();
-  return trimmed && !used.has(trimmed) ? trimmed : undefined;
+  return trimmed && !used.has(trimmed) && !isReservedId(trimmed) ? trimmed : undefined;
 }
 
 /** First free point id: `A` to `Z`, then `P1`, `P2`, ... (Requirement 19.1). */
@@ -252,7 +276,7 @@ export function addSegment(
   if (segmentId === undefined) {
     const base = `${a}${b}`;
     segmentId = base;
-    for (let n = 2; used.has(segmentId); n++) segmentId = `${base}${n}`;
+    for (let n = 2; used.has(segmentId) || isReservedId(segmentId); n++) segmentId = `${base}${n}`;
   }
 
   return { ...scene, segments: [...segments, { id: segmentId, a, b }] };
@@ -358,6 +382,16 @@ export interface InvariantResult {
 export function validateSceneInvariants(scene: DiagramScene): InvariantResult {
   const errors: string[] = [];
   const seenIds = new Set<string>();
+
+  // Reserved ids (Requirement 23.3)
+  for (const el of [
+    ...(scene.points ?? []),
+    ...(scene.segments ?? []),
+    ...(scene.polylines ?? []),
+    ...(scene.bars ?? []),
+  ]) {
+    if (isReservedId(el.id)) errors.push(`Reserved ID: '${el.id}'`);
+  }
 
   // Check points
   const pointIdSet = new Set<string>();

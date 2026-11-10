@@ -11,7 +11,7 @@
  * - docs/briefs/guide-share-contract.md § Share contract.
  */
 
-import { validateSceneInvariants } from '../core/correct';
+import { isReservedId, validateSceneInvariants } from '../core/correct';
 import type {
   Axes,
   Bar,
@@ -42,22 +42,8 @@ const BIDI_AND_ZERO_WIDTH =
  */
 const LEADING_SPOOF_SYMBOLS = /^[✓✔☑√]+/u;
 
-/**
- * Reserved prototype keys and system IDs disallowed as element IDs.
- */
-const RESERVED_IDS = new Set([
-  '__proto__',
-  'constructor',
-  'prototype',
-  'tostring',
-  'valueof',
-  'hasownproperty',
-  'isprototypeof',
-  'propertyisenumerable',
-  'tolocalestring',
-  'title',
-  'scene:title',
-]);
+// Reserved prototype keys and system ids: one list, `RESERVED_ELEMENT_IDS` in core/correct.ts
+// (Requirement 23.1). The set is the one this file used to hold, so behaviour is unchanged.
 
 /**
  * Sanitize a string by stripping C0/C1 control characters, Unicode bidi controls,
@@ -90,7 +76,7 @@ function sanitizeId(raw: unknown): string {
   if (typeof raw !== 'string') return '';
   const cleaned = sanitizeString(raw.trim(), 64);
   if (!cleaned) return '';
-  if (RESERVED_IDS.has(cleaned.toLowerCase())) {
+  if (isReservedId(cleaned)) {
     return `el_${cleaned}`;
   }
   return cleaned;
