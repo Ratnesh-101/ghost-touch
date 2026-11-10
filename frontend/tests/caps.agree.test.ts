@@ -2,9 +2,8 @@
  * Requirement 23.4 (Kiro, task 39.2): the core has no point cap; the Ghostwriter caller caps.
  * This fails when its caps stop being the smaller of the share limit and the backend limit.
  */
-import fs from 'node:fs';
-import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import validatePy from '../../backend/app/validate.py?raw';
 import { addPoint } from '../src/core/correct';
 import type { DiagramScene } from '../src/core/scene';
 import { GHOSTWRITER_POINT_CAP, GHOSTWRITER_SEGMENT_CAP } from '../src/flow/ghostwriter';
@@ -12,8 +11,7 @@ import { LIMITS } from '../src/share/limits';
 
 /** Reads `NAME = <int>` from backend/app/validate.py, the backend's own constants. */
 function backendConstant(name: string): number {
-  const file = path.resolve(__dirname, '../../backend/app/validate.py');
-  const match = fs.readFileSync(file, 'utf-8').match(new RegExp(`^${name}\\s*=\\s*([\\d_]+)\\s*$`, 'm'));
+  const match = validatePy.match(new RegExp(`^${name}\\s*=\\s*([\\d_]+)\\s*$`, 'm'));
   if (!match) throw new Error(`${name} not found in backend/app/validate.py`);
   return Number(match[1]!.replace(/_/g, ''));
 }
