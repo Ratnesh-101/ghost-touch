@@ -95,19 +95,19 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 - [~] 15. Budget-phone test and Capacitor decision
   - Test on one budget Android phone; if patterns blur, implement `CapacitorHapticDriver`
 - [ ] 16. Kiroween submission package
-  - [~] 16.1 Demo video under 3 minutes (blindfolded trace + real student session if possible)
+  - [~] 16.1 Demo video under 3 minutes (eyes-closed trace by a sighted helper, or a real student with consent)
   - [~] 16.2 Kiro write-up: specs, steering, hooks, property-based tests (P1–P13), what PBT caught
   - [~] 16.3 Blog post mentioning Kiroween 2026; social post starting with `#KiroweenHackathon26`
   - [~] 16.4 Confirm `/.kiro` is committed, license visible in GitHub About, repo public
   - [~] 16.5 Submit before **Dec 5, 3:30 am IST**; request Kiro credits before **Dec 1**
-- [ ] 17. Frankenstein's Laboratory theme, retroactive spec verification, and CSS correctness properties (Requirement 14, P18–P20)
+- [x] 17. Frankenstein's Laboratory theme, retroactive spec verification, and CSS correctness properties (Requirement 14, P18–P20)
   - UI components and stylesheets implemented by Antigravity; specification, design, and property tests written by Antigravity, awaiting Kiro review.
   - [x] 17.1 Retroactive spec & design documentation for Frankenstein Lab theme in requirements.md and design.md (agy)
   - [x] 17.2 Property test P18: Alive animation bound and flash frequency (fast-check in frontend/tests/labTheme.prop.test.ts) (agy)
   - [x] 17.3 Property test P19: CSS @import ordering and stylesheet integrity (fast-check in frontend/tests/labTheme.prop.test.ts) (agy)
   - [x] 17.4 Property test P20: Design token color conformance and bare hex literal detection (fast-check in frontend/tests/labTheme.prop.test.ts) (agy)
   - [x] 17.5 Verification pass: full frontend test suite (vitest), TypeScript compilation (tsc), and Vite production build (agy)
-- [ ] 18. Audit findings resolution (agy, awaiting Kiro review)
+- [x] 18. Audit findings resolution (agy, awaiting Kiro review)
   - [x] 18.1 Frontend Finding 5: Suppress redundant canvas aria-label during speech synthesis to prevent TalkBack speech collision (Requirement 13.8) (agy, awaiting Kiro review)
   - [x] 18.2 Frontend Finding 14: Eliminate secondary pointer dead-zone by promoting oldest active pointer upon primary lift (Requirement 4.8) (agy, awaiting Kiro review)
   - [x] 18.3 Kiro hooks: Add CSS guard, accessibility guard, and pre-commit build log hooks in `.kiro/hooks/` with schema and regex validation tests (agy, awaiting Kiro review)
@@ -294,14 +294,14 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 ## Ghostwriter in Teach mode (Requirement 20; spec by Kiro, to be built by Antigravity lane g1)
 > Teach screen only. Do not edit `frontend/src/core/**`, the tuned haptic values, or the Explore screen. Requirement 20 wins over `docs/briefs/agy-g1-ghostwriter-ui.md` where they differ (the cap is 300 points and 300 segments, set by sharing, not 500; Correct mode is out of scope).
 
-- [ ] 36. Ghostwriter UI on the Teach screen
-  - [ ] 36.1 Pure module `frontend/src/flow/ghostwriter.ts` as in design.md: the caps, `planAddPoint`, `planAddSegment`, `describeUndo`, `nextMode`, `ghostwriterSpeech`, `undoSpeech`, `GHOSTWRITER_KEYS`. No React, no browser API
-  - [ ] 36.2 Properties P58-P61 in `frontend/tests/ghostwriter.prop.test.ts`, at least 200 runs each; mutation-check each one and record the mutants in the report
-  - [ ] 36.3 i18n: every key in the design table in `en`, `hi`, `gu` with the same placeholders, plus rows in `docs/user-test/translation-review.csv` and `.md` marked for native review
-  - [ ] 36.4 `screens/Teach.tsx`: "Add vertex" becomes "Add point" (20.2.6); add the "Add edge" control; both at least 48 × 48 CSS px with accessible names; apply adds through `applySceneEdit` / `applyEdit`; speak every outcome; undo speaks `undoSpeech` for an add
-  - [ ] 36.5 Component tests in `frontend/tests/ghostwriter.teach.test.tsx` (jsdom), the list in design.md, including the 20.6 example
-  - [ ] 36.6 Report what happened to `flow/teach.ts` `addVertex` / `generateUniquePointId` and their tests (kept for another caller, or removed)
-  - [ ] 36.7 Gate (`tsc` 0 errors, `npm test` green with nothing skipped, build); BUILD_LOG entry (tool = "agy, reviewed by Claude"); report in `docs/reports/agy-g1-ghostwriter-ui-report.md`
+- [x] 36. Ghostwriter UI on the Teach screen (built by agy lane g1, merged; verified in git log, frontend/src/flow/ghostwriter.ts, Teach.tsx and docs/reports/agy-g1-ghostwriter-ui-report.md)
+  - [x] 36.1 Pure module `frontend/src/flow/ghostwriter.ts` as in design.md: the caps, `planAddPoint`, `planAddSegment`, `describeUndo`, `nextMode`, `ghostwriterSpeech`, `undoSpeech`, `GHOSTWRITER_KEYS`. No React, no browser API
+  - [x] 36.2 Properties P58-P61 in `frontend/tests/ghostwriter.prop.test.ts`, at least 200 runs each; mutation-check each one and record the mutants in the report
+  - [x] 36.3 i18n: every key in the design table in `en`, `hi`, `gu` with the same placeholders, plus rows in `docs/user-test/translation-review.csv` and `.md` marked for native review
+  - [x] 36.4 `screens/Teach.tsx`: "Add vertex" becomes "Add point" (20.2.6); add the "Add edge" control; both at least 48 × 48 CSS px with accessible names; apply adds through `applySceneEdit` / `applyEdit`; speak every outcome; undo speaks `undoSpeech` for an add
+  - [x] 36.5 Component tests in `frontend/tests/ghostwriter.teach.test.tsx` (jsdom), the list in design.md, including the 20.6 example
+  - [x] 36.6 Report what happened to `flow/teach.ts` `addVertex` / `generateUniquePointId` and their tests (kept for another caller, or removed)
+  - [x] 36.7 Gate (`tsc` 0 errors, `npm test` green with nothing skipped, build); BUILD_LOG entry (tool = "agy, reviewed by Claude"); report in `docs/reports/agy-g1-ghostwriter-ui-report.md`
   - _Requirements: 20.*_
 
 ## Review follow-ups 20.5, 20.9, 20.10 (task 37; spec written before the code)
