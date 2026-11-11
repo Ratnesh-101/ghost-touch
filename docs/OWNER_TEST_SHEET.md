@@ -39,7 +39,7 @@ Most judges will not have an Android phone. Open the live URL on a laptop (Chrom
 
 | # | Check | Result |
 |---|---|---|
-| 2.1 | Start, pick the Right triangle sample, drag the mouse along a side. Expected today: **no buzz and no sound on the sides** (laptops cannot vibrate). Corners speak a letter. Write what you actually saw and heard. (A fix for this is planned: a buzz sound and a pulse ring.) | |
+| 2.1 | Start, pick the Right triangle sample, drag the mouse along a side. Expected: a short low buzz sound and a pulse ring on the sides, a double buzz and two rings at corners (laptops cannot vibrate), and one spoken note "No vibration on this device..." on entering Explore. Corners speak a letter. Write what you actually saw and heard. | |
 | 2.2 | Sine wave sample: tone follows the curve? | |
 | 2.3 | Ask: type "How long is AC?": answer in about 2 s once the backend is warm? | |
 | 2.4 | Upload your own image on the laptop: how many seconds until Explore opens? | |
