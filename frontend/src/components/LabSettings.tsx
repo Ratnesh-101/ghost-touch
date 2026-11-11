@@ -241,6 +241,34 @@ export function LabSettings({
             <RateSelector drivers={drivers} />
           </section>
 
+          <section
+            className="gt-lab-settings__section gt-lab-settings__vibration-help"
+            aria-labelledby="lab-settings-section-vibration"
+          >
+            <h3 id="lab-settings-section-vibration" className="gt-lab-settings__section-title">
+              {t('lab.settings.vibrationHelpTitle')}
+            </h3>
+            <p
+              id="lab-settings-vibration-intro"
+              className="gt-lab-settings__vibration-intro"
+              role="note"
+            >
+              {t('lab.settings.vibrationHelpIntro')}
+            </p>
+            <ul
+              className="gt-lab-settings__vibration-list"
+              aria-describedby="lab-settings-vibration-intro"
+            >
+              <li>{t('lab.settings.vibrationHelpSamsung')}</li>
+              <li>{t('lab.settings.vibrationHelpStock')}</li>
+              <li>{t('lab.settings.vibrationHelpOnePlus')}</li>
+              <li>{t('lab.settings.vibrationHelpXiaomi')}</li>
+            </ul>
+            <p className="gt-lab-settings__vibration-note">
+              {t('lab.settings.vibrationHelpNote')}
+            </p>
+          </section>
+
           {isGuideEnvOn() && (
             <section
               className="gt-lab-settings__section"

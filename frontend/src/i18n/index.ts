@@ -94,6 +94,11 @@ const en: Record<string, string> = {
     'Double-tap and hold, then drag to feel the diagram. You start at the centre.',
   'explore.backHint': 'Press Back to leave.',
   'explore.centre': 'Centre.',
+  'a11y.tree': 'Diagram features',
+  'a11y.corner': 'Corner {name}',
+  'a11y.side': 'Side {name}',
+  'a11y.bar': '{label}, value {value}',
+  'a11y.curve': 'Curve {name}',
   // Spoken for a corner that has no label (the engine emits this key, not English text).
   'vertex.unlabelled': 'Point {id}',
   'explore.xAxis': 'x-axis',
@@ -240,6 +245,19 @@ const en: Record<string, string> = {
   'lab.settings.rate': 'Speech speed',
   'lab.settings.opened': 'Lab settings opened',
   'lab.settings.closed': 'Lab settings closed',
+  'lab.settings.vibrationHelpTitle': 'Device Vibration Settings',
+  'lab.settings.vibrationHelpIntro':
+    "Web apps cannot override your phone's system settings. For Ghost Touch to vibrate, sound and vibration must be enabled on your device.",
+  'lab.settings.vibrationHelpSamsung':
+    'Samsung One UI: open Settings, then Sounds and vibration, then Vibration intensity, and turn on Touch feedback. Also turn off Power Saving Mode.',
+  'lab.settings.vibrationHelpStock':
+    'Stock Android or Pixel: open Settings, then Sound & vibration, then Vibration & haptics, and turn on Touch feedback.',
+  'lab.settings.vibrationHelpOnePlus':
+    'OnePlus OxygenOS: open Settings, then Sound & vibration, then Haptics, and turn vibration on.',
+  'lab.settings.vibrationHelpXiaomi':
+    'Xiaomi HyperOS: open Settings, then Sound & vibration, then turn on Haptic feedback and Vibrate on touch.',
+  'lab.settings.vibrationHelpNote':
+    'Menu names and paths may vary across Android versions and phone makers.',
   'lab.loading.title': 'The lab is powering up',
   'lab.loading.hint': 'Reading your diagram…',
   'lab.raw.notice': "The creature's eyes are blurry — you can still feel the outlines.",
@@ -449,6 +467,11 @@ const hi: Record<string, string> = {
     'डबल-टैप करके दबाए रखें, फिर चित्र महसूस करने के लिए खींचें। आप केंद्र से शुरू करते हैं।',
   'explore.backHint': 'वापस जाने के लिए बैक दबाएं।',
   'explore.centre': 'केंद्र।',
+  'a11y.tree': 'आरेख के भाग',
+  'a11y.corner': 'कोना {name}',
+  'a11y.side': 'भुजा {name}',
+  'a11y.bar': '{label}, मान {value}',
+  'a11y.curve': 'वक्र {name}',
   'vertex.unlabelled': 'बिंदु {id}',
   'explore.xAxis': 'x-अक्ष',
   'explore.yAxis': 'y-अक्ष',
@@ -594,6 +617,19 @@ const hi: Record<string, string> = {
   'lab.settings.rate': 'बोलने की गति',
   'lab.settings.opened': 'लैब सेटिंग्स खुली',
   'lab.settings.closed': 'लैब सेटिंग्स बंद',
+  'lab.settings.vibrationHelpTitle': 'डिवाइस कंपन सेटिंग्स',
+  'lab.settings.vibrationHelpIntro':
+    'वेब ऐप आपके फ़ोन की सिस्टम सेटिंग्स को बदल नहीं सकते। Ghost Touch के कंपन करने के लिए आपके डिवाइस पर ध्वनि और कंपन चालू होना ज़रूरी है।',
+  'lab.settings.vibrationHelpSamsung':
+    'Samsung One UI: सेटिंग्स खोलें, फिर ध्वनियाँ और कंपन, फिर कंपन तीव्रता, और स्पर्श फ़ीडबैक चालू करें। पावर सेविंग मोड भी बंद करें।',
+  'lab.settings.vibrationHelpStock':
+    'स्टॉक Android या Pixel: सेटिंग्स खोलें, फिर ध्वनि और कंपन, फिर कंपन और हैप्टिक्स, और स्पर्श फ़ीडबैक चालू करें।',
+  'lab.settings.vibrationHelpOnePlus':
+    'OnePlus OxygenOS: सेटिंग्स खोलें, फिर ध्वनि और कंपन, फिर हैप्टिक्स, और कंपन चालू करें।',
+  'lab.settings.vibrationHelpXiaomi':
+    'Xiaomi HyperOS: सेटिंग्स खोलें, फिर ध्वनि और कंपन, और हैप्टिक फ़ीडबैक तथा स्पर्श पर कंपन चालू करें।',
+  'lab.settings.vibrationHelpNote':
+    'मेनू के नाम और रास्ते Android संस्करण और फ़ोन निर्माता के अनुसार अलग हो सकते हैं।',
   'lab.loading.title': 'प्रयोगशाला चालू हो रही है',
   'lab.loading.hint': 'आपके चित्र को पढ़ा जा रहा है…',
   'lab.raw.notice': 'जीव की आंखें धुंधली हैं — आप अभी भी रूपरेखा महसूस कर सकते हैं।',
@@ -806,6 +842,11 @@ const gu: Record<string, string> = {
     'ડબલ-ટેપ કરીને દબાવી રાખો, પછી આકૃતિ અનુભવવા માટે ખેંચો. તમે કેન્દ્રથી શરૂ કરો છો.',
   'explore.backHint': 'પાછા જવા માટે બેક દબાવો.',
   'explore.centre': 'કેન્દ્ર.',
+  'a11y.tree': 'આકૃતિના ભાગો',
+  'a11y.corner': 'ખૂણો {name}',
+  'a11y.side': 'બાજુ {name}',
+  'a11y.bar': '{label}, મૂલ્ય {value}',
+  'a11y.curve': 'વક્ર {name}',
   'vertex.unlabelled': 'બિંદુ {id}',
   'explore.xAxis': 'x-અક્ષ',
   'explore.yAxis': 'y-અક્ષ',
@@ -951,6 +992,19 @@ const gu: Record<string, string> = {
   'lab.settings.rate': 'વાણી ગતિ',
   'lab.settings.opened': 'લેબ સેટિંગ્સ ખુલી',
   'lab.settings.closed': 'લેબ સેટિંગ્સ બંધ',
+  'lab.settings.vibrationHelpTitle': 'ડિવાઇસ વાઇબ્રેશન સેટિંગ્સ',
+  'lab.settings.vibrationHelpIntro':
+    'વેબ એપ્સ તમારા ફોનની સિસ્ટમ સેટિંગ્સને બદલી શકતી નથી. Ghost Touch વાઇબ્રેટ કરે તે માટે તમારા ડિવાઇસ પર અવાજ અને વાઇબ્રેશન ચાલુ હોવા જરૂરી છે.',
+  'lab.settings.vibrationHelpSamsung':
+    'Samsung One UI: સેટિંગ્સ ખોલો, પછી અવાજ અને વાઇબ્રેશન, પછી વાઇબ્રેશન તીવ્રતા, અને ટચ ફીડબેક ચાલુ કરો. પાવર સેવિંગ મોડ પણ બંધ કરો.',
+  'lab.settings.vibrationHelpStock':
+    'સ્ટોક Android અથવા Pixel: સેટિંગ્સ ખોલો, પછી અવાજ અને વાઇબ્રેશન, પછી વાઇબ્રેશન અને હેપ્ટિક્સ, અને ટચ ફીડબેક ચાલુ કરો.',
+  'lab.settings.vibrationHelpOnePlus':
+    'OnePlus OxygenOS: સેટિંગ્સ ખોલો, પછી અવાજ અને વાઇબ્રેશન, પછી હેપ્ટિક્સ, અને વાઇબ્રેશન ચાલુ કરો.',
+  'lab.settings.vibrationHelpXiaomi':
+    'Xiaomi HyperOS: સેટિંગ્સ ખોલો, પછી અવાજ અને વાઇબ્રેશન, અને હેપ્ટિક ફીડબેક તથા ટચ પર વાઇબ્રેશન ચાલુ કરો.',
+  'lab.settings.vibrationHelpNote':
+    'મેનૂના નામ અને માર્ગ Android આવૃત્તિ અને ફોન ઉત્પાદક પ્રમાણે અલગ હોઈ શકે છે.',
   'lab.loading.title': 'લેબ ચાલુ થઈ રહી છે',
   'lab.loading.hint': 'તમારી આકૃતિ વાંચી રહ્યા છીએ…',
   'lab.raw.notice': 'પ્રાણીની આંખો ઝાંખી છે — તમે હજી પણ રૂપરેખા અનુભવી શકો છો.',

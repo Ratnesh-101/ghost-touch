@@ -59,8 +59,9 @@ import {
   resetAliveForTesting,
   shouldPlayAlive,
 } from '../flow/alive';
+import { buildA11yFeatures, MAX_A11Y_FEATURES, type A11yFeature } from '../flow/a11yFeatures';
 
-export { resetAliveForTesting };
+export { buildA11yFeatures, MAX_A11Y_FEATURES, resetAliveForTesting, type A11yFeature };
 
 export interface PointerPromotionResult {
   promotedPointerId: number | null;
@@ -275,6 +276,8 @@ export function Explore({
     lastSpokenRef.current = announced;
   }, [announced]);
   const [isBusy, setIsBusy] = useState(false);
+  const [canvasSize, setCanvasSize] = useState({ w: 300, h: 300 });
+  const a11yEngine = useRef<EngineState>(initialState());
   const [showTextFallback, setShowTextFallback] = useState(!drivers.speech.canListen);
   const [questionText, setQuestionText] = useState('');
   const [debugText, setDebugText] = useState(() => t('explore.debugWaiting'));
@@ -924,6 +927,11 @@ export function Explore({
 
     const view = makeViewport(box.cssWidth, box.cssHeight);
     viewportRef.current = view;
+    setCanvasSize((prev) =>
+      prev.w === box.cssWidth && prev.h === box.cssHeight
+        ? prev
+        : { w: box.cssWidth, h: box.cssHeight },
+    );
     renderStaticScene(view, box.dpr);
     draw(view, pendingCursor.current);
   };
@@ -1329,6 +1337,81 @@ export function Explore({
     );
   };
 
+  /**
+   * TalkBack / keyboard focus on a feature: run the same engine rules a finger would hit
+   * (corner pulse + label, line buzz, bar label + pitch, curve tone) through the drivers.
+   */
+  const handleFeatureFocus = (feature: A11yFeature): void => {
+    if (leaving.current || askActive.current) return;
+    const lang = LANG_BCP47[getLang()] ?? 'en-IN';
+    try {
+      drivers.audio.unlock();
+    } catch {
+      // best-effort
+    }
+    const { state, effects } = step(initialState(), {
+      kind: 'move',
+      t: performance.now(),
+      target: feature.target,
+      yNorm: feature.yNorm,
+    });
+    a11yEngine.current = state;
+    const speak = effects.find((e) => e.kind === 'speak');
+    if (speak?.kind === 'speak') lastSpokenRef.current = speak.text;
+    runEffects(effects, drivers, lang);
+  };
+
+  const handleFeatureBlur = (): void => {
+    const { state, effects } = step(a11yEngine.current, { kind: 'lift', t: performance.now() });
+    a11yEngine.current = state;
+    runEffects(effects, drivers);
+  };
+
+  const handleFeatureActivate = (feature: A11yFeature): void => {
+    const lang = LANG_BCP47[getLang()] ?? 'en-IN';
+    setStatusMessage(feature.label);
+    lastSpokenRef.current = feature.label;
+    try {
+      drivers.speech.speak(feature.label, lang);
+    } catch {
+      // speech is best-effort
+    }
+  };
+
+  const renderA11yTree = (): JSX.Element => {
+    const view = makeViewport(canvasSize.w, canvasSize.h);
+    return (
+      <div
+        className="gt-explore__a11y-tree"
+        role="group"
+        aria-label={t('a11y.tree')}
+        data-testid="explore-a11y-tree"
+      >
+        {buildA11yFeatures(scene).map((f) => {
+          const c = toScreen({ x: f.cx, y: f.cy }, view);
+          return (
+            <button
+              key={f.key}
+              type="button"
+              className={`gt-explore__a11y-item gt-explore__a11y-item--${f.kind}`}
+              data-a11y-kind={f.kind}
+              aria-label={f.label}
+              style={{
+                left: `${(c.x / view.canvasWidth) * 100}%`,
+                top: `${(c.y / view.canvasHeight) * 100}%`,
+                width: `${((f.w * view.scale) / view.canvasWidth) * 100}%`,
+                height: `${((f.h * view.scale) / view.canvasHeight) * 100}%`,
+              }}
+              onFocus={() => handleFeatureFocus(f)}
+              onBlur={handleFeatureBlur}
+              onClick={() => handleFeatureActivate(f)}
+            />
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <main className={`gt-explore gt-lab-explore${isGuiding ? ' gt-explore--guiding' : ''}`}>
       <header className="gt-explore__header gt-lab-header">
@@ -1425,6 +1508,7 @@ export function Explore({
           onPointerCancel={handlePointerLift}
           onLostPointerCapture={handlePointerLift}
         />
+        {renderA11yTree()}
       </div>
 
       <div className="gt-explore__debug" data-testid="explore-debug-offset" aria-hidden="true">

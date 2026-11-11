@@ -1079,6 +1079,22 @@ body {
   outline-offset: -3px;
 }
 
+/*
+ * Accessible diagram tree overlay for TalkBack exploration (Issue B).
+ * Kept strictly out of layout: absolute, inset 0, pointer-events none, overflow hidden.
+ */
+.gt-explore__a11y-tree {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.gt-explore__a11y-item {
+  position: absolute;
+  pointer-events: none;
+}
+
 .gt-explore__debug {
   font-size: var(--gt-text-xs);
   font-family: var(--gt-font-mono);

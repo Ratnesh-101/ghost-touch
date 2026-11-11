@@ -3998,3 +3998,57 @@ Format for each entry:
   - `frontend/tests/q2.round5.test.tsx`
   - `docs/reports/agy-z4-test-flake-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-12 — agy, reviewed by Claude — Lane f1-phone-fixes (Phone testing fixes & a11y overlay)
+- Tool: **agy, reviewed by Claude** (Antigravity).
+- Ported PR #35 phone testing fixes onto current main while strictly preserving the Requirement 25
+  canvas resize fix:
+  - Fix A (Corner vibration missing on some phones): In `drivers/haptics.ts`, added
+    `MIN_FALLBACK_PULSE_MS = 100` and exported pure `fallbackPulse(pattern)` which sums ON entries
+    (even indices) with a 100 ms minimum floor. In `WebHapticDriver.vibrate`, if the first call fails
+    and pattern is an array, retry once with `fallbackPulse(pattern)`. Working hosts are called
+    only once. Preserved `FallbackHapticDriver`, `patternToBuzzes`, and `BuzzSink` code untouched.
+  - Fix B (TalkBack exploration overlay): Created pure helper `flow/a11yFeatures.ts` extracting
+    points, segments, bars, curves, and axes capped to `MAX_A11Y_FEATURES = 60`. In `screens/Explore.tsx`,
+    rendered `.gt-explore__a11y-tree` inside the canvas container. The overlay is strictly
+    `position: absolute; inset: 0; pointer-events: none; overflow: hidden`, participating in no
+    layout flow and not disturbing the canvas size logic or touch-action. Re-exported
+    `buildA11yFeatures` from `Explore.tsx`.
+  - Fix C (Vibration help card): Added accessible settings card in `components/LabSettings.tsx`
+    with OS vibration guidance for Samsung One UI, Stock Android / Pixel, OnePlus OxygenOS, and
+    Xiaomi HyperOS. Styled in `styles/settings.css` with lab theme tokens. Added i18n keys across
+    English, Hindi, and Gujarati, and documented translation review entries in `translation-review.csv`
+    and `translation-review.md`.
+  - Tests: Ported and verified `frontend/tests/haptic.corner.regression.test.ts`,
+    `frontend/tests/labSettings.vibrationHelp.test.tsx`, `frontend/tests/explore.talkback.test.tsx`,
+    and added regression checks to `drivers.haptics.test.ts` and `explore.layout.test.tsx`.
+- What broke / surprising findings:
+  - Pass 1 supervisor run reported 3 test failures in Vitest with 0 tsc errors and clean build.
+    In Pass 2, resolved all 3 test defects:
+    1. `tests/explore.talkback.test.tsx`: replaced `new URL(..., import.meta.url)` with `readStyleFile`
+       (using `node:path` and `node:fs` relative to `__dirname`) to avoid `TypeError: The URL must be
+       of scheme file` under Vitest jsdom, and added `parseCssRules`/`findRule` style verification.
+    2. `tests/labSettings.vibrationHelp.test.tsx`: replaced brittle `escape()` HTML entity check with
+       DOM text assertions via `container.textContent` compared directly to `t(key)` from i18n,
+       matching jsdom DOM deserialization of apostrophes ("phone's") in English and translations.
+  - Zero changes to Kiro-owned files (`core/**`, `.kiro/**`, `*.prop.test.ts`), and existing
+    Requirement 25 layout constraints remain fully preserved.
+- Files touched:
+  - `frontend/src/drivers/haptics.ts`
+  - `frontend/src/flow/a11yFeatures.ts` (new)
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/components/LabSettings.tsx`
+  - `frontend/src/styles/explore.css`
+  - `frontend/src/styles/global.css`
+  - `frontend/src/styles/settings.css`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/tests/drivers.haptics.test.ts`
+  - `frontend/tests/explore.layout.test.tsx`
+  - `frontend/tests/explore.talkback.test.tsx` (new)
+  - `frontend/tests/haptic.corner.regression.test.ts` (new)
+  - `frontend/tests/labSettings.vibrationHelp.test.tsx` (new)
+  - `docs/user-test/translation-review.csv`
+  - `docs/user-test/translation-review.md`
+  - `docs/reports/agy-f1-phone-fixes-report.md`
+  - `docs/BUILD_LOG.md`
+

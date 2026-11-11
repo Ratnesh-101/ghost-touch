@@ -26,6 +26,21 @@ function defaultHost(): VibrateHost | undefined {
   return typeof navigator === 'undefined' ? undefined : navigator;
 }
 
+/** Minimum single-pulse length that reliably spins up a phone motor. */
+export const MIN_FALLBACK_PULSE_MS = 100;
+
+/**
+ * Single pulse standing in for an array pattern: the sum of the "on" entries
+ * (even indexes), never shorter than MIN_FALLBACK_PULSE_MS.
+ */
+export function fallbackPulse(pattern: readonly number[]): number {
+  const on = pattern.reduce(
+    (sum, ms, i) => (i % 2 === 0 ? sum + Math.max(0, ms) : sum),
+    0,
+  );
+  return Math.max(on, MIN_FALLBACK_PULSE_MS);
+}
+
 export class WebHapticDriver implements HapticDriver {
   readonly supported: boolean;
   private last: boolean | null = null;
@@ -44,14 +59,24 @@ export class WebHapticDriver implements HapticDriver {
       this.last = false;
       return false;
     }
+    let ok = this.tryVibrate(host, pattern);
+    if (!ok && Array.isArray(pattern)) {
+      // Some Android builds (Samsung/OnePlus) reject or silently drop array
+      // patterns. Fall back to one solid pulse so corners are still felt.
+      ok = this.tryVibrate(host, fallbackPulse(pattern));
+    }
+    this.last = ok;
+    return ok;
+  }
+
+  private tryVibrate(host: VibrateHost, pattern: number | number[]): boolean {
     try {
-      this.last = host.vibrate(pattern);
+      return host.vibrate?.(pattern) === true;
     } catch {
       // Some browsers throw if the page has no user activation yet. A failed
       // buzz must never break touch handling, so report it as "did not fire".
-      this.last = false;
+      return false;
     }
-    return this.last;
   }
 
   stop(): void {

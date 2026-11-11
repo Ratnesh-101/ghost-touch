@@ -300,4 +300,13 @@ describe('P87 Explore layout rule is declared (Requirement 25.4 to 25.7)', () =>
     expect(merged(globalCss, '.gt-explore__canvas-container')['overflow']).toBe('hidden');
     expect(merged(exploreCss, '.gt-lab-specimen-table')['overflow']).toBe('hidden');
   });
+
+  it('global.css and explore.css: a11y overlay tree is position: absolute and pointer-events: none', () => {
+    const globalTree = merged(globalCss, '.gt-explore__a11y-tree');
+    expect(globalTree['position']).toBe('absolute');
+    expect(globalTree['pointer-events']).toBe('none');
+    const exploreTree = merged(exploreCss, '.gt-explore__a11y-tree');
+    expect(exploreTree['position']).toBe('absolute');
+    expect(exploreTree['pointer-events']).toBe('none');
+  });
 });

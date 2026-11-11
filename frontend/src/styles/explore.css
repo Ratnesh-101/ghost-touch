@@ -725,4 +725,50 @@
   background: var(--gt-line, #39ff88);
 }
 
+/* ==========================================================================
+   ACCESSIBLE DIAGRAM TREE (TalkBack exploration, Issue B)
+   Focusable buttons for every corner, side, bar, curve and axis, laid over the canvas.
+   The whole tree is pointer-events: none, so direct touch always reaches the canvas.
+   TalkBack and keyboard focus still reach the buttons through the accessibility tree.
+   ========================================================================== */
+
+.gt-explore__a11y-tree {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.gt-explore__a11y-item {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  min-width: var(--gt-target, 48px);
+  min-height: var(--gt-target, 48px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--gt-radius-sm, 8px);
+  background: transparent;
+  color: inherit;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.gt-explore__a11y-item:focus,
+.gt-explore__a11y-item:focus-visible {
+  outline: 3px solid var(--gt-focus, #39ff88);
+  outline-offset: 0;
+  background: rgba(57, 255, 136, 0.12);
+}
+
+@media (forced-colors: active), (prefers-contrast: more) {
+  .gt-explore__a11y-item:focus,
+  .gt-explore__a11y-item:focus-visible {
+    outline: 3px solid Highlight;
+    background: transparent;
+  }
+}
+
+
 
