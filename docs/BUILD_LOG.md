@@ -3825,3 +3825,28 @@ Format for each entry:
 - Files touched:
   - `docs/reports/audit-b5-test-quality.md`
   - `docs/BUILD_LOG.md`
+
+### (recovered from lane worktree b6-lowend-perf, 2026-11-11)
+
+## 2026-11-08 — agy, reviewed by Claude — Lane b6-lowend-perf (Low-End Mobile & Performance Audit)
+- Tool: **agy, reviewed by Claude** (Antigravity).
+- Conducted full audit of frontend performance, hot paths, canvas rendering, lifecycle cleanups, and hardware constraints on budget Android hardware (Cortex-A53/A55, weak vibration motor, 2–3 GB RAM).
+- Output: `docs/reports/audit-b6-lowend-perf.md`.
+- Evaluated scope:
+  - `pointermove` hot path: allocations per event, 2000-point polyline hit-test scaling, canvas redraw frequency, `devicePixelRatio` scaling.
+  - `requestAnimationFrame` loops left running after unmount (verified sound in `Explore.tsx`).
+  - `AudioContext` and oscillator lifecycle (suspended state on Android Chrome, persistent background oscillator execution).
+  - Vibration call rate limits (`navigator.vibrate` throttling on Chrome Android, ERM motor rise/decay collisions, centre tick clobbering).
+  - Timers and listeners cleanup (`setInterval`, `addEventListener`, `SpeechRecognition`, camera file input).
+  - Image downscale memory (50 MP camera photo retention and OOM decoding risk in Correct mode).
+  - IndexedDB payload sizes and transaction overhead (3 sequential open/close connection cycles per save).
+  - Bundle size and first-load cost (`npm --prefix frontend run build`: 493 kB initial JS, un-split `qrcode` and teacher editor).
+  - Long tasks on the main thread (>50 ms risks mapped).
+- Confirmed 10 findings (2 High, 5 Medium, 3 Low), with Top 5 prioritized for resolution and core engine updates assigned under "Needs from Kiro".
+- Verified clean build and test suite baseline:
+  - `npm --prefix frontend test`: 113 test files passed (1556 tests).
+  - `npm --prefix frontend run build`: 128 modules transformed, clean PWA build.
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+- Files touched:
+  - `docs/reports/audit-b6-lowend-perf.md` (new)
+  - `docs/BUILD_LOG.md`
