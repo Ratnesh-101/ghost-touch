@@ -3527,3 +3527,46 @@ Format for each entry:
   - `docs/DEPLOY.md`
   - `docs/BUILD_LOG.md`
   - `docs/reports/agy-d1-honesty-fable-report.md`
+
+## 2026-11-10 — agy, reviewed by Claude — Lane a1-reserved-ids (backend validator + share validator)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - Backend `backend/app/validate.py`: Added module-level constant `RESERVED_ELEMENT_IDS` (matching `frontend/src/core/correct.ts`). Implemented `_rename_reserved_ids` during repair (immediately before `_dedupe_ids`) to rename any element ID whose trimmed lower-case form is in `RESERVED_ELEMENT_IDS` to `el_<id>`, disambiguated with `_2`, `_3` if taken. Rewrote segment endpoint references (`a`, `b`) targeting renamed points to preserve connections.
+  - Frontend `frontend/src/share/validate.ts`: Added `pointRenames` tracking during points processing; rewrote referencing segment endpoints `a` and `b` in `validateShareScene` so connected segments are preserved and not dropped as dangling lines upon sharing.
+  - Evaluated Kiro's validator parity fixture (`backend/fixtures/validator_parity.json`): zero parity scenes use reserved element IDs, and all 32 cases maintain identical verdicts.
+  - Added backend test suite `backend/tests/test_reserved_ids.py`: unit tests for point/segment/polyline/bar renaming, collision suffixes, F5 dropped element enforcement, and a Hypothesis property test (250 runs) ensuring reserved IDs never survive in output, segments connect valid points, non-reserved IDs are untouched, and IDs remain unique.
+  - Added frontend test suite `frontend/tests/share.reserved_ids.test.ts`: verified point `title` and segment `title`-`B` keeps the segment with endpoints renamed consistently, tested prototype property keys, and verified all 32 parity cases maintain expected verdicts.
+- What broke / surprising findings:
+  - None. Both validators now align cleanly with core invariants without changing parity fixture verdicts.
+- Files touched:
+  - `backend/app/validate.py`
+  - `frontend/src/share/validate.ts`
+  - `backend/tests/test_reserved_ids.py`
+  - `frontend/tests/share.reserved_ids.test.ts`
+  - `docs/reports/agy-a1-reserved-ids-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-11 — agy, reviewed by Claude — Lane a1-reserved-ids (Pass 3 Follow-Up)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - In `frontend/src/share/validate.ts`, keyed point ID renames by the exact original ID string
+    (`pointRenamesExact`), deciding reserved-ness via lower-cased trimmed strings.
+  - Added `renameReservedId` to disambiguate reserved IDs (`el_<id>`) case-sensitively against
+    all existing IDs across points, segments, polylines, and bars.
+  - Maintained unambiguous fallback maps (`pointRenamesTrimmed`, `pointRenamesLower`) that record
+    `null` on collisions to prevent ambiguous remapping.
+  - Rewrote segment endpoints through `resolveEndpoint` so distinct points never share an ID and
+    segments preserve connections to their distinct points.
+  - Added regression unit tests in `frontend/tests/share.reserved_ids.test.ts` for P84 counterexample
+    (`title` vs `titlE`), whitespace variations (`'   title   '` vs `'title'`), and parity case
+    `reserved_rename_collides` (`'0.2,0.6 | 0.9,0.9'`).
+- What broke / surprising findings:
+  - P84 and parity case `reserved_rename_collides` previously failed because the rename map was
+    keyed by lower-cased/trimmed strings, causing distinct IDs differing only in casing or padding
+    to overwrite each other into degenerate or misconnected segments.
+- Files touched:
+  - `frontend/src/share/validate.ts`
+  - `frontend/tests/share.reserved_ids.test.ts`
+  - `docs/reports/agy-a1-reserved-ids-report.md`
+  - `docs/BUILD_LOG.md`
+
