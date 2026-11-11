@@ -3498,3 +3498,32 @@ Format for each entry:
   - `docs/reports/agy-y1-w3-fixes-a-report.md`
   - `docs/BUILD_LOG.md`
 
+
+## 2026-11-10 — agy, reviewed by Claude — Lane d1-honesty-fable
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - Applied honesty audit across documentation files per brief:
+    - Row 1: Corrected corner speech in DEMO_SCRIPT, STEMERGENT_SUBMISSION §4, and DEPLOY to state that at a corner the phone gives a double pulse and speaks the corner's label, for example "C", removing promises of "right angle" speech.
+    - Row 2 & 3: Updated hooks count to 6 agent hooks in `.kiro/hooks/` (3 run tests on save, 3 ask the agent to review or regenerate). Clarified that the hooks are defined and their patterns checked, while a recorded run is not yet captured.
+    - Row 4: Replaced KIRO_WRITEUP §9.3 live backend fallback claim with: "the live backend returned an AI reading for a clean test image on Nov 10; real photos on the phone are not yet tested".
+    - Row 5: Aligned Guide and Share disclosures across README, DEMO_SCRIPT, STEMERGENT_SUBMISSION, KIRO_WRITEUP, BLOG, SOCIAL, and DEPLOY: "Guide and Share ship in the live app but stay off until the user turns them on in Settings; neither has been tested on a phone."
+    - Row 6 & 7: Clarified TalkBack claims across docs: "The TalkBack double-tap-and-hold gesture worked on our prototype on a OnePlus Nord CE6 (docs/research/talkback-spike.md). It has not yet been tested in the full app." Replaced "full screen-reader compliance" with "designed for TalkBack; phone check pending".
+    - Row 8: Replaced sweeping "every control" accessibility claims with: "Controls are tested for 48 px targets; state changes are spoken (see tests/a11y.*)".
+    - Row 10: In BLOG.md, replaced edge case claim with: "Property tests found real faults, for example a failed save that could lose an older diagram (P83)."
+    - Row 11: Replaced "blindfold" phrasing with "eyes-closed trace by a sighted helper, or a real student with consent".
+    - Row 12: In DEMO_SCRIPT.md, kept tested question "How long is AC?" -> "AC is 4 cm long." and marked "Where is the right angle?" as OPTIONAL and unchecked.
+    - Row 13: Added "DRAFT: the owner rewrites this in their own words about one Kiro feature" as first line of SOCIAL.md.
+    - README: Added 5-line quick test block for judges at the top of "Try it".
+    - Preserved all [FILL] and [RECOUNT] markers intact.
+- What broke / surprising findings:
+  - None. No code, test, or .kiro/ files were edited. All relative markdown links verified.
+- Files touched:
+  - `README.md`
+  - `docs/DEMO_SCRIPT.md`
+  - `docs/STEMERGENT_SUBMISSION.md`
+  - `docs/KIRO_WRITEUP.md`
+  - `docs/BLOG.md`
+  - `docs/SOCIAL.md`
+  - `docs/DEPLOY.md`
+  - `docs/BUILD_LOG.md`
+  - `docs/reports/agy-d1-honesty-fable-report.md`
