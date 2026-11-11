@@ -3912,3 +3912,42 @@ Format for each entry:
   - `docs/reports/agy-a3-saved-title-lang-report.md`
   - `docs/BUILD_LOG.md`
 
+
+
+## 2026-11-11 — agy, reviewed by Claude — Lane e2e-canvas-stable (Playwright regression test)
+- Tool: **agy, reviewed by Claude** (Antigravity).
+- Created Playwright end-to-end regression test in `frontend/e2e/explore.canvas-stable.spec.ts`
+  to verify the Explore diagram canvas does not continuously grow taller during touch
+  hold-and-drag gestures across mobile viewports (Samsung Galaxy S24 and Galaxy S24+).
+- Validates the permanent fix in commit `5616cd5` (`position: absolute; inset: 0` on
+  `.gt-explore__canvas`) preventing canvas bitmap height from expanding parent flex containers
+  in a layout feedback loop.
+- Implemented 5 complete scenarios with raw CDP touch events (`Input.dispatchTouchEvent`):
+  1. Standard 5s hold-and-drag starting from off-centre position (`dx=-74.4px, dy=-47.2px`
+     reproducing original P0 bug report).
+  2. TalkBack pass-through flow (Method A1 double-tap-and-hold starting at canvas centre).
+  3. Installed PWA standalone mode: simulated navigation bar / URL bar toggle (viewport height
+     reduced by 56px during hold, restored back, asserting canvas returns to baseline and does
+     not keep growing).
+  4. Installed PWA standalone mode: device rotation cycle (portrait -> landscape -> portrait,
+     asserting canvas returns to exact baseline).
+  5. Installed PWA standalone mode: prolonged 10s hold exceeding the ~7s bug growth window.
+- All scenarios assert:
+  - Canvas boundingBox width and height identical to baseline (tolerance 0.5px).
+  - `window.scrollY` unchanged (tolerance 0.5px).
+  - `document.scrollingElement.scrollHeight` does not grow.
+  - Navigation controls (Ask, Correct, Back) remain fully inside the viewport (0..innerHeight).
+  - Status line box height does not change.
+  - Failure messages output a chronological timeline growth curve (`formatGrowthCurve`) for
+    regression diagnosis.
+- TypeScript strict (no `any`), imports only from `@playwright/test`, runs automatically for
+  both configured Playwright projects (`galaxy-s24-384x832-dpr3` and
+  `galaxy-s24plus-412x915-dpr3.5`).
+- What broke / findings:
+  - No new code bugs introduced; verified that before `5616cd5`, in-flow `.gt-explore__canvas`
+    height was derived from bitmap attribute (CSS px x DPR), enlarging parent container on
+    high-DPR devices.
+- Files touched:
+  - `frontend/e2e/explore.canvas-stable.spec.ts` (new)
+  - `docs/reports/agy-e2e-canvas.md` (new)
+  - `docs/BUILD_LOG.md`
