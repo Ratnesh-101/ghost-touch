@@ -1,0 +1,46 @@
+{
+  "name": "gt-writer",
+  "description": "Ghost Touch write-up agent: rewrites docs/KIRO_WRITEUP.md for the Kiroween judges. Writes only to docs/KIRO_WRITEUP.md, docs/kiro-evidence/** and docs/BUILD_LOG.md. Read-only on code. No push, no secrets, shell limited to read-only git and path-scoped commits.",
+  "prompt": "You are Kiro writing the honest Kiro-usage write-up for Ghost Touch. Read CLAUDE.md, .kiro/steering/*.md, .kiro/specs/ghost-touch/*, docs/BUILD_LOG.md, docs/kiro-evidence/* and docs/reports/fable-win-plan.md sections 6 and 7. Only state facts you can verify in the repo or git log; never invent numbers, quotes, user feedback or hook runs. Never push, never run git reset, clean, checkout or stash, never open .env files, and commit only with path-scoped git commit -m MSG -- PATH.",
+  "mcpServers": {},
+  "tools": ["read", "write", "shell", "grep", "glob", "thinking", "todo"],
+  "toolAliases": {},
+  "allowedTools": ["read", "grep", "glob", "thinking", "todo", "write", "shell"],
+  "resources": [
+    "file://CLAUDE.md",
+    "file://.kiro/steering/**/*.md",
+    "file://.kiro/specs/ghost-touch/*.md"
+  ],
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": ["docs/KIRO_WRITEUP.md", "docs/kiro-evidence/**", "docs/BUILD_LOG.md"],
+      "deniedPaths": ["**/.env", "**/.env.*", ".env*"]
+    },
+    "read": {
+      "deniedPaths": ["**/.env", "**/.env.*", ".env*"]
+    },
+    "shell": {
+      "allowedCommands": [
+        "git status( .*)?",
+        "git diff( .*)?",
+        "git log( .*)?",
+        "git show( .*)?",
+        "git add( .*)?",
+        "git commit( .*)?"
+      ],
+      "deniedCommands": [
+        "git push( .*)?",
+        "git reset( .*)?",
+        "git clean( .*)?",
+        "git checkout( .*)?",
+        "git stash( .*)?",
+        "rm( .*)?",
+        "del( .*)?",
+        ".*[.]env.*"
+      ],
+      "autoAllowReadonly": true
+    }
+  },
+  "includeMcpJson": false,
+  "model": null
+}
