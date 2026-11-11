@@ -344,3 +344,8 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 40.3 Lane a1 oracles: `reserved_*` parity cases checked structurally on both sides; P84 for the share validator (200+ runs); red cases recorded in `kiro-round6.md`
   - [x] 40.4 `docs/KIRO_WRITEUP.md` for tasks 34-40: real bugs caught by P66-P82 with counterexamples, the 19 mutation checks of task 39, honest Kiro/agy split; no test totals, no hardware claims
   - _Requirements: 22.14, 24.*_
+
+- [ ] 41. W3 audible buzz fallback: requirement and property (code merged by Antigravity in `5bf9b1e`)
+  - [ ] 41.1 Requirement 1.4-1.5 (EARS; the prompt said "Requirement 3.3", but the Vibration API fallback is Requirement 1.3) and P85 in design.md
+  - [ ] 41.2 P85 in `frontend/tests/haptics.buzz.prop.test.ts` against `patternToBuzzes` (200+ runs), with the corner pattern [50, 90, 50] as an example; a real bug is reported, not fixed (`drivers/haptics.ts` is agy's)
+  - _Requirements: 1.3, 1.4, 1.5_

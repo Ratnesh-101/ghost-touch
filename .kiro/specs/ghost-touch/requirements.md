@@ -21,6 +21,8 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 1. WHEN the app opens THEN the system SHALL show a full-screen start surface and SHALL speak "Ghost Touch. Tap anywhere to begin."
 2. WHEN the user taps anywhere on the start surface THEN the system SHALL unlock vibration, audio, and speech, play a short confirmation vibration, and move to the Capture screen.
 3. IF the Vibration API is unavailable THEN the system SHALL announce that vibration is not supported and recommend Chrome on Android, and SHALL continue with audio-only feedback.
+4. (Kiro, task 41, testable form of 1.3; code merged by Antigravity in `5bf9b1e`, lane W3) WHEN the haptic driver reports `supported = false` THEN the system SHALL play a short audible buzz for every `vibrate` effect, SHALL show a visual pulse at the touch point, and SHALL speak "No vibration on this device. You will hear a buzz instead. Use Chrome on Android to feel it." (`explore.noVibration`) once on entering Explore. A number n > 0 SHALL give one buzz of n ms at offset 0. A pattern [on, off, on, …] SHALL give one buzz per ON entry (even index) whose duration is positive and finite, at an offset equal to the running sum of every earlier positive, finite entry, with that entry's duration. Zero, negative and non-finite entries SHALL give no buzz and SHALL NOT move the offset.
+5. WHEN the haptic driver reports `supported = true` THEN the buzz, the pulse and the notice SHALL NOT occur, and vibration SHALL work exactly as before.
 
 ### Requirement 2: Capture a diagram
 **User Story:** As a student or teacher, I want to photograph a textbook diagram, so that it can be explored by touch.
