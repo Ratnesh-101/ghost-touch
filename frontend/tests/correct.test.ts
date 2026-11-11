@@ -39,7 +39,7 @@ describe('clamp01', () => {
     expect(clamp01(0)).toBe(0);
     expect(clamp01(1)).toBe(1);
     expect(clamp01(Number.NaN)).toBe(0);
-    expect(clamp01(Number.POSITIVE_INFINITY)).toBe(0);
+    expect(clamp01(Number.POSITIVE_INFINITY)).toBe(1); // Requirement 9.10 (K4 CORE-A5)
   });
 });
 

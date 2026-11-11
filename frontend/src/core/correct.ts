@@ -10,7 +10,7 @@ import type { DiagramScene, Point } from './scene';
 
 /** Clamp a numeric coordinate strictly to the normalized range [0, 1]. */
 export function clamp01(val: number): number {
-  if (Number.isNaN(val) || !Number.isFinite(val)) return 0;
+  if (Number.isNaN(val)) return 0;
   return Math.max(0, Math.min(1, val));
 }
 
@@ -34,6 +34,8 @@ export function movePoint(
   x: number,
   y: number,
 ): DiagramScene {
+  // Requirement 9.10: a non-finite position is not a move (same rule as addPoint, 19.4).
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return scene;
   const points = scene.points ?? [];
   const index = points.findIndex((p) => p.id === pointId);
   if (index === -1) return scene;

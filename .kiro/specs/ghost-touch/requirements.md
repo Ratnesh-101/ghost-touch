@@ -102,6 +102,7 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 4. WHEN a point is moved THEN the system SHALL clamp coordinates to [0, 1].
 5. WHEN a point is deleted THEN the system SHALL remove every segment and polyline reference to that point, ensuring no dangling references remain.
 6. WHEN a label is edited THEN the system SHALL trim whitespace and reject empty labels.
+10. (Kiro, K4 CORE-A5) WHEN a point is moved to a position where x or y is NaN or infinite THEN the system SHALL NOT move it and SHALL return the same scene object (as Requirement 19.4 does for adding a point). The exported clamp01 SHALL map +Infinity to 1 and -Infinity to 0; NaN stays 0.
 7. THE system SHALL provide undo and redo operations that cleanly restore or re-apply scene states.
 8. WHEN saving corrections THEN the system SHALL send the scene to the validation endpoint; IF validation fails THEN the system SHALL speak and display the validation errors and remain in Correct mode; IF validation succeeds THEN the system SHALL apply the scene and return to Explore.
 9. THE system SHALL provide accessible controls with minimum 48×48 CSS px touch targets, accessible names, and spoken feedback for all state changes.

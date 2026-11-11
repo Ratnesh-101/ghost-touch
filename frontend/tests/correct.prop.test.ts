@@ -332,6 +332,11 @@ describe('P31 — Edit operations are total, local and bounded (Requirement 9.2)
         const next = movePoint(scene, target.id, x, y);
 
         expect(scene).toEqual(snapshot); // input not mutated
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
+          // Requirement 9.10 (K4 CORE-A5): a non-finite position is not a move.
+          expect(next).toBe(scene);
+          return;
+        }
         const moved = listOf(next.points).find((p) => p.id === target.id)!;
         expect(moved.x).toBeGreaterThanOrEqual(0);
         expect(moved.x).toBeLessThanOrEqual(1);
