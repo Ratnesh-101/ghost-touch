@@ -1,21 +1,57 @@
 # Ghost Touch: Feeling STEM Diagrams You Cannot See
 
-Diagrams lock blind students out of STEM. In geometry, algebra, and physics, the diagram is where the lesson happens: the right-angle triangle, the parabolic trajectory, the comparative bar chart. For a blind student, that diagram is usually a blank spot on the page. Traditional tactile graphics on swell paper take specialist equipment, cost thousands of pounds over a school year, and often arrive weeks after the class has moved on. Modern refreshable tactile tablets exist, but at upwards of £6,500, they remain out of reach for almost every classroom. Meanwhile, standard AI image captioning reduces a geometric diagram to a flat paragraph of descriptive prose. A paragraph cannot tell your fingers where a hypotenuse meets the base.
+Diagrams lock blind students out of STEM education. In geometry, algebra, and physics, the
+diagram is where the lesson happens: the right triangle, the wave curve, the comparative bar chart.
+For a blind student, that diagram is usually a blank spot on the page. Raised-line tactile
+graphics on swell paper require specialist equipment, cost thousands of pounds over a school
+year, and often arrive weeks after the class has moved on. Modern refreshable tactile tablets
+exist, but at upwards of £6,500, they remain out of reach for almost every classroom. Standard
+AI image captioning outputs a paragraph of prose, but a paragraph cannot tell your fingers
+where a hypotenuse meets a base.
 
-Almost every student already has an Android phone in their pocket. That phone contains a vibration motor, a loudspeaker, and a touchscreen.
+Yet nearly every student already carries an ordinary Android phone. That phone contains a
+vibration motor, a loudspeaker, and a touchscreen.
 
-We built Ghost Touch by stitching three disparate parts into a single assistive creature: an inexpensive phone notification buzzer for tactile nerves, a vision-language model for eyes, and a browser Web Audio theremin synthesizer for a voice.
+We built Ghost Touch by stitching these spare parts into a single assistive creature: an
+inexpensive phone notification buzzer for tactile nerves, vision AI for eyes, and a browser
+Web Audio synthesizer for voice.
 
-When a teacher snaps a photo of a textbook page, uploads an image, or drops in a PDF worksheet, our vision pipeline extracts a clean mathematical scene: vertices, segments, curves, and bars, with all coordinates normalized. If the cloud AI model times out or stumbles on a poorly lit photograph, Ghost Touch never leaves the student with nothing. Our classical computer vision fallback—Raw Mode, powered by OpenCV Canny edge detection—immediately extracts the physical outlines directly on the backend.
+When a teacher snaps a photo of a textbook page, our vision pipeline extracts a clean
+mathematical scene: vertices, segments, curves, and bars, with coordinates normalized to the
+screen. If the cloud AI model times out or encounters a poorly lit photograph, Ghost Touch never
+leaves the student with nothing: our classical computer vision fallback—Raw Mode, powered by
+OpenCV edge detection—extracts physical outlines directly on the backend.
 
-On the phone screen, the diagram becomes a tactile terrain. Dragging a finger along a line produces a crisp, continuous vibration. At a corner the phone gives a double pulse and speaks the corner's label, for example "C". Tracing a mathematical function curve plays a continuous theremin tone whose pitch rises and falls with graph height (from 200 Hz to 1000 Hz). On bar charts, tapping a bar sounds a value-proportional tone and announces its quantity. Sighted teachers can use Teacher Correct mode to tweak detected points or edit labels on the fly, or use Ghostwriter at `#/teach` to add new points and join edges with spoken confirmation and undo. Students can ask spoken questions ("How long is AC?") and receive concise answers drawn strictly from extracted diagram facts and deterministic geometry.
+On the phone screen, the diagram becomes a tactile terrain. Dragging a finger along a line
+produces continuous vibration. At a corner, the phone gives a distinct double pulse and speaks
+the corner's label, for example "C". Tracing a mathematical curve plays a continuous tone
+whose pitch rises and falls with graph height (from 200 Hz to 1000 Hz). On bar charts, touching
+a bar plays a height tone and announces its value. Students can ask questions aloud ("How long
+is AC?") and receive concise answers drawn strictly from diagram facts. On a laptop or iPhone
+without a vibration motor, the app plays an audible buzz and displays a pulse ring instead:
+*"No vibration on this device. You will hear a buzz instead. Use Chrome on Android to feel it."*
 
-Crucially, Ghost Touch is designed for Android's TalkBack screen reader. The TalkBack double-tap-and-hold gesture worked on our prototype on a OnePlus Nord CE6 (docs/research/talkback-spike.md). It has not yet been tested in the full app.
+Building assistive software demands rigorous engineering. We paired three tools: Kiro for
+formal EARS requirements, steering guardrails, agent hooks, and foundational pure core modules
+(properties P1–P13); Antigravity for the Frankenstein Lab interface, screens, drivers, and
+hardening; and Claude Code for supervision and review.
 
-To build this reliably, we relied on spec-driven development and disciplined multi-agent pairing across three tools: Kiro, Antigravity, and Claude Code. Kiro authored our formal EARS requirements, system architecture, steering guardrails, 9 hooks (5 run checks on save, 4 ask the agent to review or regenerate; the hooks are defined and their patterns checked; a recorded run is not yet captured), foundational pure core modules (P1–P13), and the Round 2 specification (Requirements 16–17, tasks 23–28, properties P40–P46) along with Task 24, T25/T26 code, and frontend properties P43/P44. In Round 3 and follow-ups, Kiro reviewed Spec Ghost (moving to core/verify.ts with aspect/unit fixes), resolved CORE-09 and NEEDS-KIRO-02 (P51), optimized hit-testing (P52, P53), authored Ghostwriter core addPoint/addSegment (Req 19, P54–P57), localized angle naming (Task 35), authored deletePolyline/deleteBar (Req 21, P62–P65), and authored test-first property oracles P66–P78 for Round 5 audit invariants. Physical haptic timings—tuned to prevent motor overheating or sensory blur—were locked in steering files. When Kiro reached credit limits, Antigravity built the Frankenstein Laboratory redesign across screens and tokens, Teacher Correct mode (P16/P17), Saved Diagrams storage (P14/P15), drivers, the Spec Ghost fact-checking module (P47–P50) with k1 Explore/Ask wiring, Ghostwriter UI in Teach mode (lane g1, Task 36, P58–P61) with v1 audit fixes, Round-5 audit hardening (p1 backend MIME/permits, p2 saved diagram atomic eviction/in-place save, p3 share honesty copy/ShareError/a11y, p5 ask point IDs, q1 share prefix loop sanitization), and post-round hardening lanes (m1–m3, n1–n2). Claude Code supervised architecture, gated and committed Round 2 tasks, authored backend properties P40–P46, and documented evidence.
+The power of spec-driven engineering showed up clearly during hardware testing. When the
+repository owner tested the installed app on a Samsung Galaxy S24+, they found a critical layout
+bug: after the first touch hold, the Explore canvas kept expanding in height for several
+seconds, pushing navigation buttons off the screen. Rather than applying a quick hack, Kiro
+resolved it spec-first under Requirement 25 (Task 42): defining formal invariants first,
+adding an automated Playwright regression suite (`frontend/e2e`), and fixing the underlying CSS
+layout feedback loop. The owner confirmed on the Samsung Galaxy S24+ that the fix worked.
 
-Kiro's property-based testing strategy proved invaluable. Using fast-check and Hypothesis, we tested invariants across thousands of randomized inputs. Property tests found real faults, for example a failed save that could lose an older diagram (P83). In property P1 ("every point is reachable"), fast-check exposed a 20% flake where two points differing by 1e-45 collapsed onto the same screen pixel under letterboxed projection. Kiro diagnosed the issue as an over-claiming generator assumption and fixed it by requiring a 22-pixel screen separation and adding a deterministic tie-rule regression test.
+We believe in radical honesty about what is proven and what is not. Ghost Touch passes
+[RECOUNT] frontend tests across [RECOUNT] files and [RECOUNT] backend tests, verifying
+[RECOUNT] mathematical properties with fast-check and Hypothesis. The haptic timings were tuned
+on a OnePlus Nord CE6, the TalkBack double-tap-and-hold gesture worked on our prototype there,
+and the canvas growth bug fix was confirmed on the Galaxy S24+. Nothing else has been verified
+on hardware by the owner. Full-app testing of other phone steps is pending. No blind student
+has tested it yet; accuracy on real textbook photos has not been benchmarked; and Hindi and
+Gujarati text is machine-translated and awaits native-speaker review. Guide and Share ship in
+the app but stay off until enabled in Settings, and neither has been tested on a phone.
 
-We believe in radical honesty about what is real. Ghost Touch passes [RECOUNT] frontend tests across [RECOUNT] files and [RECOUNT] backend tests, verifying [RECOUNT] mathematical properties. Haptic values were tuned by hand on the owner's OnePlus Nord CE6 in the prototype; full-app phone testing is pending. What remains untested on physical hardware includes tactile motor calibration on budget Android phones, Guide-my-finger haptics and Teacher verify QR sharing (Guide and Share ship in the live app but stay off until the user turns them on in Settings; neither has been tested on a phone; shared link content is "Shared by <name>, not checked"), and in-person trials with blind students at the Blind People's Association (BPA) in Ahmedabad. Audits are ongoing (Round 2 items CORE-09 and NEEDS-KIRO-02 were resolved in Round 3; Round-5 audit fixes resolved backend permits and MIME acceptance, IndexedDB atomic eviction, and share sanitization). For Kiro's test-first properties P66–P78, passing in the repository are P71, P72, P73, P75, and P66–P70 (prefix sanitization resolved by agy lane q1), while P74, P76, and P77/P78 remain pending in the repo. Spec Ghost (`frontend/src/core/verify.ts`) is wired into Explore and Ask to caution students when facts and drawings disagree (measured on the sample set at ~35% parse rate, 21 of 60 scenes), with localized angle naming ("angle C", "कोण C", "ખૂણા C"), and our stateless in-memory data architecture is documented in `docs/PRIVACY.md`.
-
-Built for Kiroween 2026. #KiroweenHackathon26
+Ghost Touch is open source, built for Kiroween 2026. #KiroweenHackathon26

@@ -3960,3 +3960,20 @@ Format for each entry:
 - Stated plainly: Kiro did not build the Lab redesign, most screens or the backend pipeline; no MCP server exists; no hook run is recorded; the P1 flake was a test-generator bug.
 - Left for the owner as [OWNER: ...]: non-spec-driven Kiro sessions, per-hook authorship, a hook-run screenshot, the phone confirmation note. Nothing was invented.
 - Files: `docs/KIRO_WRITEUP.md`, `docs/kiro-evidence/KIRO_WRITEUP_LONG.md`, `docs/BUILD_LOG.md`.
+
+## 2026-11-11 — agy, reviewed by Claude — Lane d2-docs-judge-pass (Docs & Judge Honesty Pass)
+- Tool: **agy, reviewed by Claude** (Antigravity).
+- Executed comprehensive documentation honesty and judging pass across `README.md`, `docs/DEMO_SCRIPT.md`, `docs/BLOG.md`, and `docs/SOCIAL.md` grounded in `docs/reports/fable-win-plan.md` (sections 5 and 6) and verified hardware facts as of 2026-11-11:
+  - `README.md`: Added 7-step "Try it in 60 seconds" block to the top of "## Try it" detailing live URLs, sample diagram test, laptop/iPhone buzz + pulse ring fallback, Android vibration expectations, cold-start timing, and typed Ask fallback. Updated hardware testing status with owner's Samsung Galaxy S24+ canvas growth bug discovery and spec-first fix (Requirement 25, properties P86/P87, Task 42) and verified Nord CE6 status. Updated Guide/Share headings to reflect off-by-default in Settings.
+  - `docs/DEMO_SCRIPT.md`: Completely restructured to the 2:55 storyboard from `fable-win-plan.md` section 5. Cut settings and Hindi switch shot, cut "testing protocol is ready" shot, and removed closing list of P-numbers and lane names. Updated opening hook to match actual engine speech ("C"). Retained filming rules and ethics stance. Marked unverified phone steps with `[HW: owner to confirm]`. Ended narration with "Next: first sessions with blind students".
+  - `docs/BLOG.md`: Condensed to under 700 words (~660 words) in a plain, human voice. Removed all lane ids and P-numbers above P13. Highlighted the Samsung Galaxy S24+ canvas layout bug and Kiro's spec-first resolution (Requirement 25, Task 42, Playwright regression suite in `frontend/e2e`). Preserved `[RECOUNT]` tokens without inventing numbers. Maintained radical honesty about unverified phone steps and school trials.
+  - `docs/SOCIAL.md`: Replaced internal feature/lane list drafts with short, clean post skeletons for single posts and threads, providing dedicated `[OWNER: say in your own words ...]` slots for the owner's authentic view of Kiro features. Left `[FILL: video URL]` and `[RECOUNT]` markers intact.
+- What broke / findings:
+  - No code or test breakages. All edits restricted strictly to documentation files. Zero shell commands executed during headless run.
+- Files touched:
+  - `README.md`
+  - `docs/DEMO_SCRIPT.md`
+  - `docs/BLOG.md`
+  - `docs/SOCIAL.md`
+  - `docs/reports/agy-d2-docs-judge-pass-report.md`
+  - `docs/BUILD_LOG.md`

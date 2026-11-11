@@ -1,80 +1,87 @@
-# Demo Script: Ghost Touch (Under 3:00)
+# Demo Script: Ghost Touch (2:55 Storyboard)
 
-> **Target Duration:** 2 minutes 50 seconds – 3 minutes 00 seconds (Hard limit: 3:00)  
+> **Target Duration:** 2 minutes 55 seconds (Hard limit: 3:00)  
 > **Audience:** Kiroween and STEMergent judges.  
-> **Filming Rules:** Show hands, screen, and physical interactions. No faces without explicit written consent. No copyrighted background music. Sound design and physical haptics carry the narrative.  
-> **Ethics & Theme Stance:** Spookiness lives strictly in the stitched creature and the mad-science lab aesthetic, **never** in blindness: eyes-closed trace by a sighted helper, or a real student with consent; no "darkness" jokes, and no eye-gore.
+> **Filming Rules:** Show hands, screen, and physical interactions. No faces without explicit
+> written consent. No copyrighted background music. Sound design, speech, and physical motor
+> vibrations carry the narrative.  
+> **Ethics & Theme Stance:** Spookiness lives strictly in the stitched creature and the mad-science
+> lab aesthetic, **never** in blindness: eyes-closed trace by a sighted helper, or a real student
+> with consent; no "darkness" jokes, and no eye-gore.
 
 ---
 
 ## 1. Pre-Filming Setup Checklist
 
-- **Device:** Android smartphone running Chrome over HTTPS. Touch haptics active at maximum slider intensity in Android Settings > Accessibility. *(Note: The TalkBack double-tap-and-hold gesture worked on our prototype on a OnePlus Nord CE6 (docs/research/talkback-spike.md). It has not yet been tested in the full app).*
-- **Backend Warm-Up (Mandatory):** Render free-tier container sleeps after 15 min idle. Open `https://ghost-touch-api.onrender.com/api/v1/health` 1–2 minutes before filming until `{"ok":true}` returns (takes 30 to 60 seconds, up to 70 seconds under heavy load).
-- **Offline Safety Net:** The three built-in specimen cards (Right triangle, Sine wave, Bar chart) run 100% locally with zero network calls. Use these for rock-solid live filming.
-- **Audio Capture:** Place an external lavalier or directional mic within 10 cm of the phone body to capture physical motor hum, Web Audio theremin pitch, and speech synthesis clearly.
-- **Language Disclosure:** Hindi and Gujarati translations are machine-translated and pending native-speaker review.
+- **Device:** Android smartphone running Chrome over HTTPS. Touch haptics active at maximum
+  intensity in Android Settings > Accessibility. *(Note: The haptic timings were tuned on a
+  OnePlus Nord CE6 and the TalkBack double-tap-and-hold gesture worked on the prototype there.
+  On a Samsung Galaxy S24+, the canvas growth bug was confirmed fixed. Other phone steps are
+  pending verification).*
+- **Backend Warm-Up (Mandatory):** Render free-tier container sleeps after 15 min idle. Open
+  `https://ghost-touch-api.onrender.com/api/v1/health` 1–2 minutes before filming until
+  `{"ok":true}` returns (first call can take 30 to 60 seconds).
+- **Offline Safety Net:** The three built-in specimen cards (Right triangle, Sine wave, Bar
+  chart) run 100% locally with zero network calls. Use these for rock-solid live filming.
+- **Audio Capture:** Place an external lavalier or directional mic within 10 cm of the phone body
+  to capture physical motor hum, Web Audio theremin pitch, and speech synthesis clearly.
+- **Laptop / iPhone Notice (Judge Fallback):** On devices lacking the Vibration API (laptop or
+  iPhone), the app plays an audible buzz, displays a pulse ring at the cursor, and speaks:
+  *"No vibration on this device. You will hear a buzz instead. Use Chrome on Android to feel it."*
 
 ---
 
-## 2. Timed Shot List & Narration (Total Runtime: 3:00)
+## 2. Timed Storyboard & Narration (Total Runtime: 2:55)
 
-| Time | Visual / Action | Screen & Elements | Spoken Narration (Natural Delivery) |
-|---|---|---|---|
-| **0:00–0:15** (15s) | **The Hook:** Extreme close-up of a finger tracing a glowing green line on a jet-black canvas framed by aged copper rivets and stitched seams. Motor hum is audible. At a corner the phone gives a double pulse and speaks the corner's label, for example "C". Fade in Title Card: **Ghost Touch: feel diagrams you cannot see.** | Explore screen (Right triangle on specimen table frame). | *(Silence for 7 seconds. Let the physical vibration motor hum and speech hook the audience.)* <br><br>*"Ghost Touch. Feel diagrams you cannot see."* |
-| **0:15–0:35** (20s) | **The Problem:** Split shot: printed science textbook diagram on the left, an ordinary budget Android phone on the right. | Printed textbook page vs. budget Android smartphone. | *"Diagrams lock blind students out of STEM education. Raised-line tactile graphics take weeks to produce and cost thousands of pounds. Refreshable tactile tablets cost upwards of £6,500. Yet nearly every student already carries a vibration motor, a camera, and a speaker right in their pocket."* |
-| **0:35–0:55** (20s) | **The Creature & The Lab:** Full shot of Start screen: logo mark, creature mascot with optic pupils, and three organ rows: **Nerves** (Buzzer), **Eyes** (Vision AI), **Voice** (Synthesizer). Tap the big "Wake the creature" button (the whole screen is one 48px+ button). Phone buzzes (50 ms), plays ascending start earcon, and announces intro aloud. | Start screen (`#0b0e0c` charcoal background, mascot SVG, organ rows, "Wake the creature" button). | *"We stitched three phone parts into one creature: an ordinary notification buzzer for tactile nerves, vision AI for eyes, and a browser synthesizer for voice. Built with Atkinson Hyperlegible typography for low-vision readers, 48-pixel touch targets, and designed for TalkBack; phone check pending."* |
-| **0:55–1:15** (20s) | **Capture & Lab Settings:** Capture screen appears showing brand header, primary glowing "Take photo" button, secondary "Choose image" and "Saved diagrams", and specimen cards. Tap "Settings" button to open the Lab settings sheet. Switch language to **हिन्दी** (Hindi); immediately hear localized confirmation: *"भाषा हिंदी में सेट की गई।"* Close sheet. | Capture screen & Lab settings sheet modal. | *"The lab puts accessibility first. A single settings button opens the Lab settings sheet, letting students switch between English, Hindi, and Gujarati, or adjust speech speed. Hindi and Gujarati are currently machine-translated and awaiting native-speaker review."* |
-| **1:15–1:40** (25s) | **Live Tactile Exploration:** Tap the **Right triangle** specimen card (zero network needed). A brief spark arc flashes as Explore opens. Finger traces lines (continuous buzz `vibrate(80)` every 70 ms). Hitting vertex A triggers "bzzzz-tap" (`vibrate([50, 90, 50])`), 450 ms quiet period, and speaks *"Point A"*. Tracing along the vertical leg to C: at a corner the phone gives a double pulse and speaks the corner's label, for example "C". <br><br>*[OPTIONAL — TalkBack Pass-Through]: The TalkBack double-tap-and-hold gesture worked on our prototype on a OnePlus Nord CE6 (docs/research/talkback-spike.md). It has not yet been tested in the full app.* | Explore screen (Specimen table, pure black canvas, glowing green strokes). | *"Tracing a line buzzes continuously under your finger. Hitting a corner triggers a distinct double-pulse with a 450-millisecond quiet window so vertices stand out clearly. Students can also explore using TalkBack's double-tap-and-hold pass-through gesture anchored by a centre reference tick."* |
-| **1:40–1:55** (15s) | **Mathematical Curves & Bar Charts:** Tap Back; select **Sine wave** specimen card. As finger traces the curve, a Web Audio synthesizer produces a continuous theremin pitch rising from 200 Hz to 1000 Hz with wave peaks and dipping in troughs. Quick cut to **Bar chart** specimen card: touching bars plays tones matching heights and speaks category values. | Explore screen (Sine wave curve / Bar chart). | *"On mathematical function graphs, height becomes pitch. The Web Audio synthesizer acts like a theremin, rising as curves climb and falling into valleys. On bar charts, tone and speech let students compare quantities immediately."* |
-| **1:55–2:15** (20s) | **Spoken Q&A (Ask) & Teacher Correct:** In Explore, double-tap the "Ask" button (or hold two fingers). Listening chime sounds. Ask aloud: *"How long is AC?"* Synthesizer answers deterministically from diagram facts: *"AC is 4 cm long."* (The question *"Where is the right angle?"* is OPTIONAL and unchecked). Quick cut: tap "Correct" button; sighted teacher fine-tunes vertex placement over photo underlay, checks validation, and saves in seconds. | Ask status card & text fallback; Teacher Correct mode screen. | *"Students can ask questions aloud and receive short, grounded answers drawn strictly from the diagram's facts. If a diagram needs adjustment, a sighted teacher can tap Correct, fine-tune vertices, and validate the scene in seconds."* |
-| **2:15–2:35** (20s) | **Photo Capture & Raw Mode Safety Net:** Snap a photo of a messy or poorly lit textbook sketch. If cloud vision is slow or unconfigured, the app announces: *"The creature's eyes are blurry, you can still feel the outlines."* Explore displays detected Canny edge outlines. Finger traces edges with full haptic vibration. | Capture loading meter ("The lab is powering up") → Explore Raw Mode notice and Canny outlines. | *"When a student snaps a textbook photo, our vision pipeline parses the geometry. If a photo is blurry, a cloud provider times out, or the network drops, our classical computer vision fallback—Raw Mode—extracts the outlines. The app never leaves a blind student with an empty screen."* |
-| **2:35–2:48** (13s) | **Real-World Focus & Testing Protocol:** Cut to phone and hands at student testing desk. Show testing protocol for upcoming classroom sessions at the Blind People's Association (BPA) in Ahmedabad. Disclose that physical device verification on budget Android phones is scheduled next. | User testing protocol / classroom desk with phone. | *"Engineered for budget Android phones and designed for classroom reality. While physical phone tests are pending, our structured protocol for in-person trials at the Blind People's Association in Ahmedabad is ready."* |
-| **2:48–3:00** (12s) | **Engineering Rigor, Tools Disclosure & Close:** Rapid montage: test suite passing in terminal (`tsc`, frontend Vitest, backend pytest with Hypothesis). Closing Title Card with repository link. Honest attribution: Kiro for specs, pure core, haptic engine, hooks, PBT P1–P13, Round 2 spec P40–P46, and Round 3/4 P51–P57, P62–P65, P66–P78; Antigravity built the Lab redesign, Spec Ghost (P47–P50), Teacher Correct, Ghostwriter UI (lane g1, P58–P61), and Round-5 hardening lanes (m1–m3, n1–n2, p1–p3, p5, q1); Claude Code gated Round 2, wrote backend properties P40–P46, and supervised. | Test suite terminal pass → Final Title Card. | *"Built with specs, steering rules, and property-based tests. Spec-driven engineering by Kiro; the Lab redesign built by Antigravity; supervised by Claude Code. Ghost Touch: feel diagrams you cannot see."* |
+> `[HW: owner to confirm]` marks a shot that depends on a step not yet verified on hardware in
+> the full app.
 
----
-
-## 3. Optional Beats (Feature-Flagged & Hardware-Pending)
-
-> [!NOTE]
-> Guide and Share ship in the live app but stay off until the user turns them on in Settings; neither has been tested on a phone. Include them only as **OPTIONAL** preview beats if time permits (or replace shots 7 and 8 per the timing budget below).
-
-### [OPTIONAL] Beat A: Guide My Finger (16s)
-- **Visual:** *(Pre-requisite: ensure `VITE_FEATURE_GUIDE=1` is set in build and enabled in Lab Settings)*. In Explore, tap Ask → ask *"How long is AC?"* (or optional and unchecked: *"Where is the right angle?"*) → tap glowing **"Guide me"** button. Spoken prompt *"Guiding to C"*. Finger moves outward; proximity pulses accelerate from 600 ms down to 120 ms, stereo audio pans across headphones, and voice gives directional prompts (*"Move left"*, *"Move down"*). Arriving at vertex C triggers a confirming arrival buzz (`vibrate([50, 90, 50])`), success chime, and spoken *"Arrived at C"*.
-- **Narration:** *"When a student asks where a feature is, Ghost Touch can guide their finger directly to it. Tap 'Guide me', and audio and haptics turn into a tactile compass. Pulses accelerate as you get closer, stereo tones guide direction, and arriving triggers a confirming arrival buzz."*
-- **Status:** *Guide and Share ship in the live app but stay off until the user turns them on in Settings; neither has been tested on a phone.*
-
-### [OPTIONAL] Beat B: Teacher Verify & Share (19s)
-- **Visual:** *(Pre-requisite: ensure `VITE_FEATURE_SHARE=1` is set in build and enabled in Lab Settings)*. Sighted teacher on laptop at `#/teach` adjusts a vertex, enters name *"Mrs. Sharma"* and note *"Verified for Class 9 Geometry"*, then clicks **"Mark verified"**. App generates a compressed URL fragment hash (`#s=...`) and on-screen QR code (zero server storage). Student phone scans QR code; ShareGate opens cold; student taps "Open the shared diagram" to unlock audio; Explore opens offline with honest banner: *"Shared by Mrs. Sharma, not checked"*.
-- **Narration:** *"Teachers can prepare and distribute diagrams in seconds. In the teacher editor, a teacher adjusts a vertex, enters their name, and generates an offline QR code. The student scans it, taps to open, and explores the diagram directly from the URL hash—completely offline, with an honest attribution banner and zero server storage."*
-- **Status:** *Guide and Share ship in the live app but stay off until the user turns them on in Settings; neither has been tested on a phone.*
-
-### [OPTIONAL] Beat C: Ghostwriter in Teach Mode (15s)
-- **Visual:** Sighted teacher opens `#/teach`. Tap toolbar button **"Add point"**. Voice speaks: *"Tap the drawing where the new point goes, or press Add point again to put it in the centre."* Teacher taps the canvas. Point appears and voice speaks: *"Added Point D."* Teacher taps **Undo** button; point disappears and voice speaks: *"Undone: point D removed."*
-- **Narration:** *"In Teach mode, teachers can easily add missing elements using Ghostwriter. Press 'Add point', tap the screen, hear the spoken confirmation, and tap Undo if you need to roll back. The diagram stays completely accessible and within safe sharing limits."*
-- **Status:** *Code complete in `frontend/src/screens/Teach.tsx` and `flow/ghostwriter.ts` (Requirement 20); browser-tested.*
+| Time | Shot / Visual | Screen & Elements | Spoken Narration | Hardware Status |
+|---|---|---|---|---|
+| **0:00–0:12** (12s) | **The Hook:** Close shot, finger on the sample triangle. Motor hums continuously on line. At corner C, phone gives a double pulse and speaks "C". No voiceover narration for 5 seconds. | Explore screen (Right triangle). Jet-black canvas, green stroke. | *(5s silence while motor hums and corner speaks "C".)*<br><br>*"Ghost Touch. Feel diagrams you cannot see."* | `[HW: owner to confirm]` (Corner double-pulse and spoken corner label "C" on phone). |
+| **0:12–0:30** (18s) | **The Problem:** Split shot: printed science textbook diagram on the left, ordinary phone on the right. | Printed textbook page next to budget Android phone. | *"Tactile graphics take weeks. A tactile tablet costs about £6,500. The phone in the student's pocket already has a motor, a camera and a speaker."* | Verified (hardware costs and production delays). |
+| **0:30–0:45** (15s) | **The Creature & The Lab:** Start screen: mascot and three organ rows: Nerves, Eyes, Voice. Tap "Wake the creature". | Start screen (`#0b0e0c` charcoal background, mascot SVG, "Wake the creature" button). | *"Three spare parts, one creature: buzzer for nerves, vision AI for eyes, synthesizer for voice."* | Verified by code. |
+| **0:45–1:20** (35s) | **Textbook Capture:** Photograph a real textbook triangle. Charging loading meter. Explore opens. Trace the detected triangle. | Camera capture → Loading meter → Explore screen with geometry. | *"A teacher or parent takes one photo."* | `[HW: owner to confirm]` (Real photo processing on phone). |
+| **1:20–1:40** (20s) | **Voice Q&A:** Tap Ask. Ask aloud: *"How long is AC?"* Voice answers from diagram facts: *"AC is 4 cm long."* | Ask HUD dialog and response card. | *"The answer comes from the diagram's facts."* | `[HW: owner to confirm]` (Voice input on phone; keep typed Ask ready as backup). |
+| **1:40–2:00** (20s) | **Mathematical Curves & Bar Charts:** Sine wave sample: continuous tone rises and falls with wave height (200–1000 Hz). Cut to Bar chart: touching bars plays height tone and speaks value. | Explore screen (Sine wave / Bar chart). | *"Height becomes pitch."* | `[HW: owner to confirm]` (Audio volume on phone loudspeaker). |
+| **2:00–2:15** (15s) | **TalkBack Screen Reader:** TalkBack on. Double-tap and hold, then drag across diagram lines. Vibration passes through. | Explore screen with TalkBack accessibility focus. | *"It works with the screen reader blind students already use."* | `[HW: owner to confirm]` (Gesture passed on prototype on Nord CE6; full-app check pending). |
+| **2:15–2:30** (15s) | **Raw Mode Safety Net:** Messy or poorly lit photo. App announces: *"The creature's eyes are blurry, you can still feel the outlines."* Explore opens with Canny edges. | Explore screen with Raw Mode banner and edge outlines. | *"It never leaves the student with nothing."* | `[HW: owner to confirm]` (Raw Mode on cluttered photo on phone). |
+| **2:30–2:45** (15s) | **Spec-Driven Rigor:** Kiro IDE screen capture: formal EARS requirements, agent hook running tests on save, property test failing then passing. | Kiro IDE (spec task list, hooks, property test). | *"Specs, steering, hooks and property tests, built with Kiro."* | Recorded from Kiro IDE (`docs/kiro-evidence/`). |
+| **2:45–2:55** (10s) | **Closing & Next Steps:** Final title card with repository link and live app URL. | Final title card: Ghost Touch, GitHub link, live URL. | *"Next: first sessions with blind students."* | Honest forward-looking close (school sessions pending). |
 
 ---
 
-## 4. What Can Go Wrong and Fallbacks
+## 3. What Can Go Wrong and Live Fallbacks
 
 | Risk / Failure Scenario | Why It Happens | Live Stage Fallback |
 |---|---|---|
-| **Cold Backend Latency** | Render free-tier container sleeps after 15 min idle. The first API call takes 30 to 60s (up to 70s under heavy load) to spin up. | **Prevent:** Visit `https://ghost-touch-api.onrender.com/api/v1/health` 1–2 minutes before filming until `{"ok":true}` returns.<br>**Live Fallback:** Run the live demo directly from the offline **specimen cards** (Right triangle, Sine wave, Bar chart) on the Capture screen. They load in milliseconds with zero network requests. |
-| **AI Provider Failure / Timeout** | Upstream vision LLM providers (Gemini primary in code, OpenAI in production, Nebius fallback) hit rate limits or 503 high-demand errors. | **Feature it deliberately!** The app automatically degrades to **Raw Mode** (`mode: "raw"`), announcing: *"The creature's eyes are blurry, you can still feel the outlines."* Show this as an intentional resilience feature proving the app never leaves a blind student with a blank screen. |
-| **Speech Blocked on Boot** | Mobile browsers block Web Audio and Web Speech until an explicit user gesture. | **Built-in solution:** The entire Start screen is a single button ("Wake the creature"). The first tap to enter Capture satisfies browser user-gesture policy, unlocking Web Audio oscillators and speech synthesis immediately. |
-| **No Vibration on Recording Device** | Device vibration motor is toggled off in Android settings, or recording is done on an unsupported desktop/iOS browser. | **Pre-check:** Check Android Settings > Accessibility > Vibration & haptic strength > Touch feedback is ON.<br>**On-Camera:** Ensure an external microphone is placed close to the phone to record physical motor hum. Remind viewers that tone sonification and spoken earcons always accompany vibrations. *(Note that physical phone motor validation is officially pending).* |
-| **TalkBack Gesture Missed** | User lifts finger too quickly, triggering a standard TalkBack single click instead of pass-through. | **Recovery:** Lift finger completely and repeat: **double-tap, hold down on second tap, then drag**. The engine immediately fires the 25 ms centre reference tick and speaks *"Centre."* to confirm re-anchoring. |
+| **Cold Backend Latency** | Render free-tier container sleeps after 15 min idle. The first API call takes 30 to 60s. | **Prevent:** Ping `https://ghost-touch-api.onrender.com/api/v1/health` 1–2 minutes before filming.<br>**Fallback:** Use the three offline sample cards (Right triangle, Sine wave, Bar chart) on Capture. They run 100% locally with zero network calls. |
+| **Speech Recognition Drop** | Background noise or mobile browser mic permission block. | **Fallback:** Tap "Ask" and type the question into the text input. Typed Ask runs against the identical deterministic backend facts endpoint. |
+| **No Vibration on Filming Device** | Recording on a laptop, iPhone, or phone with vibration disabled. | **Fallback:** Desktop/laptop fallback buzzer and pulse rings fire automatically. Check that Android Settings > Accessibility > Touch feedback is ON for physical filming. |
+| **Canvas Layout Instability** | High-DPR phone canvas expansion on hold. | **Verified Fixed:** The P0 canvas growth bug discovered on Samsung Galaxy S24+ was fixed spec-first (Requirement 25, properties P86/P87, Task 42) and verified on device. |
+| **TalkBack Gesture Missed** | Lifting finger too quickly triggers a standard click. | **Recovery:** Lift finger completely and re-anchor: **double-tap, hold down on second tap, then drag**. The engine fires a 25 ms centre tick and speaks *"Centre."* to confirm re-anchoring. |
 
 ---
 
-## 5. What NOT to Claim on Video
+## 4. What NOT to Claim on Video
 
-1. **Do not claim physical phone validation:** Transparently state that testing has been performed in browser emulation and automated test suites, but physical on-device motor validation is pending.
-2. **Do not claim native-speaker verified translations:** Clearly disclose that Hindi and Gujarati voices and interface strings are machine-translated and pending review by native-speaking educators.
-3. **Do not claim unmeasured accuracy on textbook photos:** Do not state percentage accuracy for camera capture until real-world benchmark data is measured.
-4. **Do not fake blind student footage:** Show only footage and quotes collected with full, informed written consent. If field trials are pending, demonstrate the TalkBack pass-through gesture on camera with TalkBack speech clearly audible.
-5. **Do not misattribute tool roles:** Be scrupulously honest: Kiro authored specs, steering, hooks, foundational core, Round 2 spec (Requirements 16–17, tasks 23–28, properties P40–P46), and Round 3/4 (CORE-09, P51–P57, P62–P65, P66–P78); Antigravity built the Lab redesign, Spec Ghost (P47–P50), Teacher Correct, Ghostwriter UI (lane g1, P58–P61), and Round-5 hardening lanes (m1–m3, n1–n2, p1–p3, p5, q1); Claude Code gated Round 2, wrote backend properties P40–P46, and supervised. Do not claim Kiro built the redesign.
-6. **NO Blindness Tropes:** Never joke about darkness, blindness, or sightlessness; use eyes-closed trace by a sighted helper, or a real student with consent.
-7. **Do not claim Guide or Share are hardware-verified:** Guide and Share ship in the live app but stay off until the user turns them on in Settings; neither has been tested on a phone.
-8. **No claims of bug-free or completely secure code:** Security and bug audits are actively ongoing (Round 2 items CORE-09 and NEEDS-KIRO-02 were resolved in Round 3; Round-5 audit fixes resolved backend permits and MIME, IndexedDB atomic eviction, and share sanitization). Spec Ghost (`frontend/src/core/verify.ts`) is an active consistency check wired into Explore and Ask (measured on the sample set at ~35% parse rate, 21 of 60 scenes) with localized angle naming ("angle C", "कोण C", "ખૂણા C"), and privacy details are documented in `docs/PRIVACY.md`.
+1. **Do not claim physical phone validation beyond what is verified:** State honestly that haptic
+   timings were tuned on a OnePlus Nord CE6, the TalkBack gesture passed on the prototype there,
+   and the canvas growth bug fix was verified on a Samsung Galaxy S24+. All other full-app phone
+   steps are pending.
+2. **Do not claim native-speaker verified translations:** Disclose that Hindi and Gujarati text
+   and voices are machine-translated and pending review by native-speaking educators.
+3. **Do not claim unmeasured accuracy on textbook photos:** Do not state percentage accuracy for
+   camera capture until real-world benchmark data is measured.
+4. **Do not fake blind student footage:** Show only footage and quotes collected with full, informed
+   written consent. If field trials are pending, demonstrate the TalkBack pass-through gesture on
+   camera with TalkBack speech clearly audible.
+5. **Do not misattribute tool roles:** Be scrupulously honest: Kiro authored specs, steering,
+   hooks, pure core, haptic engine, and property tests; Antigravity built the Frankenstein Lab
+   redesign, screens, drivers, and hardening; Claude Code supervised, gated tasks, and reviewed.
+6. **NO Blindness Tropes:** Never joke about darkness, blindness, or sightlessness; use eyes-closed
+   trace by a sighted helper, or a real student with consent.
+7. **Do not claim Guide or Share are hardware-verified:** Guide and Share ship in the live app
+   but stay off until the user turns them on in Settings; neither has been tested on a phone.
+8. **No claims of bug-free or completely secure code:** Security and bug audits are actively
+   ongoing.
