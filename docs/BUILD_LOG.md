@@ -3750,3 +3750,41 @@ Format for each entry:
 - Files touched:
   - `docs/reports/audit-r5-saved-api.md`
   - `docs/BUILD_LOG.md`
+
+### (recovered from lane worktree r5-share-a11y, 2026-11-11)
+
+## 2026-11-09 — Antigravity — Lane r5-share-a11y (Share & Accessibility Audit)
+- Tool: **Antigravity** (agy, reviewed by Claude).
+- What was done:
+  - Performed deep read-only accessibility, honesty, and security audit across 11 scoped files:
+    `frontend/src/components/ShareGate.tsx`, `VerifiedBanner.tsx`, `LanguageSelector.tsx`,
+    `RateSelector.tsx`, `Logo.tsx`, `frontend/src/flow/share.ts`, `frontend/src/share/index.ts`,
+    `frontend/src/screens/Explore.tsx`, `frontend/src/App.tsx`, `frontend/src/i18n/index.ts`,
+    and tests `m3.sharedLinkGate.test.ts` and `m1.a11y.test.tsx`.
+  - Identified 12 confirmed findings (3 HIGH, 4 MED, 5 LOW) and 2 meaningless/dead test cases:
+    - R5-01 (HIGH): Modern checkmark emoji (`✅` U+2705), directional marks (`\u200E`, `\u202E`),
+      zero-width spaces (`\u200B`), and Indic badge words (`सत्यापित`, `પ્રમાણિત`) bypass sanitization
+      in `stripLeadingBadge` (`share.ts`).
+    - R5-02 (HIGH): Contradictory honesty copy claiming "Verified means a person reviewed this diagram"
+      while the announcement simultaneously claims "not checked" (`i18n/index.ts`, `share.ts`).
+    - R5-03 (HIGH): Sham test in `m3.sharedLinkGate.test.ts:288-325` for GT-06 storage failure guard
+      mocks store and asserts speech count without calling `saveDiagram` or `App.tsx`.
+    - R5-04 (MED): Dual-speech collision on `ShareError` screen via simultaneous Web Speech and assertive
+      ARIA `role="alert"` announcement (`App.tsx:339`, `ShareError.tsx:47`).
+    - R5-05 (MED): Dual-speech collision on `VerifiedBanner` note expansion inside `<aside role="status">`
+      live region (`VerifiedBanner.tsx:41,55`).
+    - R5-06 (MED): Template injection corruption via `$` in author names and diagram titles using
+      `string.replace(target, replacement)` without function replacers (`share.ts:75,91`, `navigation.ts:60`).
+    - R5-07 (MED): Untranslated English code identifiers (`geometry`, `function_graph`, `bar_chart`) leaked
+      into visible `<h1>` heading and canvas `aria-label` when diagram title is empty (`navigation.ts:14`).
+    - R5-08 to R5-12 (LOW): Missing `<bdi>` in `ShareGate.tsx`, raw author name without localized "Shared by"
+      prefix, redundant `English (English)` label in `LanguageSelector.tsx`, hardcoded ASCII `'x'` in
+      `RateSelector.tsx`, and `resolveShareRoute` defaulting `useHonest` to `false`.
+  - Verified 7 sound areas including cold shared link gating (GT-05), 48x48 px touch targets, React XSS
+    immunity, offline codec validation, decorative Logo SVGs, focus cleanliness, and root `lang` syncing.
+  - Authored comprehensive audit report in `docs/reports/audit-r5-share-a11y.md` (Status: DONE).
+- What broke / findings:
+  - Zero code files edited (strictly read-only lane).
+- Files touched:
+  - `docs/reports/audit-r5-share-a11y.md`
+  - `docs/BUILD_LOG.md`
