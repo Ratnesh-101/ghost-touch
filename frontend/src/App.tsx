@@ -743,6 +743,7 @@ export function App(): JSX.Element {
           speech={drivers.speech}
           onOpen={handleSavedOpen}
           onBack={handleSavedBack}
+          lang={currentLang}
         />
       );
     case 'teach':

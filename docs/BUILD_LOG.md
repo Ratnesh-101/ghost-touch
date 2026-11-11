@@ -3859,3 +3859,56 @@ Format for each entry:
 - P86 (300 runs) mutation-checked (comparing bitmap width instead of CSS width failed 2 of 5 tests). P87 is example tests over both stylesheets. Amended two older CSS tests that pinned the old rule (`explore.layout`, `explore.lab` BUG-01; its no-clipping intent is kept).
 - Gate: `tsc --noEmit` 0 errors, `vitest run` 162 files / 2120 tests green, `npm run build` ok. Playwright not run. Not verified on the phone: see `docs/kiro-evidence/canvas-resize-bug.md` for the S24+ re-check.
 - Files: `.kiro/specs/ghost-touch/*`, `frontend/src/flow/canvasSize.ts`, `frontend/src/screens/Explore.tsx`, `frontend/src/styles/{global,explore}.css`, `frontend/tests/{canvasSize.prop,explore.layout,explore.lab}.test.*`, `docs/kiro-evidence/canvas-resize-bug.md`.
+## 2026-11-11 — agy, reviewed by Claude — Lane a3-saved-title-lang (Saved screen titles follow the active language)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - In `frontend/src/screens/SavedDiagrams.tsx`, updated every place reading `entry.title` for
+    display, accessible names (aria-label), and spoken announcements (`saved.opened`,
+    `saved.deleteConfirm`, `deletedAnnouncement`, `pin/unpin announced`, initial list load, and
+    the title span) to compute the displayed title at render time via `savedTitle(entry.scene, activeLang)`
+    where `activeLang` is the active language.
+  - Subscribed `SavedDiagrams` to language changes via `useSyncExternalStore(subscribeLang, getLang, getLang)`
+    with optional `lang?: Lang` prop fallback so the list dynamically re-renders when language changes.
+  - Ensured `onOpen(entry.scene, title, entry.id)` passes the computed displayed title so Explore's
+    heading and spoken greeting match what was spoken on the Saved screen.
+  - Kept stored `entry.title` unchanged in storage and state (no storage format change, no migration).
+  - Updated `frontend/src/App.tsx` with minimal edit to pass `lang={currentLang}` to `SavedDiagrams`.
+  - Added new comprehensive test suite in `frontend/tests/a3.savedTitleLang.test.tsx` verifying:
+    - Untitled geometry scene stored in 'en' displays and speaks Hindi kind name ('ज्यामिति') in 'hi'
+      for visible title, open button aria-label, and spoken open announcement.
+    - Shows and speaks 'geometry' in 'en'.
+    - Scenes with real titles preserve their title across all languages.
+    - Stored entry object is never mutated.
+    - Dynamic language switching re-renders titles without unmounting.
+    - Pin, unpin, delete request, and confirm delete announcements and labels use active language title.
+    - Point label synthesis ('ज्यामिति: A, B') follows active language.
+- What broke / surprising findings:
+  - None. Stored diagrams retain their original `entry.title` while the UI renders dynamically
+    localized titles via `savedTitle(entry.scene, activeLang)`.
+- Files touched:
+  - `frontend/src/screens/SavedDiagrams.tsx`
+  - `frontend/src/App.tsx`
+  - `frontend/tests/a3.savedTitleLang.test.tsx`
+  - `docs/reports/agy-a3-saved-title-lang-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-11 — agy, reviewed by Claude — Lane a3-saved-title-lang (Pass 2 test fixes)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - Fixed TypeScript strict indexing errors (TS18048 / TS2769) in
+    `frontend/tests/a3.savedTitleLang.test.tsx` by guarding `KIND_NAMES` index lookups
+    (`KIND_NAMES['hi']?.['...']`) with explicit undefined checks, narrowing them cleanly without
+    non-null assertions, `any`, or casts.
+  - Fixed English open announcement test to dynamically compute and assert against
+    `t('saved.opened').replace('{title}', 'geometry')` ('Opening geometry.') and assert it contains
+    the title, eliminating drift from i18n table.
+  - Zero production changes made.
+- What broke / surprising findings:
+  - Supervisor gate caught 25 tsc errors and 1 vitest failure in
+    `a3.savedTitleLang.test.tsx` due to `KIND_NAMES` index typing and a mismatch
+    between 'Opening' vs 'Opened' in the English test. Both completely resolved.
+- Files touched:
+  - `frontend/tests/a3.savedTitleLang.test.tsx`
+  - `docs/reports/agy-a3-saved-title-lang-report.md`
+  - `docs/BUILD_LOG.md`
+
