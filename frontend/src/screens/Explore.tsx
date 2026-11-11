@@ -27,6 +27,7 @@ import { leaveExploreEntry, onBack as subscribeBack, pushExploreEntry } from '..
 import { askErrorMessage, AskManager, LISTENING_BEEP_HZ, LISTENING_BEEP_MS, type AskOutcome } from '../flow/ask';
 import type { GuideTarget } from '../api/ask';
 import { isGuideActive } from '../config/features';
+import { cappedDpr, reconcileCanvasBox, type CanvasBox } from '../flow/canvasSize';
 import { GuideController } from '../flow/guide';
 import { resolveTarget } from '../guide';
 import { executeExploreCommand, parseExploreCommand } from '../flow/commands';
@@ -138,8 +139,7 @@ export function resolveCanvasAriaLabel(
  * Prevents VRAM exhaustion and LMK tab discards on high-DPI budget phones.
  */
 export function computeCanvasDpr(rawDpr: number, maxDpr = 2): number {
-  if (!Number.isFinite(rawDpr) || rawDpr <= 0) return 1;
-  return Math.min(rawDpr, maxDpr);
+  return cappedDpr(rawDpr, maxDpr);
 }
 
 export interface CanvasRectCache {
@@ -227,6 +227,7 @@ export function Explore({
   const viewportRef = useRef<Viewport>(makeViewport(300, 300));
   const firstTouchOffset = useRef<{ dx: number; dy: number } | null>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasBoxRef = useRef<CanvasBox | null>(null);
   const rafId = useRef<number | null>(null);
   const pendingCursor = useRef<ScreenPoint | null>(null);
   const lastSpokenRef = useRef<string>(announced);
@@ -896,24 +897,34 @@ export function Explore({
   const updateDimensions = (): void => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    // The rect cache is refreshed every time (pointer coordinates need the current origin),
+    // but the bitmap is only touched when the CONTAINER's CSS size changed (Requirement 25.3).
     const rect = updateRect();
     if (!rect) return;
-    const width = Math.max(1, Math.round(rect.width));
-    const height = Math.max(1, Math.round(rect.height));
+    const container = canvas.parentElement;
+    // The CSS size comes from the container, never from the canvas itself (25.2). The canvas
+    // rect is only a fallback for environments that do not lay out (jsdom); the canvas is
+    // absolutely positioned inset 0, so there it equals the container anyway.
+    const measured =
+      container && container.clientWidth > 0 && container.clientHeight > 0
+        ? { width: container.clientWidth, height: container.clientHeight }
+        : { width: rect.width, height: rect.height };
     const rawDpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
-    const dpr = computeCanvasDpr(rawDpr, 2);
+    const { box, changed } = reconcileCanvasBox(canvasBoxRef.current, measured, rawDpr, 2);
+    canvasBoxRef.current = box;
+    if (!changed) return;
 
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
+    canvas.width = box.bitmapWidth;
+    canvas.height = box.bitmapHeight;
 
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.setTransform(box.dpr, 0, 0, box.dpr, 0, 0);
     }
 
-    const view = makeViewport(width, height);
+    const view = makeViewport(box.cssWidth, box.cssHeight);
     viewportRef.current = view;
-    renderStaticScene(view, dpr);
+    renderStaticScene(view, box.dpr);
     draw(view, pendingCursor.current);
   };
 
@@ -1002,11 +1013,14 @@ export function Explore({
 
     const canvas = canvasRef.current;
     let observer: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== 'undefined' && canvas) {
+    // Observe the CONTAINER, not the canvas (Requirement 25.3): the canvas bitmap is resized
+    // by updateDimensions, and observing it would re-trigger itself.
+    const observed = canvas?.parentElement ?? null;
+    if (typeof ResizeObserver !== 'undefined' && observed) {
       observer = new ResizeObserver(() => {
         updateDimensions();
       });
-      observer.observe(canvas);
+      observer.observe(observed);
     }
 
     return () => {

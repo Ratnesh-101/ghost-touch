@@ -507,3 +507,24 @@ All decorative primitives are strictly non-interactive (`pointer-events: none`) 
 ### Specimen Table Frame & Tactile Canvas Purity
 - **Explore Specimen Frame (`styles/explore.css`):** Surrounds the Explore canvas with a copper border, 4 corner rivets, perimeter stitched suture border, and HUD status chip.
 - **Tactile Canvas Purity (Requirement 14.6):** The drawing canvas interior (`.gt-explore__canvas`) is strictly quarantined from decorative overlays. It maintains pure glowing green strokes on pure near-black (`#0b0e0c`) with NO textures, grids, stitches, or rivets inside the interactive touch area, ensuring unambiguous tactile exploration.
+
+## Explore canvas size is stable (Requirement 25, task 42)
+Written by Kiro before the code.
+
+### Sizing rule
+- One pure helper, `frontend/src/flow/canvasSize.ts` (no React, no browser API; not in `core/`, it is layout glue):
+  - `measureBox(container: { width; height }) → CssBox | null` rounds to whole CSS px, floors at 1, and returns `null` for NaN, infinite or non-positive input (a hidden container).
+  - `reconcileCanvasBox(prev: CanvasBox | null, container, rawDpr, maxDpr = 2) → { box: CanvasBox; changed: boolean }`. `CanvasBox = { cssWidth; cssHeight; dpr; bitmapWidth; bitmapHeight }`. It returns `prev` itself with `changed: false` whenever the measured container box equals the previous CSS box (the DPR is not compared: a DPR change alone does not move the CSS box). The CSS size comes from the container only. The bitmap is `round(css × min(dpr, maxDpr))`.
+  - `reservedLines(text, charsPerLine, lines)`: not needed; the status area is fixed in CSS (below), so it has no JS rule.
+- `Explore.tsx` `updateDimensions()` measures `canvas.parentElement` (the specimen container), calls `reconcileCanvasBox`, and touches the canvas bitmap and the offscreen scene only when `changed`. `handlePointerDown` refreshes the rect cache but no longer resizes the bitmap. The `ResizeObserver` observes the container.
+
+### Layout rule (CSS, `global.css` and `explore.css`)
+- `.gt-explore { height: 100vh; height: 100dvh; overflow-y: auto; overscroll-behavior: contain }`: a fixed screen, not `min-height`.
+- `.gt-explore__canvas-container { flex: 1 1 0; min-height: 220px }`. The `clamp(220px, 55dvh, 100%)` is removed because a percentage in `min-height` against an auto-height parent is unresolvable and drops the whole declaration in some engines.
+- `.gt-explore__status-card { height: 5rem; overflow: hidden }`, status text clamped to 3 lines; `.gt-explore__debug { height: 1.25rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis }`.
+- Canvas and container: `touch-action: none`; the canvas stays `position: absolute; inset: 0`.
+
+| # | Property | Validates |
+|---|---|---|
+| P86 | **Canvas box is stable under interaction (Kiro, task 42):** for any container size, any DPR from 1 to 4, and any sequence of events drawn from pointer down, move, up, cancel, status-text change, debug-text change, bitmap resize and re-measure (which models the observer firing after a bitmap resize), `reconcileCanvasBox` leaves the CSS box equal to the first one and reports `changed: false` after the first call. A real viewport change (a different container size) changes the CSS box exactly to that size, once, and `changed` is true once. The CSS size never depends on the DPR. 200+ runs. | 25.1, 25.2, 25.3 |
+| P87 | **Layout rule is declared (Kiro, task 42):** in both stylesheets the Explore screen has a fixed `height` in `dvh`, the canvas container has `flex: 1 1 0` and a pixel `min-height` with no percentage, the status card and debug line have fixed heights with `overflow: hidden`, and the screen, container and canvas carry `touch-action: none` / `overscroll-behavior: contain`. Run over both files with a small CSS parser. 200+ runs over random selector orderings is not meaningful for a static file, so this is an example test, not a fast-check property. | 25.4 to 25.7 |

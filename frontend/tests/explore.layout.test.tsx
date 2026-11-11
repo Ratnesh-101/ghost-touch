@@ -156,16 +156,16 @@ describe('Canvas fill and background matching (Item 3)', () => {
   const correctRules = parseCssRules(correctCss);
   const globalRules = parseCssRules(globalCss);
 
-  it('Explore canvas container is a flex child with sensible clamp min-height', () => {
+  it('Explore canvas container takes the remaining space with a pixel lower bound (Requirement 25.5)', () => {
     const tableRule = findRule(exploreRules, '.gt-lab-specimen-table');
     expect(tableRule).toBeDefined();
-    expect(tableRule?.declarations['flex']).toMatch(/1\s+1\s+auto/);
-    expect(tableRule?.declarations['min-height']).toMatch(/clamp\(220px,\s*55dvh,\s*100%\)/);
+    expect(tableRule?.declarations['flex']).toMatch(/^1\s+1\s+0(px)?$/);
+    expect(tableRule?.declarations['min-height']).toMatch(/^\d+px$/);
 
     const containerRule = findRule(globalRules, '.gt-explore__canvas-container');
     expect(containerRule).toBeDefined();
-    expect(containerRule?.declarations['flex']).toMatch(/1\s+1\s+auto/);
-    expect(containerRule?.declarations['min-height']).toMatch(/clamp\(220px,\s*55dvh,\s*100%\)/);
+    expect(containerRule?.declarations['flex']).toMatch(/^1\s+1\s+0(px)?$/);
+    expect(containerRule?.declarations['min-height']).toMatch(/^\d+px$/);
   });
 
   it('Explore canvas fills 100% of container and has matching background token', () => {
@@ -231,5 +231,73 @@ describe('Correct status area height reservation (Item 4)', () => {
 
     expect(html).toContain('gt-correct__status-card');
     expect(html).toContain('gt-correct__status');
+  });
+});
+
+describe('P87 Explore layout rule is declared (Requirement 25.4 to 25.7)', () => {
+  /** Merge every rule that names the selector; later rules override earlier ones. */
+  function merged(cssText: string, selector: string): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const r of parseCssRules(cssText)) {
+      if (r.selectors.includes(selector)) Object.assign(out, r.declarations);
+    }
+    return out;
+  }
+
+  for (const [name, css] of [
+    ['global.css', globalCss],
+    ['explore.css', exploreCss],
+  ] as const) {
+    it(name + ': the screen is exactly one viewport high and contains overscroll', () => {
+      const d = merged(css, '.gt-explore');
+      expect(d['height']).toBe('100dvh');
+      expect(d['min-height']).toBeUndefined();
+      expect(d['overscroll-behavior']).toBe('contain');
+      expect(d['overflow-y']).toBe('auto');
+    });
+
+    it(name + ': the canvas container has no percentage min-height and blocks touch scrolling', () => {
+      const sel = name === 'global.css' ? '.gt-explore__canvas-container' : '.gt-lab-specimen-table';
+      const d = merged(css, sel);
+      expect(d['flex']).toMatch(/^1\s+1\s+0(px)?$/);
+      expect(d['min-height']).toMatch(/^\d+px$/);
+      expect(d['min-height']).not.toContain('%');
+      expect(d['touch-action']).toBe('none');
+    });
+
+    it(name + ': the status card has a fixed height and clamps its text', () => {
+      const card = merged(css, name === 'global.css' ? '.gt-explore__status-card' : '.gt-lab-status-card');
+      expect(card['height']).toMatch(/^\d+(\.\d+)?rem$/);
+      expect(card['overflow']).toBe('hidden');
+      const text = merged(css, '.gt-explore__status');
+      expect(text['-webkit-line-clamp']).toBe('3');
+      expect(text['overflow']).toBe('hidden');
+    });
+
+    it(name + ': the canvas is out of flow and blocks touch scrolling', () => {
+      const d = merged(css, '.gt-explore__canvas');
+      expect(d['position']).toBe('absolute');
+      expect(d['touch-action']).toBe('none');
+    });
+  }
+
+  it('global.css: the debug line is one fixed line', () => {
+    const d = merged(globalCss, '.gt-explore__debug');
+    expect(d['height']).toMatch(/^\d+(\.\d+)?rem$/);
+    expect(d['overflow']).toBe('hidden');
+    expect(d['white-space']).toBe('nowrap');
+    expect(d['min-height']).toBeUndefined();
+  });
+
+  it('global.css: pulse ring, rings and no-vibration note cannot move the canvas', () => {
+    const ring = merged(globalCss, '.gt-explore__pulse-ring');
+    expect(ring['position']).toBe('absolute');
+    expect(ring['pointer-events']).toBe('none');
+    const frame = merged(exploreCss, '.gt-lab-frame');
+    expect(frame['position']).toBe('absolute');
+    expect(frame['pointer-events']).toBe('none');
+    // The container clips them.
+    expect(merged(globalCss, '.gt-explore__canvas-container')['overflow']).toBe('hidden');
+    expect(merged(exploreCss, '.gt-lab-specimen-table')['overflow']).toBe('hidden');
   });
 });

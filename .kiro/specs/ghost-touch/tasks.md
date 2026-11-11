@@ -349,3 +349,16 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 41.1 Requirement 1.4-1.5 (EARS; the prompt said "Requirement 3.3", but the Vibration API fallback is Requirement 1.3) and P85 in design.md
   - [x] 41.2 P85 in `frontend/tests/haptics.buzz.prop.test.ts` against `patternToBuzzes` (200+ runs), with the corner pattern [50, 90, 50] as an example; a real bug is reported, not fixed (`drivers/haptics.ts` is agy's)
   - _Requirements: 1.3, 1.4, 1.5_
+
+
+## P0: Explore canvas size is stable during interaction (Requirement 25; spec written before the code)
+> Owner's video on a Galaxy S24+: the canvas grows for about 7 s after the first hold. PR #34 (5616cd5) took the canvas out of flow; this task verifies the other suspects and fixes the root cause. Do not touch `hapticEngine.ts`, the tuned haptic values or `core/`. Do not run Playwright (another agent adds the e2e test).
+
+- [x] 42. Explore canvas size is stable during interaction
+  - [x] 42.1 Requirement 25 and design section (P86, P87) before any code
+  - [x] 42.2 Pure helper `flow/canvasSize.ts` (`measureBox`, `reconcileCanvasBox`) and P86 in `tests/canvasSize.prop.test.ts` (200+ runs), mutation-checked
+  - [x] 42.3 `Explore.tsx`: size from the container, resize only when the container changed, observer on the container, no bitmap reset on pointer down
+  - [x] 42.4 CSS in `global.css` and `explore.css`: fixed screen height, flex-basis 0 container, fixed status and debug height, touch-action and overscroll rules; layout test (P87) in `tests/explore.layout.test.tsx`
+  - [x] 42.5 `docs/kiro-evidence/canvas-resize-bug.md`: root cause, changes, what jsdom cannot show, what to re-check on the S24+
+  - [x] 42.6 Gate (`tsc --noEmit`, `vitest run`: 162 files, 2120 tests; `npm run build`); BUILD_LOG entry (tool = Kiro) as the last commit
+  - _Requirements: 25.*_

@@ -354,13 +354,15 @@ describe('Lab Explore: Token Fallbacks and Reduced Motion (Brief Item 3 & 5)', (
 });
 
 describe('Lab Explore: Responsive Layout, Scrolling & Zoom Robustness (Lane lab-explore3)', () => {
-  it('the container has no height: 100dvh together with overflow: hidden (BUG-01)', () => {
+  it('the screen is one viewport high and scrolls inside, never clips (BUG-01, amended by Requirement 25.5)', () => {
     const globalRules = parseCssRules(globalCss);
     const containerDecls = findDeclarations(globalRules, '.gt-explore');
-    expect(containerDecls?.['height']).toBeUndefined();
+    // BUG-01 was content clipped by overflow: hidden. Requirement 25.5 fixes the height to one
+    // dynamic viewport, so overflow must stay auto: whatever does not fit scrolls inside.
+    expect(containerDecls?.['height']).toMatch(/100dvh|100vh/);
     expect(containerDecls?.['overflow']).not.toBe('hidden');
     expect(containerDecls?.['overflow-y']).toBe('auto');
-    expect(containerDecls?.['min-height']).toMatch(/100dvh|100vh/);
+    expect(containerDecls?.['min-height']).toBeUndefined();
   });
 
   it('the actions row wraps so controls never collide at 320px or 200% zoom (BUG-04)', () => {
@@ -394,16 +396,16 @@ describe('Lab Explore: Responsive Layout, Scrolling & Zoom Robustness (Lane lab-
     expect(containerDecls?.['padding-right']).toContain('env(safe-area-inset-right');
   });
 
-  it('canvas container uses flexible sizing with sensible clamp min-height', () => {
+  it('canvas container takes the remaining space with a pixel min-height (Requirement 25.5)', () => {
     const globalRules = parseCssRules(globalCss);
     const containerDecls = findDeclarations(globalRules, '.gt-explore__canvas-container');
-    expect(containerDecls?.['flex']).toMatch(/1\s+1\s+auto/);
-    expect(containerDecls?.['min-height']).toMatch(/clamp\(220px/);
+    expect(containerDecls?.['flex']).toMatch(/^1\s+1\s+0(px)?$/);
+    expect(containerDecls?.['min-height']).toBe('220px');
 
     const exploreRules = parseCssRules(exploreCss);
     const tableDecls = findDeclarations(exploreRules, '.gt-lab-specimen-table');
-    expect(tableDecls?.['flex']).toMatch(/1\s+1\s+auto/);
-    expect(tableDecls?.['min-height']).toMatch(/clamp\(220px/);
+    expect(tableDecls?.['flex']).toMatch(/^1\s+1\s+0(px)?$/);
+    expect(tableDecls?.['min-height']).toBe('220px');
   });
 
   it('every control still has a >= 48px touch target in both global.css and explore.css', () => {

@@ -943,8 +943,10 @@ body {
 .gt-explore {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  min-height: 100dvh;
+  /* Requirement 25.5: a fixed screen (one dynamic viewport high), never min-height, so the
+     canvas container takes the remainder and nothing inside can grow the page. */
+  height: 100vh;
+  height: 100dvh;
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
@@ -954,6 +956,7 @@ body {
   padding-left: max(var(--gt-space-md), env(safe-area-inset-left, 0px));
   box-sizing: border-box;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .gt-explore__header {
@@ -1009,7 +1012,9 @@ body {
   border-radius: var(--gt-radius-md);
   border: 1px solid var(--gt-border-subtle);
   margin-bottom: var(--gt-space-xs);
-  min-height: 2.5rem;
+  /* Requirement 25.4: fixed height whatever the text, so a status change cannot move the canvas. */
+  height: 5rem;
+  overflow: hidden;
   display: flex;
   align-items: center;
 }
@@ -1020,15 +1025,22 @@ body {
   line-height: 1.4;
   color: var(--gt-text);
   font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Responsive Explore Canvas Container */
 .gt-explore__canvas-container {
-  flex: 1 1 auto;
+  /* Requirement 25.5: takes the remaining space; lower bound in px, never a percentage of an
+     auto-height parent (unresolvable there, and some engines drop the whole declaration). */
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
   position: relative;
-  min-height: clamp(220px, 55dvh, 100%);
+  min-height: 220px;
+  touch-action: none;
   border-radius: var(--gt-radius-lg);
   overflow: hidden;
   border: 2px solid var(--gt-border-canvas, #20202e);
@@ -1073,7 +1085,11 @@ body {
   color: var(--gt-text-muted);
   text-align: center;
   margin-top: 4px;
-  min-height: 1.25rem;
+  /* Requirement 25.4: one fixed line; the "First hold: dx=…" text replaces "waiting for touch". */
+  height: 1.25rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   opacity: 0.8;
 }
 
