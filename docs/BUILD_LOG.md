@@ -3807,3 +3807,21 @@ Format for each entry:
 - Files touched:
   - `docs/reports/audit-b1-docs-honesty.md`
   - `docs/BUILD_LOG.md`
+
+### (recovered from lane worktree b5-test-quality, 2026-11-11)
+
+## 2026-11-08 — agy, reviewed by Claude — Lane b5-test-quality (Test Quality and Property Realness Audit)
+- Conducted comprehensive audit of all property-based tests (`frontend/tests/*.prop.test.ts`, `backend/tests/*_props.py`), unit tests, test runners, and requirements coverage per `docs/briefs/agy-b5-test-quality.md` and `docs/briefs/audit-b-common.md`.
+- Evaluated all 46 properties against `design.md`: identified 7 missing properties (P40–P46, Task 27), 1 misclassified integration test (P12), 3 pseudo-property tests wrapping fast-check around static files (P18–P20), and sample size deficits (<200 runs) in P21–P30 and semantic properties.
+- Discovered active test failure on HEAD in `frontend/tests/guide.geometry.prop.test.ts` due to boundary floating-point precision in `directionHint`.
+- Identified sham/tautological test `test_client_disconnect_returns_499` in `backend/tests/test_hardening.py` asserting an `AsyncMock` identity without invoking the application.
+- Described five concrete deliberate bugs across P1, P2, P6, P7/P11, and P13 that existing property tests would completely miss.
+- Compiled top ten untested code paths by risk and verified requirements lacking automated test coverage.
+- Created audit report `docs/reports/audit-b5-test-quality.md`. Zero production or test code modified (AUDIT ONLY).
+- Verification results:
+  - `npm --prefix frontend test`: 1 failed (guide.geometry.prop.test.ts boundary float issue), 112 passed (1555 passed, 1 failed).
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: Clean (0 errors).
+  - `npm --prefix frontend run build`: Clean production build (128 modules transformed).
+- Files touched:
+  - `docs/reports/audit-b5-test-quality.md`
+  - `docs/BUILD_LOG.md`
