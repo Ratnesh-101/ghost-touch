@@ -126,6 +126,8 @@ export type ScreenName = (typeof SCREEN_NAMES)[number];
 export interface BackContext {
   /** The Teacher editor holds changes that were not saved or shared. */
   dirty: boolean;
+  /** The Correct screen holds corrections that were not saved. Default false. */
+  correctDirty?: boolean;
   /** The Explore screen was opened from a shared link. */
   fromShare: boolean;
   /** An Explore scene exists to return to when leaving Teach. */
@@ -150,11 +152,14 @@ export interface BackStep {
  * (Requirement 17.1). Leaving the Teacher editor with unsaved changes needs a confirmation.
  */
 export function leaveByBack(screen: ScreenName, ctx: BackContext): BackStep {
+  const needsConfirm =
+    (screen === 'teach' && ctx.dirty) ||
+    (screen === 'correct' && ctx.correctDirty === true);
   switch (screen) {
     case 'teach':
       return ctx.hasScene
-        ? { next: 'explore', announceKey: 'explore.gestureHint', needsConfirm: ctx.dirty }
-        : { next: 'start', announceKey: 'start.intro', needsConfirm: ctx.dirty };
+        ? { next: 'explore', announceKey: 'explore.gestureHint', needsConfirm }
+        : { next: 'start', announceKey: 'start.intro', needsConfirm };
     case 'shareError':
     case 'shareGate':
     case 'capture':
@@ -167,7 +172,7 @@ export function leaveByBack(screen: ScreenName, ctx: BackContext): BackStep {
     case 'saved':
       return { next: 'capture', announceKey: 'capture.prompt', needsConfirm: false };
     case 'correct':
-      return { next: 'explore', announceKey: 'explore.gestureHint', needsConfirm: false };
+      return { next: 'explore', announceKey: 'explore.gestureHint', needsConfirm };
   }
 }
 
@@ -201,11 +206,13 @@ export function handleAppHashBack(
 
   const step = leaveByBack(leaving, ctx);
   if (step.needsConfirm) {
-    actions.speak(t('teach.confirmLeave'), langBcp47);
-    const confirmed = actions.confirm(t('teach.confirmLeave'));
+    const confirmKey = leaving === 'correct' ? 'correct.confirmLeave' : 'teach.confirmLeave';
+    const stayKey = leaving === 'correct' ? 'correct.stayingInEditor' : 'teach.stayingInEditor';
+    actions.speak(t(confirmKey), langBcp47);
+    const confirmed = actions.confirm(t(confirmKey));
     if (!confirmed) {
       actions.restoreHash();
-      actions.speak(t('teach.stayingInEditor'), langBcp47);
+      actions.speak(t(stayKey), langBcp47);
       actions.focusHeading();
       return { stayed: true };
     }

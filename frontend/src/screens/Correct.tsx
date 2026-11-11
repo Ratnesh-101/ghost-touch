@@ -609,7 +609,10 @@ export function Correct({
           : true,
       sayAndStatus,
       focusHeading: () => headingRef.current?.focus(),
-      onLeave: onCancel,
+      onLeave: () => {
+        onDirtyChange?.(false);
+        onCancel();
+      },
     });
   };
 

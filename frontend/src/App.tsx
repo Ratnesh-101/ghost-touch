@@ -382,7 +382,12 @@ export function App(): JSX.Element {
             : null;
       if (leaving !== null) {
         const hasScene = Boolean(lastExploreScene.current);
-        const step = leaveByBack(leaving, { dirty: teachDirty.current, fromShare, hasScene });
+        const step = leaveByBack(leaving, {
+          dirty: teachDirty.current,
+          correctDirty: correctDirty.current,
+          fromShare,
+          hasScene,
+        });
         if (step.needsConfirm) {
           drivers.speech.speak(t('teach.confirmLeave'), LANG_BCP47[currentLang]);
           const confirmed =
@@ -421,7 +426,12 @@ export function App(): JSX.Element {
     if (view.screen === 'correct') {
       const scene = view.scene;
       return onCorrectBack(() => {
-        if (correctDirty.current) {
+        const step = leaveByBack('correct', {
+          dirty: teachDirty.current,
+          correctDirty: correctDirty.current,
+          fromShare: false,
+        });
+        if (step.needsConfirm) {
           drivers.speech.speak(t('correct.confirmLeave'), LANG_BCP47[currentLang]);
           const confirmed =
             typeof window !== 'undefined' && typeof window.confirm === 'function'
@@ -434,6 +444,7 @@ export function App(): JSX.Element {
             return;
           }
         }
+        correctDirty.current = false;
         leaveCorrectEntry();
         const baseAnnounced = exploreAnnouncement(scene, 'ai');
         drivers.speech.speak(baseAnnounced, LANG_BCP47[currentLang]);
@@ -598,6 +609,7 @@ export function App(): JSX.Element {
   };
 
   const handleSaveCorrect = (scene: DiagramScene, notice?: string): void => {
+    correctDirty.current = false;
     leaveCorrectEntry();
     lastExploreScene.current = scene;
     const exploreMsg = exploreAnnouncement(scene, 'ai');
@@ -614,6 +626,7 @@ export function App(): JSX.Element {
 
   const handleCancelCorrect = (): void => {
     if (view.screen !== 'correct') return;
+    correctDirty.current = false;
     leaveCorrectEntry();
     const baseAnnounced = exploreAnnouncement(view.scene, 'ai');
     drivers.speech.speak(baseAnnounced, LANG_BCP47[currentLang]);
