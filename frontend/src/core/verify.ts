@@ -143,7 +143,7 @@ export function parseFacts(facts: string[] | undefined, scene?: DiagramScene): P
     // Angle facts:
     // "angle X is a right angle" -> 90 degrees
     const rightAngleMatch = trimmed.match(
-      /(?:(?:angle\s+(?:at\s+(?:vertex\s+)?)?|m∠|∠)\s*([A-Za-z0-9]+)|([A-Za-z0-9]+))\s+is\s+a\s+right\s+angle/i,
+      /(?:(?:angle\s+(?:at\s+(?:vertex\s+)?)?|m∠|∠)\s*([A-Za-z0-9]+)|([A-Za-z0-9]+))\s+is\s+a\s+right\s+angle(?![A-Za-z0-9-])(?!\s+triangle)/i,
     );
     if (rightAngleMatch) {
       const vMatch = rightAngleMatch[1] ?? rightAngleMatch[2];
