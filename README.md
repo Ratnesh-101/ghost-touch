@@ -16,7 +16,7 @@ Ghost Touch is a Frankenstein creature stitched from spare phone components: an 
 > 1. Open the live URL and press the start button.
 > 2. Pick the Right triangle sample diagram.
 > 3. Drag a finger or mouse along a side, press Ask and type "How long is AC?".
-> Plainly: on a laptop or iPhone there is no vibration (Chrome on Android is needed to feel it) and the app currently gives no buzz sound there.
+> Plainly: on a laptop or iPhone there is no vibration motor (Chrome on Android is needed to feel it). There the app plays an audible buzz and shows a pulse ring instead, and says so once on entering Explore.
 
 - **Live frontend (PWA):** [https://ghost-touch-iota.vercel.app](https://ghost-touch-iota.vercel.app)
 - **Live backend API:** [https://ghost-touch-api.onrender.com](https://ghost-touch-api.onrender.com)
