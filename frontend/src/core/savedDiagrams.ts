@@ -35,6 +35,33 @@ export interface SavedDiagram {
 /** Maximum number of saved diagrams. Oldest unpinned entry is evicted when exceeded. */
 export const SAVED_DIAGRAMS_CAP = 20;
 
+/**
+ * Spoken diagram kind names for Hindi and Gujarati (Requirement 11.1, task 20.4; strings from
+ * PR #26, awaiting native review in docs/user-test/translation-review.csv). English and any other
+ * language keep the raw `kind` slug.
+ */
+export const KIND_NAMES: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  hi: {
+    geometry: 'ज्यामिति',
+    function_graph: 'फलन ग्राफ़',
+    bar_chart: 'बार चार्ट',
+    unknown: 'आरेख',
+  },
+  gu: {
+    geometry: 'ભૂમિતિ',
+    function_graph: 'વિધેય આલેખ',
+    bar_chart: 'સ્તંભ આલેખ',
+    unknown: 'આકૃતિ',
+  },
+};
+
+/** The kind's spoken name in `lang`, or the slug. Own properties only, so `lang` cannot reach the prototype. */
+function localizedKind(kind: string, lang: string): string {
+  if (!Object.prototype.hasOwnProperty.call(KIND_NAMES, lang)) return kind;
+  const names = KIND_NAMES[lang]!;
+  return Object.prototype.hasOwnProperty.call(names, kind) ? names[kind]! : kind;
+}
+
 // ---------------------------------------------------------------------------
 // Pure helpers
 // ---------------------------------------------------------------------------
@@ -47,17 +74,17 @@ export const SAVED_DIAGRAMS_CAP = 20;
  * 2. The scene's `kind` plus the first labelled point names (up to 3),
  *    joined by commas: "geometry: A, B, C".
  *
- * The `lang` parameter is reserved for Requirement 10 (multilingual); for
- * now it is unused because only English is supported. Including it in the
- * signature keeps the call-sites future-proof.
+ * `lang` picks the spoken kind name for 'hi' and 'gu' (KIND_NAMES); English and
+ * any other language keep the raw `scene.kind` slug (Requirement 11.1).
  *
- * Pure: only reads the scene argument.
+ * Pure: only reads its arguments.
  */
-export function savedTitle(scene: DiagramScene, _lang: string = 'en'): string {
+export function savedTitle(scene: DiagramScene, lang: string = 'en'): string {
   const title = scene.title;
   if (typeof title === 'string' && title.trim() !== '') {
     return title.trim();
   }
+  const kind = localizedKind(scene.kind, lang);
 
   // Synthesise: kind + first labelled point names
   const labelledPoints = (scene.points ?? [])
@@ -66,10 +93,10 @@ export function savedTitle(scene: DiagramScene, _lang: string = 'en'): string {
     .slice(0, 3);
 
   if (labelledPoints.length > 0) {
-    return `${scene.kind}: ${labelledPoints.join(', ')}`;
+    return `${kind}: ${labelledPoints.join(', ')}`;
   }
 
-  return scene.kind;
+  return kind;
 }
 
 /**
