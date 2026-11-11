@@ -140,7 +140,7 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [ ] 20.1 `drivers/diagramStore.ts`: wait for `tx.oncomplete` and handle `tx.onabort` before reporting success, and close the database on error paths (a quota error surfaces at commit, so Req 11.7 can be missed today)
   - [ ] 20.2 `App.tsx` `saveDiagram`: write the new entry first, then delete the evicted one, so a failed save cannot lose an old diagram (Req 11.5, 11.7)
   - [ ] 20.3 Req 11.3: open and delete saved diagrams by voice (not implemented in `SavedDiagrams.tsx` or `flow/commands.ts`)
-  - [ ] 20.4 Req 11.1: `savedTitle` ignores its language argument and speaks the raw `kind` slug (for example "geometry") in Hindi and Gujarati; use i18n kind names
+  - [x] 20.4 Req 11.1: `savedTitle` ignores its language argument and speaks the raw `kind` slug (for example "geometry") in Hindi and Gujarati; use i18n kind names (done 2026-11-10, PR #26: `KIND_NAMES` in core; open: the Saved screen speaks the title stored at save time, so a language switch does not change it)
   - [x] 20.5 Req 9.2: Correct mode cannot delete polylines or bars; add `deletePolyline` and `deleteBar` to `core/correct.ts` and wire the screen (core half done in task 37.1, Requirement 21; the screen wiring is a later agy lane, specified in design.md "Correct mode: delete curves and bars")
   - [ ] 20.6 `tech.md` rule 1: centre-tick, axis-crossing and gesture decision logic lives in `flow/explore.ts` and calls `t()`; move the pure parts to `core/` and pass spoken text in
   - [ ] 20.7 Req 11.1 says "every scene loaded successfully" but samples are not saved (`App.tsx` `source !== 'sample'`); decide and update the requirement or the code
@@ -345,7 +345,7 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 40.4 `docs/KIRO_WRITEUP.md` for tasks 34-40: real bugs caught by P66-P82 with counterexamples, the 19 mutation checks of task 39, honest Kiro/agy split; no test totals, no hardware claims
   - _Requirements: 22.14, 24.*_
 
-- [ ] 41. W3 audible buzz fallback: requirement and property (code merged by Antigravity in `5bf9b1e`)
-  - [ ] 41.1 Requirement 1.4-1.5 (EARS; the prompt said "Requirement 3.3", but the Vibration API fallback is Requirement 1.3) and P85 in design.md
-  - [ ] 41.2 P85 in `frontend/tests/haptics.buzz.prop.test.ts` against `patternToBuzzes` (200+ runs), with the corner pattern [50, 90, 50] as an example; a real bug is reported, not fixed (`drivers/haptics.ts` is agy's)
+- [x] 41. W3 audible buzz fallback: requirement and property (code merged by Antigravity in `5bf9b1e`)
+  - [x] 41.1 Requirement 1.4-1.5 (EARS; the prompt said "Requirement 3.3", but the Vibration API fallback is Requirement 1.3) and P85 in design.md
+  - [x] 41.2 P85 in `frontend/tests/haptics.buzz.prop.test.ts` against `patternToBuzzes` (200+ runs), with the corner pattern [50, 90, 50] as an example; a real bug is reported, not fixed (`drivers/haptics.ts` is agy's)
   - _Requirements: 1.3, 1.4, 1.5_
