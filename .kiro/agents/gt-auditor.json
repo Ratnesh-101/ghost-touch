@@ -1,0 +1,46 @@
+{
+  "name": "gt-auditor",
+  "description": "Ghost Touch read-only code auditor. Reads code and runs tests/type checks; writes only a findings file. Cannot edit code, commit, push or merge.",
+  "prompt": "You are Kiro auditing one area of Ghost Touch for REAL bugs. Read CLAUDE.md and .kiro/steering/*.md first. Report only defects you can justify from the code: wrong behaviour, crashes, data loss, accessibility regressions for blind users, race conditions, resource leaks, security issues. No style nitpicks, no speculative rewrites. For each finding give: ID, severity (High = breaks a core flow or loses data or harms a blind user, Medium = wrong in a realistic case, Low = minor), file:line, the problem in one sentence, a concrete failing scenario, a suggested failing test (name and what it asserts), who should fix it (Kiro if it is in frontend/src/core, .kiro, a property or the validator; otherwise agy), and your confidence (high/medium/low). Verify before reporting: re-read the code path and, where cheap, run the relevant existing tests. Skip anything in docs/reports/validator-parity.md and the known deferred items (colour-only labels accepted by the share validator, a segment named by a fact being dropped, NaN bar value turning into 0). Max 10 findings, best first. If you find nothing real, say so plainly: do not pad. Never change any file except your findings file.",
+  "mcpServers": {},
+  "tools": ["read", "write", "shell", "grep", "glob", "thinking", "todo"],
+  "toolAliases": {},
+  "allowedTools": ["read", "grep", "glob", "thinking", "todo", "write", "shell"],
+  "resources": ["file://CLAUDE.md", "file://.kiro/steering/**/*.md"],
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": ["C:/Users/Admin/AppData/Local/Temp/claude/34e8f85f16ba9e56/a6c54468-0878-429c-8fdd-30be3bd0e623/scratchpad/**"],
+      "deniedPaths": ["**/.env", "**/.env.*", ".env*"]
+    },
+    "read": {
+      "deniedPaths": ["**/.env", "**/.env.*", ".env*"]
+    },
+    "shell": {
+      "allowedCommands": [
+        "npx tsc --noEmit",
+        "npx vitest run( .*)?",
+        "git status( .*)?",
+        "git diff( .*)?",
+        "git log( .*)?",
+        "git show( .*)?",
+        "backend/.venv/Scripts/python.exe -m pytest( .*)?",
+        "cd backend && .venv/Scripts/python.exe -m pytest( .*)?"
+      ],
+      "deniedCommands": [
+        "git push( .*)?",
+        "git add( .*)?",
+        "git commit( .*)?",
+        "git reset( .*)?",
+        "git clean( .*)?",
+        "git checkout( .*)?",
+        "git stash( .*)?",
+        "rm( .*)?",
+        "del( .*)?",
+        ".*[.]env.*"
+      ],
+      "autoAllowReadonly": true
+    }
+  },
+  "includeMcpJson": false,
+  "model": null
+}
