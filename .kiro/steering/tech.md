@@ -1,7 +1,7 @@
 # Tech Stack & Conventions
 
 ## Stack
-- **Frontend:** React 18 + Vite + TypeScript, installable PWA. Chrome on Android is the target runtime.
+- **Frontend:** React 19 + Vite + TypeScript, installable PWA. Chrome on Android is the target runtime.
 - **Browser APIs:** Vibration API (`navigator.vibrate`), Web Audio API (theremin), Web Speech API (`speechSynthesis` for output, `SpeechRecognition` for voice questions), Pointer Events, `<input type="file" capture="environment">` for the camera.
 - **Backend:** Python 3.11 + FastAPI + Pydantic v2.
 - **AI:** one vision-capable LLM behind a provider interface (`VisionProvider`). The model and API key come from environment variables. Never hard-code a provider.
