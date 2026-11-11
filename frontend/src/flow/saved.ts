@@ -131,16 +131,35 @@ export async function saveDiagramWithEviction(
     return { ok: false, error: putResult.error };
   }
 
+  const victimMap = new Map(existing.map((e) => [e.id, e]));
+  const deletedVictims: SavedDiagram[] = [];
+
   for (const victimId of evictedIds) {
     const deleteResult = await store.delete(victimId);
     if (!deleteResult.ok) {
-      // Roll back the put to preserve capacity cap
-      if (isUpdate && prior) {
-        await store.put(prior);
-      } else {
-        await store.delete(entryToSave.id);
+      // When a victim delete fails, first re-put every victim that was already deleted
+      // (restore its full content), then roll back the new entry (Requirement 22.14).
+      for (const victim of deletedVictims) {
+        try {
+          await store.put(victim);
+        } catch {
+          // A failed re-put during restore must still report ok: false and never claim success.
+        }
+      }
+      try {
+        if (isUpdate && prior) {
+          await store.put(prior);
+        } else {
+          await store.delete(entryToSave.id);
+        }
+      } catch {
+        // Rollback failure must also remain ok: false.
       }
       return { ok: false, error: deleteResult.error };
+    }
+    const victim = victimMap.get(victimId);
+    if (victim) {
+      deletedVictims.push(victim);
     }
   }
 
