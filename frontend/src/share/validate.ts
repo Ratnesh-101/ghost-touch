@@ -83,6 +83,31 @@ function sanitizeId(raw: unknown): string {
 }
 
 /**
+ * Rename a reserved ID to el_<cleaned>, made unique against taken IDs.
+ */
+function renameReservedId(
+  rawId: string,
+  cleaned: string,
+  taken: Set<string>,
+): string {
+  if (isReservedId(cleaned)) {
+    taken.delete(rawId);
+    taken.delete(cleaned);
+    const base = `el_${cleaned}`;
+    let newId = base;
+    let counter = 2;
+    while (taken.has(newId)) {
+      newId = `${base}_${counter}`;
+      counter++;
+    }
+    taken.add(newId);
+    return newId;
+  }
+  taken.add(cleaned);
+  return cleaned;
+}
+
+/**
  * Clamp a coordinate to [0, 1] if within +/-0.02 tolerance.
  * Returns ok: false if coordinate is beyond tolerance or not a finite number.
  * Normalizes -0 to 0.
@@ -166,17 +191,87 @@ export function validateShareScene(
     errors.push(`Bars count ${raw.bars.length} exceeds maximum ${LIMITS.maxBars}`);
   }
 
+  // Collect all existing IDs across all element kinds to avoid collision during reserved renames
+  const existingIds = new Set<string>();
+  const collectRawIds = (elements: unknown) => {
+    if (Array.isArray(elements)) {
+      for (const elem of elements) {
+        if (elem && typeof elem === 'object' && !Array.isArray(elem)) {
+          const eid = (elem as Record<string, unknown>).id;
+          if (typeof eid === 'string' && eid) {
+            existingIds.add(eid);
+            const trimmed = eid.trim();
+            if (trimmed) {
+              existingIds.add(trimmed);
+            }
+          }
+        }
+      }
+    }
+  };
+  collectRawIds(raw.points);
+  collectRawIds(raw.segments);
+  collectRawIds(raw.polylines);
+  collectRawIds(raw.bars);
+
+  // Exact point ID map and unambiguous fallbacks for rewriting segment endpoints
+  const pointRenamesExact = new Map<string, string>();
+  const pointRenamesTrimmed = new Map<string, string | null>();
+  const pointRenamesLower = new Map<string, string | null>();
+
+  function recordPointId(rawId: string, assignedId: string): void {
+    if (!pointRenamesExact.has(rawId)) {
+      pointRenamesExact.set(rawId, assignedId);
+    }
+    const trimmed = rawId.trim();
+    if (pointRenamesTrimmed.has(trimmed)) {
+      if (pointRenamesTrimmed.get(trimmed) !== assignedId) {
+        pointRenamesTrimmed.set(trimmed, null);
+      }
+    } else {
+      pointRenamesTrimmed.set(trimmed, assignedId);
+    }
+    const lower = trimmed.toLowerCase();
+    if (pointRenamesLower.has(lower)) {
+      if (pointRenamesLower.get(lower) !== assignedId) {
+        pointRenamesLower.set(lower, null);
+      }
+    } else {
+      pointRenamesLower.set(lower, assignedId);
+    }
+  }
+
+  function resolveEndpoint(rawEndpoint: unknown): string {
+    if (typeof rawEndpoint !== 'string') return '';
+    if (pointRenamesExact.has(rawEndpoint)) {
+      return pointRenamesExact.get(rawEndpoint)!;
+    }
+    const trimmed = rawEndpoint.trim();
+    const trimmedMatch = pointRenamesTrimmed.get(trimmed);
+    if (trimmedMatch) {
+      return trimmedMatch;
+    }
+    const lowerMatch = pointRenamesLower.get(trimmed.toLowerCase());
+    if (lowerMatch) {
+      return lowerMatch;
+    }
+    return sanitizeId(rawEndpoint);
+  }
+
   // Points processing
   const points: Point[] = [];
   if (Array.isArray(raw.points)) {
     for (const p of raw.points) {
       if (!p || typeof p !== 'object' || Array.isArray(p)) continue;
       const pObj = p as Record<string, unknown>;
-      const id = sanitizeId(pObj.id);
-      if (!id) {
+      const rawId = typeof pObj.id === 'string' ? pObj.id : '';
+      const cleaned = sanitizeString(rawId.trim(), 64);
+      if (!cleaned) {
         errors.push('Point missing valid id');
         continue;
       }
+      const id = renameReservedId(rawId, cleaned, existingIds);
+      recordPointId(rawId, id);
       const xClamped = clampCoord(pObj.x);
       const yClamped = clampCoord(pObj.y);
       if (!xClamped.ok) {
@@ -210,9 +305,11 @@ export function validateShareScene(
     for (const s of raw.segments) {
       if (!s || typeof s !== 'object' || Array.isArray(s)) continue;
       const sObj = s as Record<string, unknown>;
-      const id = sanitizeId(sObj.id);
-      const a = sanitizeId(sObj.a);
-      const b = sanitizeId(sObj.b);
+      const rawSegId = typeof sObj.id === 'string' ? sObj.id : '';
+      const segCleaned = sanitizeString(rawSegId.trim(), 64);
+      const id = segCleaned ? renameReservedId(rawSegId, segCleaned, existingIds) : '';
+      const a = resolveEndpoint(sObj.a);
+      const b = resolveEndpoint(sObj.b);
       if (!id || !a || !b) {
         continue;
       }
@@ -238,7 +335,9 @@ export function validateShareScene(
     for (const poly of raw.polylines) {
       if (!poly || typeof poly !== 'object' || Array.isArray(poly)) continue;
       const polyObj = poly as Record<string, unknown>;
-      const id = sanitizeId(polyObj.id);
+      const rawPolyId = typeof polyObj.id === 'string' ? polyObj.id : '';
+      const polyCleaned = sanitizeString(rawPolyId.trim(), 64);
+      const id = polyCleaned ? renameReservedId(rawPolyId, polyCleaned, existingIds) : '';
       if (!id) continue;
       const rawPts = polyObj.points;
       if (!Array.isArray(rawPts) || rawPts.length < 2) {
@@ -298,7 +397,9 @@ export function validateShareScene(
     for (const b of raw.bars) {
       if (!b || typeof b !== 'object' || Array.isArray(b)) continue;
       const bObj = b as Record<string, unknown>;
-      const id = sanitizeId(bObj.id);
+      const rawBarId = typeof bObj.id === 'string' ? bObj.id : '';
+      const barCleaned = sanitizeString(rawBarId.trim(), 64);
+      const id = barCleaned ? renameReservedId(rawBarId, barCleaned, existingIds) : '';
       if (!id) continue;
       const label =
         typeof bObj.label === 'string'
