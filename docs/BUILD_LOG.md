@@ -3724,3 +3724,29 @@ Format for each entry:
 - Files touched:
   - `docs/reports/audit-r5-backend.md`
   - `docs/BUILD_LOG.md`
+
+### (recovered from lane worktree r5-saved-api, 2026-11-11)
+
+## 2026-11-09 — Antigravity — Lane r5-saved-api (READ-ONLY audit)
+- Tool: **Antigravity**
+- What was done:
+  - Conducted deep read-only audit of saved diagrams, eviction atomicity, diagramStore, scene API,
+    teacher-correct persistence (M4-03), and regression tests across the scoped files.
+  - Investigated storage error visibility in status text vs speech per GT-06, race conditions
+    between capture save and teacher-correct save, quota handling in IndexedDB eviction, JSON
+    matching fragility, silent loss of teacher edits on back/cancel navigation, and speech collisions.
+  - Audited test suite `n2.round4.test.ts` and `k6.pwa-offline.test.ts` for tests asserting nothing
+    meaningful or mocking their own inline logic.
+  - Wrote comprehensive audit report to `docs/reports/audit-r5-saved-api.md`.
+- What broke / findings:
+  - 3 HIGH severity findings (status text invisibility on storage errors in Explore, inverted
+    eviction/put order causing quota failures in IDBDiagramStore, uncoordinated saveDiagram race).
+  - 3 MED severity findings (unsaved teacher corrections lost on back/cancel navigation without
+    confirmation, fragile JSON.stringify matching dropping pinned status, capacity violation on
+    fallback delete failure).
+  - 3 LOW severity findings (speech collision canceling "Corrections saved.", un-guarded double-tap
+    on Save, waitTx clobbering IDB event handlers).
+  - 3 tests identified as asserting nothing meaningful or mocking the thing under test.
+- Files touched:
+  - `docs/reports/audit-r5-saved-api.md`
+  - `docs/BUILD_LOG.md`
