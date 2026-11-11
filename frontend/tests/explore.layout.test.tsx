@@ -180,6 +180,14 @@ describe('Canvas fill and background matching (Item 3)', () => {
     expect(tableRule?.declarations['background']).toContain('var(--gt-bg');
   });
 
+  it('Explore canvas is out of flow so its bitmap size cannot resize the page (DPR feedback loop)', () => {
+    const liveCanvasRule = findRule(globalRules, '.gt-explore__canvas');
+    expect(liveCanvasRule?.declarations['position']).toBe('absolute');
+    expect(liveCanvasRule?.declarations['inset']).toBe('0');
+    const specimenCanvasRule = findRule(exploreRules, '.gt-explore__canvas');
+    expect(specimenCanvasRule?.declarations['position']).toBe('absolute');
+  });
+
   it('Correct canvas fills 100% of container and has matching background token', () => {
     const canvasRule = findRule(correctRules, '.gt-correct__canvas');
     expect(canvasRule).toBeDefined();

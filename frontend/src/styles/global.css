@@ -1037,7 +1037,16 @@ body {
   box-shadow: 0 0 0 2px var(--gt-bg), 0 0 0 4px var(--gt-focus);
 }
 
+/*
+ * Absolutely positioned so the canvas bitmap size never feeds back into layout.
+ * In flow, height:100% resolves to auto inside the auto-height flex column, so the
+ * canvas height came from its bitmap attribute (CSS px x DPR). updateDimensions()
+ * then resized the bitmap from that height, which grew the page on every pass on
+ * DPR >= 2 phones.
+ */
 .gt-explore__canvas {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
