@@ -3698,3 +3698,29 @@ Format for each entry:
 - Tool: **Kiro**. `core/savedDiagrams.ts`: `KIND_NAMES` (the hi/gu strings from PR #26) and `savedTitle(scene, lang)` now uses them for 'hi' and 'gu'; English and other languages keep the raw slug. The core stays pure (its only import is `./scene`). One change from the PR: the lookup checks own properties only, so a `lang` such as "constructor" cannot reach `Object.prototype`. Tests in the new `tests/savedDiagrams.test.ts` (the file naming convention for example tests): every kind in hi and gu, with labels, en / unknown / prototype-name languages, a real title winning, and no Latin slug left in a hi/gu name. 4 rows added to `docs/user-test/translation-review.csv` for native review.
 - Call sites: the only two, in `App.tsx` (lines 510 and 517), both pass `currentLang`. `flow/saved.ts` and `screens/SavedDiagrams.tsx` do not call `savedTitle`; they speak the stored `entry.title`, which is computed **once at save time**. So a diagram saved in English keeps its English kind name after switching to Hindi. Fixing that means computing the title at display time for untitled entries (`screens/` and `flow/`, not changed here).
 - Correction (Kiro): commit `8298535` **overwrote** the existing `frontend/tests/savedDiagrams.test.ts` (341 lines from task 13.2) instead of adding to it; I did not check that the file existed. The next commit restores that file from `8298535~1` and appends the five task 20.4 tests, so compared with the original the only change is added lines plus `SceneKind` in one import. 33 tests pass (28 original + 5 new).
+
+### (recovered from lane worktree r5-backend, 2026-11-11)
+
+## 2026-11-09 — Antigravity (agy) — Lane r5-backend (Backend Read-Only Audit)
+- Tool: **Antigravity** (agy).
+- What was built / audited:
+  - Conducted deep read-only audit across 8 backend files: `backend/app/ask.py`,
+    `backend/app/image_utils.py`, `backend/app/limits.py`, `backend/app/main.py`,
+    `backend/app/schema.py`, `backend/app/semantic.py`, `backend/app/validate.py`, and
+    `backend/tests/test_n1_backend.py`.
+  - Investigated permits/semaphore leaks, aspect/NaN/inf paths reaching division,
+    clamp tolerance (verified 0.02 is strictly kept), fall-through error handling,
+    rate-limit bypass, upload size & decompression bombs, and response body exception privacy.
+  - Documented findings in `docs/reports/audit-r5-backend.md`:
+    - MED: Vacuous assertion in `test_n1_backend.py:382`
+      (`assert coords is not None or res is None` is a tautology for all return values).
+    - LOW: Premature rejection of `image/jpg` in `main.py:552` before `image_utils.py`
+      normalization.
+    - LOW: Incomplete permit release assertion in `test_n1_backend.py:488` on disconnect.
+- What broke / surprising findings:
+  - No new code broken (READ-ONLY lane: no source or test files modified).
+  - Tautological test assertion in `test_n1_backend.py:382` could mask regressions in
+    `_find_right_angle` boundary calculations.
+- Files touched:
+  - `docs/reports/audit-r5-backend.md`
+  - `docs/BUILD_LOG.md`
