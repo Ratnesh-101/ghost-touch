@@ -1,0 +1,13 @@
+# Lane r7-explore (fixes for the Nov 12 Kiro audit: Explore screen and the TalkBack overlay)
+Read AGENTS.md first. Never open `.env*`. Do NOT edit `frontend/src/core/`, `.kiro/`, Kiro property tests, the sizing rules in `flow/canvasSize.ts`, or the tuned haptic values. No shell commands. Report first: docs/reports/agy-r7-explore-report.md (Status IN PROGRESS, DONE at the end, DEFERRED list). One BUILD_LOG entry (tool = "agy, reviewed by Claude"). Real tests only (each test must fail on the old code and pass on the new).
+
+Source: docs/reviews/kiro-audit-2026-11-12-explore.md and docs/reviews/kiro-audit-2026-11-12-core.md. Fix exactly these, nothing else:
+
+- EX-01 (High) Explore.tsx handleVoiceAsk: the `!canListen` early return leaves `askActive.current` true forever, which silences the whole Explore screen after one press of Ask on browsers without speech recognition (Firefox, iOS, many WebViews). Reset askActive (and any busy state the early return leaves set) on every exit path, preferably one outer `finally`. Test: with a speech driver whose canListen is false, press Ask, then a pointerdown on a vertex must still vibrate and speak.
+- EX-02 (Medium) the askActive gate covers pointermove only: also gate pointerdown (no tone, vibration or speech while the microphone is open). Do not change what touch does when not listening.
+- EX-03 (Medium) the mount effect speaks `explore.noVibration` with speech.speak, which cancels the scene announcement App just spoke. Make it queue after the current utterance (add an optional queue flag to the speech driver's speak if needed, keeping the default unchanged) or delay it until the first announcement ends. Test that both are spoken, in order.
+- EX-05 (Low but cheap) call `speech.cancelListen()` in the system-Back path and the unmount cleanup, as handleExit already does.
+- CORE-A2 (Medium) flow/a11yFeatures.ts: the 60-feature cap is applied across everything after the points, so a scene with 60 or more points never exposes sides, curves, bars or axes. Reserve a share per kind (for example at most 30 points, then segments, polylines, bars and axes get their share) so every kind present is reachable, and keep the total cap at 60. Test: 80 points plus 1 segment, 1 polyline and 1 axis includes all kinds.
+- CORE-A3 (Medium) a11yFeatures.ts: skip bars with non-finite values (hitTest drops them), and never put "NaN" into a label or target.
+
+Skip EX-04 and EX-06. Constraints: the Requirement 25 layout tests and the Playwright canvas tests must keep passing (the overlay stays absolute, pointer-events none, out of layout). Done when tsc 0 errors, the whole vitest suite is green and the build is ok.
