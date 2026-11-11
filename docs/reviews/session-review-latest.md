@@ -1,30 +1,24 @@
-# Session review (Kiro, T39: round-5 audit items for core and tests): 2026-11-10
+# Session review (Kiro, T40: round-6 decisions, a1 oracles, write-up): 2026-11-10
 
-**Verdict: SHIP** (nothing pushed; nothing tried on a phone)
+**Verdict: SHIP** for Kiro's part (commits `f831650`, `1129f99`, `b8566f9`, `8b6364d`, `acf7234`; nothing pushed). The 9 red tests are deliberate test-first oracles. Each waits on an agy lane and is listed with its counterexample in `docs/reviews/kiro-round6.md`. They are not regressions.
 
-**Test totals at the end of T39:** frontend 149 files, **1989 tests passed, 0 skipped**; `tsc --noEmit` 0 errors; build ok. Backend **783 passed**, 0 skipped; `ruff check` and `ruff format --check` clean (79 files).
+Kiro-owned files changed:
+- `.kiro/specs/ghost-touch/{requirements,design,tasks}.md` (Requirement 24, 22.14, task 40).
+- The new property files P83 (`saved.writeOrder.prop.test.ts`) and P84 (`share.reservedIds.prop.test.ts`).
+- The amended P43 (`round2.navigation.prop.test.ts`).
 
-Commits: `de00897` (pending spec and review notes, tasks 36-38), `a004b04` (39.0), `d520aca` + `a3a1e2d` (spec), `538d8eb` + `1c612b9` (39.1), `8076e86` + `8664992` (39.2 and its tsc fix), `030af85` (39.3), `f257be7` (39.4), and the 39.5 commit.
+Also changed: `drivers/diagramStore.ts` (`MemoryDiagramStore.putWithEviction` order), the parity fixture, and both parity tests. No file in `frontend/src/core`, `backend/app/validate.py` or `schema.py` changed.
 
-## Audit claims, checked against the code
-| Item | Claim | Verdict | Evidence |
-|---|---|---|---|
-| 39.1 | `addPoint` accepts `title`; a rename then changes the scene title | **Right** | A probe gave point `title`, then `renameLabel(…, 'title', 'Top')` set `scene.title` to "Top" and left the point "Apex" |
-| 39.1 | The share export drops the point's segment | **Wrong** | `validateShareScene` renames the point *and* the endpoints: `titleB: el_title-B`. P79 pins it |
-| 39.2 | >500 points can be saved offline through `addPoint` | **Not reachable today** | `addPoint` has one caller, `flow/ghostwriter.ts`, which caps at 300; Correct has no add |
-| 39.3 | `localizedFindingTarget` falls back to English | Right for hand-built findings; `verifyScene` always sets `angleVertex` | Fixed anyway (P80) |
-| 39.3 | Hindi and Gujarati facts are ignored | Right, and now intended | Requirement 18.10: the vision prompt asks for English fact shapes, and no screen lets anyone type a fact (P81) |
-| 39.4 | Three tests can pass vacuously | **Right** | A "never disagree" mutant passes the old 18.2 property (1 passed) and fails the new one |
-| 39.5 | Coincident points make the earlier one unselectable | **Right** | `hitTestPoint` takes the later point on a tie |
-
-## Checks
-1. **Architecture:** pass. Every change to `frontend/src/core` is pure; no browser API or React. No file under `screens/`, `flow/` or `App.tsx` was edited. `share/validate.ts` only swaps its reserved-id set for the identical core one.
-2. **Tuned haptic values and `hitTest`:** unchanged.
-3. **Properties:** P79-P82 added at 250 runs; every new or tightened test is mutation-checked: 5 + 2 + 2 + 5 + 5 mutants, all killed. P66-P78 pass under 9 recorded seeds and 3 fresh ones. No `numRuns` below 200.
+1. **Architecture:** pass. Core untouched and pure (the one grep hit is a comment). No Kiro commit touched `screens/`, `flow/` or `App.tsx`; the `navigation.ts` experiments were temporary and restored with no diff.
+2. **Tuned haptic values / hitTest:** pass, no diff.
+3. **Properties:** pass. P1-P13 present; no `numRuns` below 200; P83 runs 300, P84 250, amended P43 300.
 4. **TEMP stubs:** none.
-5. **tasks.md:** 38, 38.4, 39 and 39.0-39.5 ticked; every one matches a commit.
+5. **tasks.md:** pass. 40 and 40.1-40.4 are ticked for Kiro's deliverables (specs, tests, the driver fix, the write-up). The lane code the red tests need is named in `kiro-round6.md`, not claimed as done.
 
-## Needs someone else (not done here)
-- **UI lane (flow/ and screens/):** `planAddPoint` should report a nudge (`nudgedFrom`), and Teach should speak `teach.pointNudged` in en, hi and gu (design.md, "Round-5 core fixes").
-- **Backend decision:** `validate.py` keeps reserved ids such as `title`. A model scene with such an id passes the backend but now fails `validateSceneInvariants`. Teach and share are unaffected, because the share validator renames first. Renaming in the backend too would align them.
-- **My process slips, fixed:** two parallel commit races, once for the spec files and once for the 39.1 BUILD_LOG line. Each was fixed with an extra commit. 39.2 was first committed without running `tsc` (it used `node:fs`) and fixed in `8664992`.
+Gate: `tsc` 0 errors.
+- **Frontend:** 6 red, exactly the listed ones (P43 ×2, P83 over-cap ×2, P84, parity `reserved_rename_collides`); everything else passes; 0 skipped.
+- **Backend:** 3 red (the `reserved_*` structural cases); everything else passes; ruff clean.
+
+Findings (not blocking Kiro's work):
+- Before SHIP for the app as a whole, the agy lanes must turn the 9 reds green: `flow/saved.ts` multi-victim rollback, `leaveByBack` `correctDirty`, and validator renaming (lane a1).
+- I removed a stale, 0-byte `.git/index.lock` with no git process running.
