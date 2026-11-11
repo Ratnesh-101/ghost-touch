@@ -141,7 +141,8 @@
 
 /* Canvas element: untouched drawing area, maximum contrast, glowing green on near-black */
 .gt-explore__canvas {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 2;
   display: block;
   width: 100%;
