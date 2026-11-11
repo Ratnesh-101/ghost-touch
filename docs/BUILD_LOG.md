@@ -3683,3 +3683,7 @@ Format for each entry:
 
 
 
+
+### 2026-11-11 Claude Code: W7 STEMergent text
+- Tool: Claude Code (docs). Moved the long technical text unchanged to `docs/STEMERGENT_APPENDIX.md` (still holds the `[RECOUNT]` markers). Rewrote `docs/STEMERGENT_SUBMISSION.md` as about 490 words with no lane ids or P-numbers: problem, who, what the student feels, STEM link, proven vs not yet, four-sentence AI disclosure, next. Only owner-only `[FILL]` markers remain (school session line, video URL, screenshots, team).
+- Also today: merged Dependabot #30-33 and #29 (gated), W3 buzz fallback (agy lane, gated 160 files / 2094 tests, merged 5bf9b1e).
