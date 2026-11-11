@@ -17,7 +17,7 @@
 
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DiagramScene } from '../src/core/scene';
 import { executeTeachBack, isTeachDirty } from '../src/screens/Teach';
 import { encodeShare, type SharePayload } from '../src/share';
@@ -45,6 +45,14 @@ vi.mock('pdfjs-dist/build/pdf.worker.min.mjs?url', () => ({
   default: '',
 }));
 
+let appModuleCache: typeof import('../src/App') | null = null;
+async function loadAppModule(): Promise<typeof import('../src/App')> {
+  if (!appModuleCache) {
+    appModuleCache = await import('../src/App');
+  }
+  return appModuleCache;
+}
+
 let App!: typeof import('../src/App').App;
 let resolveShareRoute!: typeof import('../src/App').resolveShareRoute;
 
@@ -70,22 +78,27 @@ describe('Lane z3-app-merged-fixes', () => {
   let container: HTMLDivElement | null = null;
   let root: ReturnType<typeof createRoot> | null = null;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
+    const appModule = await loadAppModule();
+    App = appModule.App;
+    resolveShareRoute = appModule.resolveShareRoute;
+  }, 60_000);
+
+  beforeEach(() => {
     vi.stubEnv('VITE_FEATURE_SHARE', '1');
+    window.location.hash = '';
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
-
-    const appModule = await import('../src/App');
-    App = appModule.App;
-    resolveShareRoute = appModule.resolveShareRoute;
   });
 
   afterEach(async () => {
-    if (root && container) {
+    if (root) {
       await act(async () => {
         root?.unmount();
       });
+    }
+    if (container) {
       container.remove();
     }
     container = null;
