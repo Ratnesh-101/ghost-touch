@@ -41,6 +41,13 @@ describe('WebHapticDriver', () => {
     expect(driver.lastResult).toBe(false);
   });
 
+  it('falls back to a single 100 ms pulse when the array pattern is rejected', () => {
+    const vibrate = vi.fn((p: number | number[]) => !Array.isArray(p));
+    const driver = new WebHapticDriver({ vibrate });
+    expect(driver.vibrate([50, 90, 50])).toBe(true);
+    expect(vibrate).toHaveBeenLastCalledWith(100);
+  });
+
   it('stop() vibrates with 0', () => {
     const vibrate = vi.fn().mockReturnValue(true);
     new WebHapticDriver({ vibrate }).stop();

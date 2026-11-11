@@ -1,5 +1,5 @@
 /**
- * Explore screen — feel STEM diagrams by touch using relative cursor and haptic engine.
+ * Explore screen â€” feel STEM diagrams by touch using relative cursor and haptic engine.
  *
  * Works with TalkBack on (pass-through gesture: double-tap, hold and drag)
  * and TalkBack off (direct touch or same gesture).
@@ -20,6 +20,7 @@ import {
   type ScreenPoint,
   type Viewport,
 } from '../core/geometry';
+import type { Target } from '../core/hitTest';
 import type { DiagramScene } from '../core/scene';
 import { runEffects, type Drivers } from '../drivers';
 import { leaveExploreEntry, onBack as subscribeBack, pushExploreEntry } from '../drivers/navigation';
@@ -50,7 +51,7 @@ import {
   type PointerHistory,
 } from '../flow/explore';
 import { canvasAriaLabel, sceneName } from '../flow/navigation';
-import { getLang, subscribeLang, LANG_BCP47, t } from '../i18n';
+import { getLang, subscribeLang, LANG_BCP47, t, tf } from '../i18n';
 import {
   markAlivePlayed,
   markReturningFromCorrect,
@@ -184,6 +185,129 @@ export function createCanvasRectCache(): CanvasRectCache {
   };
 }
 
+/** One screen-reader-reachable feature of the diagram (TalkBack exploration). */
+export interface A11yFeature {
+  key: string;
+  kind: 'point' | 'segment' | 'bar' | 'polyline' | 'axis';
+  /** Accessible name; also the sentence spoken on activation. */
+  label: string;
+  /** What the haptic engine is told is under the "finger". */
+  target: Target;
+  /** Normalized y used for curve pitch. */
+  yNorm: number;
+  /** Centre and size of the feature's bounding box, normalized to [0, 1]. */
+  cx: number;
+  cy: number;
+  w: number;
+  h: number;
+}
+
+function boxOf(xs: number[], ys: number[]): Pick<A11yFeature, 'cx' | 'cy' | 'w' | 'h'> {
+  const x0 = Math.min(...xs);
+  const x1 = Math.max(...xs);
+  const y0 = Math.min(...ys);
+  const y1 = Math.max(...ys);
+  return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, w: x1 - x0, h: y1 - y0 };
+}
+
+/**
+ * Lists every vertex, side, bar, curve and axis of a scene as an accessible feature.
+ * Pure: the screen renders these as focusable buttons so TalkBack, which swallows
+ * single-finger touch on the canvas, can still reach each part (Issue B).
+ */
+export function buildA11yFeatures(scene: DiagramScene): A11yFeature[] {
+  const out: A11yFeature[] = [];
+  const points = scene.points ?? [];
+  const byId = new Map(points.map((p) => [p.id, p]));
+  const nameOf = (id: string): string => {
+    const p = byId.get(id);
+    return p?.label && p.label.trim() !== '' ? p.label : id;
+  };
+
+  for (const p of points) {
+    const name = nameOf(p.id);
+    out.push({
+      key: `point-${p.id}`,
+      kind: 'point',
+      label: tf('a11y.corner', { name }),
+      target: { kind: 'vertex', id: p.id, label: p.label ?? undefined },
+      yNorm: p.y,
+      ...boxOf([p.x], [p.y]),
+    });
+  }
+
+  for (const s of scene.segments ?? []) {
+    const a = byId.get(s.a);
+    const b = byId.get(s.b);
+    if (!a || !b) continue;
+    const name = s.label && s.label.trim() !== '' ? s.label : `${nameOf(s.a)}${nameOf(s.b)}`;
+    out.push({
+      key: `segment-${s.id}`,
+      kind: 'segment',
+      label: tf('a11y.side', { name }),
+      target: { kind: 'line', id: s.id, elementKind: 'segment' },
+      yNorm: (a.y + b.y) / 2,
+      ...boxOf([a.x, b.x], [a.y, b.y]),
+    });
+  }
+
+  const finiteValues = (scene.bars ?? []).map((b) => b.value).filter((v) => Number.isFinite(v));
+  const maxValue = finiteValues.length > 0 ? Math.max(...finiteValues) : 0;
+  for (const bar of scene.bars ?? []) {
+    out.push({
+      key: `bar-${bar.id}`,
+      kind: 'bar',
+      label: tf('a11y.bar', { label: bar.label, value: String(bar.value) }),
+      target: { kind: 'bar', id: bar.id, label: bar.label, value: bar.value, maxValue },
+      yNorm: bar.y_top,
+      ...boxOf([bar.x0, bar.x1], [bar.y_top, bar.y_base]),
+    });
+  }
+
+  for (const poly of scene.polylines ?? []) {
+    if (poly.points.length === 0) continue;
+    const xs = poly.points.map((pt) => Number(pt[0]));
+    const ys = poly.points.map((pt) => Number(pt[1]));
+    const name = poly.label && poly.label.trim() !== '' ? poly.label : poly.id;
+    out.push({
+      key: `polyline-${poly.id}`,
+      kind: 'polyline',
+      label: tf('a11y.curve', { name }),
+      target: { kind: 'line', id: poly.id, elementKind: 'polyline' },
+      yNorm: ys.reduce((sum, y) => sum + y, 0) / ys.length,
+      ...boxOf(xs, ys),
+    });
+  }
+
+  if (scene.axes?.x_axis_y != null) {
+    out.push({
+      key: 'axis-x',
+      kind: 'axis',
+      label: t('explore.xAxis'),
+      target: { kind: 'line', id: 'x-axis', elementKind: 'axis' },
+      yNorm: scene.axes.x_axis_y,
+      cx: 0.5,
+      cy: scene.axes.x_axis_y,
+      w: 1,
+      h: 0,
+    });
+  }
+  if (scene.axes?.y_axis_x != null) {
+    out.push({
+      key: 'axis-y',
+      kind: 'axis',
+      label: t('explore.yAxis'),
+      target: { kind: 'line', id: 'y-axis', elementKind: 'axis' },
+      yNorm: 0.5,
+      cx: scene.axes.y_axis_x,
+      cy: 0.5,
+      w: 0,
+      h: 1,
+    });
+  }
+  return out;
+}
+
 interface ExploreProps {
   scene: DiagramScene;
   /** The entry announcement spoken aloud and shown in status text. */
@@ -249,6 +373,8 @@ export function Explore({
     setStatusMessage(announced);
   }, [announced]);
   const [isBusy, setIsBusy] = useState(false);
+  const [canvasSize, setCanvasSize] = useState({ w: 300, h: 300 });
+  const a11yEngine = useRef<EngineState>(initialState());
   const [showTextFallback, setShowTextFallback] = useState(!drivers.speech.canListen);
   const [questionText, setQuestionText] = useState('');
   const [debugText, setDebugText] = useState(() => t('explore.debugWaiting'));
@@ -849,6 +975,7 @@ export function Explore({
 
     const view = makeViewport(width, height);
     viewportRef.current = view;
+    setCanvasSize((prev) => (prev.w === width && prev.h === height ? prev : { w: width, h: height }));
     renderStaticScene(view, dpr);
     draw(view, pendingCursor.current);
   };
@@ -1242,6 +1369,76 @@ export function Explore({
     }
   };
 
+  /**
+   * TalkBack / keyboard focus on a feature: run the same engine rules a finger would hit
+   * (corner pulse + label, line buzz, bar label + pitch, curve tone) through the drivers.
+   */
+  const handleFeatureFocus = (feature: A11yFeature): void => {
+    if (leaving.current || askActive.current) return;
+    const lang = LANG_BCP47[getLang()] ?? 'en-IN';
+    try {
+      drivers.audio.unlock();
+    } catch {
+      // best-effort
+    }
+    const { state, effects } = step(initialState(), {
+      kind: 'move',
+      t: performance.now(),
+      target: feature.target,
+      yNorm: feature.yNorm,
+    });
+    a11yEngine.current = state;
+    const speak = effects.find((e) => e.kind === 'speak');
+    if (speak?.kind === 'speak') lastSpokenRef.current = speak.text;
+    runEffects(effects, drivers, lang);
+  };
+
+  const handleFeatureBlur = (): void => {
+    const { state, effects } = step(a11yEngine.current, { kind: 'lift', t: performance.now() });
+    a11yEngine.current = state;
+    runEffects(effects, drivers);
+  };
+
+  const handleFeatureActivate = (feature: A11yFeature): void => {
+    const lang = LANG_BCP47[getLang()] ?? 'en-IN';
+    setStatusMessage(feature.label);
+    lastSpokenRef.current = feature.label;
+    try {
+      drivers.speech.speak(feature.label, lang);
+    } catch {
+      // speech is best-effort
+    }
+  };
+
+  const renderA11yTree = (): JSX.Element => {
+    const view = makeViewport(canvasSize.w, canvasSize.h);
+    return (
+      <div className="gt-explore__a11y-tree" role="group" aria-label={t('a11y.tree')} data-testid="explore-a11y-tree">
+        {buildA11yFeatures(scene).map((f) => {
+          const c = toScreen({ x: f.cx, y: f.cy }, view);
+          return (
+            <button
+              key={f.key}
+              type="button"
+              className={`gt-explore__a11y-item gt-explore__a11y-item--${f.kind}`}
+              data-a11y-kind={f.kind}
+              aria-label={f.label}
+              style={{
+                left: `${(c.x / view.canvasWidth) * 100}%`,
+                top: `${(c.y / view.canvasHeight) * 100}%`,
+                width: `${((f.w * view.scale) / view.canvasWidth) * 100}%`,
+                height: `${((f.h * view.scale) / view.canvasHeight) * 100}%`,
+              }}
+              onFocus={() => handleFeatureFocus(f)}
+              onBlur={handleFeatureBlur}
+              onClick={() => handleFeatureActivate(f)}
+            />
+          );
+        })}
+      </div>
+    );
+  };
+
   const setDebugOffset = (dx: number, dy: number): void => {
     setDebugText(
       t('explore.debugOffset')
@@ -1313,6 +1510,7 @@ export function Explore({
           onPointerCancel={handlePointerLift}
           onLostPointerCapture={handlePointerLift}
         />
+        {renderA11yTree()}
       </div>
 
       <div className="gt-explore__debug" data-testid="explore-debug-offset" aria-hidden="true">

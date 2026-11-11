@@ -145,3 +145,41 @@
     outline: 3px solid Highlight !important;
   }
 }
+
+/* Device vibration help */
+.gt-lab-settings__vibration-help {
+  background: var(--gt-card-bg, var(--gt-surface, #14141e));
+  border: 1px solid var(--gt-copper, #b87333);
+  border-left-width: 4px;
+  border-radius: var(--gt-radius-md, 12px);
+  padding: var(--gt-space-md, 16px);
+}
+
+.gt-lab-settings__vibration-intro {
+  margin: 0 0 var(--gt-space-sm, 8px) 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--gt-green, #39ff88);
+}
+
+.gt-lab-settings__vibration-list {
+  margin: 0;
+  padding-left: var(--gt-space-lg, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-sm, 8px);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--gt-bone, #ded6c4);
+}
+
+.gt-lab-settings__vibration-list li::marker {
+  color: var(--gt-copper, #b87333);
+}
+
+.gt-lab-settings__vibration-note {
+  margin: var(--gt-space-sm, 8px) 0 0 0;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--gt-text-muted, #a9b8ae);
+}
