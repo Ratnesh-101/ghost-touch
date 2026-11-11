@@ -39,3 +39,7 @@ Thumbs.db
 
 # agy run logs (scripts/agy-run.sh)
 logs/
+
+# Playwright output
+frontend/test-results/
+frontend/playwright-report/
