@@ -194,7 +194,7 @@ Replace `<RENDER_URL>` with your backend domain (e.g. `https://ghost-touch-backe
    - Confirm the diagram loads instantly without contacting the backend.
    - Touch and drag a finger across the canvas:
      - **Line Hit**: Device vibrates with short buzzes.
-     - **Corner / Vertex Hit**: Device vibrates with a double-tap pattern and speaks the corner label (e.g. "Corner B").
+     - **Corner / Vertex Hit**: At a corner the phone gives a double pulse and speaks the corner's label, for example "C".
      - **Function Graph Curve**: Audio pitch tone varies smoothly with curve y-position.
 
 2. **Accessibility Mode 1: Testing with TalkBack OFF (Built-in Speech Synthesizer)**:
@@ -205,7 +205,7 @@ Replace `<RENDER_URL>` with your backend domain (e.g. `https://ghost-touch-backe
    - Enable TalkBack under Android **Settings -> Accessibility -> TalkBack**.
    - Navigate buttons using swipe right and double-tap gestures.
    - Verify all controls announce descriptive `aria-label` text and meet the minimum **48×48 CSS px** accessible touch target size.
-   - Enter the **Explore screen**: because TalkBack consumes single-finger touch gestures for screen navigation, explore using TalkBack's **pass-through gesture: double-tap, hold down on the second tap, then drag**. The engine fires a 25 ms centre tick and tracks the cursor relative to hold position, generating continuous vibration and theremin pitch (unverified on physical hardware).
+   - Enter the **Explore screen**: because TalkBack consumes single-finger touch gestures for screen navigation, explore using TalkBack's **pass-through gesture: double-tap, hold down on the second tap, then drag**. The TalkBack double-tap-and-hold gesture worked on our prototype on a OnePlus Nord CE6 (docs/research/talkback-spike.md). It has not yet been tested in the full app. The engine fires a 25 ms centre tick and tracks the cursor relative to hold position, generating continuous vibration and theremin pitch.
 
 4. **Live Diagram Photo Extraction**:
    - On the Capture screen, tap **Take Photo** or upload a photo of a printed textbook diagram (e.g., triangle or function graph).
@@ -214,9 +214,8 @@ Replace `<RENDER_URL>` with your backend domain (e.g. `https://ghost-touch-backe
      - Clear diagrams load in AI Mode (`mode: "ai"`).
      - Heavy clutter or complex handwriting automatically and gracefully falls back to OpenCV Raw Mode (`mode: "raw"`).
 
-5. **Feature Flagged & Optional Features (Unverified on Hardware)**:
-   - **Guide My Finger (`VITE_FEATURE_GUIDE=1`):** Directional haptic pulses and stereo pan (default OFF; unverified on hardware).
-   - **Teacher Verify & Share (`VITE_FEATURE_SHARE=1`):** URL fragment compression (`#s=...`) and QR code sharing at `#/teach` (default OFF; unverified on hardware).
+5. **Feature Flagged & Optional Features**:
+   - **Guide and Share:** Guide and Share ship in the live app but stay off until the user turns them on in Settings; neither has been tested on a phone.
 
 ---
 
@@ -236,8 +235,8 @@ Render free-tier web services automatically spin down into a sleep state after *
 
 #### 7. Known Limits, Privacy & Open Items
 
-- **Hardware Verification Pending:** TalkBack pass-through gesture, tactile motor strength, and stereo panning are unverified on physical hardware (`docs/OWNER_CHECKLIST.md`).
-- **Feature Flags:** "Guide my finger" and "Teacher verify & share" are flagged OFF by default until physical device verification.
+- **Hardware Verification Pending:** The TalkBack double-tap-and-hold gesture worked on our prototype on a OnePlus Nord CE6 (docs/research/talkback-spike.md). It has not yet been tested in the full app. Tactile motor strength and stereo panning are unverified on physical hardware (`docs/OWNER_CHECKLIST.md`).
+- **Feature Flags:** Guide and Share ship in the live app but stay off until the user turns them on in Settings; neither has been tested on a phone.
 - **Security & Bug Audits Ongoing:** No claims of "bug free" or "secure" software. Round 2 items CORE-09 (pointer capture) and NEEDS-KIRO-02 (tone sequencing) were resolved by Kiro in Round 3.
 - **Spec Ghost (`frontend/src/core/verify.ts`):** Client-side geometric consistency check between printed facts and drawing, wired into Explore and Ask announcements by lane k1; parse rate is ~35% on sample and research scenes (21 of 60, measured on the sample set).
 - **Privacy Architecture:** All diagram processing is stateless in RAM; images are never written to server disk. See [docs/PRIVACY.md](docs/PRIVACY.md) for full verified data flow.
