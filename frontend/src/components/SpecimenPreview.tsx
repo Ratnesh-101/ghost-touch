@@ -17,6 +17,7 @@ import { loadSample, type SampleId } from '../api/scene';
 import type { DiagramScene } from '../core/scene';
 import {
   generateSpecimenPaths,
+  getCenteringOffset,
   getPlaceholderJarPath,
   type SpecimenPaths,
 } from './specimenPaths';
@@ -32,6 +33,13 @@ export interface SpecimenPreviewProps {
   /** Optional custom fetch implementation (useful for unit tests) */
   fetchImpl?: typeof fetch;
 }
+
+/**
+ * Intrinsic size (CSS px) of the preview. Without explicit width/height an
+ * inline <svg> falls back to the 300x150 replaced-element default until CSS
+ * loads, which makes the cards jump. CSS (56px on the Capture cards) overrides it.
+ */
+export const SPECIMEN_INTRINSIC_SIZE = 56;
 
 /** Module-level in-memory cache to eliminate duplicate loads across renders */
 const sampleCache = new Map<SampleId, DiagramScene>();
@@ -97,8 +105,9 @@ export function SpecimenPreview({
     };
   }, [id, propScene, fetchImpl]);
 
+  // Centre the artwork so it lands where the placeholder jar glyph already sits.
   const paths: SpecimenPaths | null =
-    scene && !failed ? generateSpecimenPaths(scene) : null;
+    scene && !failed ? generateSpecimenPaths(scene, getCenteringOffset(scene)) : null;
   const isReady = paths !== null && paths.hasContent;
 
   const rootClass = ['gt-specimen', `gt-specimen--${id}`, className]
@@ -108,7 +117,10 @@ export function SpecimenPreview({
   return (
     <svg
       className={rootClass}
+      width={SPECIMEN_INTRINSIC_SIZE}
+      height={SPECIMEN_INTRINSIC_SIZE}
       viewBox="0 0 100 100"
+      preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
       focusable="false"
     >
