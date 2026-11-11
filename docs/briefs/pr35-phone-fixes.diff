@@ -1,0 +1,1081 @@
+diff --git a/docs/reviews/session-review-latest.md b/docs/reviews/session-review-latest.md
+--- a/docs/reviews/session-review-latest.md
++++ b/docs/reviews/session-review-latest.md
+@@ -1,17 +1,19 @@
+-# Session review (Kiro, T34 Ghostwriter core + T35 M4-10): 2026-11-09
++# Session review — Issue B (TalkBack exploration overlay)
+ 
+-**Verdict: SHIP** (uncommitted; nothing pushed; not tried on a phone)
++Verdict: **SHIP**
+ 
+-Kiro-owned files changed: `frontend/src/core/correct.ts` (`addPoint`, `addSegment`), `frontend/src/core/verify.ts` (`angleVertex`, `localizedFindingTarget`), `frontend/tests/correct.ghostwriter.prop.test.ts` (new, P54-P57), `.kiro/specs/ghost-touch/{requirements,design,tasks}.md` (Requirement 19, the 18.2 angle-name sentence, tasks 34-35). Others: `flow/ask.ts`, `flow/navigation.ts`, `i18n/index.ts` (`verify.angleName`), `tests/n2.round4.test.ts` (agy's; M4-10 un-skipped), `tests/verify.angleName.test.ts` (new), the translation sheets and `docs/BUILD_LOG.md`.
++## Scope of this session
++Edited: `frontend/src/screens/Explore.tsx`, `frontend/src/styles/explore.css`, `frontend/src/i18n/index.ts` (5 `a11y.*` keys x en/hi/gu), new `frontend/tests/explore.talkback.test.tsx`.
+ 
+-1. **Architecture:** pass. No React, browser API or i18n import in `frontend/src/core` (the one grep hit is a comment). `verify.ts` stays language-free: callers pass the angle wording. Browser-facing text is resolved in `flow/` through `tf()`.
+-2. **Tuned haptic values:** pass. No diff to `hapticEngine.ts`, `hitTest.ts` or `pitch.ts`.
+-3. **Properties:** pass. P1-P13 present; no `numRuns` below 200 in any `*.prop.test.ts`. P54-P57 run 250 cases each; P47-P50 (200) and the 18.2 property (250) were not touched. Mutants: 12 killed for T34, 3 for T35.
+-4. **TEMP stubs:** pass. None in `frontend/src` or `backend/app`.
+-5. **tasks.md:** pass. Tasks 34 and 35 are fully ticked and match the code; both specs were written before the code.
++No Kiro-owned file was touched (`frontend/src/core/**`, `*.prop.test.ts`, `schema.py`, `validate.py`, `.kiro/**`). `git status` shows other uncommitted changes (`drivers/haptics.ts`, `LabSettings.tsx`, `settings.css`, haptics tests, `.kiro/agents/`). They came from other sessions and were not reviewed here.
+ 
+-Gate: `tsc` 0 errors; `npm test` 134 files, 1845 passed, 0 skipped; build ok. The backend was not touched in T34/T35 and was not re-run.
++## Checks
++1. Architecture: PASS. No browser APIs added to `core/`. The overlay calls the existing `step()` and `runEffects()`, so the browser is only reached through drivers.
++2. Haptic vocabulary: PASS. `hapticEngine.ts` still has lineMs 80, retriggerMs 70, cornerPattern [50,90,50], quietMs 450, vertexRadius 22, lineRadius 14. The overlay reuses `DEFAULT_HAPTICS` and adds no new values.
++3. Property tests P1–P13: NOT RE-RUN. None were edited. The related suites pass (18 files, 302 tests).
++4. TEMP stubs: PASS. No `_temp` imports in `Explore.tsx`, and no `frontend/src/_temp` folder.
++5. `tasks.md`: unchanged, not ticked, per the AGENTS.md rules.
+ 
+-Notes (not blocking):
+-- `verify.angleName` hi "कोण {vertex}" and gu "ખૂણા {vertex}" (the oblique form before પર) need a native speaker's review.
+-- T35 edited `flow/ask.ts` and `flow/navigation.ts`. The T34 "no flow/" rule was for that task only; the agy Ghostwriter UI lane should rebase on these.
++## Findings
++- Not verified on a device. The overlay is `pointer-events: none` so canvas touch is unaffected, but whether TalkBack focuses `pointer-events: none` buttons needs a real Android check. Fallback: make vertex buttons `pointer-events: auto`.
++- TalkBack reading the `aria-label` may overlap with our own speech on focus.
+diff --git a/frontend/src/components/LabSettings.tsx b/frontend/src/components/LabSettings.tsx
+--- a/frontend/src/components/LabSettings.tsx
++++ b/frontend/src/components/LabSettings.tsx
+@@ -241,6 +241,34 @@ export function LabSettings({
+             <RateSelector drivers={drivers} />
+           </section>
+ 
++          <section
++            className="gt-lab-settings__section gt-lab-settings__vibration-help"
++            aria-labelledby="lab-settings-section-vibration"
++          >
++            <h3 id="lab-settings-section-vibration" className="gt-lab-settings__section-title">
++              {t('lab.settings.vibrationHelpTitle')}
++            </h3>
++            <p
++              id="lab-settings-vibration-intro"
++              className="gt-lab-settings__vibration-intro"
++              role="note"
++            >
++              {t('lab.settings.vibrationHelpIntro')}
++            </p>
++            <ul
++              className="gt-lab-settings__vibration-list"
++              aria-describedby="lab-settings-vibration-intro"
++            >
++              <li>{t('lab.settings.vibrationHelpSamsung')}</li>
++              <li>{t('lab.settings.vibrationHelpStock')}</li>
++              <li>{t('lab.settings.vibrationHelpOnePlus')}</li>
++              <li>{t('lab.settings.vibrationHelpXiaomi')}</li>
++            </ul>
++            <p className="gt-lab-settings__vibration-note">
++              {t('lab.settings.vibrationHelpNote')}
++            </p>
++          </section>
++
+           {isGuideEnvOn() && (
+             <section
+               className="gt-lab-settings__section"
+diff --git a/frontend/src/drivers/haptics.ts b/frontend/src/drivers/haptics.ts
+--- a/frontend/src/drivers/haptics.ts
++++ b/frontend/src/drivers/haptics.ts
+@@ -26,6 +26,18 @@ function defaultHost(): VibrateHost | undefined {
+   return typeof navigator === 'undefined' ? undefined : navigator;
+ }
+ 
++/** Minimum single-pulse length that reliably spins up a phone motor. */
++export const MIN_FALLBACK_PULSE_MS = 100;
++
++/**
++ * Single pulse standing in for an array pattern: the sum of the "on" entries
++ * (even indexes), never shorter than MIN_FALLBACK_PULSE_MS.
++ */
++export function fallbackPulse(pattern: readonly number[]): number {
++  const on = pattern.reduce((sum, ms, i) => (i % 2 === 0 ? sum + Math.max(0, ms) : sum), 0);
++  return Math.max(on, MIN_FALLBACK_PULSE_MS);
++}
++
+ export class WebHapticDriver implements HapticDriver {
+   readonly supported: boolean;
+   private last: boolean | null = null;
+@@ -44,14 +56,24 @@ export class WebHapticDriver implements HapticDriver {
+       this.last = false;
+       return false;
+     }
++    let ok = this.tryVibrate(host, pattern);
++    if (!ok && Array.isArray(pattern)) {
++      // Some Android builds (Samsung/OnePlus) reject or silently drop array
++      // patterns. Fall back to one solid pulse so corners are still felt.
++      ok = this.tryVibrate(host, fallbackPulse(pattern));
++    }
++    this.last = ok;
++    return ok;
++  }
++
++  private tryVibrate(host: VibrateHost, pattern: number | number[]): boolean {
+     try {
+-      this.last = host.vibrate(pattern);
++      return host.vibrate?.(pattern) === true;
+     } catch {
+       // Some browsers throw if the page has no user activation yet. A failed
+       // buzz must never break touch handling, so report it as "did not fire".
+-      this.last = false;
++      return false;
+     }
+-    return this.last;
+   }
+ 
+   stop(): void {
+diff --git a/frontend/src/i18n/index.ts b/frontend/src/i18n/index.ts
+--- a/frontend/src/i18n/index.ts
++++ b/frontend/src/i18n/index.ts
+@@ -92,6 +92,11 @@ const en: Record<string, string> = {
+     'Double-tap and hold, then drag to feel the diagram. You start at the centre.',
+   'explore.backHint': 'Press Back to leave.',
+   'explore.centre': 'Centre.',
++  'a11y.tree': 'Diagram features',
++  'a11y.corner': 'Corner {name}',
++  'a11y.side': 'Side {name}',
++  'a11y.bar': '{label}, value {value}',
++  'a11y.curve': 'Curve {name}',
+   // Spoken for a corner that has no label (the engine emits this key, not English text).
+   'vertex.unlabelled': 'Point {id}',
+   'explore.xAxis': 'x-axis',
+@@ -233,6 +238,13 @@ const en: Record<string, string> = {
+   'lab.settings.rate': 'Speech speed',
+   'lab.settings.opened': 'Lab settings opened',
+   'lab.settings.closed': 'Lab settings closed',
++  'lab.settings.vibrationHelpTitle': 'Device Vibration Settings',
++  'lab.settings.vibrationHelpIntro': 'Web apps cannot override your phone\'s system settings. For Ghost Touch to vibrate, sound and vibration must be enabled on your device.',
++  'lab.settings.vibrationHelpSamsung': 'Samsung One UI: open Settings, then Sounds and vibration, then Vibration intensity, and turn on Touch feedback. Also turn off Power Saving Mode.',
++  'lab.settings.vibrationHelpStock': 'Stock Android or Pixel: open Settings, then Sound & vibration, then Vibration & haptics, and turn on Touch feedback.',
++  'lab.settings.vibrationHelpOnePlus': 'OnePlus OxygenOS: open Settings, then Sound & vibration, then Haptics, and turn vibration on.',
++  'lab.settings.vibrationHelpXiaomi': 'Xiaomi HyperOS: open Settings, then Sound & vibration, then turn on Haptic feedback and Vibrate on touch.',
++  'lab.settings.vibrationHelpNote': 'Menu names and paths may vary across Android versions and phone makers.',
+   'lab.loading.title': 'The lab is powering up',
+   'lab.loading.hint': 'Reading your diagram…',
+   'lab.raw.notice': "The creature's eyes are blurry — you can still feel the outlines.",
+@@ -436,6 +448,11 @@ const hi: Record<string, string> = {
+     'डबल-टैप करके दबाए रखें, फिर चित्र महसूस करने के लिए खींचें। आप केंद्र से शुरू करते हैं।',
+   'explore.backHint': 'वापस जाने के लिए बैक दबाएं।',
+   'explore.centre': 'केंद्र।',
++  'a11y.tree': 'आरेख के भाग',
++  'a11y.corner': 'कोना {name}',
++  'a11y.side': 'भुजा {name}',
++  'a11y.bar': '{label}, मान {value}',
++  'a11y.curve': 'वक्र {name}',
+   'vertex.unlabelled': 'बिंदु {id}',
+   'explore.xAxis': 'x-अक्ष',
+   'explore.yAxis': 'y-अक्ष',
+@@ -576,6 +593,13 @@ const hi: Record<string, string> = {
+   'lab.settings.rate': 'बोलने की गति',
+   'lab.settings.opened': 'लैब सेटिंग्स खुली',
+   'lab.settings.closed': 'लैब सेटिंग्स बंद',
++  'lab.settings.vibrationHelpTitle': 'डिवाइस कंपन सेटिंग्स',
++  'lab.settings.vibrationHelpIntro': 'वेब ऐप आपके फ़ोन की सिस्टम सेटिंग्स को बदल नहीं सकते। Ghost Touch के कंपन करने के लिए आपके डिवाइस पर ध्वनि और कंपन चालू होना ज़रूरी है।',
++  'lab.settings.vibrationHelpSamsung': 'Samsung One UI: सेटिंग्स खोलें, फिर ध्वनियाँ और कंपन, फिर कंपन तीव्रता, और स्पर्श फ़ीडबैक चालू करें। पावर सेविंग मोड भी बंद करें।',
++  'lab.settings.vibrationHelpStock': 'स्टॉक Android या Pixel: सेटिंग्स खोलें, फिर ध्वनि और कंपन, फिर कंपन और हैप्टिक्स, और स्पर्श फ़ीडबैक चालू करें।',
++  'lab.settings.vibrationHelpOnePlus': 'OnePlus OxygenOS: सेटिंग्स खोलें, फिर ध्वनि और कंपन, फिर हैप्टिक्स, और कंपन चालू करें।',
++  'lab.settings.vibrationHelpXiaomi': 'Xiaomi HyperOS: सेटिंग्स खोलें, फिर ध्वनि और कंपन, और हैप्टिक फ़ीडबैक तथा स्पर्श पर कंपन चालू करें।',
++  'lab.settings.vibrationHelpNote': 'मेनू के नाम और रास्ते Android संस्करण और फ़ोन निर्माता के अनुसार अलग हो सकते हैं।',
+   'lab.loading.title': 'प्रयोगशाला चालू हो रही है',
+   'lab.loading.hint': 'आपके चित्र को पढ़ा जा रहा है…',
+   'lab.raw.notice': 'जीव की आंखें धुंधली हैं — आप अभी भी रूपरेखा महसूस कर सकते हैं।',
+@@ -781,6 +805,11 @@ const gu: Record<string, string> = {
+     'ડબલ-ટેપ કરીને દબાવી રાખો, પછી આકૃતિ અનુભવવા માટે ખેંચો. તમે કેન્દ્રથી શરૂ કરો છો.',
+   'explore.backHint': 'પાછા જવા માટે બેક દબાવો.',
+   'explore.centre': 'કેન્દ્ર.',
++  'a11y.tree': 'આકૃતિના ભાગો',
++  'a11y.corner': 'ખૂણો {name}',
++  'a11y.side': 'બાજુ {name}',
++  'a11y.bar': '{label}, મૂલ્ય {value}',
++  'a11y.curve': 'વક્ર {name}',
+   'vertex.unlabelled': 'બિંદુ {id}',
+   'explore.xAxis': 'x-અક્ષ',
+   'explore.yAxis': 'y-અક્ષ',
+@@ -921,6 +950,13 @@ const gu: Record<string, string> = {
+   'lab.settings.rate': 'વાણી ગતિ',
+   'lab.settings.opened': 'લેબ સેટિંગ્સ ખુલી',
+   'lab.settings.closed': 'લેબ સેટિંગ્સ બંધ',
++  'lab.settings.vibrationHelpTitle': 'ડિવાઇસ વાઇબ્રેશન સેટિંગ્સ',
++  'lab.settings.vibrationHelpIntro': 'વેબ એપ્સ તમારા ફોનની સિસ્ટમ સેટિંગ્સને બદલી શકતી નથી. Ghost Touch વાઇબ્રેટ કરે તે માટે તમારા ડિવાઇસ પર અવાજ અને વાઇબ્રેશન ચાલુ હોવા જરૂરી છે.',
++  'lab.settings.vibrationHelpSamsung': 'Samsung One UI: સેટિંગ્સ ખોલો, પછી અવાજ અને વાઇબ્રેશન, પછી વાઇબ્રેશન તીવ્રતા, અને ટચ ફીડબેક ચાલુ કરો. પાવર સેવિંગ મોડ પણ બંધ કરો.',
++  'lab.settings.vibrationHelpStock': 'સ્ટોક Android અથવા Pixel: સેટિંગ્સ ખોલો, પછી અવાજ અને વાઇબ્રેશન, પછી વાઇબ્રેશન અને હેપ્ટિક્સ, અને ટચ ફીડબેક ચાલુ કરો.',
++  'lab.settings.vibrationHelpOnePlus': 'OnePlus OxygenOS: સેટિંગ્સ ખોલો, પછી અવાજ અને વાઇબ્રેશન, પછી હેપ્ટિક્સ, અને વાઇબ્રેશન ચાલુ કરો.',
++  'lab.settings.vibrationHelpXiaomi': 'Xiaomi HyperOS: સેટિંગ્સ ખોલો, પછી અવાજ અને વાઇબ્રેશન, અને હેપ્ટિક ફીડબેક તથા ટચ પર વાઇબ્રેશન ચાલુ કરો.',
++  'lab.settings.vibrationHelpNote': 'મેનૂના નામ અને માર્ગ Android આવૃત્તિ અને ફોન ઉત્પાદક પ્રમાણે અલગ હોઈ શકે છે.',
+   'lab.loading.title': 'લેબ ચાલુ થઈ રહી છે',
+   'lab.loading.hint': 'તમારી આકૃતિ વાંચી રહ્યા છીએ…',
+   'lab.raw.notice': 'પ્રાણીની આંખો ઝાંખી છે — તમે હજી પણ રૂપરેખા અનુભવી શકો છો.',
+diff --git a/frontend/src/screens/Explore.tsx b/frontend/src/screens/Explore.tsx
+--- a/frontend/src/screens/Explore.tsx
++++ b/frontend/src/screens/Explore.tsx
+@@ -1,5 +1,5 @@
+ /**
+- * Explore screen — feel STEM diagrams by touch using relative cursor and haptic engine.
++ * Explore screen â€” feel STEM diagrams by touch using relative cursor and haptic engine.
+  *
+  * Works with TalkBack on (pass-through gesture: double-tap, hold and drag)
+  * and TalkBack off (direct touch or same gesture).
+@@ -20,6 +20,7 @@ import {
+   type ScreenPoint,
+   type Viewport,
+ } from '../core/geometry';
++import type { Target } from '../core/hitTest';
+ import type { DiagramScene } from '../core/scene';
+ import { runEffects, type Drivers } from '../drivers';
+ import { leaveExploreEntry, onBack as subscribeBack, pushExploreEntry } from '../drivers/navigation';
+@@ -50,7 +51,7 @@ import {
+   type PointerHistory,
+ } from '../flow/explore';
+ import { canvasAriaLabel, sceneName } from '../flow/navigation';
+-import { getLang, subscribeLang, LANG_BCP47, t } from '../i18n';
++import { getLang, subscribeLang, LANG_BCP47, t, tf } from '../i18n';
+ import {
+   markAlivePlayed,
+   markReturningFromCorrect,
+@@ -184,6 +185,129 @@ export function createCanvasRectCache(): CanvasRectCache {
+   };
+ }
+ 
++/** One screen-reader-reachable feature of the diagram (TalkBack exploration). */
++export interface A11yFeature {
++  key: string;
++  kind: 'point' | 'segment' | 'bar' | 'polyline' | 'axis';
++  /** Accessible name; also the sentence spoken on activation. */
++  label: string;
++  /** What the haptic engine is told is under the "finger". */
++  target: Target;
++  /** Normalized y used for curve pitch. */
++  yNorm: number;
++  /** Centre and size of the feature's bounding box, normalized to [0, 1]. */
++  cx: number;
++  cy: number;
++  w: number;
++  h: number;
++}
++
++function boxOf(xs: number[], ys: number[]): Pick<A11yFeature, 'cx' | 'cy' | 'w' | 'h'> {
++  const x0 = Math.min(...xs);
++  const x1 = Math.max(...xs);
++  const y0 = Math.min(...ys);
++  const y1 = Math.max(...ys);
++  return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, w: x1 - x0, h: y1 - y0 };
++}
++
++/**
++ * Lists every vertex, side, bar, curve and axis of a scene as an accessible feature.
++ * Pure: the screen renders these as focusable buttons so TalkBack, which swallows
++ * single-finger touch on the canvas, can still reach each part (Issue B).
++ */
++export function buildA11yFeatures(scene: DiagramScene): A11yFeature[] {
++  const out: A11yFeature[] = [];
++  const points = scene.points ?? [];
++  const byId = new Map(points.map((p) => [p.id, p]));
++  const nameOf = (id: string): string => {
++    const p = byId.get(id);
++    return p?.label && p.label.trim() !== '' ? p.label : id;
++  };
++
++  for (const p of points) {
++    const name = nameOf(p.id);
++    out.push({
++      key: `point-${p.id}`,
++      kind: 'point',
++      label: tf('a11y.corner', { name }),
++      target: { kind: 'vertex', id: p.id, label: p.label ?? undefined },
++      yNorm: p.y,
++      ...boxOf([p.x], [p.y]),
++    });
++  }
++
++  for (const s of scene.segments ?? []) {
++    const a = byId.get(s.a);
++    const b = byId.get(s.b);
++    if (!a || !b) continue;
++    const name = s.label && s.label.trim() !== '' ? s.label : `${nameOf(s.a)}${nameOf(s.b)}`;
++    out.push({
++      key: `segment-${s.id}`,
++      kind: 'segment',
++      label: tf('a11y.side', { name }),
++      target: { kind: 'line', id: s.id, elementKind: 'segment' },
++      yNorm: (a.y + b.y) / 2,
++      ...boxOf([a.x, b.x], [a.y, b.y]),
++    });
++  }
++
++  const finiteValues = (scene.bars ?? []).map((b) => b.value).filter((v) => Number.isFinite(v));
++  const maxValue = finiteValues.length > 0 ? Math.max(...finiteValues) : 0;
++  for (const bar of scene.bars ?? []) {
++    out.push({
++      key: `bar-${bar.id}`,
++      kind: 'bar',
++      label: tf('a11y.bar', { label: bar.label, value: String(bar.value) }),
++      target: { kind: 'bar', id: bar.id, label: bar.label, value: bar.value, maxValue },
++      yNorm: bar.y_top,
++      ...boxOf([bar.x0, bar.x1], [bar.y_top, bar.y_base]),
++    });
++  }
++
++  for (const poly of scene.polylines ?? []) {
++    if (poly.points.length === 0) continue;
++    const xs = poly.points.map((pt) => Number(pt[0]));
++    const ys = poly.points.map((pt) => Number(pt[1]));
++    const name = poly.label && poly.label.trim() !== '' ? poly.label : poly.id;
++    out.push({
++      key: `polyline-${poly.id}`,
++      kind: 'polyline',
++      label: tf('a11y.curve', { name }),
++      target: { kind: 'line', id: poly.id, elementKind: 'polyline' },
++      yNorm: ys.reduce((sum, y) => sum + y, 0) / ys.length,
++      ...boxOf(xs, ys),
++    });
++  }
++
++  if (scene.axes?.x_axis_y != null) {
++    out.push({
++      key: 'axis-x',
++      kind: 'axis',
++      label: t('explore.xAxis'),
++      target: { kind: 'line', id: 'x-axis', elementKind: 'axis' },
++      yNorm: scene.axes.x_axis_y,
++      cx: 0.5,
++      cy: scene.axes.x_axis_y,
++      w: 1,
++      h: 0,
++    });
++  }
++  if (scene.axes?.y_axis_x != null) {
++    out.push({
++      key: 'axis-y',
++      kind: 'axis',
++      label: t('explore.yAxis'),
++      target: { kind: 'line', id: 'y-axis', elementKind: 'axis' },
++      yNorm: 0.5,
++      cx: scene.axes.y_axis_x,
++      cy: 0.5,
++      w: 0,
++      h: 1,
++    });
++  }
++  return out;
++}
++
+ interface ExploreProps {
+   scene: DiagramScene;
+   /** The entry announcement spoken aloud and shown in status text. */
+@@ -249,6 +373,8 @@ export function Explore({
+     setStatusMessage(announced);
+   }, [announced]);
+   const [isBusy, setIsBusy] = useState(false);
++  const [canvasSize, setCanvasSize] = useState({ w: 300, h: 300 });
++  const a11yEngine = useRef<EngineState>(initialState());
+   const [showTextFallback, setShowTextFallback] = useState(!drivers.speech.canListen);
+   const [questionText, setQuestionText] = useState('');
+   const [debugText, setDebugText] = useState(() => t('explore.debugWaiting'));
+@@ -849,6 +975,7 @@ export function Explore({
+ 
+     const view = makeViewport(width, height);
+     viewportRef.current = view;
++    setCanvasSize((prev) => (prev.w === width && prev.h === height ? prev : { w: width, h: height }));
+     renderStaticScene(view, dpr);
+     draw(view, pendingCursor.current);
+   };
+@@ -1242,6 +1369,76 @@ export function Explore({
+     }
+   };
+ 
++  /**
++   * TalkBack / keyboard focus on a feature: run the same engine rules a finger would hit
++   * (corner pulse + label, line buzz, bar label + pitch, curve tone) through the drivers.
++   */
++  const handleFeatureFocus = (feature: A11yFeature): void => {
++    if (leaving.current || askActive.current) return;
++    const lang = LANG_BCP47[getLang()] ?? 'en-IN';
++    try {
++      drivers.audio.unlock();
++    } catch {
++      // best-effort
++    }
++    const { state, effects } = step(initialState(), {
++      kind: 'move',
++      t: performance.now(),
++      target: feature.target,
++      yNorm: feature.yNorm,
++    });
++    a11yEngine.current = state;
++    const speak = effects.find((e) => e.kind === 'speak');
++    if (speak?.kind === 'speak') lastSpokenRef.current = speak.text;
++    runEffects(effects, drivers, lang);
++  };
++
++  const handleFeatureBlur = (): void => {
++    const { state, effects } = step(a11yEngine.current, { kind: 'lift', t: performance.now() });
++    a11yEngine.current = state;
++    runEffects(effects, drivers);
++  };
++
++  const handleFeatureActivate = (feature: A11yFeature): void => {
++    const lang = LANG_BCP47[getLang()] ?? 'en-IN';
++    setStatusMessage(feature.label);
++    lastSpokenRef.current = feature.label;
++    try {
++      drivers.speech.speak(feature.label, lang);
++    } catch {
++      // speech is best-effort
++    }
++  };
++
++  const renderA11yTree = (): JSX.Element => {
++    const view = makeViewport(canvasSize.w, canvasSize.h);
++    return (
++      <div className="gt-explore__a11y-tree" role="group" aria-label={t('a11y.tree')} data-testid="explore-a11y-tree">
++        {buildA11yFeatures(scene).map((f) => {
++          const c = toScreen({ x: f.cx, y: f.cy }, view);
++          return (
++            <button
++              key={f.key}
++              type="button"
++              className={`gt-explore__a11y-item gt-explore__a11y-item--${f.kind}`}
++              data-a11y-kind={f.kind}
++              aria-label={f.label}
++              style={{
++                left: `${(c.x / view.canvasWidth) * 100}%`,
++                top: `${(c.y / view.canvasHeight) * 100}%`,
++                width: `${((f.w * view.scale) / view.canvasWidth) * 100}%`,
++                height: `${((f.h * view.scale) / view.canvasHeight) * 100}%`,
++              }}
++              onFocus={() => handleFeatureFocus(f)}
++              onBlur={handleFeatureBlur}
++              onClick={() => handleFeatureActivate(f)}
++            />
++          );
++        })}
++      </div>
++    );
++  };
++
+   const setDebugOffset = (dx: number, dy: number): void => {
+     setDebugText(
+       t('explore.debugOffset')
+@@ -1313,6 +1510,7 @@ export function Explore({
+           onPointerCancel={handlePointerLift}
+           onLostPointerCapture={handlePointerLift}
+         />
++        {renderA11yTree()}
+       </div>
+ 
+       <div className="gt-explore__debug" data-testid="explore-debug-offset" aria-hidden="true">
+diff --git a/frontend/src/styles/explore.css b/frontend/src/styles/explore.css
+--- a/frontend/src/styles/explore.css
++++ b/frontend/src/styles/explore.css
+@@ -141,7 +141,8 @@
+ 
+ /* Canvas element: untouched drawing area, maximum contrast, glowing green on near-black */
+ .gt-explore__canvas {
+-  position: relative;
++  position: absolute;
++  inset: 0;
+   z-index: 2;
+   display: block;
+   width: 100%;
+@@ -717,3 +718,48 @@
+ }
+ 
+ 
++
++/* ==========================================================================
++   ACCESSIBLE DIAGRAM TREE (TalkBack exploration, Issue B)
++   Focusable buttons for every corner, side, bar, curve and axis, laid over the canvas.
++   The whole tree is pointer-events: none, so direct touch always reaches the canvas.
++   TalkBack and keyboard focus still reach the buttons through the accessibility tree.
++   ========================================================================== */
++
++.gt-explore__a11y-tree {
++  position: absolute;
++  inset: 0;
++  z-index: 3;
++  pointer-events: none;
++  overflow: hidden;
++}
++
++.gt-explore__a11y-item {
++  position: absolute;
++  transform: translate(-50%, -50%);
++  min-width: var(--gt-target, 48px);
++  min-height: var(--gt-target, 48px);
++  margin: 0;
++  padding: 0;
++  border: 0;
++  border-radius: var(--gt-radius-sm, 8px);
++  background: transparent;
++  color: inherit;
++  pointer-events: none;
++  box-sizing: border-box;
++}
++
++.gt-explore__a11y-item:focus,
++.gt-explore__a11y-item:focus-visible {
++  outline: 3px solid var(--gt-focus, #39ff88);
++  outline-offset: 0;
++  background: rgba(57, 255, 136, 0.12);
++}
++
++@media (forced-colors: active), (prefers-contrast: more) {
++  .gt-explore__a11y-item:focus,
++  .gt-explore__a11y-item:focus-visible {
++    outline: 3px solid Highlight;
++    background: transparent;
++  }
++}
+diff --git a/frontend/src/styles/global.css b/frontend/src/styles/global.css
+--- a/frontend/src/styles/global.css
++++ b/frontend/src/styles/global.css
+@@ -1037,7 +1037,16 @@ body {
+   box-shadow: 0 0 0 2px var(--gt-bg), 0 0 0 4px var(--gt-focus);
+ }
+ 
++/*
++ * Absolutely positioned so the canvas bitmap size never feeds back into layout.
++ * In flow, height:100% resolves to auto inside the auto-height flex column, so the
++ * canvas height came from its bitmap attribute (CSS px x DPR). updateDimensions()
++ * then resized the bitmap from that height, which grew the page on every pass on
++ * DPR >= 2 phones.
++ */
+ .gt-explore__canvas {
++  position: absolute;
++  inset: 0;
+   display: block;
+   width: 100%;
+   height: 100%;
+diff --git a/frontend/src/styles/settings.css b/frontend/src/styles/settings.css
+--- a/frontend/src/styles/settings.css
++++ b/frontend/src/styles/settings.css
+@@ -145,3 +145,41 @@
+     outline: 3px solid Highlight !important;
+   }
+ }
++
++/* Device vibration help */
++.gt-lab-settings__vibration-help {
++  background: var(--gt-card-bg, var(--gt-surface, #14141e));
++  border: 1px solid var(--gt-copper, #b87333);
++  border-left-width: 4px;
++  border-radius: var(--gt-radius-md, 12px);
++  padding: var(--gt-space-md, 16px);
++}
++
++.gt-lab-settings__vibration-intro {
++  margin: 0 0 var(--gt-space-sm, 8px) 0;
++  font-size: 0.95rem;
++  line-height: 1.5;
++  color: var(--gt-green, #39ff88);
++}
++
++.gt-lab-settings__vibration-list {
++  margin: 0;
++  padding-left: var(--gt-space-lg, 20px);
++  display: flex;
++  flex-direction: column;
++  gap: var(--gt-space-sm, 8px);
++  font-size: 0.9rem;
++  line-height: 1.5;
++  color: var(--gt-bone, #ded6c4);
++}
++
++.gt-lab-settings__vibration-list li::marker {
++  color: var(--gt-copper, #b87333);
++}
++
++.gt-lab-settings__vibration-note {
++  margin: var(--gt-space-sm, 8px) 0 0 0;
++  font-size: 0.85rem;
++  font-style: italic;
++  color: var(--gt-text-muted, #a9b8ae);
++}
+diff --git a/frontend/tests/drivers.haptics.test.ts b/frontend/tests/drivers.haptics.test.ts
+--- a/frontend/tests/drivers.haptics.test.ts
++++ b/frontend/tests/drivers.haptics.test.ts
+@@ -41,6 +41,13 @@ describe('WebHapticDriver', () => {
+     expect(driver.lastResult).toBe(false);
+   });
+ 
++  it('falls back to a single 100 ms pulse when the array pattern is rejected', () => {
++    const vibrate = vi.fn((p: number | number[]) => !Array.isArray(p));
++    const driver = new WebHapticDriver({ vibrate });
++    expect(driver.vibrate([50, 90, 50])).toBe(true);
++    expect(vibrate).toHaveBeenLastCalledWith(100);
++  });
++
+   it('stop() vibrates with 0', () => {
+     const vibrate = vi.fn().mockReturnValue(true);
+     new WebHapticDriver({ vibrate }).stop();
+diff --git a/frontend/tests/explore.layout.test.tsx b/frontend/tests/explore.layout.test.tsx
+--- a/frontend/tests/explore.layout.test.tsx
++++ b/frontend/tests/explore.layout.test.tsx
+@@ -180,6 +180,14 @@ describe('Canvas fill and background matching (Item 3)', () => {
+     expect(tableRule?.declarations['background']).toContain('var(--gt-bg');
+   });
+ 
++  it('Explore canvas is out of flow so its bitmap size cannot resize the page (DPR feedback loop)', () => {
++    const liveCanvasRule = findRule(globalRules, '.gt-explore__canvas');
++    expect(liveCanvasRule?.declarations['position']).toBe('absolute');
++    expect(liveCanvasRule?.declarations['inset']).toBe('0');
++    const specimenCanvasRule = findRule(exploreRules, '.gt-explore__canvas');
++    expect(specimenCanvasRule?.declarations['position']).toBe('absolute');
++  });
++
+   it('Correct canvas fills 100% of container and has matching background token', () => {
+     const canvasRule = findRule(correctRules, '.gt-correct__canvas');
+     expect(canvasRule).toBeDefined();
+diff --git a/frontend/tests/explore.talkback.test.tsx b/frontend/tests/explore.talkback.test.tsx
+new file mode 100644
+--- /dev/null
++++ b/frontend/tests/explore.talkback.test.tsx
+@@ -0,0 +1,246 @@
++// @vitest-environment jsdom
++/**
++ * Issue B — TalkBack exploration of shapes, graphs and bar charts.
++ *
++ * With TalkBack on, single-finger touch on the canvas is swallowed by Android, so the Explore
++ * screen also exposes an accessible overlay (buttons for corners, sides, bars, curves, axes).
++ * Focusing one runs the same haptic/speech/tone rules a finger on that feature would.
++ */
++// @ts-expect-error Node.js runtime fs module
++import fs from 'node:fs';
++import { act, createElement } from 'react';
++import { createRoot, type Root } from 'react-dom/client';
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
++import { DEFAULT_HAPTICS } from '../src/core/hapticEngine';
++import { pitchForValue } from '../src/core/pitch';
++import type { DiagramScene } from '../src/core/scene';
++import { MemoryDiagramStore, type Drivers } from '../src/drivers';
++import { buildA11yFeatures, Explore } from '../src/screens/Explore';
++
++declare global {
++  var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
++}
++
++const SIZE = 400;
++
++const triangle: DiagramScene = {
++  kind: 'geometry',
++  title: 'Triangle ABC',
++  points: [
++    { id: 'A', x: 0.1, y: 0.9, label: 'A' },
++    { id: 'B', x: 0.9, y: 0.9, label: 'B' },
++    { id: 'C', x: 0.1, y: 0.1, label: 'C' },
++  ],
++  segments: [
++    { id: 'AB', a: 'A', b: 'B', label: null },
++    { id: 'BC', a: 'B', b: 'C', label: null },
++    { id: 'CA', a: 'C', b: 'A', label: null },
++  ],
++};
++
++const barChart: DiagramScene = {
++  kind: 'bar_chart',
++  title: 'Marks',
++  axes: { x_axis_y: 0.9, y_axis_x: 0.1 },
++  bars: [
++    { id: 'b1', label: 'Maths', value: 40, x0: 0.15, x1: 0.35, y_base: 0.9, y_top: 0.5 },
++    { id: 'b2', label: 'Science', value: 80, x0: 0.45, x1: 0.65, y_base: 0.9, y_top: 0.1 },
++  ],
++};
++
++const graph: DiagramScene = {
++  kind: 'function_graph',
++  axes: { x_axis_y: 0.5, y_axis_x: 0.5 },
++  polylines: [{ id: 'f', label: 'Parabola', points: [[0.1, 0.9], [0.5, 0.1], [0.9, 0.9]] }],
++};
++
++function makeDrivers() {
++  const vibrate = vi.fn();
++  const speak = vi.fn();
++  const setTone = vi.fn();
++  const drivers: Drivers = {
++    haptics: { supported: true, lastResult: null, vibrate, stop: vi.fn() },
++    audio: { unlock: vi.fn(), setTone, beep: vi.fn(), playEarcon: vi.fn(), state: 'running' },
++    speech: { speak, listen: vi.fn(), canSpeak: true, canListen: true, getRate: () => 'normal' },
++    diagramStore: new MemoryDiagramStore(),
++  };
++  return { drivers, vibrate, speak, setTone };
++}
++
++let container: HTMLDivElement;
++let root: Root;
++let restore: () => void;
++
++beforeEach(() => {
++  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
++  const proto = HTMLCanvasElement.prototype;
++  const originalRect = proto.getBoundingClientRect;
++  const originalContext = proto.getContext;
++  proto.getBoundingClientRect = function rect(): DOMRect {
++    return { x: 0, y: 0, left: 0, top: 0, right: SIZE, bottom: SIZE, width: SIZE, height: SIZE, toJSON: () => ({}) } as DOMRect;
++  };
++  proto.getContext = (() => null) as typeof proto.getContext;
++  restore = () => {
++    proto.getBoundingClientRect = originalRect;
++    proto.getContext = originalContext;
++  };
++  container = document.createElement('div');
++  document.body.appendChild(container);
++  root = createRoot(container);
++});
++
++afterEach(() => {
++  act(() => root.unmount());
++  container.remove();
++  restore();
++  globalThis.IS_REACT_ACT_ENVIRONMENT = undefined;
++});
++
++function mount(scene: DiagramScene, drivers: Drivers): void {
++  act(() => {
++    root.render(createElement(Explore, { scene, announced: 'Ready', drivers, onBack: vi.fn() }));
++  });
++}
++
++function items(kind: string): HTMLButtonElement[] {
++  return Array.from(container.querySelectorAll<HTMLButtonElement>(`[data-a11y-kind="${kind}"]`));
++}
++
++function focusItem(el: HTMLElement): void {
++  act(() => {
++    el.focus();
++  });
++}
++
++describe('accessible overlay structure', () => {
++  it('exposes all 3 triangle corners and 3 sides with names', () => {
++    const { drivers } = makeDrivers();
++    mount(triangle, drivers);
++    const corners = items('point').map((b) => b.getAttribute('aria-label'));
++    expect(corners).toEqual(['Corner A', 'Corner B', 'Corner C']);
++    const sides = items('segment').map((b) => b.getAttribute('aria-label'));
++    expect(sides).toEqual(['Side AB', 'Side BC', 'Side CA']);
++  });
++
++  it('exposes every bar with its category and value, plus both axes', () => {
++    const { drivers } = makeDrivers();
++    mount(barChart, drivers);
++    expect(items('bar').map((b) => b.getAttribute('aria-label'))).toEqual([
++      'Maths, value 40',
++      'Science, value 80',
++    ]);
++    expect(items('axis')).toHaveLength(2);
++  });
++
++  it('exposes a labelled curve for a graph', () => {
++    const { drivers } = makeDrivers();
++    mount(graph, drivers);
++    expect(items('polyline').map((b) => b.getAttribute('aria-label'))).toEqual(['Curve Parabola']);
++  });
++
++  it('is a labelled group and every item is a real button', () => {
++    const { drivers } = makeDrivers();
++    mount(triangle, drivers);
++    const tree = container.querySelector('[data-testid="explore-a11y-tree"]');
++    expect(tree?.getAttribute('role')).toBe('group');
++    expect(tree?.getAttribute('aria-label')).toBeTruthy();
++    for (const b of container.querySelectorAll('.gt-explore__a11y-item')) {
++      expect(b.tagName).toBe('BUTTON');
++    }
++  });
++
++  it('buildA11yFeatures skips segments with missing endpoints', () => {
++    const scene: DiagramScene = {
++      kind: 'geometry',
++      points: [{ id: 'A', x: 0.1, y: 0.1, label: 'A' }],
++      segments: [{ id: 'AZ', a: 'A', b: 'Z', label: null }],
++    };
++    expect(buildA11yFeatures(scene).map((f) => f.kind)).toEqual(['point']);
++  });
++});
++
++describe('focus triggers feedback through the drivers', () => {
++  it('focusing a corner pulses the corner pattern and speaks its label', () => {
++    const { drivers, vibrate, speak } = makeDrivers();
++    mount(triangle, drivers);
++    const cornerB = items('point')[1];
++    expect(cornerB).toBeDefined();
++    focusItem(cornerB as HTMLElement);
++    expect(vibrate).toHaveBeenCalledWith(DEFAULT_HAPTICS.cornerPattern);
++    expect(speak).toHaveBeenCalledWith('B', expect.any(String));
++  });
++
++  it('focusing a side buzzes the line pattern', () => {
++    const { drivers, vibrate } = makeDrivers();
++    mount(triangle, drivers);
++    focusItem(items('segment')[0] as HTMLElement);
++    expect(vibrate).toHaveBeenCalledWith(DEFAULT_HAPTICS.lineMs);
++  });
++
++  it('focusing a bar speaks label and value and plays its pitch', () => {
++    const { drivers, speak, setTone } = makeDrivers();
++    mount(barChart, drivers);
++    focusItem(items('bar')[1] as HTMLElement);
++    expect(speak).toHaveBeenCalledWith('Science, 80', expect.any(String));
++    expect(setTone).toHaveBeenCalledWith(pitchForValue(80, 80));
++  });
++
++  it('focusing a curve plays a theremin tone', () => {
++    const { drivers, setTone } = makeDrivers();
++    mount(graph, drivers);
++    focusItem(items('polyline')[0] as HTMLElement);
++    expect(setTone.mock.calls.some(([hz]) => typeof hz === 'number')).toBe(true);
++  });
++
++  it('blurring silences vibration and tone', () => {
++    const { drivers, vibrate, setTone } = makeDrivers();
++    mount(graph, drivers);
++    const curve = items('polyline')[0] as HTMLElement;
++    focusItem(curve);
++    vibrate.mockClear();
++    setTone.mockClear();
++    act(() => {
++      curve.blur();
++    });
++    expect(vibrate).toHaveBeenCalledWith(0);
++    expect(setTone).toHaveBeenLastCalledWith(null);
++  });
++
++  it('activating an item announces its details', () => {
++    const { drivers, speak } = makeDrivers();
++    mount(barChart, drivers);
++    act(() => {
++      (items('bar')[0] as HTMLElement).click();
++    });
++    expect(speak).toHaveBeenCalledWith('Maths, value 40', expect.any(String));
++  });
++});
++
++describe('direct canvas touch still works', () => {
++  it('overlay never intercepts pointers (CSS) and the canvas keeps its handlers', () => {
++    const css = fs.readFileSync('src/styles/explore.css', 'utf-8') as string;
++    const treeCss = /\.gt-explore__a11y-tree\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
++    const item = /\.gt-explore__a11y-item\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
++    expect(treeCss).toMatch(/pointer-events:\s*none/);
++    expect(item).toMatch(/pointer-events:\s*none/);
++    const { drivers } = makeDrivers();
++    mount(triangle, drivers);
++    const tree = container.querySelector('.gt-explore__a11y-tree');
++    expect(tree).not.toBeNull();
++    expect(container.querySelector('canvas.gt-explore__canvas')).not.toBeNull();
++  });
++
++  it('a pointer on a corner of the canvas still triggers the corner pulse', () => {
++    const { drivers, vibrate, speak } = makeDrivers();
++    mount(triangle, drivers);
++    const canvas = container.querySelector('canvas') as HTMLCanvasElement;
++    const Ctor = (globalThis as { PointerEvent?: typeof MouseEvent }).PointerEvent ?? MouseEvent;
++    act(() => {
++      canvas.dispatchEvent(
++        new Ctor('pointerdown', { bubbles: true, clientX: 0.1 * SIZE, clientY: 0.9 * SIZE }),
++      );
++    });
++    expect(vibrate).toHaveBeenCalledWith(DEFAULT_HAPTICS.cornerPattern);
++    expect(speak).toHaveBeenCalledWith('A', expect.any(String));
++  });
++});
+diff --git a/frontend/tests/haptic.corner.regression.test.ts b/frontend/tests/haptic.corner.regression.test.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/tests/haptic.corner.regression.test.ts
+@@ -0,0 +1,100 @@
++import { describe, it, expect, vi } from 'vitest';
++import { makeViewport } from '../src/core/geometry';
++import type { DiagramScene } from '../src/core/scene';
++import {
++  initialAxisState,
++  initialCentreTickState,
++  initialState,
++  processPointerMove,
++} from '../src/flow/explore';
++import { fallbackPulse, WebHapticDriver } from '../src/drivers/haptics';
++import triangleJson from '../public/samples/triangle.json';
++
++const scene = triangleJson as DiagramScene;
++const view = makeViewport(400, 400);
++const CORNER = [50, 90, 50];
++
++function touch(x: number, y: number) {
++  return processPointerMove(
++    scene,
++    { x, y },
++    view,
++    1000,
++    initialState(),
++    initialCentreTickState(),
++    initialAxisState(),
++  );
++}
++
++describe('sample triangle: every corner emits the corner pattern', () => {
++  const corners = [
++    { id: 'A', x: 100, y: 100 },
++    { id: 'B', x: 280, y: 340 },
++    { id: 'C', x: 100, y: 340 },
++  ];
++  for (const c of corners) {
++    it(`corner ${c.id} -> vibrate [50,90,50] and speak`, () => {
++      const r = touch(c.x, c.y);
++      expect(r.target.kind).toBe('vertex');
++      expect(r.effects).toContainEqual({ kind: 'vibrate', pattern: CORNER });
++      expect(r.effects).toContainEqual({ kind: 'speak', text: c.id });
++    });
++  }
++});
++
++describe('sample triangle: every edge emits the 80 ms line buzz', () => {
++  const edges = [
++    { id: 'AB', x: 190, y: 220 },
++    { id: 'BC', x: 190, y: 340 },
++    { id: 'CA', x: 100, y: 220 },
++  ];
++  for (const e of edges) {
++    it(`edge ${e.id} -> vibrate 80`, () => {
++      const r = touch(e.x, e.y);
++      expect(r.target.kind).toBe('line');
++      expect(r.effects).toContainEqual({ kind: 'vibrate', pattern: 80 });
++    });
++  }
++});
++
++describe('WebHapticDriver array fallback', () => {
++  it('computes a solid pulse from the active entries, min 100 ms', () => {
++    expect(fallbackPulse(CORNER)).toBe(100);
++    expect(fallbackPulse([80, 10, 80])).toBe(160);
++    expect(fallbackPulse([10])).toBe(100);
++  });
++
++  it('retries with a single pulse when the array pattern returns false', () => {
++    const vibrate = vi.fn((p: number | number[]) => !Array.isArray(p));
++    const driver = new WebHapticDriver({ vibrate });
++    expect(driver.vibrate(CORNER)).toBe(true);
++    expect(vibrate).toHaveBeenNthCalledWith(1, CORNER);
++    expect(vibrate).toHaveBeenNthCalledWith(2, 100);
++    expect(driver.lastResult).toBe(true);
++  });
++
++  it('retries with a single pulse when the array pattern throws', () => {
++    const vibrate = vi.fn((p: number | number[]) => {
++      if (Array.isArray(p)) throw new Error('array rejected');
++      return true;
++    });
++    const driver = new WebHapticDriver({ vibrate });
++    expect(driver.vibrate(CORNER)).toBe(true);
++    expect(vibrate).toHaveBeenLastCalledWith(100);
++  });
++
++  it('does not retry when the array pattern succeeds', () => {
++    const vibrate = vi.fn().mockReturnValue(true);
++    new WebHapticDriver({ vibrate }).vibrate(CORNER);
++    expect(vibrate).toHaveBeenCalledTimes(1);
++  });
++
++  it('does not retry numeric patterns and reports false when everything fails', () => {
++    const vibrate = vi.fn().mockReturnValue(false);
++    const driver = new WebHapticDriver({ vibrate });
++    expect(driver.vibrate(80)).toBe(false);
++    expect(vibrate).toHaveBeenCalledTimes(1);
++    expect(driver.vibrate(CORNER)).toBe(false);
++    expect(vibrate).toHaveBeenCalledTimes(3);
++  });
++});
+diff --git a/frontend/tests/labSettings.vibrationHelp.test.tsx b/frontend/tests/labSettings.vibrationHelp.test.tsx
+new file mode 100644
+--- /dev/null
++++ b/frontend/tests/labSettings.vibrationHelp.test.tsx
+@@ -0,0 +1,95 @@
++﻿/**
++ * Device vibration help section in LabSettings.
++ */
++// @ts-expect-error Node.js runtime fs module in Vitest node environment
++import fs from 'node:fs';
++import { createElement } from 'react';
++import { renderToStaticMarkup } from 'react-dom/server';
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
++import { LabSettings } from '../src/components/LabSettings';
++import { getLang, setLang, t, type Lang } from '../src/i18n';
++
++const css = fs.readFileSync(
++  new URL('../src/styles/settings.css', import.meta.url),
++  'utf-8',
++) as string;
++
++const KEYS = [
++  'lab.settings.vibrationHelpTitle',
++  'lab.settings.vibrationHelpIntro',
++  'lab.settings.vibrationHelpSamsung',
++  'lab.settings.vibrationHelpStock',
++  'lab.settings.vibrationHelpOnePlus',
++  'lab.settings.vibrationHelpXiaomi',
++  'lab.settings.vibrationHelpNote',
++] as const;
++
++function render(): string {
++  return renderToStaticMarkup(createElement(LabSettings, { open: true, onClose: vi.fn() }));
++}
++
++function escape(s: string): string {
++  return s.replace(/&/g, '&amp;').replace(/'/g, '&#x27;').replace(/</g, '&lt;');
++}
++
++describe('LabSettings vibration help', () => {
++  let prev: Lang;
++  beforeEach(() => {
++    prev = getLang();
++    setLang('en');
++  });
++  afterEach(() => setLang(prev));
++
++  it('renders all instruction strings in English', () => {
++    const html = render();
++    for (const key of KEYS) {
++      expect(t(key)).not.toBe(key);
++      expect(html).toContain(escape(t(key)));
++    }
++    expect(t('lab.settings.vibrationHelpTitle')).toBe('Device Vibration Settings');
++  });
++
++  it('mentions the required settings paths', () => {
++    expect(t('lab.settings.vibrationHelpSamsung')).toMatch(/Vibration intensity/);
++    expect(t('lab.settings.vibrationHelpSamsung')).toMatch(/Touch feedback/);
++    expect(t('lab.settings.vibrationHelpSamsung')).toMatch(/Power Saving/);
++    expect(t('lab.settings.vibrationHelpStock')).toMatch(/Vibration & haptics/);
++    expect(t('lab.settings.vibrationHelpOnePlus')).toMatch(/Haptics/);
++    expect(t('lab.settings.vibrationHelpXiaomi')).toMatch(/HyperOS/);
++  });
++
++  it('has an accessible heading-labelled section with a list', () => {
++    const html = render();
++    expect(html).toContain('aria-labelledby="lab-settings-section-vibration"');
++    expect(html).toMatch(/<h3 id="lab-settings-section-vibration"[^>]*>Device Vibration Settings<\/h3>/);
++    expect(html).toContain('id="lab-settings-vibration-intro"');
++    expect(html).toContain('aria-describedby="lab-settings-vibration-intro"');
++    expect((html.match(/<li>/g) ?? []).length).toBeGreaterThanOrEqual(4);
++  });
++
++  it('uses unique ids', () => {
++    const ids = [...render().matchAll(/ id="([^"]+)"/g)].map((m) => m[1]);
++    expect(new Set(ids).size).toBe(ids.length);
++  });
++
++  it.each(['hi', 'gu'] as const)('translates into %s', (lang) => {
++    setLang('en');
++    const en = KEYS.map((k) => t(k));
++    setLang(lang);
++    const html = render();
++    KEYS.forEach((key, i) => {
++      const v = t(key);
++      expect(v).not.toBe(key);
++      expect(v).not.toBe(en[i]);
++      expect(html).toContain(escape(v));
++    });
++  });
++
++  it('styles the section with lab theme tokens', () => {
++    expect(css).toContain('.gt-lab-settings__vibration-help');
++    const block = css.slice(css.indexOf('/* Device vibration help */'));
++    expect(block).toContain('--gt-copper');
++    expect(block).toContain('--gt-green');
++    expect(block).toContain('--gt-card-bg');
++  });
++});
