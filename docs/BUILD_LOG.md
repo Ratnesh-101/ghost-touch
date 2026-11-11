@@ -3570,3 +3570,77 @@ Format for each entry:
   - `docs/reports/agy-a1-reserved-ids-report.md`
   - `docs/BUILD_LOG.md`
 
+
+## 2026-11-11 — agy, reviewed by Claude — Lane o1-leavebyback (turn Kiro's amended P43 green)
+- Tool: **agy, reviewed by Claude**.
+- What was built:
+  - In `frontend/src/flow/navigation.ts`, added `correctDirty?: boolean` to `BackContext`
+    (default false) and set `needsConfirm` in `leaveByBack` to
+    `(screen === 'teach' && ctx.dirty) || (screen === 'correct' && ctx.correctDirty === true)`.
+    Preserved `next: 'explore'` and `announceKey: 'explore.gestureHint'` for `correct`.
+  - In `frontend/src/flow/navigation.ts`, updated `handleAppHashBack` to speak and confirm
+    using `correct.confirmLeave` and `correct.stayingInEditor` when `leaving === 'correct'`.
+  - In `frontend/src/screens/Correct.tsx`, updated `handleCancel` to invoke
+    `onDirtyChange?.(false)` before `onCancel()`, reusing lane z3's pattern for exit
+    confirmation and preventing double confirmation dialogs and duplicate utterances.
+  - In `frontend/src/App.tsx`, passed `correctDirty: correctDirty.current` to `leaveByBack`
+    at the leaving call site, and routed `onCorrectBack` through
+    `leaveByBack('correct', ctx)`. Reset `correctDirty.current = false` upon confirmed exit
+    in `onCorrectBack`, `handleCancelCorrect`, and `handleSaveCorrect`.
+  - Added unit, component, and App integration tests in `frontend/tests/correct.back.test.tsx`
+    verifying Back from Correct with and without unsaved edits, single confirmation and single
+    speech on exit, and strict editor isolation between Teach and Correct.
+- What broke / surprising findings:
+  - None. Production code changes turn Kiro's amended P43 property test in
+    `frontend/tests/round2.navigation.prop.test.ts` green without modifying any Kiro-owned files.
+- Files touched:
+  - `frontend/src/flow/navigation.ts`
+  - `frontend/src/screens/Correct.tsx`
+  - `frontend/src/App.tsx`
+  - `frontend/tests/correct.back.test.tsx`
+  - `docs/reports/agy-o1-leavebyback-report.md`
+  - `docs/BUILD_LOG.md`
+
+
+## 2026-11-11 — agy, reviewed by Claude — Lane o2-save-rollback (Turn Kiro's P83 Green)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - In `frontend/src/flow/saved.ts` (`saveDiagramWithEviction`), implemented robust rollback
+    for the multi-victim fallback path (used when evictedIds.length > 1 or store has no
+    putWithEviction). When a victim delete fails, all previously deleted victims are restored
+    (re-put) before rolling back the target entry (re-put prior or delete newEntry.id),
+    satisfying Requirement 22.14 and turning Kiro's property P83 green.
+  - Handled secondary failure during victim restore cleanly so it still returns `ok: false`
+    and never claims success.
+  - Preserved the IndexedDB one-transaction path from lane p2 (R5-02) and kept P72-P76 green.
+  - Added comprehensive direct regression tests in `frontend/tests/saved.rollback.test.ts`
+    covering the shrunk counterexample (seed 1120139535), new entry rollback, pinned entries,
+    and restore failures.
+- What broke / surprising findings:
+  - Verified that multi-victim saves take the non-atomic fallback path even on stores with
+    `putWithEviction` because `putWithEviction` handles at most one eviction per call. Restoring
+    deleted victims before rolling back the target entry ensures no diagram is lost on error.
+- Files touched:
+  - `frontend/src/flow/saved.ts`
+  - `frontend/tests/saved.rollback.test.ts`
+  - `docs/reports/agy-o2-save-rollback-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-11 — agy, reviewed by Claude — Lane o2-save-rollback (Pass 2 Follow-Up)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - Fixed test setup in `frontend/tests/saved.rollback.test.ts` for 'restore failure during
+    rollback reports ok: false and never claims success': added `d3` so existing diagrams count
+    is 4, ensuring `targetSurplus` is 2 when updating `d0` at capacity 2.
+- What broke / surprising findings:
+  - Traced the call sequence: with 3 existing diagrams and an in-place update at capacity 2,
+    `targetSurplus` was 1, so only 2 mutating calls were made (`put(d0)` and `delete(d1)`). The
+    injected failures at calls 3 and 4 were never hit and the save succeeded with `ok: true`.
+    Providing 4 diagrams triggers the second victim eviction (`delete(d2)` at call 3) and the
+    subsequent restore failure (`put(d1)` at call 4), confirming `ok: false` is reported.
+- Files touched:
+  - `frontend/tests/saved.rollback.test.ts`
+  - `docs/reports/agy-o2-save-rollback-report.md`
+  - `docs/BUILD_LOG.md`
+
+
