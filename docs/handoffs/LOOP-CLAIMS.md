@@ -48,3 +48,4 @@ Session A, 2026-11-11 (per docs/reports/fable-win-plan.md): d1-honesty-fable (do
 
 Session A, 2026-11-11 13:20: w3-buzz-fallback launched (frontend/src/drivers/haptics.ts, drivers/audio.ts, drivers/index.ts, screens/Explore.tsx, i18n/index.ts, new tests). Session A owns Explore.tsx until it is merged. Kiro prompt for the requirement/P85: docs/briefs/kiro-w3-prompt.md.
 Session A, 2026-11-11 19:20: w3-buzz-fallback MERGED (5bf9b1e, gated 160 files / 2094 tests, tsc 0, build ok). Explore.tsx claim RELEASED. Local only, not pushed (waiting for the owner).
+Session A, 2026-11-11 21:10: a3-saved-title-lang launched (frontend/src/screens/SavedDiagrams.tsx, new test; App.tsx only if the language prop is needed). Source: Kiro T20.4 review.
