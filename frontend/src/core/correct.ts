@@ -135,6 +135,8 @@ export function renameLabel(
  * preventing dangling references.
  */
 export function deletePoint(scene: DiagramScene, pointId: string): DiagramScene {
+  // Requirement 9.12: an unknown id is a no-op that returns the same scene object.
+  if (!(scene.points ?? []).some((p) => p.id === pointId)) return scene;
   const points = (scene.points ?? []).filter((p) => p.id !== pointId);
   const segments = (scene.segments ?? []).filter(
     (s) => s.a !== pointId && s.b !== pointId,
@@ -152,6 +154,7 @@ export function deletePoint(scene: DiagramScene, pointId: string): DiagramScene 
  * Does not remove the endpoint points.
  */
 export function deleteSegment(scene: DiagramScene, segmentId: string): DiagramScene {
+  if (!(scene.segments ?? []).some((s) => s.id === segmentId)) return scene;
   const segments = (scene.segments ?? []).filter((s) => s.id !== segmentId);
   return {
     ...scene,
