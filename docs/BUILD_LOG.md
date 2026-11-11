@@ -3788,3 +3788,22 @@ Format for each entry:
 - Files touched:
   - `docs/reports/audit-r5-share-a11y.md`
   - `docs/BUILD_LOG.md`
+
+### (recovered from lane worktree b1-docs-honesty, 2026-11-11)
+
+## 2026-11-08 — agy, reviewed by Claude — Lane b1-docs-honesty (Documentation Honesty Audit)
+- Performed exhaustive honesty and verifiability audit of all public and planning documentation per `docs/briefs/agy-b1-docs-honesty.md` and `docs/briefs/audit-b-common.md`.
+- Audited 10 scope files: `README.md`, `docs/STEMERGENT_SUBMISSION.md`, `docs/DEMO_SCRIPT.md`, `docs/KIRO_WRITEUP.md`, `docs/BLOG.md`, `docs/SOCIAL.md`, `docs/WIN_PLAN.md`, `docs/DEPLOY.md`, `docs/BOTS.md`, `docs/OWNER_CHECKLIST.md`.
+- Checked every factual, architectural, operational, and attribution claim against current code, test suites, `BUILD_LOG.md`, `.kiro/specs/`, and `docs/kiro-evidence/`.
+- Generated comprehensive audit report `docs/reports/audit-b1-docs-honesty.md` with full claims table, ranked findings (CONFIRMED vs UNVERIFIED), concrete failure scenarios, minimal fixes, and Top 5 prioritization.
+- Surprising findings:
+  - High severity: `docs/DEPLOY.md:208` instructs single-finger dragging while TalkBack is ON, which is intercepted by TalkBack accessibility navigation; requires double-tap-and-hold pass-through gesture.
+  - High severity: Multiple public docs (`KIRO_WRITEUP.md`, `README.md`, `STEMERGENT_SUBMISSION.md`, `SOCIAL.md`) claim Kiro paused at Task 13 (covering only P1–P13/P1–P15), failing to credit Kiro for Tasks 19, 23, 24, 25 and properties P31–P46.
+  - High severity: Severe divergence in public test counts (from 418 in `BLOG.md` to 1203 in `README.md`), whereas verified status is 1556 frontend tests (113 files) and 561 backend tests.
+  - High severity: `docs/BOTS.md:9` still claims CI retains a 1x retry workaround for P1 generator flakiness, which was removed on 2026-11-03.
+- Verification executed:
+  - `npm --prefix frontend exec -- tsc -p frontend --noEmit`: 0 errors.
+  - `npm --prefix frontend test`: 113 test files passed (1556 tests).
+- Files touched:
+  - `docs/reports/audit-b1-docs-honesty.md`
+  - `docs/BUILD_LOG.md`
