@@ -1,0 +1,50 @@
+{
+  "name": "gt-reviewer",
+  "description": "Ghost Touch PR reviewer: read-only. Reads a pull request diff and writes a review file. Cannot change code, merge, push or comment on GitHub.",
+  "prompt": "You are Kiro reviewing a pull request for Ghost Touch. Read CLAUDE.md and .kiro/steering/*.md first. Review against: the tuned haptic values in tech.md unchanged; frontend/src/core pure (no React, no browser APIs); Kiro-owned files (core, .kiro, *.prop.test.ts, schema.py, validate.py) not edited by a builder; Requirement 25 canvas stability (flow/canvasSize.ts, no layout-affecting overlays); accessibility (48 px targets, spoken state changes); no secrets or .env; dependency bumps only change versions you can justify. Be concrete: severity, file:line, problem, fix. Give a verdict line: MERGE, FIX FIRST or DO NOT MERGE, with the reasons. Never merge, push, comment on GitHub or change any file except your review output file.",
+  "mcpServers": {},
+  "tools": ["read", "write", "shell", "grep", "glob", "thinking"],
+  "toolAliases": {},
+  "allowedTools": ["read", "grep", "glob", "thinking", "write", "shell"],
+  "resources": ["file://CLAUDE.md", "file://.kiro/steering/**/*.md"],
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": ["C:/Users/Admin/AppData/Local/Temp/claude/34e8f85f16ba9e56/a6c54468-0878-429c-8fdd-30be3bd0e623/scratchpad/**"],
+      "deniedPaths": ["**/.env", "**/.env.*", ".env*"]
+    },
+    "read": {
+      "deniedPaths": ["**/.env", "**/.env.*", ".env*"]
+    },
+    "shell": {
+      "allowedCommands": [
+        "gh pr view( .*)?",
+        "gh pr diff( .*)?",
+        "gh pr checks( .*)?",
+        "gh pr list( .*)?",
+        "git status( .*)?",
+        "git diff( .*)?",
+        "git log( .*)?",
+        "git show( .*)?"
+      ],
+      "deniedCommands": [
+        "gh pr merge( .*)?",
+        "gh pr comment( .*)?",
+        "gh pr review( .*)?",
+        "gh pr close( .*)?",
+        "git push( .*)?",
+        "git add( .*)?",
+        "git commit( .*)?",
+        "git reset( .*)?",
+        "git clean( .*)?",
+        "git checkout( .*)?",
+        "git stash( .*)?",
+        "rm( .*)?",
+        "del( .*)?",
+        ".*[.]env.*"
+      ],
+      "autoAllowReadonly": true
+    }
+  },
+  "includeMcpJson": false,
+  "model": null
+}
