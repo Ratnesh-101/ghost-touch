@@ -100,6 +100,8 @@ export function hitTest(
   view: Viewport,
   radii: Radii = DEFAULT_RADII,
 ): Target {
+  // CORE-A6: with no drawable area there is nothing under the finger.
+  if (!(view.scale > 0)) return { kind: 'none' };
   const vertex = findVertex(scene, finger, view, radii.vertex);
   if (vertex !== null) return vertex;
 
