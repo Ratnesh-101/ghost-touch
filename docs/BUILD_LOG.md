@@ -3850,3 +3850,12 @@ Format for each entry:
 - Files touched:
   - `docs/reports/audit-b6-lowend-perf.md` (new)
   - `docs/BUILD_LOG.md`
+
+
+## 2026-11-11 — Kiro — P0 Explore canvas size is stable (task 42, Requirement 25)
+- Owner's S24+ video: canvas grew for ~7 s after the first hold. Spec first (Requirement 25, P86, P87, task 42), then code.
+- Root cause found in code, not reproducible in jsdom: the canvas bitmap fed layout (canvas measured and observed itself, bitmap reset on every pointer down), status and debug lines had only `min-height`, `.gt-explore` was `min-height` not `height`, and `min-height: clamp(..., 100%)` is unresolvable. PR #34 (5616cd5) broke the CSS half of the loop; this closes the rest.
+- Added pure `flow/canvasSize.ts` (container-only CSS size, bitmap derived, no-op when unchanged); `Explore.tsx` observes the container and resizes only on real change; CSS: fixed screen height (100vh then 100dvh), `flex: 1 1 0` container with 220px floor, fixed status (5rem, 3-line clamp) and debug (1 line), `touch-action: none` and `overscroll-behavior: contain`.
+- P86 (300 runs) mutation-checked (comparing bitmap width instead of CSS width failed 2 of 5 tests). P87 is example tests over both stylesheets. Amended two older CSS tests that pinned the old rule (`explore.layout`, `explore.lab` BUG-01; its no-clipping intent is kept).
+- Gate: `tsc --noEmit` 0 errors, `vitest run` 162 files / 2120 tests green, `npm run build` ok. Playwright not run. Not verified on the phone: see `docs/kiro-evidence/canvas-resize-bug.md` for the S24+ re-check.
+- Files: `.kiro/specs/ghost-touch/*`, `frontend/src/flow/canvasSize.ts`, `frontend/src/screens/Explore.tsx`, `frontend/src/styles/{global,explore}.css`, `frontend/tests/{canvasSize.prop,explore.layout,explore.lab}.test.*`, `docs/kiro-evidence/canvas-resize-bug.md`.
