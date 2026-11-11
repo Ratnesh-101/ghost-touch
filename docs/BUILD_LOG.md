@@ -3951,3 +3951,12 @@ Format for each entry:
   - `frontend/e2e/explore.canvas-stable.spec.ts` (new)
   - `docs/reports/agy-e2e-canvas.md` (new)
   - `docs/BUILD_LOG.md`
+
+## 2026-11-11 — Kiro — W14: rebuilt docs/KIRO_WRITEUP.md as the honest Kiro-usage write-up
+- Tool: **Kiro**. Docs only; no source file changed.
+- Copied the previous long write-up verbatim to `docs/kiro-evidence/KIRO_WRITEUP_LONG.md` (appendix, commit 3761745).
+- Rewrote `docs/KIRO_WRITEUP.md` at 1193 words under five headings (vibe coding, specs, agent hooks, steering, MCP). Counted from the repo: 9 hooks, 25 requirements, P1-P87 in design.md, 42 tasks, 58 commits with the `kiro:` prefix. Test counts stay as [RECOUNT].
+- Bug stories led with: P83 (T40.2, b8566f9), Explore canvas runaway (Requirement 25, P86/P87, c25a5cf, 80f5bed; the Playwright test separates pre-fix from post-fix only in the viewport-resize scenario, owner-reported 10 passing and phone confirmation), and the four P14/P15 defects (from BUILD_LOG and `docs/reviews/agy-savedcore.md`).
+- Stated plainly: Kiro did not build the Lab redesign, most screens or the backend pipeline; no MCP server exists; no hook run is recorded; the P1 flake was a test-generator bug.
+- Left for the owner as [OWNER: ...]: non-spec-driven Kiro sessions, per-hook authorship, a hook-run screenshot, the phone confirmation note. Nothing was invented.
+- Files: `docs/KIRO_WRITEUP.md`, `docs/kiro-evidence/KIRO_WRITEUP_LONG.md`, `docs/BUILD_LOG.md`.
