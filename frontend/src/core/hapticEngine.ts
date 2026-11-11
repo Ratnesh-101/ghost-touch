@@ -13,6 +13,12 @@
 import type { Target } from './hitTest';
 import { pitchForY, pitchForValue } from './pitch';
 
+/** A value for speech: at most 2 decimals, no trailing zeros (CORE-A4). Non-finite is left as is. */
+function spokenNumber(value: number): string {
+  if (!Number.isFinite(value)) return String(value);
+  return String(Number(value.toFixed(2)));
+}
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
@@ -176,7 +182,7 @@ export function step(
     // Speak bar label and value once per new bar.
     if (state.lastBarId !== target.id) {
       next.lastBarId = target.id;
-      effects.push({ kind: 'speak', text: target.label + ', ' + target.value });
+      effects.push({ kind: 'speak', text: target.label + ', ' + spokenNumber(target.value) });
     }
     // Emit a tone based on the bar value relative to the scene max.
     effects.push({ kind: 'tone', hz: pitchForValue(target.value, target.maxValue) });

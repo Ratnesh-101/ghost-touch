@@ -74,6 +74,7 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 1. WHEN the finger enters a bar THEN the system SHALL speak the bar's label and value.
 2. WHILE the finger is inside a bar THEN the system SHALL play a tone whose pitch is proportional to the bar's value.
 3. THE system SHALL vibrate at bar edges using the line pattern.
+4. (Kiro, K4 CORE-A4) THE spoken bar value SHALL be rounded to at most 2 decimals with no trailing zeros (3.3333333333333335 is spoken as 3.33). Only the text changes; the effect structure, tone and haptics do not.
 
 ### Requirement 7: Ask questions by voice
 **User Story:** As a blind student, I want to ask questions about the diagram out loud, so that I can learn without needing someone to describe it.
