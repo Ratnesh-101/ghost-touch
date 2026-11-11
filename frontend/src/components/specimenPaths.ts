@@ -22,6 +22,10 @@ export interface SpecimenPathOptions {
   maxPolylinePoints?: number;
   /** Radius of vertex dots. Default 2.5. */
   vertexRadius?: number;
+  /** Horizontal shift in viewBox units applied to drawn geometry. Default 0. */
+  offsetX?: number;
+  /** Vertical shift in viewBox units applied to drawn geometry. Default 0. */
+  offsetY?: number;
 }
 
 export interface SpecimenVertexDot {
@@ -121,6 +125,8 @@ export function getSegmentsPath(
 
   const boxSize = options?.boxSize ?? DEFAULT_BOX_SIZE;
   const padding = options?.padding ?? DEFAULT_PADDING;
+  const ox = options?.offsetX ?? 0;
+  const oy = options?.offsetY ?? 0;
 
   const pointMap = new Map<string, { x: number; y: number }>();
   for (const p of points) {
@@ -136,10 +142,10 @@ export function getSegmentsPath(
     const pB = pointMap.get(s.b);
     if (!pA || !pB) continue;
 
-    const xA = formatCoord(transformCoord(pA.x, boxSize, padding));
-    const yA = formatCoord(transformCoord(pA.y, boxSize, padding));
-    const xB = formatCoord(transformCoord(pB.x, boxSize, padding));
-    const yB = formatCoord(transformCoord(pB.y, boxSize, padding));
+    const xA = formatCoord(transformCoord(pA.x, boxSize, padding) + ox);
+    const yA = formatCoord(transformCoord(pA.y, boxSize, padding) + oy);
+    const xB = formatCoord(transformCoord(pB.x, boxSize, padding) + ox);
+    const yB = formatCoord(transformCoord(pB.y, boxSize, padding) + oy);
 
     subpaths.push(`M ${xA} ${yA} L ${xB} ${yB}`);
   }
@@ -159,6 +165,8 @@ export function getPolylinesPath(
 
   const boxSize = options?.boxSize ?? DEFAULT_BOX_SIZE;
   const padding = options?.padding ?? DEFAULT_PADDING;
+  const ox = options?.offsetX ?? 0;
+  const oy = options?.offsetY ?? 0;
   const maxPoints = options?.maxPolylinePoints ?? DEFAULT_MAX_POLYLINE_POINTS;
 
   const subpaths: string[] = [];
@@ -171,8 +179,8 @@ export function getPolylinesPath(
     const first = sampled[0];
     if (!first || !Number.isFinite(first[0]) || !Number.isFinite(first[1])) continue;
 
-    const startX = formatCoord(transformCoord(first[0], boxSize, padding));
-    const startY = formatCoord(transformCoord(first[1], boxSize, padding));
+    const startX = formatCoord(transformCoord(first[0], boxSize, padding) + ox);
+    const startY = formatCoord(transformCoord(first[1], boxSize, padding) + oy);
 
     if (sampled.length === 1) {
       subpaths.push(`M ${startX} ${startY}`);
@@ -183,8 +191,8 @@ export function getPolylinesPath(
     for (let i = 1; i < sampled.length; i++) {
       const pt = sampled[i];
       if (pt && Number.isFinite(pt[0]) && Number.isFinite(pt[1])) {
-        const px = formatCoord(transformCoord(pt[0], boxSize, padding));
-        const py = formatCoord(transformCoord(pt[1], boxSize, padding));
+        const px = formatCoord(transformCoord(pt[0], boxSize, padding) + ox);
+        const py = formatCoord(transformCoord(pt[1], boxSize, padding) + oy);
         d += ` L ${px} ${py}`;
       }
     }
@@ -205,6 +213,8 @@ export function getAxesPath(
 
   const boxSize = options?.boxSize ?? DEFAULT_BOX_SIZE;
   const padding = options?.padding ?? DEFAULT_PADDING;
+  const ox = options?.offsetX ?? 0;
+  const oy = options?.offsetY ?? 0;
 
   const minCoord = formatCoord(padding);
   const maxCoord = formatCoord(boxSize - padding);
@@ -212,13 +222,13 @@ export function getAxesPath(
 
   // Horizontal X axis (at vertical position x_axis_y)
   if (axes.x_axis_y != null && Number.isFinite(axes.x_axis_y)) {
-    const y = formatCoord(transformCoord(axes.x_axis_y, boxSize, padding));
+    const y = formatCoord(transformCoord(axes.x_axis_y, boxSize, padding) + oy);
     subpaths.push(`M ${minCoord} ${y} L ${maxCoord} ${y}`);
   }
 
   // Vertical Y axis (at horizontal position y_axis_x)
   if (axes.y_axis_x != null && Number.isFinite(axes.y_axis_x)) {
-    const x = formatCoord(transformCoord(axes.y_axis_x, boxSize, padding));
+    const x = formatCoord(transformCoord(axes.y_axis_x, boxSize, padding) + ox);
     subpaths.push(`M ${x} ${minCoord} L ${x} ${maxCoord}`);
   }
 
@@ -237,6 +247,8 @@ export function getBarsPath(
 
   const boxSize = options?.boxSize ?? DEFAULT_BOX_SIZE;
   const padding = options?.padding ?? DEFAULT_PADDING;
+  const ox = options?.offsetX ?? 0;
+  const oy = options?.offsetY ?? 0;
 
   const subpaths: string[] = [];
 
@@ -256,10 +268,10 @@ export function getBarsPath(
     const minY = Math.min(b.y_top, b.y_base);
     const maxY = Math.max(b.y_top, b.y_base);
 
-    const x0 = formatCoord(transformCoord(minX, boxSize, padding));
-    const x1 = formatCoord(transformCoord(maxX, boxSize, padding));
-    const y0 = formatCoord(transformCoord(minY, boxSize, padding));
-    const y1 = formatCoord(transformCoord(maxY, boxSize, padding));
+    const x0 = formatCoord(transformCoord(minX, boxSize, padding) + ox);
+    const x1 = formatCoord(transformCoord(maxX, boxSize, padding) + ox);
+    const y0 = formatCoord(transformCoord(minY, boxSize, padding) + oy);
+    const y1 = formatCoord(transformCoord(maxY, boxSize, padding) + oy);
 
     subpaths.push(`M ${x0} ${y0} L ${x1} ${y0} L ${x1} ${y1} L ${x0} ${y1} Z`);
   }
@@ -278,13 +290,15 @@ export function getVertexDots(
 
   const boxSize = options?.boxSize ?? DEFAULT_BOX_SIZE;
   const padding = options?.padding ?? DEFAULT_PADDING;
+  const ox = options?.offsetX ?? 0;
+  const oy = options?.offsetY ?? 0;
   const radius = options?.vertexRadius ?? DEFAULT_VERTEX_RADIUS;
 
   const dots: SpecimenVertexDot[] = [];
   for (const p of points) {
     if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
-    const cx = Math.round(transformCoord(p.x, boxSize, padding) * 100) / 100;
-    const cy = Math.round(transformCoord(p.y, boxSize, padding) * 100) / 100;
+    const cx = Math.round((transformCoord(p.x, boxSize, padding) + ox) * 100) / 100;
+    const cy = Math.round((transformCoord(p.y, boxSize, padding) + oy) * 100) / 100;
     dots.push({
       id: p.id ?? `dot_${dots.length}`,
       cx,
@@ -319,6 +333,69 @@ export function getVertexDotsPath(dots: ReadonlyArray<SpecimenVertexDot>): strin
  */
 export function getPlaceholderJarPath(): string {
   return 'M 36 20 H 64 M 40 20 V 26 H 28 V 74 Q 28 80 34 80 H 66 Q 72 80 72 74 V 26 H 60 V 20 M 42 52 H 58 M 50 44 V 60';
+}
+
+/**
+ * Computes the viewBox-unit shift that centres a scene's drawn geometry
+ * (points, polylines, bars and axis positions) inside the padded box.
+ *
+ * Sample scenes are laid out for the full-size Explore canvas, where the
+ * content sits low (e.g. baselines at y = 0.85). Drawn as-is in a small jar
+ * preview the artwork looks pushed downwards relative to the centred
+ * placeholder glyph; centring removes that visual jump. Returns zero offsets
+ * for empty scenes.
+ */
+export function getCenteringOffset(
+  scene: DiagramScene | null | undefined,
+  options?: Pick<SpecimenPathOptions, 'boxSize' | 'padding'>,
+): { offsetX: number; offsetY: number } {
+  if (!scene) return { offsetX: 0, offsetY: 0 };
+
+  const boxSize = options?.boxSize ?? DEFAULT_BOX_SIZE;
+  const padding = options?.padding ?? DEFAULT_PADDING;
+  const usable = boxSize - 2 * padding;
+
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+
+  const include = (x: number, y: number): void => {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
+  };
+
+  for (const p of scene.points ?? []) include(p.x, p.y);
+  for (const poly of scene.polylines ?? []) {
+    for (const pt of poly.points ?? []) include(pt[0], pt[1]);
+  }
+  for (const b of scene.bars ?? []) {
+    include(b.x0, b.y_top);
+    include(b.x1, b.y_base);
+  }
+  if (scene.axes) {
+    const ax = scene.axes.y_axis_x;
+    if (ax != null && Number.isFinite(ax)) {
+      minX = Math.min(minX, ax);
+      maxX = Math.max(maxX, ax);
+    }
+    const ay = scene.axes.x_axis_y;
+    if (ay != null && Number.isFinite(ay)) {
+      minY = Math.min(minY, ay);
+      maxY = Math.max(maxY, ay);
+    }
+  }
+
+  if (minX === Infinity || minY === Infinity) return { offsetX: 0, offsetY: 0 };
+
+  const round = (v: number): number => Math.round(v * 100) / 100;
+  return {
+    offsetX: round((0.5 - (minX + maxX) / 2) * usable),
+    offsetY: round((0.5 - (minY + maxY) / 2) * usable),
+  };
 }
 
 /**

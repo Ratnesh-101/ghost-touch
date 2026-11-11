@@ -860,10 +860,14 @@ body {
   box-shadow: 0 0 14px var(--gt-green-glow);
 }
 
-.gt-capture__sample-preview {
+.gt-capture__sample-btn .gt-capture__sample-preview {
+  /* Higher specificity than .gt-specimen (width/height: 100%), which loads later. */
   width: 56px;
   height: 56px;
-  flex-shrink: 0;
+  min-width: 56px;
+  min-height: 56px;
+  aspect-ratio: 1 / 1;
+  flex: 0 0 56px;
 }
 
 .gt-capture__sample-name {
