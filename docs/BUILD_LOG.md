@@ -3976,4 +3976,25 @@ Format for each entry:
   - `docs/BLOG.md`
   - `docs/SOCIAL.md`
   - `docs/reports/agy-d2-docs-judge-pass-report.md`
+## 2026-11-11 — agy, reviewed by Claude — Lane z4-test-flake (App-import timeout flake)
+- Tool: **agy, reviewed by Claude** (Antigravity).
+- Investigated and remediated test flake in full Vitest test runs where tests dynamically
+  importing `App.tsx` timed out under heavy concurrent system load (Playwright/Chromium/Kiro).
+- Audited all test files in `frontend/tests/` for dynamic imports of `../src/App` and large
+  modules (`pdf`, `share`).
+- Found that `frontend/tests/q2.round5.test.tsx` dynamically imported `../src/App` inside
+  `beforeAll` without an explicit timeout (defaulting to Vitest's 10,000 ms), causing the entire
+  12-test suite to be skipped when module graph compilation exceeded 10 s under load.
+- Updated `frontend/tests/q2.round5.test.tsx` to cache the module import at file level
+  (`appModuleCache` and `loadAppModule()`) matching `z3.appMergedFixes.test.tsx`, ensuring `App`
+  is loaded only once per file, and increased the `beforeAll` timeout to `60_000` ms (60 s).
+- Verified that no assertions were modified or weakened; all 12 tests retain original
+  verification logic.
+- Kept lines strictly within 100 columns and ruff-format style. Zero production code modified.
+- What broke / surprising findings:
+  - None; `q2.round5.test.tsx` was the sole remaining test file with uncached dynamic App import
+    and default 10 s timeout (`z3.appMergedFixes` and `correct.back` already used 60 s timeouts).
+- Files touched:
+  - `frontend/tests/q2.round5.test.tsx`
+  - `docs/reports/agy-z4-test-flake-report.md`
   - `docs/BUILD_LOG.md`

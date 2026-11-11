@@ -56,6 +56,14 @@ vi.mock('pdfjs-dist/build/pdf.worker.min.mjs?url', () => ({
   default: '',
 }));
 
+let appModuleCache: typeof import('../src/App') | null = null;
+async function loadAppModule(): Promise<typeof import('../src/App')> {
+  if (!appModuleCache) {
+    appModuleCache = await import('../src/App');
+  }
+  return appModuleCache;
+}
+
 let resolveShareRoute!: typeof import('../src/App').resolveShareRoute;
 let speakShareAnnouncements!: typeof import('../src/App').speakShareAnnouncements;
 
@@ -115,10 +123,10 @@ describe('Lane q2-frontend-round5 Verification Suite', () => {
   let prevLang: Lang;
 
   beforeAll(async () => {
-    const app = await import('../src/App');
+    const app = await loadAppModule();
     resolveShareRoute = app.resolveShareRoute;
     speakShareAnnouncements = app.speakShareAnnouncements;
-  });
+  }, 60_000);
 
   beforeEach(() => {
     prevLang = getLang();
