@@ -1436,6 +1436,92 @@ body {
 }
 
 /* ==========================================================================
+   W3 BUZZ FALLBACK (Audible buzz + visible pulse when vibration missing)
+   ========================================================================== */
+.gt-explore__no-vibration {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  color: var(--gt-bone, #ded6c4);
+  background: rgba(200, 138, 75, 0.12);
+  border: 1px solid var(--gt-copper, #c88a4b);
+  border-radius: var(--gt-radius-sm, 4px);
+  padding: 8px 12px;
+  margin: 4px 12px 8px;
+  text-align: center;
+  box-shadow: 0 0 10px rgba(200, 138, 75, 0.15);
+}
+
+.gt-explore__pulse-ring {
+  position: absolute;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gt-explore__ring {
+  display: block;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.gt-explore__ring--outer {
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--gt-green, #39ff88);
+  box-shadow: 0 0 10px var(--gt-green, #39ff88);
+  animation: gt-pulse-expand 120ms ease-out forwards;
+}
+
+.gt-explore__pulse-ring--corner .gt-explore__ring--outer {
+  width: 56px;
+  height: 56px;
+  border-color: var(--gt-cyan, #00f0ff);
+  box-shadow: 0 0 14px var(--gt-cyan, #00f0ff);
+}
+
+.gt-explore__ring--inner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--gt-cyan, #00f0ff);
+  box-shadow: 0 0 8px var(--gt-cyan, #00f0ff);
+  animation: gt-pulse-expand-inner 120ms ease-out forwards;
+}
+
+@keyframes gt-pulse-expand {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0.2;
+  }
+}
+
+@keyframes gt-pulse-expand-inner {
+  0% {
+    transform: scale(0.5);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.1);
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gt-explore__ring--outer,
+  .gt-explore__ring--inner {
+    animation: none !important;
+    opacity: 0.85 !important;
+    transform: none !important;
+  }
+}
+
+/* ==========================================================================
    LAB PRIMITIVES
    ========================================================================== */
 /* The presentational rules for Seam, Rivets, LabCard, and Spark

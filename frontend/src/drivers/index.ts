@@ -9,9 +9,14 @@ import { DEFAULT_HAPTICS, type Effect } from '../core/hapticEngine';
 import type { DiagramScene } from '../core/scene';
 import type { GuideEffect } from '../guide';
 import { t, tf } from '../i18n';
-import { WebAudioDriver, type AudioDriver } from './audio';
+import { WebAudioDriver, type AudioContextFactory, type AudioDriver } from './audio';
 import { IDBDiagramStore, type DiagramStore } from './diagramStore';
-import { WebHapticDriver, type HapticDriver } from './haptics';
+import {
+  FallbackHapticDriver,
+  WebHapticDriver,
+  type HapticDriver,
+  type VibrateHost,
+} from './haptics';
 import { WebSpeechDriver, type SpeechDriver } from './speech';
 
 export type { AudioDriver, EarconKind } from './audio';
@@ -19,7 +24,7 @@ export { getEarconSteps, WebAudioDriver } from './audio';
 export type { DiagramStore, StoreResult } from './diagramStore';
 export { IDBDiagramStore, MemoryDiagramStore } from './diagramStore';
 export type { HapticDriver } from './haptics';
-export { WebHapticDriver } from './haptics';
+export { FallbackHapticDriver, WebHapticDriver } from './haptics';
 export {
   ListenError,
   type ListenFailure,
@@ -48,10 +53,19 @@ export interface Drivers {
   diagramStore: DiagramStore;
 }
 
-export function createBrowserDrivers(): Drivers {
+export function createBrowserDrivers(
+  audioFactory?: AudioContextFactory,
+  vibrateHost?: VibrateHost,
+): Drivers {
+  const audio = new WebAudioDriver(audioFactory);
+  const webHaptics = new WebHapticDriver(vibrateHost);
+  const haptics = webHaptics.supported
+    ? webHaptics
+    : new FallbackHapticDriver(audio);
+
   return {
-    haptics: new WebHapticDriver(),
-    audio: new WebAudioDriver(),
+    haptics,
+    audio,
     speech: new WebSpeechDriver(),
     diagramStore: new IDBDiagramStore(),
   };

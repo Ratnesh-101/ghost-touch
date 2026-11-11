@@ -3643,4 +3643,43 @@ Format for each entry:
   - `docs/reports/agy-o2-save-rollback-report.md`
   - `docs/BUILD_LOG.md`
 
+## 2026-11-11 — agy, reviewed by Claude — Lane w3-buzz-fallback (Audible Buzz + Pulse Fallback)
+- Tool: **agy, reviewed by Claude**.
+- What was done:
+  - Built `FallbackHapticDriver` in `frontend/src/drivers/haptics.ts` (`supported = false`),
+    implementing `HapticDriver` and routing vibration requests to a `BuzzSink` (`audio.buzz`)
+    and optional `onPulse` visual callback. Added pure `patternToBuzzes` timing helper converting
+    patterns to timed buzzes with running offset summation.
+  - Extended `AudioDriver` and `WebAudioDriver` in `frontend/src/drivers/audio.ts` with
+    `buzz(durationMs)`, a dedicated low 90 Hz sawtooth voice with gain <= 0.12 and 8 ms fade that
+    does not disturb the theremin tone and is a no-op before `unlock()`.
+  - Wired `createBrowserDrivers` in `frontend/src/drivers/index.ts` to return `FallbackHapticDriver`
+    when `webHaptics.supported === false`, while leaving `WebHapticDriver` untouched when supported.
+  - Updated `frontend/src/screens/Explore.tsx` to display and speak `explore.noVibration` once on
+    entry when fallback is active (silent when vibration is supported), and render a visual pulse ring
+    at the pointer coordinates (two rings for corner patterns, one ring for pulses) that is
+    `aria-hidden="true"`, `pointer-events: none`, and respects `prefers-reduced-motion` with a 120 ms
+    fixed ring.
+  - Added `explore.noVibration` translations across `en`, `hi`, and `gu` in `frontend/src/i18n/index.ts`
+    and recorded entries in `docs/user-test/translation-review.csv`.
+  - Created test suites `frontend/tests/w3.buzzFallback.test.ts` (13 tests) and
+    `frontend/tests/w3.buzzFallback.test.tsx` (5 tests) verifying pure pattern conversions, timer
+    cancellations, factory wiring, audio voice isolation, Explore note/speech, and pulse ring semantics.
+- What broke / surprising findings:
+  - Pass 1: No functional test breakages (vitest 2094 tests passing). Supervisor gate flagged 12 `tsc --noEmit` errors due to unused driver re-exports and test double import paths.
+  - Pass 2: Resolved all 12 `tsc` errors by pruning unused imports in `drivers/index.ts`, pointing `w3.buzzFallback.test.ts` to direct driver modules (`drivers/audio` and `drivers/haptics`), giving `FakeContext` a fully-typed `AudioContextLike` shape matching `drivers.audio.test.ts`, and updating `Explore.tsx` import paths. Zero `any` or `as unknown as` casts used.
+- Files touched:
+  - `frontend/src/drivers/haptics.ts`
+  - `frontend/src/drivers/audio.ts`
+  - `frontend/src/drivers/index.ts`
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/styles/global.css`
+  - `frontend/src/i18n/index.ts`
+  - `docs/user-test/translation-review.csv`
+  - `frontend/tests/w3.buzzFallback.test.ts`
+  - `frontend/tests/w3.buzzFallback.test.tsx`
+  - `docs/reports/agy-w3-buzz-fallback-report.md`
+  - `docs/BUILD_LOG.md`
+
+
 

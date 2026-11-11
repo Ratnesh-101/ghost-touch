@@ -65,6 +65,8 @@ export interface AudioDriver {
   beep(hz: number, ms: number): void;
   /** Play an earcon cue. Temporarily ducks the theremin tone so they never overlap. */
   playEarcon(kind: EarconKind): void;
+  /** Short low buzz voice when haptics are missing. Never disturbs the theremin tone. */
+  buzz?(durationMs: number): void;
   /** 'unavailable' (no Web Audio), 'locked' (not unlocked yet), or the context state. */
   readonly state: string;
 }
@@ -135,6 +137,11 @@ const GAIN_OFF_TIME_CONSTANT = 0.03;
 const BEEP_GAIN = 0.08;
 const BEEP_FADE_TIME_CONSTANT = 0.02;
 const BEEP_STOP_PADDING_S = 0.2;
+/** Buzz voice (about 90 Hz sawtooth, gain <= 0.12, 8 ms fade) when haptics are missing. */
+const BUZZ_HZ = 90;
+const BUZZ_GAIN = 0.12;
+const BUZZ_FADE_TIME_CONSTANT = 0.008;
+const BUZZ_STOP_PADDING_S = 0.05;
 
 function defaultFactory(): AudioContextLike | undefined {
   if (typeof window === 'undefined') return undefined;
@@ -327,6 +334,46 @@ export class WebAudioDriver implements AudioDriver {
     };
     osc.start(now);
     osc.stop(end + BEEP_STOP_PADDING_S);
+  }
+
+  buzz(durationMs: number): void {
+    const ctx = this.ctx;
+    if (ctx === undefined || !Number.isFinite(durationMs) || !(durationMs > 0)) return;
+    if (ctx.state === 'suspended') {
+      this.resumeIfSuspended(ctx);
+    }
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const now = ctx.currentTime;
+    const durationS = durationMs / 1000;
+    const end = now + durationS;
+
+    osc.type = 'sawtooth';
+    osc.frequency.value = BUZZ_HZ;
+    gain.gain.value = 0;
+    gain.gain.setTargetAtTime(BUZZ_GAIN, now, BUZZ_FADE_TIME_CONSTANT);
+    gain.gain.setTargetAtTime(
+      0,
+      Math.max(now, end - BUZZ_FADE_TIME_CONSTANT),
+      BUZZ_FADE_TIME_CONSTANT,
+    );
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.onended = () => {
+      try {
+        osc.disconnect?.();
+      } catch {
+        // Ignore errors if already disconnected
+      }
+      try {
+        gain.disconnect?.();
+      } catch {
+        // Ignore errors if already disconnected
+      }
+    };
+    osc.start(now);
+    osc.stop(end + BUZZ_STOP_PADDING_S);
   }
 
   playEarcon(kind: EarconKind): void {

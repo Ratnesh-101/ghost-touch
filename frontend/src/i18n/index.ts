@@ -88,6 +88,8 @@ const en: Record<string, string> = {
   'capture.errorPdfTimeout': 'That PDF took too long to read. Try a screenshot of the page.',
   'capture.errorPdf':
     'PDF files are not supported yet. Please upload a screenshot or photo of the page.',
+  'explore.noVibration':
+    'No vibration on this device. You will hear a buzz instead. Use Chrome on Android to feel it.',
   'explore.gestureHint':
     'Double-tap and hold, then drag to feel the diagram. You start at the centre.',
   'explore.backHint': 'Press Back to leave.',
@@ -441,6 +443,8 @@ const hi: Record<string, string> = {
   'capture.errorPdfTimeout': 'उस पीडीएफ को पढ़ने में बहुत समय लगा। पृष्ठ का स्क्रीनशॉट आज़माएं।',
   'capture.errorPdf':
     'पीडीएफ फाइलें अभी समर्थित नहीं हैं। कृपया पृष्ठ का स्क्रीनशॉट या फोटो अपलोड करें।',
+  'explore.noVibration':
+    'इस डिवाइस पर कंपन नहीं है। इसके बजाय आपको एक बज़ सुनाई देगा। इसे महसूस करने के लिए एंड्रॉइड पर क्रोम का उपयोग करें।',
   'explore.gestureHint':
     'डबल-टैप करके दबाए रखें, फिर चित्र महसूस करने के लिए खींचें। आप केंद्र से शुरू करते हैं।',
   'explore.backHint': 'वापस जाने के लिए बैक दबाएं।',
@@ -796,6 +800,8 @@ const gu: Record<string, string> = {
   'capture.errorPdfTimeout': 'તે પીડીએફ વાંચવામાં ઘણો સમય લાગ્યો. સ્ક્રીનશોટ અજમાવો.',
   'capture.errorPdf':
     'પીડીએફ ફાઇલો હજી સપોર્ટેડ નથી. કૃપા કરીને સ્ક્રીનશોટ અથવા ફોટો અપલોડ કરો.',
+  'explore.noVibration':
+    'આ ઉપકરણ પર વાઇબ્રેશન નથી. તેના બદલે તમને બઝ સંભળાશે. તેને અનુભવવા માટે Android પર Chrome વાપરો.',
   'explore.gestureHint':
     'ડબલ-ટેપ કરીને દબાવી રાખો, પછી આકૃતિ અનુભવવા માટે ખેંચો. તમે કેન્દ્રથી શરૂ કરો છો.',
   'explore.backHint': 'પાછા જવા માટે બેક દબાવો.',

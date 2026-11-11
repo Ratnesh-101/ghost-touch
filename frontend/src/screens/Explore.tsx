@@ -21,7 +21,8 @@ import {
   type Viewport,
 } from '../core/geometry';
 import type { DiagramScene } from '../core/scene';
-import { runEffects, type Drivers } from '../drivers';
+import { FallbackHapticDriver, runEffects, type Drivers } from '../drivers';
+import type { PulseKind } from '../drivers/haptics';
 import { leaveExploreEntry, onBack as subscribeBack, pushExploreEntry } from '../drivers/navigation';
 import { askErrorMessage, AskManager, LISTENING_BEEP_HZ, LISTENING_BEEP_MS, type AskOutcome } from '../flow/ask';
 import type { GuideTarget } from '../api/ask';
@@ -282,6 +283,45 @@ export function Explore({
   const initialAliveRef = useRef<boolean>(shouldPlayAlive(scene));
   const [isAlive, setIsAlive] = useState(initialAliveRef.current);
   const prevSceneRef = useRef<DiagramScene>(scene);
+  const [pulse, setPulse] = useState<{ kind: PulseKind; x: number; y: number } | null>(null);
+  const pulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Announce missing vibration warning once on entry if fallback is active
+  useEffect(() => {
+    if (!drivers.haptics.supported) {
+      drivers.speech.speak(t('explore.noVibration'), LANG_BCP47[getLang()] ?? 'en-IN');
+    }
+  }, []);
+
+  // Connect visual pulse callback to fallback haptic driver if active
+  useEffect(() => {
+    const haptics = drivers.haptics;
+    if ('onPulse' in haptics) {
+      (haptics as FallbackHapticDriver).onPulse = (kind: PulseKind) => {
+        const cursor = pendingCursor.current ?? {
+          x: viewportRef.current.canvasWidth / 2,
+          y: viewportRef.current.canvasHeight / 2,
+        };
+        setPulse({ kind, x: cursor.x, y: cursor.y });
+        if (pulseTimer.current !== null) {
+          clearTimeout(pulseTimer.current);
+        }
+        pulseTimer.current = setTimeout(() => {
+          setPulse(null);
+          pulseTimer.current = null;
+        }, 120);
+      };
+    }
+    return () => {
+      if ('onPulse' in haptics) {
+        (haptics as FallbackHapticDriver).onPulse = undefined;
+      }
+      if (pulseTimer.current !== null) {
+        clearTimeout(pulseTimer.current);
+        pulseTimer.current = null;
+      }
+    };
+  }, [drivers.haptics]);
 
   if (typeof window === 'undefined' && initialAliveRef.current) {
     markAlivePlayed(scene);
@@ -1038,6 +1078,7 @@ export function Explore({
     }
     updateDimensions();
     const coords = getCanvasCoords(e);
+    pendingCursor.current = coords;
     const now = performance.now();
     const view = viewportRef.current;
     const lang = LANG_BCP47[getLang()] ?? 'en-IN';
@@ -1311,6 +1352,16 @@ export function Explore({
         </StatusText>
       </div>
 
+      {!drivers.haptics.supported && (
+        <div
+          className="gt-explore__no-vibration"
+          data-testid="explore-no-vibration"
+          role="note"
+        >
+          {t('explore.noVibration')}
+        </div>
+      )}
+
       <div className="gt-explore__canvas-container gt-lab-specimen-table" data-lab-specimen-table="true">
         <div className="gt-lab-frame" data-lab-frame aria-hidden="true">
           <span className="gt-lab-rivet gt-lab-rivet--tl" aria-hidden="true" />
@@ -1328,6 +1379,26 @@ export function Explore({
             </div>
           )}
         </div>
+        {pulse && (
+          <div
+            className={`gt-explore__pulse-ring gt-explore__pulse-ring--${pulse.kind}`}
+            data-testid="explore-pulse-ring"
+            data-pulse-kind={pulse.kind}
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              left: `${pulse.x}px`,
+              top: `${pulse.y}px`,
+              pointerEvents: 'none',
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            <span className="gt-explore__ring gt-explore__ring--outer" aria-hidden="true" />
+            {pulse.kind === 'corner' && (
+              <span className="gt-explore__ring gt-explore__ring--inner" aria-hidden="true" />
+            )}
+          </div>
+        )}
         <canvas
           ref={canvasRef}
           className="gt-explore__canvas"
