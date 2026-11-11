@@ -4052,3 +4052,10 @@ Format for each entry:
   - `docs/reports/agy-f1-phone-fixes-report.md`
   - `docs/BUILD_LOG.md`
 
+
+### 2026-11-12 K4 core fixes (tool = Kiro)
+- Fixed audit findings CORE-A1, A5, A7, A6, A4 in frontend/src/core (verify.ts, correct.ts, hitTest.ts, hapticEngine.ts), spec first, one commit each (6a81b99, a844193, ca28671, 280e59b, 80da5e8). CORE-A8 skipped as instructed.
+- Tests added: verify.rightAngledTriangle, correct.k4, correct.k4.delete, hitTest.zeroViewport, hapticEngine.barSpeech. P31 and one clamp01 example amended for Requirement 9.10.
+- Gate: tsc 0 errors; vitest 171 files / 2202 tests pass; Playwright not run. No tuned haptic value changed.
+- Files touched: frontend/src/core/{verify,correct,hitTest,hapticEngine}.ts, the tests above, .kiro/specs/ghost-touch/requirements.md, docs/kiro-evidence/k4-core-fixes.md, docs/BUILD_LOG.md
+
