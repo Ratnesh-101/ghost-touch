@@ -15,6 +15,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import type { DiagramScene } from '../src/core/scene';
 import { encodeShare, type SharePayload } from '../src/share';
 import { setLang } from '../src/i18n';
+import { MemoryDiagramStore } from '../src/drivers';
 
 const capturedScene: DiagramScene = {
   version: 1,
@@ -95,6 +96,21 @@ vi.mock('../src/config/features', async (importOriginal) => {
   };
 });
 
+// Give App a real, inspectable MemoryDiagramStore (R7F-2).
+const observed = vi.hoisted(() => ({
+  store: null as import('../src/drivers').MemoryDiagramStore | null,
+}));
+vi.mock('../src/drivers', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/drivers')>();
+  return {
+    ...actual,
+    createBrowserDrivers: (...args: Parameters<typeof actual.createBrowserDrivers>) => ({
+      ...actual.createBrowserDrivers(...args),
+      diagramStore: observed.store!,
+    }),
+  };
+});
+
 let App!: typeof import('../src/App').App;
 let appModulePromise: Promise<typeof import('../src/App')> | null = null;
 function getAppModule(): Promise<typeof import('../src/App')> {
@@ -102,6 +118,12 @@ function getAppModule(): Promise<typeof import('../src/App')> {
     appModulePromise = import('../src/App');
   }
   return appModulePromise;
+}
+
+async function flushSaves(): Promise<void> {
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 30));
+  });
 }
 
 describe('FLOW-04: Reset on shared diagram open', () => {
@@ -116,6 +138,7 @@ describe('FLOW-04: Reset on shared diagram open', () => {
   beforeEach(() => {
     setLang('en');
     lastCorrectPhotoUrl = 'not-called';
+    observed.store = new MemoryDiagramStore();
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -153,6 +176,15 @@ describe('FLOW-04: Reset on shared diagram open', () => {
 
     // Explore is showing
     expect(container!.querySelector('.gt-explore')).not.toBeNull();
+
+    // The captured diagram was saved and is now lastSavedDiagramId.
+    await flushSaves();
+    const saved = await observed.store!.list();
+    expect(saved.ok).toBe(true);
+    const entriesBefore = saved.ok ? saved.value : [];
+    expect(entriesBefore).toHaveLength(1);
+    expect(entriesBefore[0]!.title).toBe('Captured Diagram A');
+    const entryAId = entriesBefore[0]!.id;
 
     // Now drive hash change to a valid shared link
     const payload: SharePayload = {
@@ -200,5 +232,20 @@ describe('FLOW-04: Reset on shared diagram open', () => {
 
     // Explore screen restored
     expect(container!.querySelector('.gt-explore')).not.toBeNull();
+
+    // The save went through App's real handleSaveCorrect: A is untouched, B is a new entry.
+    await flushSaves();
+    const after = await observed.store!.list();
+    expect(after.ok).toBe(true);
+    const entries = after.ok ? after.value : [];
+    expect(entries).toHaveLength(2);
+    const entryA = entries.find((e) => e.id === entryAId);
+    expect(entryA).toBeDefined();
+    expect(entryA!.title).toBe('Captured Diagram A');
+    expect(entryA!.scene).toEqual(capturedScene);
+    const entryB = entries.find((e) => e.id !== entryAId);
+    expect(entryB).toBeDefined();
+    expect(entryB!.title).toBe('Shared Diagram B');
+    expect(entryB!.scene.title).toBe('Shared Diagram B');
   });
 });
