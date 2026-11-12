@@ -4178,3 +4178,65 @@ Format for each entry:
   - `docs/BUILD_LOG.md`
 
 
+## 2026-11-12 — agy, reviewed by Claude — Lane r7-flow (Fixes for the Nov 12 Kiro audit: app flow, Correct, Teach, share)
+- Tool: **agy, reviewed by Claude** (Antigravity).
+- Resolved audit findings from `docs/reviews/kiro-audit-2026-11-12-flow.md` and `-core.md` (CORE-A9):
+  - FLOW-01: In `screens/Correct.tsx`, added `isMountedRef` and `saveAbortControllerRef` with
+    AbortSignal support in `executeCorrectSave`, preventing late save callbacks and earcons on
+    unmounted component. In `App.tsx`, updated `handleSaveCorrect` to verify
+    `viewRef.current.screen === 'correct'` before applying save or transitioning view.
+  - FLOW-03: In `screens/ShareError.tsx`, focused the error heading on mount (`tabIndex={-1}`)
+    allowing TalkBack / screen readers to announce the failure reason on initial page load, while
+    preserving speech collision prevention contract (alert/live region only when muted).
+  - FLOW-04: In `App.tsx`, updated `handleOpenSharedDiagram` to reset `lastSavedDiagramId.current = null`
+    and call `updatePhotoUrl(null)`, preventing subsequent Correct saves from overwriting existing
+    diagram entries and clearing photo background.
+  - FLOW-05: In `screens/Teach.tsx`, added `executeTeachLoad` helper and updated `handleLoadScene` to
+    check `isDirty` and prompt `window.confirm(t('teach.confirmLeave'))` before replacing unsaved
+    work; declining stays in the editor and preserves the current edits and undo stack.
+  - CORE-A9: In `components/teach/LoadModal.tsx`, replaced static `d.title` with dynamic
+    `savedTitle(d.scene, currentLang)`, ensuring saved diagrams display language-aware kind titles
+    in Hindi and Gujarati matching the Saved Diagrams screen.
+- Added comprehensive Vitest test suites:
+  - `frontend/tests/correct.lateSave.test.tsx`: verifies abort handling in `executeCorrectSave`,
+    unmount safety in `Correct`, and late resolution rejection in `App`.
+  - `frontend/tests/shareError.coldOpen.test.tsx`: verifies heading focus on cold load
+    with `#s=garbage`.
+  - `frontend/tests/app.shareOpen.resets.test.tsx`: verifies `lastSavedDiagramId` and `photoUrl`
+    resets upon opening a shared link.
+  - `frontend/tests/teach.loadDirty.test.tsx`: verifies dirty confirmation in `executeTeachLoad`
+    and `Teach.tsx`.
+  - `frontend/tests/teach.loadModalTitle.test.tsx`: verifies localised saved diagram titles in
+    `LoadModal` across Hindi, Gujarati, and custom titles.
+- Zero changes to Kiro-owned files (`core/**`, `.kiro/**`, `*.prop.test.ts`),
+  `screens/Explore.tsx`, `flow/a11yFeatures.ts`, or tuned haptics.
+- What broke / surprising findings:
+  - Pass 1 supervisor run caught 4 tsc errors and 8 vitest failures across test mocks and contracts:
+    1. ShareError role="alert" broke m3.sharedLinkGate and share.open.errors speech collision
+       prevention contracts when canSpeak is true; restored contract so card alert and polite
+       StatusText live region render only when muted, and implemented FLOW-03 via focus on heading
+       on mount without extra role="alert".
+    2. Correct executeCorrectSave passed `{ signal: undefined }` which broke
+       `toHaveBeenCalledWith(scene)` in k6.pwa-offline; corrected to pass signal only when
+       present, and ensured offline fallback on network rejection triggers normal onSave when active.
+    3. Test mock imports in shareError.coldOpen and app.shareOpen.resets lacked pdfjs mocks or
+       feature exports; updated with importOriginal and worker mocks.
+    4. teach.loadDirty test was searching for non-existent `.gt-teach-canvas__point-btn`; aligned
+       with teach.editor pointerdown canvas hit testing and delete button activation.
+    5. teach.loadModalTitle fixed SavedDiagram thumbnailDataUrl type and replaced store.seed with
+       real store.put.
+    6. correct.lateSave removed unused mockRequestValidate declaration.
+- Files touched:
+  - `frontend/src/screens/Correct.tsx`
+  - `frontend/src/App.tsx`
+  - `frontend/src/screens/ShareError.tsx`
+  - `frontend/src/screens/Teach.tsx`
+  - `frontend/src/components/teach/LoadModal.tsx`
+  - `frontend/tests/correct.lateSave.test.tsx` (new)
+  - `frontend/tests/shareError.coldOpen.test.tsx` (new)
+  - `frontend/tests/app.shareOpen.resets.test.tsx` (new)
+  - `frontend/tests/teach.loadDirty.test.tsx` (new)
+  - `frontend/tests/teach.loadModalTitle.test.tsx` (new)
+  - `docs/reports/agy-r7-flow-report.md`
+  - `docs/BUILD_LOG.md`
+

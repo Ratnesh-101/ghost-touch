@@ -11,17 +11,18 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type FormEvent,
   type JSX,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import { AccessibleButton } from '../AccessibleButton';
 import type { DiagramScene } from '../../core/scene';
-import type { SavedDiagram } from '../../core/savedDiagrams';
+import { savedTitle, type SavedDiagram } from '../../core/savedDiagrams';
 import type { Drivers } from '../../drivers';
 import { loadSceneFromShareInput } from '../../flow/teach';
 import type { SharePayload } from '../../share';
-import { t } from '../../i18n';
+import { getLang, subscribeLang, t } from '../../i18n';
 
 export interface LoadModalProps {
   open: boolean;
@@ -29,6 +30,7 @@ export interface LoadModalProps {
   drivers: Drivers;
   onClose: () => void;
   onLoadScene: (scene: DiagramScene, sourceTitle: string, payload?: SharePayload) => void;
+  lang?: string;
 }
 
 export function LoadModal({
@@ -37,7 +39,10 @@ export function LoadModal({
   drivers,
   onClose,
   onLoadScene,
+  lang,
 }: LoadModalProps): JSX.Element | null {
+  const activeLang = useSyncExternalStore(subscribeLang, getLang, getLang);
+  const currentLang = lang ?? activeLang;
   const [shareInput, setShareInput] = useState('');
   const [shareError, setShareError] = useState<string | null>(null);
   const [savedDiagrams, setSavedDiagrams] = useState<SavedDiagram[]>([]);
@@ -165,11 +170,12 @@ export function LoadModal({
                 type="button"
                 className="gt-control gt-btn gt-btn--secondary gt-teach-modal__item-btn"
                 onClick={() => {
-                  onLoadScene(currentScene, currentScene.title ?? t('teach.loadCurrent'));
+                  const title = savedTitle(currentScene, currentLang);
+                  onLoadScene(currentScene, title);
                   onClose();
                 }}
               >
-                {currentScene.title ?? t('teach.loadCurrent')} ({currentScene.kind})
+                {savedTitle(currentScene, currentLang)} ({currentScene.kind})
               </AccessibleButton>
             </section>
           )}
@@ -220,21 +226,24 @@ export function LoadModal({
               <p className="gt-teach-modal__empty">{t('teach.noSavedDiagrams')}</p>
             ) : (
               <ul className="gt-teach-modal__saved-list">
-                {savedDiagrams.map((d) => (
-                  <li key={d.id} className="gt-teach-modal__saved-item">
-                    <AccessibleButton
-                      type="button"
-                      className="gt-control gt-btn gt-btn--secondary gt-teach-modal__saved-btn"
-                      onClick={() => {
-                        onLoadScene(d.scene, d.title);
-                        onClose();
-                      }}
-                    >
-                      <span className="gt-teach-modal__saved-title">{d.title}</span>
-                      <span className="gt-teach-modal__saved-kind">({d.scene.kind})</span>
-                    </AccessibleButton>
-                  </li>
-                ))}
+                {savedDiagrams.map((d) => {
+                  const title = savedTitle(d.scene, currentLang);
+                  return (
+                    <li key={d.id} className="gt-teach-modal__saved-item">
+                      <AccessibleButton
+                        type="button"
+                        className="gt-control gt-btn gt-btn--secondary gt-teach-modal__saved-btn"
+                        onClick={() => {
+                          onLoadScene(d.scene, title);
+                          onClose();
+                        }}
+                      >
+                        <span className="gt-teach-modal__saved-title">{title}</span>
+                        <span className="gt-teach-modal__saved-kind">({d.scene.kind})</span>
+                      </AccessibleButton>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>

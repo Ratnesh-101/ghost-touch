@@ -145,6 +145,35 @@ export function executeTeachBack(
   return { stayed: false };
 }
 
+export interface TeachLoadActions {
+  speak: (text: string) => void;
+  confirm: (message: string) => boolean;
+  sayAndStatus: (msg: string) => void;
+  focusHeading: () => void;
+  onApply: () => void;
+}
+
+/**
+ * Handle loading a scene into the Teacher editor (FLOW-05).
+ * If the editor has unsaved edits, asks for confirmation before replacing it.
+ */
+export function executeTeachLoad(
+  isDirty: boolean,
+  actions: TeachLoadActions,
+): { loaded: boolean } {
+  if (isDirty) {
+    actions.speak(t('teach.confirmLeave'));
+    const confirmed = actions.confirm(t('teach.confirmLeave'));
+    if (!confirmed) {
+      actions.sayAndStatus(t('teach.stayingInEditor'));
+      actions.focusHeading();
+      return { loaded: false };
+    }
+  }
+  actions.onApply();
+  return { loaded: true };
+}
+
 export function Teach({
   initialScene,
   currentExploreScene,
@@ -558,20 +587,33 @@ export function Teach({
     sourceTitle: string,
     payload?: SharePayload,
   ): void => {
-    const nextName = payload && typeof payload.verifiedBy === 'string' ? payload.verifiedBy : '';
-    const nextNote = payload && typeof payload.note === 'string' ? payload.note : '';
-    setHistory(createHistory(newScene));
-    setSelection(null);
-    setShareData(null);
-    setTeacherName(nextName);
-    setTeacherNote(nextNote);
-    cleanBaseline.current = {
-      scene: newScene,
-      name: nextName,
-      note: nextNote,
-    };
-    const msg = t('teach.loadedSuccess').replace('{title}', sourceTitle);
-    sayAndStatus(msg);
+    executeTeachLoad(isDirty, {
+      speak,
+      confirm: (msg) =>
+        typeof window !== 'undefined' && typeof window.confirm === 'function'
+          ? window.confirm(msg)
+          : true,
+      sayAndStatus,
+      focusHeading: () => headingRef.current?.focus(),
+      onApply: () => {
+        const nextName =
+          payload && typeof payload.verifiedBy === 'string' ? payload.verifiedBy : '';
+        const nextNote =
+          payload && typeof payload.note === 'string' ? payload.note : '';
+        setHistory(createHistory(newScene));
+        setSelection(null);
+        setShareData(null);
+        setTeacherName(nextName);
+        setTeacherNote(nextNote);
+        cleanBaseline.current = {
+          scene: newScene,
+          name: nextName,
+          note: nextNote,
+        };
+        const msg = t('teach.loadedSuccess').replace('{title}', () => sourceTitle);
+        sayAndStatus(msg);
+      },
+    });
   };
 
   return (

@@ -551,6 +551,8 @@ export function App(): JSX.Element {
   const handleOpenSharedDiagram = (
     resolution: Extract<ShareRouteResolution, { kind: 'explore' }>,
   ): void => {
+    lastSavedDiagramId.current = null;
+    updatePhotoUrl(null);
     lastExploreScene.current = resolution.scene;
     setView(openSharedDiagram(drivers, resolution, LANG_BCP47[currentLang]));
   };
@@ -609,6 +611,7 @@ export function App(): JSX.Element {
   };
 
   const handleSaveCorrect = (scene: DiagramScene, notice?: string): void => {
+    if (viewRef.current.screen !== 'correct') return;
     correctDirty.current = false;
     leaveCorrectEntry();
     lastExploreScene.current = scene;

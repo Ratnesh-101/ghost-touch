@@ -11,7 +11,12 @@
  * - Accessible controls (≥48×48 px targets, spoken state changes, keyboard operable)
  */
 import { useEffect, useRef, useState, type FormEvent, type JSX, type KeyboardEvent, type PointerEvent } from 'react';
-import { requestValidate, type ValidateResponse } from '../api/validate';
+import {
+  requestValidate,
+  ValidateRequestError,
+  type ValidateRequestOptions,
+  type ValidateResponse,
+} from '../api/validate';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { StatusText } from '../components/StatusText';
 import {
@@ -91,8 +96,12 @@ export type SaveCorrectResult =
 
 export interface ExecuteCorrectSaveOptions {
   isOnline?: boolean;
-  requestValidate?: (scene: DiagramScene) => Promise<ValidateResponse>;
+  requestValidate?: (
+    scene: DiagramScene,
+    options?: ValidateRequestOptions,
+  ) => Promise<ValidateResponse>;
   validateInvariants?: (scene: DiagramScene) => InvariantResult;
+  signal?: AbortSignal;
 }
 
 /**
@@ -108,6 +117,11 @@ export async function executeCorrectSave(
     options.isOnline ?? (typeof navigator !== 'undefined' ? navigator.onLine : true);
   const doValidateInvariants = options.validateInvariants ?? validateSceneInvariants;
   const doRequestValidate = options.requestValidate ?? requestValidate;
+  const signal = options.signal;
+
+  if (signal?.aborted) {
+    throw new ValidateRequestError('aborted');
+  }
 
   const fallback = (): SaveCorrectResult => {
     const local = doValidateInvariants(scene);
@@ -122,12 +136,18 @@ export async function executeCorrectSave(
   }
 
   try {
-    const res = await doRequestValidate(scene);
+    const res = await (signal ? doRequestValidate(scene, { signal }) : doRequestValidate(scene));
+    if (signal?.aborted) {
+      throw new ValidateRequestError('aborted');
+    }
     if (res.ok && res.scene) {
       return { kind: 'saved', scene: res.scene, messageKey: 'correct.saved' };
     }
     return { kind: 'invalid', errors: res.errors };
-  } catch {
+  } catch (err: unknown) {
+    if (signal?.aborted || (err instanceof ValidateRequestError && err.failure === 'aborted')) {
+      throw err;
+    }
     return fallback();
   }
 }
@@ -148,7 +168,17 @@ export function Correct({
   const [hasError, setHasError] = useState(false);
 
   const isSavingRef = useRef(false);
+  const isMountedRef = useRef(true);
+  const saveAbortControllerRef = useRef<AbortController | null>(null);
   const isDirty = canUndo(history);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      saveAbortControllerRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -576,13 +606,21 @@ export function Correct({
   };
 
   const handleSave = async (): Promise<void> => {
-    if (isSavingRef.current) return;
+    if (isSavingRef.current || !isMountedRef.current) return;
     isSavingRef.current = true;
     setIsSaving(true);
     sayAndStatus(t('correct.validating'));
 
+    const abortController = new AbortController();
+    saveAbortControllerRef.current = abortController;
+
     try {
-      const result = await executeCorrectSave(history.present);
+      const result = await executeCorrectSave(history.present, {
+        signal: abortController.signal,
+      });
+      if (!isMountedRef.current || abortController.signal.aborted) {
+        return;
+      }
       if (result.kind === 'saved' || result.kind === 'saved-offline') {
         setStatusMessage(t(result.messageKey));
         drivers.audio.playEarcon?.('success');
@@ -595,8 +633,13 @@ export function Correct({
         drivers.audio.playEarcon?.('error');
       }
     } catch {
+      if (!isMountedRef.current) return;
       isSavingRef.current = false;
       setIsSaving(false);
+    } finally {
+      if (saveAbortControllerRef.current === abortController) {
+        saveAbortControllerRef.current = null;
+      }
     }
   };
 
@@ -610,6 +653,8 @@ export function Correct({
       sayAndStatus,
       focusHeading: () => headingRef.current?.focus(),
       onLeave: () => {
+        isMountedRef.current = false;
+        saveAbortControllerRef.current?.abort();
         onDirtyChange?.(false);
         onCancel();
       },

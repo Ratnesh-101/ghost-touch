@@ -9,7 +9,7 @@
  * - R5-04: Follows StatusText pattern (no live region when speech synthesis speaks).
  */
 
-import type { JSX } from 'react';
+import { useEffect, useRef, type JSX } from 'react';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { StatusText } from '../components/StatusText';
 import { t } from '../i18n';
@@ -38,22 +38,34 @@ export interface ShareErrorProps {
   canSpeak?: boolean;
 }
 
-export function ShareError({ code, onGoToStart, canSpeak }: ShareErrorProps): JSX.Element {
+export function ShareError({
+  code,
+  onGoToStart,
+  canSpeak,
+}: ShareErrorProps): JSX.Element {
   const message = shareErrorMessage(code);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+
   const speechAvailable =
     canSpeak ?? (typeof window !== 'undefined' && 'speechSynthesis' in window);
 
   return (
     <main className="gt-share-error gt-lab-explore">
       <header className="gt-share-error__header">
-        <h1 className="gt-share-error__title">{t('share.error.title')}</h1>
+        <h1 ref={headingRef} tabIndex={-1} className="gt-share-error__title">
+          {t('share.error.title')}
+        </h1>
       </header>
 
       <section
         className="gt-share-error__card"
         role={speechAvailable ? undefined : 'alert'}
       >
-        <StatusText className="gt-share-error__message" spoken={speechAvailable}>
+        <StatusText spoken={Boolean(speechAvailable)} className="gt-share-error__message">
           {message}
         </StatusText>
       </section>
