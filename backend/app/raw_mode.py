@@ -20,6 +20,7 @@ from app.image_utils import MAX_IMAGE_PIXELS, get_exif_orientation, sniff_image_
 from app.schema import DiagramScene, Point, Segment
 
 MAX_RAW_SEGMENTS = 300  # Requirement 8.2
+MAX_RAW_POINTS = 500  # Must not exceed MAX_SCENE_POINTS in validate.py (B-01)
 MAX_DEDUPE_CANDIDATES = 1000  # bounds the quadratic de-duplication (A6-08)
 MAX_RAW_DIMENSION = 1600  # Downscale to at most 1600 px on long side before edge detection (A3)
 # Cap contour/edge list to longest ~2000 before building objects & sorting (A3)
@@ -269,10 +270,16 @@ def build_raw_scene(
     # Merge nearby endpoints to create shared vertices for corner haptics
     point_registry: list[tuple[float, float, float, float, str]] = []  # (nx, ny, rx, ry, pid)
 
-    def get_or_create_point(rx: float, ry: float) -> str:
+    def find_point(rx: float, ry: float) -> str | None:
         for _nx, _ny, px, py, pid in point_registry:
             if math.hypot(rx - px, ry - py) <= merge_tol:
                 return pid
+        return None
+
+    def get_or_create_point(rx: float, ry: float) -> str:
+        existing = find_point(rx, ry)
+        if existing is not None:
+            return existing
         pid = f"raw_p{len(point_registry)}"
         nx = max(0.0, min(1.0, rx / proc_w))
         ny = max(0.0, min(1.0, ry / proc_h))
@@ -280,11 +287,25 @@ def build_raw_scene(
         return pid
 
     segments: list[Segment] = []
-    for idx, (x1, y1, x2, y2) in enumerate(top_segments):
+    for x1, y1, x2, y2 in top_segments:
+        existing_a = find_point(x1, y1)
+        existing_b = find_point(x2, y2)
+
+        if existing_a is not None and existing_b is not None:
+            new_points = 0
+        elif existing_a is not None or existing_b is not None:
+            new_points = 1
+        else:
+            new_points = 1 if math.hypot(x1 - x2, y1 - y2) <= merge_tol else 2
+
+        # Cap scene points so it always passes validation (B-01)
+        if len(point_registry) + new_points > MAX_RAW_POINTS:
+            break
+
         p_a = get_or_create_point(x1, y1)
         p_b = get_or_create_point(x2, y2)
         if p_a != p_b:
-            segments.append(Segment(id=f"raw_s{idx}", a=p_a, b=p_b))
+            segments.append(Segment(id=f"raw_s{len(segments)}", a=p_a, b=p_b))
 
     points = [Point(id=pid, x=nx, y=ny) for nx, ny, _, _, pid in point_registry]
 

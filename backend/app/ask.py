@@ -61,6 +61,7 @@ MAX_SCENE_FACTS = 100
 MAX_TEXT_CHARS = 300  # any single fact / label / title
 MAX_ANSWER_CHARS = 300  # spoken answer cap
 MAX_ANSWER_SENTENCES = 2
+MAX_FACTS_ANSWER_SENTENCES = 3  # B-02: allow up to 3 tied winners for facts
 
 QUESTION_TAG_PATTERN = re.compile(r"<\s*/?\s*user_question\s*>", re.IGNORECASE)
 SENTENCE_END_PATTERN = re.compile(r"(?<=[.!?।])\s+")
@@ -436,13 +437,14 @@ def clamp_answer(
     preserve_symbols: bool = False,
     is_model: bool | None = None,
     strip_markdown: bool | None = None,
+    max_sentences: int | None = None,
 ) -> str:
-    """Limit a spoken answer to two sentences and about 300 characters, sanitizing for TTS.
+    """Limit a spoken answer to two sentences (three for facts) and about 300 characters.
 
     Strips Unicode control and format characters (Cc, Cf, Zl, Zp).
     By default, strips markdown formatting (*, _, `, #) for model text.
     Fact and semantic answer paths pass preserve_symbols=True to retain mathematical
-    asterisks, underscores, and symbols (F3).
+    asterisks, underscores, and symbols (F3), and can retain up to 3 tied facts (B-02).
     """
     if strip_markdown is not None:
         do_strip = strip_markdown
@@ -450,6 +452,12 @@ def clamp_answer(
         do_strip = is_model and not preserve_symbols
     else:
         do_strip = not preserve_symbols
+
+    limit_sentences = (
+        max_sentences
+        if max_sentences is not None
+        else (MAX_FACTS_ANSWER_SENTENCES if preserve_symbols else MAX_ANSWER_SENTENCES)
+    )
 
     # Strip Unicode control, format, and separator characters (Cc, Cf, Zl, Zp)
     chars: list[str] = []
@@ -469,14 +477,14 @@ def clamp_answer(
         sanitized = re.sub(r"[*_`#]", "", sanitized)
 
     sentences = SENTENCE_END_PATTERN.split(sanitized.strip())
-    clamped = " ".join(sentences[:MAX_ANSWER_SENTENCES])
+    clamped = " ".join(sentences[:limit_sentences])
     if len(clamped) > MAX_ANSWER_CHARS:
         # Reserve one character for the closing full stop so the result never exceeds the cap.
         clamped = clamped[: MAX_ANSWER_CHARS - 1].rsplit(" ", 1)[0].rstrip(",;:") + "."
     return clamped
 
 
-TOKEN_PATTERN = re.compile(r"\d+(?:\.\d+)?|[\w°²]+", re.UNICODE)
+TOKEN_PATTERN = re.compile(r"\d+(?:\.\d+)?|[\w\u0900-\u097F\u0A80-\u0AFF°²]+", re.UNICODE)
 
 
 @dataclass
@@ -626,8 +634,18 @@ def facts_lookup(scene: DiagramScene, question: str, lang: str = "en-IN") -> str
         if s == best_score
     )
     max_content_matches = max(len(cand.tokens & q_content) for s, cand in scored if s == best_score)
+    has_general_fact_match = any(
+        cand.is_fact
+        and not cand.ids
+        and not q_ids
+        and is_measurement_q
+        and any(re.search(r"\d", t) for t in cand.tokens)
+        and len(cand.tokens & q_content) >= 1
+        for s, cand in scored
+        if s == best_score
+    )
 
-    if not (has_id_match or has_number_match or max_content_matches >= 2):
+    if not (has_id_match or has_number_match or max_content_matches >= 2 or has_general_fact_match):
         return None
 
     # Several equally good matches ("AB and BC") are all read out, at most three.
@@ -1046,7 +1064,11 @@ async def answer_question(
             elapsed_ms,
         )
         return AskResponse(
-            answer=clamp_answer(fact_answer, preserve_symbols=True),
+            answer=clamp_answer(
+                fact_answer,
+                preserve_symbols=True,
+                max_sentences=MAX_FACTS_ANSWER_SENTENCES,
+            ),
             source="facts",
             target=None,
         )

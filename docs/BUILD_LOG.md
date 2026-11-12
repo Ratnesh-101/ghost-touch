@@ -4058,4 +4058,42 @@ Format for each entry:
 - Tests added: verify.rightAngledTriangle, correct.k4, correct.k4.delete, hitTest.zeroViewport, hapticEngine.barSpeech. P31 and one clamp01 example amended for Requirement 9.10.
 - Gate: tsc 0 errors; vitest 171 files / 2202 tests pass; Playwright not run. No tuned haptic value changed.
 - Files touched: frontend/src/core/{verify,correct,hitTest,hapticEngine}.ts, the tests above, .kiro/specs/ghost-touch/requirements.md, docs/kiro-evidence/k4-core-fixes.md, docs/BUILD_LOG.md
+## 2026-11-12 — agy, reviewed by Claude — Lane r7-backend (Nov 12 Kiro audit fixes B-01, B-02, B-03)
+- Tool: **agy, reviewed by Claude** (Antigravity).
+- Fixed 3 findings from `docs/reviews/kiro-audit-2026-11-12-backend.md` per brief `agy-r7-backend.md`:
+  - **B-01 (High) raw_mode.py point capping:** Capped Raw Mode scene point registry at 500
+    matching `validate.py` structural limit. Stopped adding segments when point count would exceed
+    500 points, preventing HTTP 422 errors on busy images and ensuring outlines always validate.
+  - **B-02 (Medium) ask.py facts fallback tie retention:** Added `MAX_FACTS_ANSWER_SENTENCES = 3` and
+    configured `clamp_answer` to retain up to 3 tied winning facts when `preserve_symbols=True` or
+    explicitly specified. Asking for all three triangle sides (AB, BC, AC) now names all three
+    without silently truncating the 3rd fact. Model answers still clamp to 2 sentences.
+  - **B-03 (Medium) ask.py TOKEN_PATTERN Indic combining marks:** Extended `TOKEN_PATTERN` character
+    class to include Devanagari (`\u0900-\u097F`) and Gujarati (`\u0A80-\u0AFF`) combining marks and
+    vowel signs (`[\w\u0900-\u097F\u0A80-\u0AFF°²]+`), preventing word fragmentation into single
+    letters and ensuring stopwords match and unrelated facts do not trigger spurious matches.
+- Real tests:
+  - Added `backend/tests/test_r7_backend.py` covering all findings and regressions:
+    - `test_raw_mode_scene_always_passes_validator_point_cap` (500 short lines on 1200x1200 image).
+    - `test_raw_mode_endpoint_returns_200_raw_mode` (no providers returns 200 mode raw).
+    - `test_facts_answer_names_every_requested_side` (triangle AB, BC, AC all present in answer).
+    - `test_clamp_answer_keeps_three_sentences_for_facts` (clamp_answer sentence capping).
+    - `test_token_pattern_keeps_indic_words_whole` (Hindi/Gujarati words whole).
+    - `test_hindi_wrong_angle_not_answered` (angle B question returns unknown).
+    - `test_gujarati_wrong_angle_not_answered` (Gujarati angle B question returns unknown).
+    - `test_english_behavior_remains_unchanged` (English questions regression check).
+    - `test_facts_lookup_general_facts_hindi_and_gujarati` (single-content general facts match).
+    - `test_raw_mode_small_image_endpoint_returns_200` (tiny 10x10 PNG returns 200 mode raw).
+- Pass 2 fixes:
+  - Resolved `test_facts_lookup_hindi_tokens` and `test_facts_lookup_gujarati_tokens` regression
+    in `ask.py` by adding `has_general_fact_match` for general facts without element IDs.
+  - Resolved `test_a8_x_vision_provider_header_and_no_echo` 422 regression in `raw_mode.py` by
+    removing premature segment skips on small outlines while preserving MAX_RAW_POINTS cap.
+- Zero shell commands executed during headless run. Kept lines <= 100 columns.
+- Files touched:
+  - `backend/app/raw_mode.py`
+  - `backend/app/ask.py`
+  - `backend/tests/test_r7_backend.py` (new)
+  - `docs/reports/agy-r7-backend-report.md`
+  - `docs/BUILD_LOG.md`
 
