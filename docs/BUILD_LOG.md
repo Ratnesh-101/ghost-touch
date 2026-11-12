@@ -4147,4 +4147,34 @@ Format for each entry:
   - Updated `cancelListen` check in `explore.systemBackCancelsListen.test.tsx` to `toHaveBeenCalled()`.
   - Updated `frontend/tests/w3.buzzFallback.test.tsx` entry check to expect `{ queue: true }` per EX-03.
   - Audited all 5 new r7 test files for fragility; formatted all code within 100-column bounds.
+## 2026-11-12 — agy, reviewed by Claude — Lane r8-explore-fix (fixes from Kiro review of lane r7-explore)
+- Addressed findings from Kiro review (`docs/reviews/kiro-review-r7-explore.md`) per `docs/briefs/agy-r8-explore-fix.md`:
+  - EX-01 test discriminating fix (`frontend/tests/explore.askUnsupportedResetsGate.test.tsx`):
+    Made test discriminating by firing pointerdown somewhere neutral (10, 10) off-diagram,
+    then pointermove onto vertex A (100, 100), asserting corner vibration pattern [50, 90, 50]
+    and speech 'A'. On old code, stuck askActive silenced pointermove, failing the test. On fix,
+    it passes.
+  - a11yFeatures point quota unused budget return (`frontend/src/flow/a11yFeatures.ts`):
+    Returned unused quota from other kinds back to points:
+    `pointQuota = Math.min(points.length, maxFeatures - otherAllocatedTotal)`.
+    Guarantees floor for other kinds without arbitrarily capping points when other kinds are sparse.
+    Added test: 80 points + 1 segment yields 60 features (59 points, 1 segment).
+  - a11yFeatures polyline coordinate pairs filtering (`frontend/src/flow/a11yFeatures.ts`):
+    Filtered polyline points as coordinate pairs [x, y] where both coordinates are finite,
+    preventing misalignment when single coordinates are non-finite. Added unit tests for valid
+    pair retention and dropping empty/non-finite polylines.
+  - speech.ts drop boolean overload (`frontend/src/drivers/speech.ts`):
+    Dropped unused boolean shorthand overload from `SpeechDriver.speak` and `WebSpeechDriver.speak`,
+    retaining only `{ queue?: boolean }`. Removed boolean shorthand test from
+    `frontend/tests/drivers.speech.test.ts`.
+- Files touched:
+  - `frontend/src/flow/a11yFeatures.ts`
+  - `frontend/src/drivers/speech.ts`
+  - `frontend/tests/explore.askUnsupportedResetsGate.test.tsx`
+  - `frontend/tests/flow.a11yFeatures.share.test.ts`
+  - `frontend/tests/explore.talkback.test.tsx`
+  - `frontend/tests/drivers.speech.test.ts`
+  - `docs/reports/agy-r8-explore-fix-report.md`
+  - `docs/BUILD_LOG.md`
+
 

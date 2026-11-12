@@ -64,7 +64,7 @@ export interface SpeakOptions {
 
 export interface SpeechDriver {
   /** Cancel anything being spoken (unless queue is true), then speak `text`. No-op without speech synthesis. */
-  speak(text: string, lang?: string, options?: boolean | SpeakOptions): void;
+  speak(text: string, lang?: string, options?: SpeakOptions): void;
   /** Listen for one phrase. Rejects with a `ListenError`. */
   listen(lang?: string): Promise<string>;
   /** Cancel anything being spoken without starting new speech. */
@@ -276,7 +276,7 @@ export class WebSpeechDriver implements SpeechDriver {
   speak(
     text: string,
     lang: string = DEFAULT_SPEECH_LANG,
-    options?: boolean | SpeakOptions,
+    options?: SpeakOptions,
   ): void {
     const { synth, createUtterance } = this.host;
     if (synth === undefined || createUtterance === undefined) return;
@@ -286,7 +286,7 @@ export class WebSpeechDriver implements SpeechDriver {
     const voices = synth.getVoices?.();
     const match = findVoiceForLang(voices, lang);
 
-    const shouldQueue = typeof options === 'boolean' ? options : (options?.queue ?? false);
+    const shouldQueue = options?.queue ?? false;
 
     // Cancel anything being spoken unless queued
     if (!shouldQueue) {

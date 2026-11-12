@@ -117,9 +117,15 @@ export function buildA11yFeatures(
   const polylineFeatures: A11yFeature[] = [];
   for (const poly of scene.polylines ?? []) {
     if (poly.points.length === 0) continue;
-    const xs = poly.points.map((pt) => Number(pt[0])).filter((x) => Number.isFinite(x));
-    const ys = poly.points.map((pt) => Number(pt[1])).filter((y) => Number.isFinite(y));
-    if (xs.length === 0 || ys.length === 0) continue;
+    const validPairs = poly.points.filter(
+      (pt): pt is [number, number] =>
+        Array.isArray(pt) &&
+        Number.isFinite(Number(pt[0])) &&
+        Number.isFinite(Number(pt[1])),
+    );
+    if (validPairs.length === 0) continue;
+    const xs = validPairs.map((pt) => Number(pt[0]));
+    const ys = validPairs.map((pt) => Number(pt[1]));
     const name = poly.label && poly.label.trim() !== '' ? poly.label : poly.id;
     polylineFeatures.push({
       key: `polyline-${poly.id}`,
@@ -168,33 +174,43 @@ export function buildA11yFeatures(
     return pointFeatures.slice(0, maxFeatures);
   }
 
-  const pointQuota =
+  // Reserve up to floor(maxFeatures / 2) for points initially, guaranteeing the remaining
+  // budget as a FLOOR for other kinds (segments, bars, polylines, axes).
+  const reservedForPoints =
     pointFeatures.length > 0
       ? Math.min(pointFeatures.length, Math.floor(maxFeatures / 2))
       : 0;
 
-  let remaining = maxFeatures - pointQuota;
+  let remainingForOthers = maxFeatures - reservedForPoints;
   const activeOtherGroups = otherCandidates.filter((g) => g.length > 0);
   const allocated = new Map<A11yFeature[], number>();
   for (const g of activeOtherGroups) allocated.set(g, 0);
 
-  while (remaining > 0) {
+  while (remainingForOthers > 0) {
     const needed = activeOtherGroups.filter((g) => (allocated.get(g) ?? 0) < g.length);
     if (needed.length === 0) break;
-    const share = Math.max(1, Math.floor(remaining / needed.length));
+    const share = Math.max(1, Math.floor(remainingForOthers / needed.length));
     let progress = false;
     for (const g of needed) {
       const current = allocated.get(g) ?? 0;
-      const canTake = Math.min(g.length - current, share, remaining);
+      const canTake = Math.min(g.length - current, share, remainingForOthers);
       if (canTake > 0) {
         allocated.set(g, current + canTake);
-        remaining -= canTake;
+        remainingForOthers -= canTake;
         progress = true;
-        if (remaining === 0) break;
+        if (remainingForOthers === 0) break;
       }
     }
     if (!progress) break;
   }
+
+  // Return any budget unused by other kinds back to points:
+  // pointQuota = min(points.length, maxFeatures - sum(allocated to other kinds))
+  const otherAllocatedTotal = Array.from(allocated.values()).reduce((sum, n) => sum + n, 0);
+  const pointQuota =
+    pointFeatures.length > 0
+      ? Math.min(pointFeatures.length, maxFeatures - otherAllocatedTotal)
+      : 0;
 
   const out: A11yFeature[] = [];
   if (pointQuota > 0) {

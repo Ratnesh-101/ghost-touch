@@ -265,8 +265,8 @@ describe('accessible overlay structure', () => {
     expect(kinds.has('segment')).toBe(true);
     expect(kinds.has('polyline')).toBe(true);
     expect(kinds.has('axis')).toBe(true);
-    expect(features.filter((f) => f.kind === 'point').length).toBeLessThanOrEqual(30);
-    expect(features.length).toBeLessThanOrEqual(60);
+    expect(features.filter((f) => f.kind === 'point').length).toBe(57);
+    expect(features.length).toBe(60);
   });
 
   it('buildA11yFeatures skips bars with non-finite values and never emits NaN', () => {

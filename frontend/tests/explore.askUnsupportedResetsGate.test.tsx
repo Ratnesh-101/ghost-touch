@@ -3,7 +3,7 @@
  * EX-01: Explore.tsx handleVoiceAsk early return resets askActive gate.
  *
  * When speech.canListen is false, pressing Ask must not leave askActive permanently true.
- * After pressing Ask, pointerdown on a vertex must still vibrate and speak.
+ * After pressing Ask, pointerdown neutral then pointermove onto a vertex must vibrate and speak.
  */
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -139,9 +139,18 @@ describe('EX-01: askActive gate reset on unsupported voice ask', () => {
     const canvas = container.querySelector('canvas');
     expect(canvas).toBeTruthy();
 
-    // Fire pointerdown on Vertex A (x=0.25, y=0.25 -> screen px (100, 100))
+    // Fire pointerdown somewhere neutral (off the diagram, e.g. 10, 10)
     await act(async () => {
-      dispatchPointer(canvas!, 'pointerdown', 100, 100, 1);
+      dispatchPointer(canvas!, 'pointerdown', 10, 10, 1);
+    });
+
+    // Clear calls from neutral pointerdown
+    vibrate.mockClear();
+    speak.mockClear();
+
+    // Fire pointermove onto Vertex A (x=0.25, y=0.25 -> screen px (100, 100))
+    await act(async () => {
+      dispatchPointer(canvas!, 'pointermove', 100, 100, 1);
     });
 
     // Vertex A must vibrate with corner pattern [50, 90, 50] and speak 'A'

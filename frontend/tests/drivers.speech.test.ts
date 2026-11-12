@@ -60,14 +60,6 @@ describe('WebSpeechDriver.speak', () => {
     expect(calls).toEqual(['cancel', 'speak', 'speak']);
   });
 
-  it('accepts a boolean queue argument as shorthand', () => {
-    const { host, calls } = speechHost();
-    const driver = new WebSpeechDriver(host);
-    driver.speak('Scene announcement');
-    driver.speak('Missing vibration warning', undefined, true);
-    expect(calls).toEqual(['cancel', 'speak', 'speak']);
-  });
-
   it('sets rate 1.1 and the default language en-IN', () => {
     const { host, utterances } = speechHost();
     new WebSpeechDriver(host).speak('Hello');

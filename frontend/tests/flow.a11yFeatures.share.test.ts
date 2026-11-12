@@ -26,12 +26,34 @@ describe('CORE-A2: buildA11yFeatures share allocation per kind', () => {
     expect(kinds.has('polyline')).toBe(true);
     expect(kinds.has('axis')).toBe(true);
 
-    // Points share is capped so other kinds get their share
+    // Points share receives unused quota back while ensuring all other kinds are included
     const pointsCount = features.filter((f) => f.kind === 'point').length;
-    expect(pointsCount).toBeLessThanOrEqual(30);
+    expect(pointsCount).toBe(57);
 
     // Total cap of 60 is respected
-    expect(features.length).toBeLessThanOrEqual(MAX_A11Y_FEATURES);
+    expect(features.length).toBe(MAX_A11Y_FEATURES);
+  });
+
+  it('gives unused budget back to points (80 points + 1 segment gives 60 features, 59 points)', () => {
+    const scene: DiagramScene = {
+      kind: 'geometry',
+      points: Array.from({ length: 80 }, (_, i) => ({
+        id: `p${i}`,
+        x: (i % 10) / 10,
+        y: Math.floor(i / 10) / 10,
+        label: `P${i}`,
+      })),
+      segments: [{ id: 's1', a: 'p0', b: 'p1', label: 'Side 1' }],
+    };
+
+    const features = buildA11yFeatures(scene);
+    expect(features).toHaveLength(60);
+
+    const points = features.filter((f) => f.kind === 'point');
+    const segments = features.filter((f) => f.kind === 'segment');
+
+    expect(points).toHaveLength(59);
+    expect(segments).toHaveLength(1);
   });
 
   it('allows points to use full cap of 60 when no other kinds are present', () => {
@@ -137,5 +159,56 @@ describe('CORE-A3: buildA11yFeatures skips non-finite bar values', () => {
         expect(f.target.maxValue).toBe(75);
       }
     }
+  });
+});
+
+describe('buildA11yFeatures polyline coordinate filtering', () => {
+  it('filters polyline points as pairs so single non-finite coordinates do not misalign', () => {
+    const scene: DiagramScene = {
+      kind: 'function_graph',
+      polylines: [
+        {
+          id: 'poly_corrupt',
+          label: 'TestCurve',
+          points: [
+            [0.1, NaN],
+            [0.2, 0.4],
+            [NaN, 0.8],
+            [0.6, 0.8],
+          ],
+        },
+      ],
+    };
+
+    const features = buildA11yFeatures(scene);
+    expect(features).toHaveLength(1);
+    expect(features[0]?.kind).toBe('polyline');
+    // Only valid pairs [0.2, 0.4] and [0.6, 0.8] should be retained
+    // xs: [0.2, 0.6] -> cx: 0.4, w: 0.4
+    // ys: [0.4, 0.8] -> cy: 0.6, h: 0.4, yNorm: 0.6
+    expect(features[0]?.cx).toBeCloseTo(0.4);
+    expect(features[0]?.cy).toBeCloseTo(0.6);
+    expect(features[0]?.w).toBeCloseTo(0.4);
+    expect(features[0]?.h).toBeCloseTo(0.4);
+    expect(features[0]?.yNorm).toBeCloseTo(0.6);
+  });
+
+  it('drops polyline if no pairs have finite coordinates', () => {
+    const scene: DiagramScene = {
+      kind: 'function_graph',
+      polylines: [
+        {
+          id: 'poly_empty',
+          label: 'EmptyCurve',
+          points: [
+            [NaN, 0.1],
+            [0.2, Infinity],
+          ],
+        },
+      ],
+    };
+
+    const features = buildA11yFeatures(scene);
+    expect(features).toHaveLength(0);
   });
 });
