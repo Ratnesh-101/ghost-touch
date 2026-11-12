@@ -4240,3 +4240,10 @@ Format for each entry:
   - `docs/reports/agy-r7-flow-report.md`
   - `docs/BUILD_LOG.md`
 
+
+### 2026-11-12 — Kiro — T49: strengthen two r7-flow tests (R7F-1, R7F-2)
+- Tool: Kiro. Tests only; nothing under rontend/src changed.
+- correct.lateSave.test.tsx: the App test now gives App a real MemoryDiagramStore and a speech spy (via a createBrowserDrivers mock), starts a Save, discards with system Back, goes Back to Capture, then resolves the late validate. It asserts the view stays on Capture, the store is unchanged, and "Corrections saved" was never spoken. Run against the pre-r7-flow App.tsx and Correct.tsx it fails (all 3 tests in the file); with the current source it passes. Caveat: because Correct now aborts on unmount, the App guard is a second line of defence and is not isolated by this test.
+- pp.shareOpen.resets.test.tsx: captures A (saved), opens shared B, saves through App's real handleSaveCorrect, asserts A keeps its title and scene and B is a second entry. Removing lastSavedDiagramId.current = null in handleOpenSharedDiagram makes it fail (1 entry instead of 2); the source was restored afterwards.
+- Gate: 	sc --noEmit 0 errors; vitest 181 files, 2231 tests passed.
+- Files: the two test files above, docs/BUILD_LOG.md.
