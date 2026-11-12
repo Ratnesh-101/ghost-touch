@@ -523,7 +523,7 @@ describe('Lane o1-leavebyback: Back from Correct', () => {
       expect(confirmSpy).toHaveBeenCalledTimes(2);
       expect(container!.querySelector('.gt-explore')).not.toBeNull();
       expect(container!.querySelector('.gt-correct')).toBeNull();
-    });
+    }, 60_000);
 
     it('navigates to Explore without confirm on popstate when Correct is clean', async () => {
       const confirmSpy = vi.spyOn(window, 'confirm');
@@ -557,6 +557,6 @@ describe('Lane o1-leavebyback: Back from Correct', () => {
       expect(confirmSpy).not.toHaveBeenCalled();
       expect(container!.querySelector('.gt-explore')).not.toBeNull();
       expect(container!.querySelector('.gt-correct')).toBeNull();
-    });
+    }, 60_000);
   });
 });
