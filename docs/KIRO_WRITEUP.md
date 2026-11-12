@@ -10,7 +10,7 @@ This is an honest account of Kiro's part in Ghost Touch. The longer earlier draf
 | Pure core | haptic engine, geometry, hit test, pitch, validator, Ghostwriter and delete edits | saved-diagram core and tests (P14/P15), Teacher Correct, Spec Ghost module (P47-P50) | backend properties P40-P42, P45-P46 |
 | App and backend | round-2 backend fixes, Explore canvas fix | Lab redesign, screens, drivers, vision providers, Raw Mode, Ask, Ghostwriter UI | supervision, gating, reviews |
 
-Basis: `docs/BUILD_LOG.md` (each entry names its tool), `docs/reviews/`, `git log`. Git authorship does not separate the tools: of 812 commits, 785 carry the owner's identity and 4 are authored "Kiro". The `kiro:` prefix is the better signal: `git log --oneline | grep -c "kiro:"` gives 58. The Lab redesign, most screens and the backend vision pipeline were **not** built by Kiro; BUILD_LOG says agents took over when Kiro's credits ran out (2026-11-04).
+Basis: `docs/BUILD_LOG.md` (each entry names its tool), `docs/reviews/`, `git log`. Git authorship does not separate the tools: of 841 commits (2026-11-12), 814 carry the owner's identity and 4 are authored "Kiro". The `kiro:` prefix is the better signal: `git log --oneline | grep -c "kiro:"` gives 69. The Lab redesign, most screens and the backend vision pipeline were **not** built by Kiro; BUILD_LOG says agents took over when Kiro's credits ran out (2026-11-04).
 
 ## 1. Vibe coding
 
