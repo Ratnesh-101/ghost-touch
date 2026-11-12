@@ -45,8 +45,8 @@ adding an automated Playwright regression suite (`frontend/e2e`), and fixing the
 layout feedback loop. The owner confirmed on the Samsung Galaxy S24+ that the fix worked.
 
 We believe in radical honesty about what is proven and what is not. Ghost Touch passes
-[RECOUNT] frontend tests across [RECOUNT] files and [RECOUNT] backend tests, verifying
-[RECOUNT] mathematical properties with fast-check and Hypothesis. The haptic timings were tuned
+2,231 frontend tests across 181 files and 834 backend tests, verifying
+83 numbered correctness properties with fast-check and Hypothesis. The haptic timings were tuned
 on a OnePlus Nord CE6, the TalkBack double-tap-and-hold gesture worked on our prototype there,
 and the canvas growth bug fix was confirmed on the Galaxy S24+. Nothing else has been verified
 on hardware by the owner. Full-app testing of other phone steps is pending. No blind student

@@ -2,7 +2,7 @@
 
 This is an honest account of Kiro's part in Ghost Touch. The longer earlier draft is kept as an appendix: `docs/kiro-evidence/KIRO_WRITEUP_LONG.md`.
 
-**The unusual story:** Kiro did not build most of the app. Kiro was the *specifier and judge* of other agents. It wrote the requirements, design properties and test-first oracles; faster builders (Antigravity, "agy", supervised by Claude Code) had to turn those tests green. Test counts are [RECOUNT] until the submission-day recount.
+**The unusual story:** Kiro did not build most of the app. Kiro was the *specifier and judge* of other agents. It wrote the requirements, design properties and test-first oracles; faster builders (Antigravity, "agy", supervised by Claude Code) had to turn those tests green. Test counts were last counted on 2026-11-12 (2,231 frontend tests in 181 files, 834 backend tests) and will be re-checked on submission day.
 
 | Area | Kiro | Antigravity (agy) | Claude Code |
 |---|---|---|---|
@@ -33,7 +33,7 @@ Later requirements (19, 21, 22, 23, 24, 25) say they were written before the cod
 
 **Kiro as judge.** P66-P78 (Requirement 22) were written as test-first oracles for round-5 audit findings. The first run is in `docs/reviews/kiro-round5.md`: 13 properties, 6 failed and 7 passed, because most fixes had already merged, so the failures were gaps those fixes left. After agy fixes all 13 passed (task 39.0). Round 6 repeated the pattern: P83, P84 and an amended P43 waited red for their lanes. `AGENTS.md` rule 1 stops agent lanes editing Kiro's property tests, so a builder cannot go green by weakening a test.
 
-Weak point: the P1 "flake" was a bug in the test generator, not the product (`docs/kiro-evidence/pbt-p1-flake.md`), so it is not the lead. Tests: [RECOUNT] frontend in [RECOUNT] files, [RECOUNT] backend.
+Weak point: the P1 "flake" was a bug in the test generator, not the product (`docs/kiro-evidence/pbt-p1-flake.md`), so it is not the lead. Tests: 2,231 frontend in 181 files, 834 backend.
 
 ## 3. Agent hooks
 

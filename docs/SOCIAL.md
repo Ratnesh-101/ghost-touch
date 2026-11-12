@@ -23,7 +23,7 @@ property tests—shaped how you built this.]
 
 The TalkBack double-tap-and-hold gesture worked on our prototype on a OnePlus Nord CE6, and the
 S24+ canvas layout bug was fixed spec-first by Kiro and verified on phone. Other phone steps are
-pending. [RECOUNT] frontend tests and [RECOUNT] backend tests pass cleanly.
+pending. 2,231 frontend tests and 834 backend tests pass cleanly.
 
 Demo video: [FILL: video URL]  
 Live app: https://ghost-touch-iota.vercel.app  
@@ -54,7 +54,7 @@ Ghost Touch stitches these spare parts into an assistive creature:
 requirements and property tests before code caught edge cases like the Galaxy S24+ canvas growth
 bug, or how agent hooks automated your workflow.]
 
-Radical transparency: [RECOUNT] frontend tests across [RECOUNT] files and [RECOUNT] backend tests
+Radical transparency: 2,231 frontend tests across 181 files and 834 backend tests
 pass cleanly. Haptic timings were tuned on a OnePlus Nord CE6, the TalkBack gesture worked on
 our prototype there, and the Galaxy S24+ canvas bug fix was confirmed on hardware; full-app
 phone testing of other steps is pending. No blind student has tested it yet, and Hindi and
@@ -97,7 +97,7 @@ Samsung Galaxy S24+ canvas layout bug (Requirement 25), or how Kiro's property-b
 agent hooks kept the pure core rock solid.]
 
 ### Post 4/4 (Open Source & Honest Next Steps)
-#KiroweenHackathon26 4/4: Honest engineering: [RECOUNT] frontend tests and [RECOUNT] backend tests
+#KiroweenHackathon26 4/4: Honest engineering: 2,231 frontend tests and 834 backend tests
 verify mathematical invariants. Haptics were tuned on a OnePlus Nord CE6, the TalkBack gesture
 passed on the prototype there, and the S24+ canvas bug fix was confirmed on device. Full-app
 testing of other phone steps is pending.

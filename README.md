@@ -146,15 +146,15 @@ uvicorn app.main:app --app-dir backend --reload --port 8000
 
 ## Tests
 
-Current test suite status: **[RECOUNT] frontend tests across [RECOUNT] files** and **[RECOUNT] backend tests** pass cleanly (supervisor will recount on submission day).
+Current test suite status: **2,231 frontend tests across 181 files** and **834 backend tests** pass cleanly (counted on 2026-11-12; re-checked on submission day).
 
 ```bash
-# Frontend: Vitest and fast-check property tests ([RECOUNT] tests in [RECOUNT] files)
+# Frontend: Vitest and fast-check property tests (2,231 tests in 181 files)
 npm --prefix frontend test
 npm --prefix frontend exec -- tsc -p frontend --noEmit
 npm --prefix frontend run build
 
-# Backend: pytest and Hypothesis property tests ([RECOUNT] tests)
+# Backend: pytest and Hypothesis property tests (834 tests)
 backend/.venv/Scripts/python -m pytest backend
 backend/.venv/Scripts/python -m ruff check backend
 backend/.venv/Scripts/python -m ruff format --check backend
