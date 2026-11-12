@@ -4274,3 +4274,12 @@ Format for each entry:
   - `docs/BUILD_LOG.md`
 
 
+
+## 2026-11-12 - Claude Code (orchestrator) - audit round, PR 35 port, S24+ canvas follow-up
+- Tool = Claude Code (supervision and gates; no feature code except two one-line test/typing edits listed below). Kiro and agy did the work; each fix is credited in its own entry.
+- Disclosure: three earlier Kiro CLI runs on 2026-11-11 (worktree audit, K1 BUILD_LOG recovery, K2 truth pass) used `--trust-all-tools`; from the S24+ canvas job on, every Kiro CLI run used an allow-listed agent config (`.kiro/agents/gt-fixer.json`, `gt-writer.json`, `gt-reviewer.json`, `gt-auditor.json`).
+- Playwright 1.65 added (owner approved) with two emulated phones; the viewport-resize scenario separated pre-fix from post-fix, the plain hold tests did not (see docs/reports/e2e-canvas-verification.md).
+- PR 35 (owner phone test: corner vibration fallback, TalkBack overlay, vibration help card) was ported by hand onto main as lane f1 because the branch conflicted with the Requirement 25 canvas rewrite; PR closed, not merged.
+- Audit round: four read-only Kiro auditors (core, explore, flow, backend; findings in docs/reviews/kiro-audit-2026-11-12-*.md); only confirmed High and Medium findings were fixed (2 High, about 10 Medium). Kiro fixed the core ones (T43 to T47). agy fixed Explore, backend and flow in lanes r7-* and r8-*. Independent Kiro reviews of the lanes caught real problems my gates did not: an unrequested loosening of the facts-matching guard, a regression test that also passed on the old code, a TalkBack coverage regression; each was fixed in a follow-up lane or by Kiro (T49). Kiro also reviewed r8-explore-fix (MERGE) and r8-backend-fix (MERGE).
+- My own edits: removed a stray unused `isColdOpen: false` property in App.tsx (type error in lane r7-flow) and gave two App-flow tests in tests/correct.back.test.tsx a 60 s timeout (load flake seen twice in gates).
+- Skipped on purpose: FLOW-02 (share Back history, needs a real browser) and the Low findings. Gate on main before the push: tsc 0, vitest 181 files / 2231 tests, build ok, backend pytest and ruff clean, Playwright 10/10; CI green on bc511e4.
