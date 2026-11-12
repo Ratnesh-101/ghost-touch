@@ -245,6 +245,48 @@ describe('accessible overlay structure', () => {
     const featuresCapped = buildA11yFeatures(busyScene, 10);
     expect(featuresCapped).toHaveLength(10);
   });
+
+  it('buildA11yFeatures keeps a share for every element kind', () => {
+    const scene: DiagramScene = {
+      kind: 'geometry',
+      points: Array.from({ length: 80 }, (_, i) => ({
+        id: `p${i}`,
+        x: (i % 10) / 10,
+        y: Math.floor(i / 10) / 10,
+        label: `P${i}`,
+      })),
+      segments: [{ id: 's1', a: 'p0', b: 'p1', label: 'Side 1' }],
+      polylines: [{ id: 'poly1', label: 'Curve 1', points: [[0, 0], [1, 1]] }],
+      axes: { x_axis_y: 0.5 },
+    };
+    const features = buildA11yFeatures(scene);
+    const kinds = new Set(features.map((f) => f.kind));
+    expect(kinds.has('point')).toBe(true);
+    expect(kinds.has('segment')).toBe(true);
+    expect(kinds.has('polyline')).toBe(true);
+    expect(kinds.has('axis')).toBe(true);
+    expect(features.filter((f) => f.kind === 'point').length).toBeLessThanOrEqual(30);
+    expect(features.length).toBeLessThanOrEqual(60);
+  });
+
+  it('buildA11yFeatures skips bars with non-finite values and never emits NaN', () => {
+    const scene: DiagramScene = {
+      kind: 'bar_chart',
+      bars: [
+        { id: 'b1', label: 'Valid', value: 50, x0: 0.1, x1: 0.3, y_base: 0.9, y_top: 0.4 },
+        { id: 'b2', label: 'InvalidNaN', value: NaN, x0: 0.4, x1: 0.6, y_base: 0.9, y_top: 0.4 },
+        { id: 'b3', label: 'InvalidInf', value: Infinity, x0: 0.7, x1: 0.9, y_base: 0.9, y_top: 0.4 },
+      ],
+    };
+    const features = buildA11yFeatures(scene);
+    expect(features).toHaveLength(1);
+    expect(features[0]?.key).toBe('bar-b1');
+    for (const f of features) {
+      expect(f.label).not.toContain('NaN');
+      expect(JSON.stringify(f.target)).not.toContain('NaN');
+      expect(JSON.stringify(f.target)).not.toContain('null');
+    }
+  });
 });
 
 describe('focus triggers feedback through the drivers', () => {

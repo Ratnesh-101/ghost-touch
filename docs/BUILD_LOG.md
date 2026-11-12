@@ -4096,4 +4096,55 @@ Format for each entry:
   - `backend/tests/test_r7_backend.py` (new)
   - `docs/reports/agy-r7-backend-report.md`
   - `docs/BUILD_LOG.md`
+## 2026-11-12 — agy, reviewed by Claude — Lane r7-explore (Explore & TalkBack overlay audit fixes)
+- Tool: **agy, reviewed by Claude** (Antigravity).
+- Addressed findings from the Nov 12 Kiro audit (`docs/reviews/kiro-audit-2026-11-12-explore.md` and `docs/reviews/kiro-audit-2026-11-12-core.md`):
+  - EX-01 (Explore.tsx handleVoiceAsk gate reset): Reset `askActive.current = false`,
+    `askManager.current.setActiveSpeech(null)`, and busy states in the outer `finally` block of
+    `handleVoiceAsk`, so early returns (e.g. `!canListen` on Firefox, iOS, WebViews) no longer
+    leave the Explore screen silenced.
+  - EX-02 (Explore.tsx handlePointerDown mic gate): Added `askActive.current` gate to `handlePointerDown`
+    so no vibration, tone, or speech occurs while voice recognition is listening, while preserving
+    normal touch behavior when idle.
+  - EX-03 (Explore.tsx mount effect noVibration announcement): Added optional `queue` flag to
+    `SpeechDriver.speak` / `WebSpeechDriver.speak` (defaulting to false / cancel). Updated Explore's
+    mount effect to pass `{ queue: true }` so the missing-vibration warning does not cancel the initial
+    scene announcement spoken on navigation from App.
+  - EX-05 (Explore.tsx cancelListen on system Back & unmount): Added `drivers.speech.cancelListen?.()`
+    and `askActive.current = false` calls to the `subscribeBack` system-Back handler and the unmount
+    cleanup effect, matching `handleExit`.
+  - CORE-A2 (flow/a11yFeatures.ts element share cap): In `buildA11yFeatures`, when multiple kinds are
+    present, reserved a fair share per kind (capping points at `Math.floor(maxFeatures / 2)` and
+    water-filling the remaining quota among segments, bars, polylines, and axes) so complex point sets
+    no longer starve other kinds from TalkBack exploration while maintaining the 60-feature cap.
+  - CORE-A3 (flow/a11yFeatures.ts non-finite bars): Filtered out bars with non-finite values (and
+    non-finite coordinates) matching `hitTest` behavior, ensuring "NaN" is never emitted in labels
+    or targets.
+- Verification & tests added:
+  - `frontend/tests/explore.askUnsupportedResetsGate.test.tsx` (new)
+  - `frontend/tests/explore.pointerdownDuringAsk.test.tsx` (new)
+  - `frontend/tests/explore.noVibrationKeepsAnnouncement.test.tsx` (new)
+  - `frontend/tests/explore.systemBackCancelsListen.test.tsx` (new)
+  - `frontend/tests/flow.a11yFeatures.share.test.ts` (new)
+  - Updated `frontend/tests/drivers.speech.test.ts` and `frontend/tests/explore.talkback.test.tsx`
+- Files touched:
+  - `frontend/src/flow/a11yFeatures.ts`
+  - `frontend/src/drivers/speech.ts`
+  - `frontend/src/drivers/index.ts`
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/tests/drivers.speech.test.ts`
+  - `frontend/tests/explore.talkback.test.tsx`
+  - `frontend/tests/w3.buzzFallback.test.tsx`
+  - `frontend/tests/explore.askUnsupportedResetsGate.test.tsx` (new)
+  - `frontend/tests/explore.pointerdownDuringAsk.test.tsx` (new)
+  - `frontend/tests/explore.noVibrationKeepsAnnouncement.test.tsx` (new)
+  - `frontend/tests/explore.systemBackCancelsListen.test.tsx` (new)
+  - `frontend/tests/flow.a11yFeatures.share.test.ts` (new)
+  - `docs/reports/agy-r7-explore-report.md`
+  - `docs/BUILD_LOG.md`
+- Pass 2 (supervisor gate fixes):
+  - Fixed TS6133 unused import `SpeakOptions` in `explore.noVibrationKeepsAnnouncement.test.tsx`.
+  - Updated `cancelListen` check in `explore.systemBackCancelsListen.test.tsx` to `toHaveBeenCalled()`.
+  - Updated `frontend/tests/w3.buzzFallback.test.tsx` entry check to expect `{ queue: true }` per EX-03.
+  - Audited all 5 new r7 test files for fragility; formatted all code within 100-column bounds.
 

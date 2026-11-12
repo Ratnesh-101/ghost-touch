@@ -152,6 +152,7 @@ describe('Explore w3-buzz-fallback UI and speech announcements', () => {
     expect(drivers.speech.speak).toHaveBeenCalledWith(
       t('explore.noVibration'),
       'en-IN',
+      { queue: true },
     );
   });
 

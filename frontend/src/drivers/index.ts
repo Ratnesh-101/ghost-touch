@@ -28,6 +28,7 @@ export { FallbackHapticDriver, WebHapticDriver } from './haptics';
 export {
   ListenError,
   type ListenFailure,
+  type SpeakOptions,
   type SpeechDriver,
   type SpeechRateSetting,
   BASE_SPEECH_RATE,

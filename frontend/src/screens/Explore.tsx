@@ -293,7 +293,11 @@ export function Explore({
   // Announce missing vibration warning once on entry if fallback is active
   useEffect(() => {
     if (!drivers.haptics.supported) {
-      drivers.speech.speak(t('explore.noVibration'), LANG_BCP47[getLang()] ?? 'en-IN');
+      drivers.speech.speak(
+        t('explore.noVibration'),
+        LANG_BCP47[getLang()] ?? 'en-IN',
+        { queue: true },
+      );
     }
   }, []);
 
@@ -429,6 +433,7 @@ export function Explore({
     } catch {
       // ignore
     }
+    askActive.current = false;
     askManager.current.abort();
     drivers.audio.playEarcon?.('back');
     clearLongPressTimer();
@@ -631,6 +636,8 @@ export function Explore({
       lastSpokenRef.current = msg;
       setShowTextFallback(true);
     } finally {
+      askActive.current = false;
+      askManager.current.setActiveSpeech(null);
       busyRef.current = false;
       if (!leaving.current) {
         setIsBusy(false);
@@ -968,6 +975,13 @@ export function Explore({
       }
       if (leaving.current) return;
       leaving.current = true;
+      try {
+        drivers.speech.cancelListen?.();
+      } catch {
+        // ignore
+      }
+      askActive.current = false;
+      askManager.current.abort();
       drivers.audio.playEarcon?.('back');
       clearLongPressTimer();
       activePointers.current.clear();
@@ -1037,6 +1051,12 @@ export function Explore({
       gc.destroy();
       guideController.current = null;
       clearLongPressTimer();
+      try {
+        drivers.speech.cancelListen?.();
+      } catch {
+        // ignore
+      }
+      askActive.current = false;
       askManager.current.abort();
       unbindBack();
       window.removeEventListener('resize', handleResize);
@@ -1157,6 +1177,24 @@ export function Explore({
     if (firstTouchOffset.current === null) {
       firstTouchOffset.current = { dx, dy };
       setDebugOffset(dx, dy);
+    }
+
+    // EX-02: Gate pointerdown while Ask listening is open (no tone, vibration or speech)
+    if (askActive.current) {
+      const moveResult = processPointerMove(
+        scene,
+        coords,
+        view,
+        now,
+        engineState.current,
+        centreTickState.current,
+        axisState.current,
+      );
+      engineState.current = moveResult.nextEngineState;
+      centreTickState.current = moveResult.centreCheck.nextState;
+      axisState.current = moveResult.nextAxisState;
+      scheduleDraw(view, coords);
+      return;
     }
 
     const centreResult = checkCentreTick(

@@ -43,23 +43,28 @@ function boxOf(xs: number[], ys: number[]): Pick<A11yFeature, 'cx' | 'cy' | 'w' 
  * Lists every vertex, side, bar, curve and axis of a scene as an accessible feature.
  * Capped to maxFeatures (default MAX_A11Y_FEATURES = 60) so complex scenes do not
  * create an unwieldy accessibility tree.
+ *
+ * Distributes feature share so every kind present (points, segments, bars, curves, axes)
+ * is reachable without any one kind (e.g. many points) starving the others.
  */
 export function buildA11yFeatures(
   scene: DiagramScene,
   maxFeatures: number = MAX_A11Y_FEATURES,
 ): A11yFeature[] {
-  const out: A11yFeature[] = [];
-  const points = scene.points ?? [];
+  if (maxFeatures <= 0) return [];
+
+  const rawPoints = scene.points ?? [];
+  const points = rawPoints.filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
   const byId = new Map(points.map((p) => [p.id, p]));
   const nameOf = (id: string): string => {
     const p = byId.get(id);
     return p?.label && p.label.trim() !== '' ? p.label : id;
   };
 
+  const pointFeatures: A11yFeature[] = [];
   for (const p of points) {
-    if (out.length >= maxFeatures) return out;
     const name = nameOf(p.id);
-    out.push({
+    pointFeatures.push({
       key: `point-${p.id}`,
       kind: 'point',
       label: tf('a11y.corner', { name }),
@@ -69,13 +74,13 @@ export function buildA11yFeatures(
     });
   }
 
+  const segmentFeatures: A11yFeature[] = [];
   for (const s of scene.segments ?? []) {
-    if (out.length >= maxFeatures) return out;
     const a = byId.get(s.a);
     const b = byId.get(s.b);
     if (!a || !b) continue;
     const name = s.label && s.label.trim() !== '' ? s.label : `${nameOf(s.a)}${nameOf(s.b)}`;
-    out.push({
+    segmentFeatures.push({
       key: `segment-${s.id}`,
       kind: 'segment',
       label: tf('a11y.side', { name }),
@@ -85,27 +90,38 @@ export function buildA11yFeatures(
     });
   }
 
-  const finiteValues = (scene.bars ?? []).map((b) => b.value).filter((v) => Number.isFinite(v));
+  const barFeatures: A11yFeature[] = [];
+  // CORE-A3: Skip bars with non-finite values (hitTest drops them), never put "NaN" into label/target
+  const finiteBars = (scene.bars ?? []).filter(
+    (b) =>
+      Number.isFinite(b.value) &&
+      Number.isFinite(b.x0) &&
+      Number.isFinite(b.x1) &&
+      Number.isFinite(b.y_top) &&
+      Number.isFinite(b.y_base),
+  );
+  const finiteValues = finiteBars.map((b) => b.value);
   const maxValue = finiteValues.length > 0 ? Math.max(...finiteValues) : 0;
-  for (const bar of scene.bars ?? []) {
-    if (out.length >= maxFeatures) return out;
-    out.push({
+  for (const bar of finiteBars) {
+    const label = tf('a11y.bar', { label: bar.label, value: String(bar.value) });
+    barFeatures.push({
       key: `bar-${bar.id}`,
       kind: 'bar',
-      label: tf('a11y.bar', { label: bar.label, value: String(bar.value) }),
+      label,
       target: { kind: 'bar', id: bar.id, label: bar.label, value: bar.value, maxValue },
       yNorm: bar.y_top,
       ...boxOf([bar.x0, bar.x1], [bar.y_top, bar.y_base]),
     });
   }
 
+  const polylineFeatures: A11yFeature[] = [];
   for (const poly of scene.polylines ?? []) {
-    if (out.length >= maxFeatures) return out;
     if (poly.points.length === 0) continue;
-    const xs = poly.points.map((pt) => Number(pt[0]));
-    const ys = poly.points.map((pt) => Number(pt[1]));
+    const xs = poly.points.map((pt) => Number(pt[0])).filter((x) => Number.isFinite(x));
+    const ys = poly.points.map((pt) => Number(pt[1])).filter((y) => Number.isFinite(y));
+    if (xs.length === 0 || ys.length === 0) continue;
     const name = poly.label && poly.label.trim() !== '' ? poly.label : poly.id;
-    out.push({
+    polylineFeatures.push({
       key: `polyline-${poly.id}`,
       kind: 'polyline',
       label: tf('a11y.curve', { name }),
@@ -115,8 +131,9 @@ export function buildA11yFeatures(
     });
   }
 
-  if (scene.axes?.x_axis_y != null && out.length < maxFeatures) {
-    out.push({
+  const axisFeatures: A11yFeature[] = [];
+  if (scene.axes?.x_axis_y != null && Number.isFinite(scene.axes.x_axis_y)) {
+    axisFeatures.push({
       key: 'axis-x',
       kind: 'axis',
       label: t('explore.xAxis'),
@@ -129,8 +146,8 @@ export function buildA11yFeatures(
     });
   }
 
-  if (scene.axes?.y_axis_x != null && out.length < maxFeatures) {
-    out.push({
+  if (scene.axes?.y_axis_x != null && Number.isFinite(scene.axes.y_axis_x)) {
+    axisFeatures.push({
       key: 'axis-y',
       kind: 'axis',
       label: t('explore.yAxis'),
@@ -141,6 +158,53 @@ export function buildA11yFeatures(
       w: 0,
       h: 1,
     });
+  }
+
+  // CORE-A2: Reserve a share per kind so complex point sets don't starve other features
+  const otherCandidates = [segmentFeatures, barFeatures, polylineFeatures, axisFeatures];
+  const otherTotal = otherCandidates.reduce((sum, g) => sum + g.length, 0);
+
+  if (otherTotal === 0) {
+    return pointFeatures.slice(0, maxFeatures);
+  }
+
+  const pointQuota =
+    pointFeatures.length > 0
+      ? Math.min(pointFeatures.length, Math.floor(maxFeatures / 2))
+      : 0;
+
+  let remaining = maxFeatures - pointQuota;
+  const activeOtherGroups = otherCandidates.filter((g) => g.length > 0);
+  const allocated = new Map<A11yFeature[], number>();
+  for (const g of activeOtherGroups) allocated.set(g, 0);
+
+  while (remaining > 0) {
+    const needed = activeOtherGroups.filter((g) => (allocated.get(g) ?? 0) < g.length);
+    if (needed.length === 0) break;
+    const share = Math.max(1, Math.floor(remaining / needed.length));
+    let progress = false;
+    for (const g of needed) {
+      const current = allocated.get(g) ?? 0;
+      const canTake = Math.min(g.length - current, share, remaining);
+      if (canTake > 0) {
+        allocated.set(g, current + canTake);
+        remaining -= canTake;
+        progress = true;
+        if (remaining === 0) break;
+      }
+    }
+    if (!progress) break;
+  }
+
+  const out: A11yFeature[] = [];
+  if (pointQuota > 0) {
+    out.push(...pointFeatures.slice(0, pointQuota));
+  }
+  for (const g of activeOtherGroups) {
+    const count = allocated.get(g) ?? 0;
+    if (count > 0) {
+      out.push(...g.slice(0, count));
+    }
   }
 
   return out;
