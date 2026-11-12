@@ -288,6 +288,10 @@ def build_raw_scene(
 
     segments: list[Segment] = []
     for x1, y1, x2, y2 in top_segments:
+        # Cheap exit when segment cap is reached (L-01)
+        if len(segments) >= MAX_RAW_SEGMENTS:
+            break
+
         existing_a = find_point(x1, y1)
         existing_b = find_point(x2, y2)
 
@@ -298,9 +302,9 @@ def build_raw_scene(
         else:
             new_points = 1 if math.hypot(x1 - x2, y1 - y2) <= merge_tol else 2
 
-        # Cap scene points so it always passes validation (B-01)
+        # Cap scene points so it always passes validation (B-01, L-01: continue instead of break)
         if len(point_registry) + new_points > MAX_RAW_POINTS:
-            break
+            continue
 
         p_a = get_or_create_point(x1, y1)
         p_b = get_or_create_point(x2, y2)

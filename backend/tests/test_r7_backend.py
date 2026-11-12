@@ -128,8 +128,12 @@ def test_facts_answer_names_every_requested_side(
     assert "BC" in fact_text
     assert "AC" in fact_text
 
-    # 2. clamp_answer preserves all three sentences for the facts path
-    clamped = clamp_answer(fact_text, preserve_symbols=True)
+    # 2. clamp_answer preserves all three sentences for facts path with explicit max_sentences
+    clamped = clamp_answer(
+        fact_text,
+        preserve_symbols=True,
+        max_sentences=MAX_FACTS_ANSWER_SENTENCES,
+    )
     assert "AB" in clamped
     assert "BC" in clamped
     assert "AC" in clamped
@@ -152,13 +156,13 @@ def test_facts_answer_names_every_requested_side(
 
 
 def test_clamp_answer_keeps_three_sentences_for_facts() -> None:
-    """B-02: clamp_answer keeps up to 3 sentences when max_sentences=3 or facts path."""
+    """B-02 / M-02: clamp_answer defaults to 2 sentences; allows 3 only with explicit max_sentences."""
     text = "AC = 4 cm. BC = 3 cm. AB = 5 cm."
-    # With preserve_symbols=True, facts path default is 3 sentences
-    assert clamp_answer(text, preserve_symbols=True) == "AC = 4 cm. BC = 3 cm. AB = 5 cm."
-    # Explicit max_sentences=3
+    # Default is 2 sentences even with preserve_symbols=True (M-02)
+    assert clamp_answer(text, preserve_symbols=True) == "AC = 4 cm. BC = 3 cm."
+    # Explicit max_sentences=MAX_FACTS_ANSWER_SENTENCES allows 3 sentences
     assert (
-        clamp_answer(text, max_sentences=MAX_FACTS_ANSWER_SENTENCES)
+        clamp_answer(text, preserve_symbols=True, max_sentences=MAX_FACTS_ANSWER_SENTENCES)
         == "AC = 4 cm. BC = 3 cm. AB = 5 cm."
     )
     # Default model output (preserve_symbols=False) remains clamped to 2 sentences
@@ -219,7 +223,6 @@ def test_hindi_wrong_angle_not_answered(client: TestClient) -> None:
     assert resp_b.status_code == 200
     data_b = resp_b.json()
     assert data_b["source"] == "unknown"
-    assert "ज्ञात नहीं है" in data_b["answer"]
 
     # Asking about angle A must also return unknown
     resp_a = client.post(
@@ -233,7 +236,6 @@ def test_hindi_wrong_angle_not_answered(client: TestClient) -> None:
     assert resp_a.status_code == 200
     data_a = resp_a.json()
     assert data_a["source"] == "unknown"
-    assert "ज्ञात नहीं है" in data_a["answer"]
 
     # Asking about angle C must correctly answer from facts
     resp_c = client.post(
@@ -281,7 +283,6 @@ def test_gujarati_wrong_angle_not_answered(client: TestClient) -> None:
     assert resp_b.status_code == 200
     data_b = resp_b.json()
     assert data_b["source"] == "unknown"
-    assert "જાણ નથી" in data_b["answer"]
 
     resp_c = client.post(
         "/api/v1/ask",
@@ -326,23 +327,49 @@ def test_english_behavior_remains_unchanged(client: TestClient, triangle: Diagra
     assert resp_ad.json()["answer"] == "I don't know from this diagram."
 
 
-def test_facts_lookup_general_facts_hindi_and_gujarati() -> None:
-    """B-03: General facts without IDs match single-content questions in Hindi/Gujarati."""
-    scene_hi = DiagramScene(
+def test_english_single_content_token_without_id_returns_unknown(
+    client: TestClient,
+) -> None:
+    """M-01: English question with 1 content token on a general fact returns unknown (F4c)."""
+    app.dependency_overrides[get_provider_chain] = lambda: ProviderChain([])
+    scene = DiagramScene(
         kind="geometry",
-        facts=["क्षेत्रफल = 20 cm²"],
+        facts=["Area = 20 cm²"],
     )
-    ans_hi = facts_lookup(scene_hi, "क्षेत्रफल कितना है?", lang="hi")
-    assert ans_hi is not None
-    assert "20" in ans_hi
+    # Direct facts_lookup must return None under F4c guard (requires >= 2 content tokens)
+    assert facts_lookup(scene, "What is the area?", lang="en") is None
 
-    scene_gu = DiagramScene(
-        kind="geometry",
-        facts=["ક્ષેત્રફળ = 50 cm²"],
+    # POST /api/v1/ask endpoint must return source "unknown"
+    resp = client.post(
+        "/api/v1/ask",
+        json={
+            "scene": scene.model_dump(),
+            "question": "What is the area?",
+            "lang": "en",
+        },
     )
-    ans_gu = facts_lookup(scene_gu, "ક્ષેત્રફળ કેટલું છે?", lang="gu")
-    assert ans_gu is not None
-    assert "50" in ans_gu
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["source"] == "unknown"
+    assert data["answer"] == "I don't know from this diagram."
+
+
+def test_raw_mode_continues_past_point_cap_for_reused_points(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """L-01: Raw mode continues past candidates exceeding point cap, keeping point reuse."""
+    monkeypatch.setattr("app.raw_mode.MAX_RAW_POINTS", 3)
+    # Draw a triangle whose edges share vertices (3 points) plus extra separate lines
+    img = np.zeros((300, 300, 3), dtype=np.uint8)
+    pts = np.array([[50, 50], [200, 50], [125, 180]], np.int32)
+    cv2.polylines(img, [pts], isClosed=True, color=(255, 255, 255), thickness=2)
+    cv2.line(img, (250, 20), (280, 20), (255, 255, 255), 2)
+    cv2.line(img, (20, 250), (20, 280), (255, 255, 255), 2)
+    ok, buf = cv2.imencode(".png", img)
+    assert ok
+    scene = build_raw_scene(buf.tobytes())
+    assert len(scene.points) <= 3
+    assert len(scene.segments) > 0
 
 
 def test_raw_mode_small_image_endpoint_returns_200(client: TestClient) -> None:

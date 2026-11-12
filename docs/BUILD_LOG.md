@@ -4247,3 +4247,30 @@ Format for each entry:
 - pp.shareOpen.resets.test.tsx: captures A (saved), opens shared B, saves through App's real handleSaveCorrect, asserts A keeps its title and scene and B is a second entry. Removing lastSavedDiagramId.current = null in handleOpenSharedDiagram makes it fail (1 entry instead of 2); the source was restored afterwards.
 - Gate: 	sc --noEmit 0 errors; vitest 181 files, 2231 tests passed.
 - Files: the two test files above, docs/BUILD_LOG.md.
+## 2026-11-12 — agy, reviewed by Claude — Lane r8-backend-fix (fixes from Kiro review of r7-backend)
+- Tool: **agy, reviewed by Claude** (Antigravity).
+- Addressed findings from `docs/reviews/kiro-review-r7-backend.md` per brief `agy-r8-backend-fix.md`:
+  - **M-01 (Medium) ask.py facts_lookup F4c guard:** Removed global `has_general_fact_match` that
+    loosened the F4c guard (two content-token overlaps) for English. Scoped single-token general-fact
+    matching strictly to Indic languages (`lang` starting with `"hi"` or `"gu"`) where words are
+    intact tokens, keeping `test_facts_lookup_hindi_tokens` and `test_facts_lookup_gujarati_tokens`
+    green while preserving the strict F4c guard (>= 2 content tokens) for English. Removed
+    `test_facts_lookup_general_facts_hindi_and_gujarati` and added a test verifying English single-token
+    general fact questions return source "unknown".
+  - **M-02 (Medium) ask.py clamp_answer sentence limit default:** Ensured default max sentences in
+    `clamp_answer` is always `MAX_ANSWER_SENTENCES` (2) across all paths (including semantic path
+    with `preserve_symbols=True`). Allowed 3 sentences exclusively through explicit
+    `max_sentences=MAX_FACTS_ANSWER_SENTENCES` at facts call site. Updated tests accordingly.
+  - **L-01 (Low) raw_mode.py segment loop continue:** Changed `break` to `continue` when a segment
+    candidate would exceed `MAX_RAW_POINTS`, so subsequent shorter segments that reuse existing points
+    are not dropped. Maintained cheap exit when `len(segments) >= MAX_RAW_SEGMENTS`.
+  - **L-02 (Low) test_r7_backend.py unknown assertions:** Updated Hindi and Gujarati wrong-angle
+    endpoint tests to assert `source == "unknown"` only, removing fragile localized substring assertions.
+- Files touched:
+  - `backend/app/ask.py`
+  - `backend/app/raw_mode.py`
+  - `backend/tests/test_r7_backend.py`
+  - `docs/reports/agy-r8-backend-fix-report.md`
+  - `docs/BUILD_LOG.md`
+
+

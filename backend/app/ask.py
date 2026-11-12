@@ -453,11 +453,7 @@ def clamp_answer(
     else:
         do_strip = not preserve_symbols
 
-    limit_sentences = (
-        max_sentences
-        if max_sentences is not None
-        else (MAX_FACTS_ANSWER_SENTENCES if preserve_symbols else MAX_ANSWER_SENTENCES)
-    )
+    limit_sentences = max_sentences if max_sentences is not None else MAX_ANSWER_SENTENCES
 
     # Strip Unicode control, format, and separator characters (Cc, Cf, Zl, Zp)
     chars: list[str] = []
@@ -634,7 +630,12 @@ def facts_lookup(scene: DiagramScene, question: str, lang: str = "en-IN") -> str
         if s == best_score
     )
     max_content_matches = max(len(cand.tokens & q_content) for s, cand in scored if s == best_score)
-    has_general_fact_match = any(
+    # M-01: F4c requires >= 2 content tokens for questions without IDs.
+    # Indic languages (Hindi, Gujarati) allow 1 content token on general facts without IDs
+    # (e.g. "क्षेत्रफल = 20 cm²" with "क्षेत्रफल कितना है?") because words are not fragmented,
+    # but never for English.
+    is_indic = (lang or "").startswith(("hi", "gu"))
+    has_indic_general_fact_match = is_indic and any(
         cand.is_fact
         and not cand.ids
         and not q_ids
@@ -645,7 +646,9 @@ def facts_lookup(scene: DiagramScene, question: str, lang: str = "en-IN") -> str
         if s == best_score
     )
 
-    if not (has_id_match or has_number_match or max_content_matches >= 2 or has_general_fact_match):
+    if not (
+        has_id_match or has_number_match or max_content_matches >= 2 or has_indic_general_fact_match
+    ):
         return None
 
     # Several equally good matches ("AB and BC") are all read out, at most three.
