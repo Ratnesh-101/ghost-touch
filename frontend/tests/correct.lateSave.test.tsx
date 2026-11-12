@@ -92,6 +92,27 @@ vi.mock('../src/api/validate', async (importOriginal) => {
   };
 });
 
+// App builds its drivers with createBrowserDrivers(); hand it a real MemoryDiagramStore and a
+// speech spy so the test can observe what App saves and says (R7F-1).
+const observed = vi.hoisted(() => ({
+  store: null as import('../src/drivers').MemoryDiagramStore | null,
+  speak: null as import('vitest').Mock | null,
+}));
+vi.mock('../src/drivers', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/drivers')>();
+  return {
+    ...actual,
+    createBrowserDrivers: (...args: Parameters<typeof actual.createBrowserDrivers>) => {
+      const real = actual.createBrowserDrivers(...args);
+      return {
+        ...real,
+        speech: { ...real.speech, speak: observed.speak! },
+        diagramStore: observed.store!,
+      };
+    },
+  };
+});
+
 let App!: typeof import('../src/App').App;
 let appModulePromise: Promise<typeof import('../src/App')> | null = null;
 function getAppModule(): Promise<typeof import('../src/App')> {
@@ -111,6 +132,8 @@ describe('FLOW-01: Late Save Protection', () => {
   beforeEach(() => {
     setLang('en');
     deferredValidateResolve = null;
+    observed.store = new MemoryDiagramStore();
+    observed.speak = vi.fn();
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -279,23 +302,48 @@ describe('FLOW-01: Late Save Protection', () => {
       expect(confirmSpy).toHaveBeenCalledTimes(1);
       expect(confirmSpy).toHaveBeenCalledWith(t('correct.confirmLeave'));
 
-      // View is back in Explore with original scene
+      // Discard lands on Explore with the original scene; the user then goes Back to Capture.
       expect(container!.querySelector('.gt-explore')).not.toBeNull();
       expect(container!.querySelector('.gt-correct')).toBeNull();
+      const exploreBack = container!.querySelector<HTMLButtonElement>('.gt-explore__back');
+      await act(async () => {
+        exploreBack!.click();
+      });
+      expect(container!.querySelector('.gt-capture')).not.toBeNull();
 
-      // Now resolve the late validate promise
+      // Snapshot the store and the speech log before the late validate resolves.
+      const before = await observed.store!.list();
+      expect(before.ok).toBe(true);
+      const beforeJson = JSON.stringify(before.ok ? before.value : null);
+      const spokenBefore = observed.speak!.mock.calls.length;
+
+      // Late validate resolves with edits the user discarded.
       const editedScene: DiagramScene = {
         ...sampleScene,
         title: 'Discarded Edits Should Not Be Applied',
       };
-
       await act(async () => {
         deferredValidateResolve?.({ ok: true, scene: editedScene, errors: [] });
       });
+      // Let any queued save task run.
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
 
-      // App should remain on Explore without applying discarded edits
+      // The view did not change: old code forced Explore here.
+      expect(container!.querySelector('.gt-capture')).not.toBeNull();
+      expect(container!.querySelector('.gt-explore')).toBeNull();
       expect(container!.querySelector('.gt-correct')).toBeNull();
-      expect(container!.querySelector('.gt-explore')).not.toBeNull();
-    });
+
+      // No new or changed saved entry, and the discarded title was never stored.
+      const after = await observed.store!.list();
+      expect(after.ok).toBe(true);
+      expect(JSON.stringify(after.ok ? after.value : null)).toBe(beforeJson);
+      expect(beforeJson).not.toContain('Discarded Edits Should Not Be Applied');
+
+      // Nothing was spoken by the late resolve, and "Corrections saved" never was.
+      expect(observed.speak!.mock.calls.length).toBe(spokenBefore);
+      const spoken = observed.speak!.mock.calls.map((call) => String(call[0]));
+      expect(spoken.some((s) => s.includes(t('correct.saved')))).toBe(false);    });
   });
 });
