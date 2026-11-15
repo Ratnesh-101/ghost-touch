@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { makeViewport } from '../src/core/geometry';
+import { makeViewport, toScreen } from '../src/core/geometry';
 import type { DiagramScene } from '../src/core/scene';
 import {
   initialAxisState,
@@ -176,4 +176,98 @@ describe('sample triangle: a shaky finger leaving corner A along AC (Requirement
     const flapped = [1, 2, 3, 7, 42, 2026].filter((s) => replay(s).boundaryCrossings > 2);
     expect(flapped.length).toBeGreaterThan(0);
   });
+});
+
+describe('sample triangle: edge <-> corner transitions and sequence tracking', () => {
+  it('transitions cleanly from edge AB to vertex B and then to edge BC', () => {
+    let state = initialState();
+    const centreTick = initialCentreTickState();
+    const axis = initialAxisState();
+
+    // 1. Touch mid-edge AB (x: 190, y: 220)
+    const step1 = processPointerMove(scene, { x: 190, y: 220 }, view, 1000, state, centreTick, axis);
+    expect(step1.target.kind).toBe('line');
+    expect(step1.effects).toContainEqual({ kind: 'vibrate', pattern: 80 });
+    state = step1.nextEngineState;
+
+    // 2. Drag into vertex B (x: 280, y: 340)
+    const step2 = processPointerMove(scene, { x: 280, y: 340 }, view, 1100, state, centreTick, axis);
+    expect(step2.target.kind).toBe('vertex');
+    expect(step2.effects).toContainEqual({ kind: 'vibrate', pattern: CORNER });
+    expect(step2.effects).toContainEqual({ kind: 'speak', text: 'B' });
+    state = step2.nextEngineState;
+
+    // 3. Immediately after vertex B (during 450ms quiet window), line buzz is suppressed to protect corner sensation
+    const step3Quiet = processPointerMove(scene, { x: 190, y: 340 }, view, 1200, state, centreTick, axis);
+    expect(step3Quiet.target.kind).toBe('line');
+    expect(step3Quiet.effects).not.toContainEqual({ kind: 'vibrate', pattern: 80 });
+    state = step3Quiet.nextEngineState;
+
+    // 4. Drag out along edge BC after quiet window expires (t = 1600 >= 1100 + 450)
+    const step4 = processPointerMove(scene, { x: 190, y: 340 }, view, 1600, state, centreTick, axis);
+    expect(step4.target.kind).toBe('line');
+    expect(step4.effects).toContainEqual({ kind: 'vibrate', pattern: 80 });
+  });
+
+  it('transitions cleanly from edge BC to vertex C and then to edge CA', () => {
+    let state = initialState();
+    const centreTick = initialCentreTickState();
+    const axis = initialAxisState();
+
+    // 1. Touch edge BC
+    const step1 = processPointerMove(scene, { x: 190, y: 340 }, view, 1000, state, centreTick, axis);
+    expect(step1.target.kind).toBe('line');
+    state = step1.nextEngineState;
+
+    // 2. Move to vertex C (100, 340)
+    const step2 = processPointerMove(scene, { x: 100, y: 340 }, view, 1100, state, centreTick, axis);
+    expect(step2.target.kind).toBe('vertex');
+    expect(step2.effects).toContainEqual({ kind: 'vibrate', pattern: CORNER });
+    expect(step2.effects).toContainEqual({ kind: 'speak', text: 'C' });
+    state = step2.nextEngineState;
+
+    // 3. Move along edge CA after quiet window expires (t = 1600)
+    const step3 = processPointerMove(scene, { x: 100, y: 220 }, view, 1600, state, centreTick, axis);
+    expect(step3.target.kind).toBe('line');
+    expect(step3.effects).toContainEqual({ kind: 'vibrate', pattern: 80 });
+  });
+});
+
+describe('sample triangle: responsive viewports and orientations', () => {
+  const viewports = [
+    { name: 'Samsung Galaxy S24+ portrait (412x915)', view: makeViewport(412, 915) },
+    { name: 'Mobile landscape (915x412)', view: makeViewport(915, 412) },
+    { name: 'Tablet portrait (768x1024)', view: makeViewport(768, 1024) },
+    { name: 'Desktop widescreen (1280x800)', view: makeViewport(1280, 800) },
+  ];
+
+  for (const { name, view: vp } of viewports) {
+    it(`identifies all 3 vertices and edges on ${name}`, () => {
+      // Points in normalized space: A(0.25, 0.25), B(0.7, 0.85), C(0.25, 0.85)
+      const pA = toScreen({ x: 0.25, y: 0.25 }, vp);
+      const pB = toScreen({ x: 0.7, y: 0.85 }, vp);
+      const pC = toScreen({ x: 0.25, y: 0.85 }, vp);
+
+      // Midpoints of edges in normalized space
+      const pAB = toScreen({ x: (0.25 + 0.7) / 2, y: (0.25 + 0.85) / 2 }, vp);
+      const pBC = toScreen({ x: (0.7 + 0.25) / 2, y: (0.85 + 0.85) / 2 }, vp);
+      const pCA = toScreen({ x: (0.25 + 0.25) / 2, y: (0.85 + 0.25) / 2 }, vp);
+
+      // Corners
+      const cA = processPointerMove(scene, pA, vp, 1000, initialState(), initialCentreTickState(), initialAxisState());
+      const cB = processPointerMove(scene, pB, vp, 1000, initialState(), initialCentreTickState(), initialAxisState());
+      const cC = processPointerMove(scene, pC, vp, 1000, initialState(), initialCentreTickState(), initialAxisState());
+      expect(cA.target.kind).toBe('vertex');
+      expect(cB.target.kind).toBe('vertex');
+      expect(cC.target.kind).toBe('vertex');
+
+      // Edges
+      const eAB = processPointerMove(scene, pAB, vp, 1000, initialState(), initialCentreTickState(), initialAxisState());
+      const eBC = processPointerMove(scene, pBC, vp, 1000, initialState(), initialCentreTickState(), initialAxisState());
+      const eCA = processPointerMove(scene, pCA, vp, 1000, initialState(), initialCentreTickState(), initialAxisState());
+      expect(eAB.target.kind).toBe('line');
+      expect(eBC.target.kind).toBe('line');
+      expect(eCA.target.kind).toBe('line');
+    });
+  }
 });
