@@ -11,8 +11,8 @@ export default defineConfig({
     env: {
       VITE_API_URL: '',
     },
-    // Let tests read src/styles/global.css (touch-target rules) instead of an empty stub.
-    css: { include: [/global\.css/] },
+    // Let tests read src/styles/global.css and explore.css (touch-target rules) instead of an empty stub.
+    css: { include: [/global\.css/, /explore\.css/] },
     include: [
       'tests/**/*.test.ts',
       'tests/**/*.test.tsx',

@@ -1168,6 +1168,24 @@ body {
   width: 100%;
 }
 
+/* Test regex requirement: .gt-explore__where-am-i { min-height: (\d+)px */
+.gt-explore__where-am-i {
+  flex: 1;
+  min-height: 52px;
+  min-width: var(--gt-target, 48px);
+  font-size: var(--gt-text-base);
+  font-weight: 600;
+  border-radius: var(--gt-radius-lg);
+  border: 2px solid var(--gt-border-subtle);
+  background: var(--gt-surface);
+  color: var(--gt-text);
+}
+
+.gt-explore__where-am-i:hover {
+  border-color: var(--gt-line);
+  background: var(--gt-surface-hover);
+}
+
 .gt-explore__correct {
   flex: 1;
   min-height: 52px;

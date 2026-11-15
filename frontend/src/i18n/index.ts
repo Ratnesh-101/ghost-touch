@@ -453,6 +453,29 @@ const en: Record<string, string> = {
   'compass.xAxis': 'x-axis, left to right',
   'compass.yAxis': 'y-axis, top to bottom',
   'compass.side': 'Side {name}',
+
+  // Where am I (Lane A5)
+  'explore.whereAmI': 'Where am I',
+  'commands.whereAmI': 'Where am I',
+  'whereAmI.side': 'side {name}',
+  'whereAmI.corner': 'corner {name}',
+  'whereAmI.curve': 'the curve',
+  'whereAmI.xAxis': 'x-axis',
+  'whereAmI.yAxis': 'y-axis',
+  'whereAmI.bar': 'bar {name}',
+  'whereAmI.touching': 'touching',
+  'whereAmI.close': 'close',
+  'whereAmI.far': 'far',
+  'whereAmI.dir.left': 'to your left',
+  'whereAmI.dir.right': 'to your right',
+  'whereAmI.dir.up': 'above you',
+  'whereAmI.dir.down': 'below you',
+  'whereAmI.dir.up-left': 'above to your left',
+  'whereAmI.dir.up-right': 'above to your right',
+  'whereAmI.dir.down-left': 'below to your left',
+  'whereAmI.dir.down-right': 'below to your right',
+  'whereAmI.detailWithDir': '{name}, {dist}, {dir}',
+  'whereAmI.detail': '{name}, {dist}',
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -874,6 +897,29 @@ const hi: Record<string, string> = {
   'compass.xAxis': 'x-अक्ष, बाएँ से दाएँ',
   'compass.yAxis': 'y-अक्ष, ऊपर से नीचे',
   'compass.side': 'भुजा {name}',
+
+  // Where am I (Lane A5)
+  'explore.whereAmI': 'कहाँ हूँ मैं',
+  'commands.whereAmI': 'कहाँ हूँ मैं',
+  'whereAmI.side': 'भुजा {name}',
+  'whereAmI.corner': 'कोना {name}',
+  'whereAmI.curve': 'वक्र',
+  'whereAmI.xAxis': 'x-अक्ष',
+  'whereAmI.yAxis': 'y-अक्ष',
+  'whereAmI.bar': 'स्तंभ {name}',
+  'whereAmI.touching': 'स्पर्श',
+  'whereAmI.close': 'पास',
+  'whereAmI.far': 'दूर',
+  'whereAmI.dir.left': 'आपके बाएँ',
+  'whereAmI.dir.right': 'आपके दाएँ',
+  'whereAmI.dir.up': 'आपके ऊपर',
+  'whereAmI.dir.down': 'आपके नीचे',
+  'whereAmI.dir.up-left': 'ऊपर-बाएँ',
+  'whereAmI.dir.up-right': 'ऊपर-दाएँ',
+  'whereAmI.dir.down-left': 'नीचे-बाएँ',
+  'whereAmI.dir.down-right': 'नीचे-दाएँ',
+  'whereAmI.detailWithDir': '{name}, {dist}, {dir}',
+  'whereAmI.detail': '{name}, {dist}',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -1296,6 +1342,29 @@ const gu: Record<string, string> = {
   'compass.xAxis': 'x-અક્ષ, ડાબેથી જમણે',
   'compass.yAxis': 'y-અક્ષ, ઉપરથી નીચે',
   'compass.side': 'બાજુ {name}',
+
+  // Where am I (Lane A5)
+  'explore.whereAmI': 'હું ક્યાં છું',
+  'commands.whereAmI': 'હું ક્યાં છું',
+  'whereAmI.side': 'બાજુ {name}',
+  'whereAmI.corner': 'ખૂણો {name}',
+  'whereAmI.curve': 'વક્ર',
+  'whereAmI.xAxis': 'x-અક્ષ',
+  'whereAmI.yAxis': 'y-અક્ષ',
+  'whereAmI.bar': 'સ્તંભ {name}',
+  'whereAmI.touching': 'સ્પર્શ',
+  'whereAmI.close': 'નજીક',
+  'whereAmI.far': 'દૂર',
+  'whereAmI.dir.left': 'તમારી ડાબે',
+  'whereAmI.dir.right': 'તમારી જમણે',
+  'whereAmI.dir.up': 'તમારી ઉપર',
+  'whereAmI.dir.down': 'તમારી નીચે',
+  'whereAmI.dir.up-left': 'ઉપર-ડાબે',
+  'whereAmI.dir.up-right': 'ઉપર-જમણે',
+  'whereAmI.dir.down-left': 'નીચે-ડાબે',
+  'whereAmI.dir.down-right': 'નીચે-જમણે',
+  'whereAmI.detailWithDir': '{name}, {dist}, {dir}',
+  'whereAmI.detail': '{name}, {dist}',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };

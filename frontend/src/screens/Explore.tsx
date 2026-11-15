@@ -17,6 +17,7 @@ import {
   makeViewport,
   toNorm,
   toScreen,
+  type NormPoint,
   type ScreenPoint,
   type Viewport,
 } from '../core/geometry';
@@ -31,12 +32,13 @@ import { isGuideActive } from '../config/features';
 import { cappedDpr, reconcileCanvasBox, type CanvasBox } from '../flow/canvasSize';
 import { GuideController } from '../flow/guide';
 import { resolveTarget } from '../guide';
-import { executeExploreCommand, parseExploreCommand } from '../flow/commands';
+import { executeExploreCommand, parseExploreCommand, whereAmI } from '../flow/commands';
 import {
   CENTRE_TICK_MS,
   checkCentreTick,
   checkTwoFingerLongPress,
   checkTwoFingerSwipeDown,
+  checkWhereAmIDwell,
   cornerCompass,
   createHoldKeepAliveTimer,
   DEFAULT_HAPTICS,
@@ -47,6 +49,7 @@ import {
   initialCentreTickState,
   initialProximityState,
   initialState,
+  initialWhereAmIDwellState,
   KEEP_ALIVE_INTERVAL_MS,
   LINE_DWELL_MS,
   lineName,
@@ -54,11 +57,13 @@ import {
   processPointerMove,
   proximityStep,
   rearmCentreTick,
+  resetWhereAmIDwellOnLift,
   seedAxisState,
   shouldKeepAlive,
   step,
   TWO_FINGER_LONG_PRESS_MS,
   TWO_FINGER_MAX_MOVE_PX,
+  updateWhereAmIDwellOnMove,
   VERTEX_VISIT_WINDOW_MS,
   type AxisTrackerState,
   type CentreTickState,
@@ -67,6 +72,7 @@ import {
   type HoldKeepAliveTimer,
   type PointerHistory,
   type ProximityState,
+  type WhereAmIDwellState,
 } from '../flow/explore';
 import { canvasAriaLabel, exploreAnnouncement, sceneName } from '../flow/navigation';
 import { getLang, subscribeLang, LANG_BCP47, t, type Lang } from '../i18n';
@@ -279,6 +285,9 @@ export function Explore({
   const busyRef = useRef(false);
   const askActive = useRef(false);
   const keepAliveTimer = useRef<HoldKeepAliveTimer | null>(null);
+  const whereAmIDwellState = useRef<WhereAmIDwellState>(initialWhereAmIDwellState());
+  const lastSpeechStartRef = useRef<number>(performance.now());
+  const lastFingerNormRef = useRef<NormPoint | null>(null);
 
   const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
   const [statusMessage, setStatusMessage] = useState(announced);
@@ -484,6 +493,7 @@ export function Explore({
     clearLongPressTimer();
     activePointers.current.clear();
     primaryPointerId.current = null;
+    whereAmIDwellState.current = resetWhereAmIDwellOnLift();
     lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
     prevTargetRef.current = { kind: 'none' };
     leaveExploreEntry();
@@ -1055,6 +1065,7 @@ export function Explore({
         clearLongPressTimer();
         activePointers.current.clear();
         primaryPointerId.current = null;
+        whereAmIDwellState.current = resetWhereAmIDwellOnLift();
         lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
         prevTargetRef.current = { kind: 'none' };
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
@@ -1075,6 +1086,7 @@ export function Explore({
       clearLongPressTimer();
       activePointers.current.clear();
       primaryPointerId.current = null;
+      whereAmIDwellState.current = resetWhereAmIDwellOnLift();
       lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
       prevTargetRef.current = { kind: 'none' };
       const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
@@ -1170,6 +1182,7 @@ export function Explore({
     const joined = moveEffects.find((e) => e.kind === 'speak');
     if (joined?.kind === 'speak') {
       lastSpokenRef.current = joined.text;
+      lastSpeechStartRef.current = performance.now();
     }
     proximityState.current = moveResult.proximityState;
     runEffects(moveEffects, drivers, lang);
@@ -1222,6 +1235,7 @@ export function Explore({
           const text = lineName(sceneRef.current, lineId);
           if (text) {
             drivers.speech.speak(text, lang);
+            lastSpeechStartRef.current = now;
             lastSpokenRef.current = text;
             setStatusMessage(text);
           }
@@ -1260,6 +1274,24 @@ export function Explore({
         applyMoveResult(moveResult, lang, [], compassAnnouncements);
         prevTargetRef.current = moveResult.target;
         scheduleDraw(view, coords);
+
+        const dwellResult = checkWhereAmIDwell(whereAmIDwellState.current, {
+          targetKind: moveResult.target.kind,
+          coords,
+          now,
+          lastSpeechStartTime: lastSpeechStartRef.current,
+          isAskActive: askActive.current,
+          isGuiding: Boolean(guideController.current?.isGuiding()),
+        });
+        whereAmIDwellState.current = dwellResult.nextState;
+        if (dwellResult.shouldSpeak && !leaving.current) {
+          const norm = toNorm(coords, view);
+          const text = whereAmI(sceneRef.current, view, norm);
+          drivers.speech.speak(text, lang);
+          lastSpeechStartRef.current = now;
+          lastSpokenRef.current = text;
+          setStatusMessage(text);
+        }
       },
     });
   }
@@ -1324,6 +1356,8 @@ export function Explore({
 
     // Reset axis tracking on every pointerdown and seed side without speaking (finding 7)
     const norm = toNorm(coords, view);
+    lastFingerNormRef.current = norm;
+    whereAmIDwellState.current = updateWhereAmIDwellOnMove(whereAmIDwellState.current, coords, now);
     axisState.current = seedAxisState(norm, scene.axes);
 
     // Check centre reference tick
@@ -1463,6 +1497,10 @@ export function Explore({
       return;
     }
 
+    const norm = toNorm(coords, view);
+    lastFingerNormRef.current = norm;
+    whereAmIDwellState.current = updateWhereAmIDwellOnMove(whereAmIDwellState.current, coords, now);
+
     // Per-move pipeline (R3-03)
     const moveResult = processPointerMove(
       scene,
@@ -1482,6 +1520,23 @@ export function Explore({
     prevTargetRef.current = moveResult.target;
     scheduleDraw(view, coords);
     keepAliveTimer.current?.update(coords, now);
+
+    const dwellResult = checkWhereAmIDwell(whereAmIDwellState.current, {
+      targetKind: moveResult.target.kind,
+      coords,
+      now,
+      lastSpeechStartTime: lastSpeechStartRef.current,
+      isAskActive: askActive.current,
+      isGuiding: Boolean(guideController.current?.isGuiding()),
+    });
+    whereAmIDwellState.current = dwellResult.nextState;
+    if (dwellResult.shouldSpeak && !leaving.current) {
+      const text = whereAmI(sceneRef.current, view, norm);
+      drivers.speech.speak(text, lang);
+      lastSpeechStartRef.current = now;
+      lastSpokenRef.current = text;
+      setStatusMessage(text);
+    }
   };
 
   const handlePointerLift = (e: PointerEvent<HTMLCanvasElement>): void => {
@@ -1556,6 +1611,7 @@ export function Explore({
       } else {
         // All fingers lifted: silence effects
         primaryPointerId.current = null;
+        whereAmIDwellState.current = resetWhereAmIDwellOnLift();
         lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
         prevTargetRef.current = { kind: 'none' };
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
@@ -1609,11 +1665,25 @@ export function Explore({
     const lang = LANG_BCP47[getLang()] ?? 'en-IN';
     setStatusMessage(feature.label);
     lastSpokenRef.current = feature.label;
+    lastSpeechStartRef.current = performance.now();
     try {
       drivers.speech.speak(feature.label, lang);
     } catch {
       // speech is best-effort
     }
+  };
+
+  const handleWhereAmIClick = (): void => {
+    if (isBusy || leaving.current) return;
+    drivers.audio.unlock();
+    const view = viewportRef.current;
+    const norm = lastFingerNormRef.current ?? { x: 0.5, y: 0.5 };
+    const text = whereAmI(sceneRef.current, view, norm);
+    const lang = LANG_BCP47[getLang()] ?? 'en-IN';
+    drivers.speech.speak(text, lang);
+    lastSpeechStartRef.current = performance.now();
+    lastSpokenRef.current = text;
+    setStatusMessage(text);
   };
 
   const renderA11yTree = (): JSX.Element => {
@@ -1799,6 +1869,16 @@ export function Explore({
               {t('ask.guideMe')}
             </AccessibleButton>
           )}
+          <AccessibleButton
+            data-testid="explore-where-am-i"
+            className="gt-control gt-explore__where-am-i"
+            onClick={handleWhereAmIClick}
+            disabled={isBusy}
+            aria-label={t('explore.whereAmI')}
+            style={{ minWidth: '48px', minHeight: '48px' }}
+          >
+            {t('explore.whereAmI')}
+          </AccessibleButton>
           <AccessibleButton
             ref={askButtonRef}
             className="gt-control gt-explore__ask"

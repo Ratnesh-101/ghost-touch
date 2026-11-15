@@ -22,9 +22,10 @@ import {
   matchSemanticPhrase,
   type SemanticName,
 } from '../guide';
+import { directionOf, nearestElement } from '../core/compass';
 import { joinAnnouncements } from './explore';
 import { buildOverview } from './overview';
-import { t } from '../i18n';
+import { t, tf } from '../i18n';
 
 export type CommandType =
   | 'where_am_i'
@@ -405,6 +406,115 @@ export function getCoarsePosition(pos: NormPoint): string {
   return t('pos.centre');
 }
 
+/**
+ * Pure function describing where the cursor is relative to the scene:
+ * - coarse position (e.g. "centre", "top left")
+ * - nearest element from nearestElement with no distance cap:
+ *   - name ("side CA", "corner B", "the curve", "x-axis", "bar Q2")
+ *   - distance word (touching <= 14 px, close <= 60 px, far otherwise)
+ *   - side it is on in one compass word ("to your left", "to your right", etc.)
+ * - empty scene: position only.
+ * All words through i18n in en, hi and gu.
+ */
+export function whereAmI(
+  scene: DiagramScene,
+  view: Viewport,
+  cursorNorm?: NormPoint | null,
+): string {
+  const currentPos: NormPoint = cursorNorm ?? { x: 0.5, y: 0.5 };
+  const coarsePos = getCoarsePosition(currentPos);
+  const finger: ScreenPoint = toScreen(currentPos, view);
+  let nearest = nearestElement(scene, finger, view);
+
+  // Architecture rule (tech.md, Requirement 4.6): Vertex hits take priority over line hits within vertex radius (22 CSS px).
+  // nearestElement measures pure geometric distance without hit-testing priority, so a finger
+  // touching a corner that has incident segments might have dist 0 to the segment but dist > 0
+  // to the vertex. If any vertex is within vertex hit radius (22 CSS px), it takes precedence.
+  if (scene.points && scene.points.length > 0 && nearest && nearest.elementKind !== 'vertex') {
+    let bestVertex: Point | null = null;
+    let bestVertexDist = Infinity;
+    let bestVertexDx = 0;
+    let bestVertexDy = 0;
+    const ox = view.offsetX;
+    const oy = view.offsetY;
+    const sc = view.scale;
+    for (const p of scene.points) {
+      const vx = ox + p.x * sc;
+      const vy = oy + p.y * sc;
+      const dx = vx - finger.x;
+      const dy = vy - finger.y;
+      const d = Math.hypot(dx, dy);
+      if (d < bestVertexDist) {
+        bestVertexDist = d;
+        bestVertex = p;
+        bestVertexDx = dx;
+        bestVertexDy = dy;
+      }
+    }
+    if (bestVertex && bestVertexDist <= 22) {
+      nearest = {
+        id: bestVertex.id,
+        elementKind: 'vertex',
+        distPx: bestVertexDist,
+        dxPx: bestVertexDx,
+        dyPx: bestVertexDy,
+      };
+    }
+  }
+
+  if (!nearest) {
+    return coarsePos;
+  }
+
+  let elemName = '';
+  switch (nearest.elementKind) {
+    case 'vertex': {
+      const p = scene.points?.find((pt) => pt.id === nearest.id);
+      const label = p?.label?.trim() || p?.id || nearest.id;
+      elemName = tf('whereAmI.corner', { name: label });
+      break;
+    }
+    case 'segment': {
+      const s = scene.segments?.find((seg) => seg.id === nearest.id);
+      const label = s?.label?.trim() || s?.id || nearest.id;
+      elemName = tf('whereAmI.side', { name: label });
+      break;
+    }
+    case 'polyline': {
+      elemName = t('whereAmI.curve');
+      break;
+    }
+    case 'axis': {
+      elemName = nearest.id === 'y-axis' ? t('whereAmI.yAxis') : t('whereAmI.xAxis');
+      break;
+    }
+    case 'bar-edge': {
+      const b = scene.bars?.find((bar) => bar.id === nearest.id);
+      const label = b?.label?.trim() || b?.id || nearest.id;
+      elemName = tf('whereAmI.bar', { name: label });
+      break;
+    }
+  }
+
+  let distWord: string;
+  if (nearest.distPx <= 14) {
+    distWord = t('whereAmI.touching');
+  } else if (nearest.distPx <= 60) {
+    distWord = t('whereAmI.close');
+  } else {
+    distWord = t('whereAmI.far');
+  }
+
+  const dir = directionOf({ x: 0, y: 0 }, { x: nearest.dxPx, y: nearest.dyPx });
+  const dirWord = dir ? t(`whereAmI.dir.${dir}`) : null;
+
+  const detail = dirWord
+    ? tf('whereAmI.detailWithDir', { name: elemName, dist: distWord, dir: dirWord })
+    : tf('whereAmI.detail', { name: elemName, dist: distWord });
+
+  return joinAnnouncements([coarsePos, detail]);
+}
+
 /** Find nearest labelled vertex to a normalized point. */
 export function findNearestVertex(
   points: readonly Point[] | undefined,
@@ -533,8 +643,6 @@ export function executeExploreCommand(
   ctx: ExploreCommandContext,
 ): ExploreCommandResult {
   const { scene, view, cursorNorm, lastSpoken, currentCornerIndex, currentRate } = ctx;
-  const currentPos: NormPoint = cursorNorm ?? { x: 0.5, y: 0.5 };
-  const coarsePos = getCoarsePosition(currentPos);
 
   switch (cmd.type) {
     case 'stop': {
@@ -611,15 +719,7 @@ export function executeExploreCommand(
     }
 
     case 'where_am_i': {
-      const nearest = findNearestVertex(scene.points, currentPos);
-      if (nearest && nearest.dist <= 0.35) {
-        const label = nearest.point.label ?? nearest.point.id;
-        const speech = t('commands.whereNearVertex')
-          .replace('{label}', label)
-          .replace('{pos}', coarsePos);
-        return { speech, earcon: 'success' };
-      }
-      const speech = t('commands.whereEmpty').replace('{pos}', coarsePos);
+      const speech = whereAmI(scene, view, cursorNorm);
       return { speech, earcon: 'success' };
     }
 

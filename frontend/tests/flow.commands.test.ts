@@ -191,19 +191,20 @@ describe('findNearestVertex', () => {
 describe('executeExploreCommand', () => {
   it('executes "where am I" near a vertex', () => {
     const res = executeExploreCommand({ type: 'where_am_i', raw: 'where am I' }, defaultContext);
-    expect(res.speech).toContain('Point A');
+    expect(res.speech).toContain('corner A');
+    expect(res.speech).toContain('touching');
     expect(res.speech).toContain('top left');
     expect(res.earcon).toBe('success');
   });
 
   it('executes "where am I" in open space', () => {
-    const contextInEmptySpace: ExploreCommandContext = {
+    const emptySceneContext: ExploreCommandContext = {
       ...defaultContext,
+      scene: { version: 1, kind: 'unknown' },
       cursorNorm: { x: 0.5, y: 0.5 },
     };
-    const res = executeExploreCommand({ type: 'where_am_i', raw: 'where am I' }, contextInEmptySpace);
-    expect(res.speech).toContain('open space');
-    expect(res.speech).toContain('centre');
+    const res = executeExploreCommand({ type: 'where_am_i', raw: 'where am I' }, emptySceneContext);
+    expect(res.speech).toBe('centre');
     expect(res.earcon).toBe('success');
   });
 

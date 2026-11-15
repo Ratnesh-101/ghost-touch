@@ -8,6 +8,7 @@ import { Explore } from '../src/screens/Explore';
 import { SavedDiagrams } from '../src/screens/SavedDiagrams';
 import { Start } from '../src/screens/Start';
 import css from '../src/styles/global.css?raw';
+import exploreCss from '../src/styles/explore.css?raw';
 
 const drivers: Drivers = {
   haptics: { supported: true, lastResult: null, vibrate: vi.fn(), stop: vi.fn() },
@@ -86,6 +87,8 @@ describe('screen markup (server render)', () => {
     );
     expect(html).toContain('Back');
     expect(html).toContain('gt-explore__back');
+    expect(html).toContain('Where am I');
+    expect(html).toContain('gt-explore__where-am-i');
     expect(html).toContain('Ask');
     expect(html).toContain('gt-explore__ask');
     // When drivers can speak, StatusText contains no aria-live
@@ -166,5 +169,12 @@ describe('touch targets (Requirement 12.1)', () => {
 
     const matchSend = /\.gt-explore__send\s*{[^}]*min-height:\s*(\d+)px/s.exec(css);
     expect(Number(matchSend?.[1])).toBeGreaterThanOrEqual(48);
+  });
+
+  it('makes the Explore where-am-i button at least 48px tall and wide', () => {
+    const raw = typeof exploreCss === 'string' && exploreCss.length > 0 ? exploreCss : css;
+    const match = /\.gt-explore__where-am-i\s*{[^}]*min-height:\s*(\d+)px/s.exec(raw);
+    expect(Number(match?.[1])).toBeGreaterThanOrEqual(48);
+    expect(raw).toMatch(/\.gt-explore__where-am-i\s*{[^}]*min-width:\s*var\(--gt-target/s);
   });
 });

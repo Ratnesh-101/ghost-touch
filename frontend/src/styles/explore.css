@@ -282,6 +282,23 @@
   width: 100%;
 }
 
+.gt-explore__where-am-i {
+  flex: 1;
+  min-height: 52px;
+  min-width: var(--gt-target, 48px);
+  font-size: var(--gt-text-base, 1rem);
+  font-weight: 600;
+  border-radius: var(--gt-radius-lg, 16px);
+  border: 2px solid var(--gt-copper, var(--gt-border-subtle, #222232));
+  background: var(--gt-surface, #14141e);
+  color: var(--gt-text, #eafff5);
+}
+
+.gt-explore__where-am-i:hover:not(:disabled) {
+  border-color: var(--gt-cyan, var(--gt-line, #39ff88));
+  background: var(--gt-surface-hover, #1c1c2a);
+}
+
 .gt-explore__ask {
   flex: 1;
   min-height: 52px;

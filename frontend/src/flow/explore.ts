@@ -670,4 +670,180 @@ export function lineName(scene: DiagramScene, lineId: string): string {
   return '';
 }
 
+// ---------------------------------------------------------------------------
+// Where Am I dwell detection (Lane A5)
+// ---------------------------------------------------------------------------
+
+export const WHERE_AM_I_DWELL_MS = 1200;
+export const WHERE_AM_I_REST_MAX_MOVE_PX = 6;
+export const WHERE_AM_I_REARM_MOVE_PX = 20;
+export const WHERE_AM_I_SPEECH_QUIET_MS = 1500;
+
+export interface WhereAmIDwellState {
+  armed: boolean;
+  spoken: boolean;
+  restAnchor: ScreenPoint | null;
+  restStartTime: number;
+  lastSpokenCoords: ScreenPoint | null;
+}
+
+export function initialWhereAmIDwellState(): WhereAmIDwellState {
+  return {
+    armed: true,
+    spoken: false,
+    restAnchor: null,
+    restStartTime: 0,
+    lastSpokenCoords: null,
+  };
+}
+
+export interface WhereAmIDwellCheckInput {
+  targetKind: Target['kind'];
+  coords: ScreenPoint;
+  now: number;
+  lastSpeechStartTime: number;
+  isAskActive: boolean;
+  isGuiding: boolean;
+}
+
+export interface WhereAmIDwellResult {
+  shouldSpeak: boolean;
+  nextState: WhereAmIDwellState;
+}
+
+/**
+ * Updates dwell state when the pointer moves:
+ * - If not armed (already spoken): re-arms once the finger moves >= 20 px from last spoken position.
+ * - If armed: if moved >= 6 px from restAnchor, resets restAnchor and restStartTime.
+ */
+export function updateWhereAmIDwellOnMove(
+  state: WhereAmIDwellState,
+  coords: ScreenPoint,
+  now: number,
+): WhereAmIDwellState {
+  if (!state.armed) {
+    if (state.lastSpokenCoords) {
+      const distFromSpoken = Math.hypot(
+        coords.x - state.lastSpokenCoords.x,
+        coords.y - state.lastSpokenCoords.y,
+      );
+      if (distFromSpoken >= WHERE_AM_I_REARM_MOVE_PX) {
+        return {
+          armed: true,
+          spoken: false,
+          restAnchor: coords,
+          restStartTime: now,
+          lastSpokenCoords: null,
+        };
+      }
+    }
+    return state;
+  }
+
+  if (!state.restAnchor) {
+    return {
+      ...state,
+      restAnchor: coords,
+      restStartTime: now,
+    };
+  }
+
+  const distFromAnchor = Math.hypot(
+    coords.x - state.restAnchor.x,
+    coords.y - state.restAnchor.y,
+  );
+  if (distFromAnchor >= WHERE_AM_I_REST_MAX_MOVE_PX) {
+    return {
+      ...state,
+      restAnchor: coords,
+      restStartTime: now,
+    };
+  }
+
+  return state;
+}
+
+/**
+ * Checks if the finger has rested (moved < 6 px) for 1200 ms on a 'none' target.
+ * Guards against speech that started < 1500 ms ago, Ask listening, and Guide active.
+ */
+export function checkWhereAmIDwell(
+  state: WhereAmIDwellState,
+  input: WhereAmIDwellCheckInput,
+): WhereAmIDwellResult {
+  const { targetKind, coords, now, lastSpeechStartTime, isAskActive, isGuiding } = input;
+
+  if (targetKind !== 'none') {
+    return {
+      shouldSpeak: false,
+      nextState: {
+        ...state,
+        restAnchor: coords,
+        restStartTime: now,
+      },
+    };
+  }
+
+  if (isAskActive || isGuiding) {
+    return {
+      shouldSpeak: false,
+      nextState: state,
+    };
+  }
+
+  if (now - lastSpeechStartTime < WHERE_AM_I_SPEECH_QUIET_MS) {
+    return {
+      shouldSpeak: false,
+      nextState: state,
+    };
+  }
+
+  if (!state.armed || state.spoken) {
+    return {
+      shouldSpeak: false,
+      nextState: state,
+    };
+  }
+
+  const anchor = state.restAnchor ?? coords;
+  const dist = Math.hypot(coords.x - anchor.x, coords.y - anchor.y);
+  if (dist >= WHERE_AM_I_REST_MAX_MOVE_PX) {
+    return {
+      shouldSpeak: false,
+      nextState: {
+        ...state,
+        restAnchor: coords,
+        restStartTime: now,
+      },
+    };
+  }
+
+  const startTime = state.restStartTime > 0 ? state.restStartTime : now;
+  if (now - startTime < WHERE_AM_I_DWELL_MS) {
+    return {
+      shouldSpeak: false,
+      nextState: {
+        ...state,
+        restAnchor: anchor,
+        restStartTime: startTime,
+      },
+    };
+  }
+
+  return {
+    shouldSpeak: true,
+    nextState: {
+      armed: false,
+      spoken: true,
+      restAnchor: coords,
+      restStartTime: now,
+      lastSpokenCoords: coords,
+    },
+  };
+}
+
+export function resetWhereAmIDwellOnLift(): WhereAmIDwellState {
+  return initialWhereAmIDwellState();
+}
+
 
