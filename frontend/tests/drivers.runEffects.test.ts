@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { Effect } from '../src/core/hapticEngine';
-import { MemoryDiagramStore, runEffects, type Drivers } from '../src/drivers';
+import { MemoryDiagramStore, runEffects, runProximityEffects, type Drivers } from '../src/drivers';
+import type { ProximityEffect } from '../src/core/proximity';
 import { Debug } from '../src/screens/Debug';
 
 function fakeDrivers(): { drivers: Drivers; vibrate: ReturnType<typeof vi.fn>; speak: ReturnType<typeof vi.fn>; setTone: ReturnType<typeof vi.fn> } {
@@ -63,6 +64,41 @@ describe('runEffects', () => {
     const { drivers } = fakeDrivers();
     const bogus = { kind: 'explode' } as unknown as Effect;
     expect(() => runEffects([bogus], drivers)).not.toThrow();
+  });
+});
+
+describe('runProximityEffects', () => {
+  it('dispatches click effects to drivers.audio.playClick', () => {
+    const playClick = vi.fn();
+    const drivers: Drivers = {
+      haptics: { supported: true, lastResult: null, vibrate: vi.fn(), stop: vi.fn() },
+      audio: { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), playEarcon: vi.fn(), playClick, state: 'running' },
+      speech: { speak: vi.fn(), listen: vi.fn(), canSpeak: true, canListen: true },
+      diagramStore: new MemoryDiagramStore(),
+    };
+
+    const effects: ProximityEffect[] = [
+      { kind: 'click', hz: 600, pan: -0.5, gain: 0.35 },
+      { kind: 'click', hz: 1100, pan: 0.8, gain: 0.55 },
+    ];
+    runProximityEffects(effects, drivers);
+
+    expect(playClick).toHaveBeenCalledTimes(2);
+    expect(playClick).toHaveBeenNthCalledWith(1, 600, -0.5, 0.35);
+    expect(playClick).toHaveBeenNthCalledWith(2, 1100, 0.8, 0.55);
+  });
+
+  it('safely handles driver without playClick method', () => {
+    const drivers: Drivers = {
+      haptics: { supported: true, lastResult: null, vibrate: vi.fn(), stop: vi.fn() },
+      audio: { unlock: vi.fn(), setTone: vi.fn(), beep: vi.fn(), playEarcon: vi.fn(), state: 'running' },
+      speech: { speak: vi.fn(), listen: vi.fn(), canSpeak: true, canListen: true },
+      diagramStore: new MemoryDiagramStore(),
+    };
+
+    expect(() =>
+      runProximityEffects([{ kind: 'click', hz: 800, pan: 0, gain: 0.4 }], drivers),
+    ).not.toThrow();
   });
 });
 

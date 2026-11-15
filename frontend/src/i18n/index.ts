@@ -432,6 +432,12 @@ const en: Record<string, string> = {
   'lab.settings.directionsOn': 'Directions enabled.',
   'lab.settings.directionsOff': 'Directions disabled.',
 
+  // Finding sound setting (Lane A4)
+  'lab.settings.findingSound': 'Finding sound',
+  'lab.settings.findingSoundHint': 'Clicking sounds guide your finger back to lines.',
+  'lab.settings.findingSoundOn': 'Finding sound enabled.',
+  'lab.settings.findingSoundOff': 'Finding sound disabled.',
+
   // Corner compass & line names (Lane A3)
   'compass.dir.up': 'up',
   'compass.dir.down': 'down',
@@ -846,6 +852,12 @@ const hi: Record<string, string> = {
   'lab.settings.directionsHint': 'कोनों पर दिशाएं और रुकने पर रेखाओं के नाम बोलें।',
   'lab.settings.directionsOn': 'दिशाएं सक्षम की गईं।',
   'lab.settings.directionsOff': 'दिशाएं अक्षम की गईं।',
+
+  // Finding sound setting (Lane A4)
+  'lab.settings.findingSound': 'खोज ध्वनि',
+  'lab.settings.findingSoundHint': 'क्लिक की आवाज़ आपकी उंगली को रेखाओं तक वापस ले जाती है।',
+  'lab.settings.findingSoundOn': 'खोज ध्वनि सक्षम की गई।',
+  'lab.settings.findingSoundOff': 'खोज ध्वनि अक्षम की गई।',
 
   // Corner compass & line names (Lane A3)
   'compass.dir.up': 'ऊपर',
@@ -1262,6 +1274,12 @@ const gu: Record<string, string> = {
   'lab.settings.directionsHint': 'ખૂણા પર દિશાઓ અને રોકાવા પર રેખાઓના નામ બોલો.',
   'lab.settings.directionsOn': 'દિશાઓ સક્ષમ કરી.',
   'lab.settings.directionsOff': 'દિશાઓ અક્ષમ કરી.',
+
+  // Finding sound setting (Lane A4)
+  'lab.settings.findingSound': 'શોધ ધ્વનિ',
+  'lab.settings.findingSoundHint': 'ક્લિકનો અવાજ તમારી આંગળીને રેખાઓ પર પાછી લાવે છે.',
+  'lab.settings.findingSoundOn': 'શોધ ધ્વનિ સક્ષમ કરી.',
+  'lab.settings.findingSoundOff': 'શોધ ધ્વનિ અક્ષમ કરી.',
 
   // Corner compass & line names (Lane A3)
   'compass.dir.up': 'ઉપર',

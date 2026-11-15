@@ -11,9 +11,20 @@
 import { hitTest, type Radii, type Target } from '../core/hitTest';
 import { toNorm, type ScreenPoint, type Viewport } from '../core/geometry';
 import type { DiagramScene } from '../core/scene';
-import { lineEnds, vertexExits, type Compass8 } from '../core/compass';
+import { lineEnds, nearestElement, vertexExits, type Compass8, type NearestElement } from '../core/compass';
+import {
+  DEFAULT_PROXIMITY,
+  initialProximityState,
+  proximityStep,
+  type ProximityConfig,
+  type ProximityEffect,
+  type ProximityState,
+} from '../core/proximity';
 import {
   getStoredDirectionsSetting,
+  safeGet,
+  safeRemove,
+  safeSet,
   setStoredDirectionsSetting,
   STORAGE_KEY_DIRECTIONS,
 } from '../drivers/storage';
@@ -28,6 +39,28 @@ import {
 import { pitchForY } from '../core/pitch';
 import { t, tf } from '../i18n';
 
+export const STORAGE_KEY_FINDING_SOUND = 'gt_finding_sound_enabled';
+
+let inMemoryFindingSoundSetting: boolean | null = null;
+
+export function getStoredFindingSoundSetting(): boolean {
+  const stored = safeGet(STORAGE_KEY_FINDING_SOUND);
+  if (stored !== null) {
+    return stored === 'true';
+  }
+  return inMemoryFindingSoundSetting ?? true;
+}
+
+export function setStoredFindingSoundSetting(enabled: boolean): void {
+  safeSet(STORAGE_KEY_FINDING_SOUND, enabled ? 'true' : 'false');
+  inMemoryFindingSoundSetting = enabled;
+}
+
+export function _resetFindingSoundSettingForTesting(): void {
+  inMemoryFindingSoundSetting = null;
+  safeRemove(STORAGE_KEY_FINDING_SOUND);
+}
+
 export {
   step,
   initialState,
@@ -36,8 +69,20 @@ export {
   getStoredDirectionsSetting,
   setStoredDirectionsSetting,
   STORAGE_KEY_DIRECTIONS,
+  DEFAULT_PROXIMITY,
+  initialProximityState,
+  proximityStep,
 };
-export type { EngineState, Effect, HapticConfig, Compass8 };
+export type {
+  EngineState,
+  Effect,
+  HapticConfig,
+  Compass8,
+  ProximityConfig,
+  ProximityEffect,
+  ProximityState,
+  NearestElement,
+};
 
 /**
  * Proposed centre tick pattern: 25 ms single pulse.
@@ -360,6 +405,9 @@ export interface MovePipelineResult {
   centreCheck: CentreCheckResult;
   axisCrossings: string[];
   nextAxisState: AxisTrackerState;
+  nearest: NearestElement | null;
+  proximityState: ProximityState;
+  proximityEffects: ProximityEffect[];
 }
 
 /**
@@ -375,6 +423,8 @@ export function processPointerMove(
   axisState: AxisTrackerState,
   radii: Radii = DEFAULT_RADII,
   cfg: HapticConfig = DEFAULT_HAPTICS,
+  proximityState: ProximityState = initialProximityState(),
+  proximityCfg: ProximityConfig = DEFAULT_PROXIMITY,
 ): MovePipelineResult {
   const target = hitTest(scene, finger, view, radii);
   const norm = toNorm(finger, view);
@@ -397,6 +447,27 @@ export function processPointerMove(
     axisState,
   );
 
+  const onLine = target.kind === 'line';
+  const nearest = nearestElement(scene, finger, view, proximityCfg.radiusPx);
+  const distPx =
+    target.kind === 'vertex' || target.kind === 'bar' || nearest === null
+      ? null
+      : nearest.distPx;
+  const dxPx = nearest ? nearest.dxPx : 0;
+
+  const { state: nextProximityState, effects: proximityEffects } = proximityStep(
+    proximityState,
+    {
+      kind: 'move',
+      t,
+      distPx,
+      dxPx,
+      onLine,
+      inQuietWindow,
+    },
+    proximityCfg,
+  );
+
   return {
     target,
     yNorm: norm.y,
@@ -405,6 +476,9 @@ export function processPointerMove(
     centreCheck,
     axisCrossings,
     nextAxisState,
+    nearest,
+    proximityState: nextProximityState,
+    proximityEffects,
   };
 }
 

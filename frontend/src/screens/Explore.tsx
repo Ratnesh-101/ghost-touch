@@ -22,7 +22,7 @@ import {
 } from '../core/geometry';
 import type { DiagramScene } from '../core/scene';
 import type { Target } from '../core/hitTest';
-import { FallbackHapticDriver, runEffects, type Drivers } from '../drivers';
+import { FallbackHapticDriver, runEffects, runProximityEffects, type Drivers } from '../drivers';
 import type { PulseKind } from '../drivers/haptics';
 import { leaveExploreEntry, onBack as subscribeBack, pushExploreEntry } from '../drivers/navigation';
 import { askErrorMessage, AskManager, LISTENING_BEEP_HZ, LISTENING_BEEP_MS, type AskOutcome } from '../flow/ask';
@@ -39,15 +39,20 @@ import {
   checkTwoFingerSwipeDown,
   cornerCompass,
   createHoldKeepAliveTimer,
+  DEFAULT_HAPTICS,
+  DEFAULT_RADII,
   getStoredDirectionsSetting,
+  getStoredFindingSoundSetting,
   initialAxisState,
   initialCentreTickState,
+  initialProximityState,
   initialState,
   KEEP_ALIVE_INTERVAL_MS,
   LINE_DWELL_MS,
   lineName,
   mergeAnnouncements,
   processPointerMove,
+  proximityStep,
   rearmCentreTick,
   seedAxisState,
   shouldKeepAlive,
@@ -61,6 +66,7 @@ import {
   type HoldKeepAliveOptions,
   type HoldKeepAliveTimer,
   type PointerHistory,
+  type ProximityState,
 } from '../flow/explore';
 import { canvasAriaLabel, exploreAnnouncement, sceneName } from '../flow/navigation';
 import { getLang, subscribeLang, LANG_BCP47, t, type Lang } from '../i18n';
@@ -241,6 +247,7 @@ export function Explore({
   const textInputRef = useRef<HTMLInputElement>(null);
 
   const engineState = useRef<EngineState>(initialState());
+  const proximityState = useRef<ProximityState>(initialProximityState());
   const centreTickState = useRef<CentreTickState>(initialCentreTickState());
   const axisState = useRef<AxisTrackerState>(initialAxisState());
   const activePointers = useRef<Map<number, PointerHistory>>(new Map());
@@ -434,11 +441,17 @@ export function Explore({
     setTimeout(() => ref.current?.focus(), 0);
   };
 
+  const sendProximityLift = (now = performance.now()): void => {
+    const { state } = proximityStep(proximityState.current, { kind: 'lift', t: now });
+    proximityState.current = state;
+  };
+
   const handleStartGuideFromOffer = (): void => {
     if (!offeredTarget) return;
     const resolved = resolveTarget(sceneRef.current, offeredTarget);
     if (resolved && guideController.current) {
       keepAliveTimer.current?.stop();
+      sendProximityLift();
       setOfferedTarget(null);
       drivers.audio.unlock();
       drivers.audio.setTone(null);
@@ -453,6 +466,7 @@ export function Explore({
 
   const handleExit = (): void => {
     keepAliveTimer.current?.stop();
+    sendProximityLift();
     if (guideController.current?.isGuiding()) {
       guideController.current.stop('back');
       return;
@@ -486,6 +500,7 @@ export function Explore({
 
     // GT-02: Stop tone and haptics and mark askActive while voice listening is open
     askActive.current = true;
+    sendProximityLift();
     try {
       drivers.audio.setTone(null);
       drivers.haptics.stop();
@@ -574,6 +589,7 @@ export function Explore({
           guideController.current?.stop('voice');
         } else if (result.guideTarget) {
           keepAliveTimer.current?.stop();
+          sendProximityLift();
           drivers.audio.setTone(null);
           engineState.current = initialState();
           guideController.current?.start(result.guideTarget);
@@ -1004,6 +1020,7 @@ export function Explore({
 
     const unbindBack = subscribeBack(() => {
       keepAliveTimer.current?.stop();
+      sendProximityLift();
       if (guideController.current?.isGuiding()) {
         guideController.current.stop('back');
         pushExploreEntry();
@@ -1029,6 +1046,7 @@ export function Explore({
     const handleVisibilityChange = (): void => {
       if (document.hidden) {
         keepAliveTimer.current?.stop();
+        sendProximityLift();
         if (guideController.current?.isGuiding()) {
           guideController.current.stop('user');
         }
@@ -1048,6 +1066,7 @@ export function Explore({
 
     const handleWindowBlur = (): void => {
       keepAliveTimer.current?.stop();
+      sendProximityLift();
       if (guideController.current?.isGuiding()) {
         guideController.current.stop('user');
       }
@@ -1113,6 +1132,7 @@ export function Explore({
       // Lift on unmount
       const { effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
       runEffects(effects, drivers);
+      sendProximityLift(performance.now());
     };
   }, []);
 
@@ -1151,7 +1171,16 @@ export function Explore({
     if (joined?.kind === 'speak') {
       lastSpokenRef.current = joined.text;
     }
+    proximityState.current = moveResult.proximityState;
     runEffects(moveEffects, drivers, lang);
+
+    if (
+      getStoredFindingSoundSetting() &&
+      !askActive.current &&
+      !guideController.current?.isGuiding()
+    ) {
+      runProximityEffects(moveResult.proximityEffects, drivers);
+    }
   };
 
   const checkVertexCompass = (target: Target, now: number): string[] => {
@@ -1222,6 +1251,9 @@ export function Explore({
           engineState.current,
           centreTickState.current,
           axisState.current,
+          DEFAULT_RADII,
+          DEFAULT_HAPTICS,
+          proximityState.current,
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, now, lang);
@@ -1317,10 +1349,14 @@ export function Explore({
         engineState.current,
         centreTickState.current,
         axisState.current,
+        DEFAULT_RADII,
+        DEFAULT_HAPTICS,
+        proximityState.current,
       );
       engineState.current = moveResult.nextEngineState;
       centreTickState.current = moveResult.centreCheck.nextState;
       axisState.current = moveResult.nextAxisState;
+      proximityState.current = moveResult.proximityState;
       prevTargetRef.current = moveResult.target;
       scheduleDraw(view, coords);
       return;
@@ -1349,6 +1385,9 @@ export function Explore({
       engineState.current,
       centreTickState.current,
       axisState.current,
+      DEFAULT_RADII,
+      DEFAULT_HAPTICS,
+      proximityState.current,
     );
     checkLineDwell(moveResult.target, now, lang);
     applyMoveResult(moveResult, lang, centreAnnouncements);
@@ -1411,10 +1450,14 @@ export function Explore({
         engineState.current,
         centreTickState.current,
         axisState.current,
+        DEFAULT_RADII,
+        DEFAULT_HAPTICS,
+        proximityState.current,
       );
       engineState.current = moveResult.nextEngineState;
       centreTickState.current = moveResult.centreCheck.nextState;
       axisState.current = moveResult.nextAxisState;
+      proximityState.current = moveResult.proximityState;
       prevTargetRef.current = moveResult.target;
       scheduleDraw(view, coords);
       return;
@@ -1429,6 +1472,9 @@ export function Explore({
       engineState.current,
       centreTickState.current,
       axisState.current,
+      DEFAULT_RADII,
+      DEFAULT_HAPTICS,
+      proximityState.current,
     );
     const compassAnnouncements = checkVertexCompass(moveResult.target, now);
     checkLineDwell(moveResult.target, now, lang);
@@ -1481,6 +1527,7 @@ export function Explore({
         // and its effects (tone off, vibrate stop) before resetting and processing the promoted point
         const liftResult = step(engineState.current, { kind: 'lift', t: now });
         runEffects(liftResult.effects, drivers);
+        sendProximityLift(now);
 
         engineState.current = initialState();
         const norm = toNorm(promotedCoords, view);
@@ -1494,6 +1541,9 @@ export function Explore({
           engineState.current,
           centreTickState.current,
           axisState.current,
+          DEFAULT_RADII,
+          DEFAULT_HAPTICS,
+          proximityState.current,
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, now, lang);
@@ -1511,6 +1561,7 @@ export function Explore({
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
         engineState.current = state;
         runEffects(effects, drivers);
+        sendProximityLift(performance.now());
         scheduleDraw(viewportRef.current, null);
       }
     }

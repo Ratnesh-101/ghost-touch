@@ -233,5 +233,44 @@ describe('WebAudioDriver', () => {
     ctx.resume.mockClear();
     driver.playEarcon('listening');
     expect(ctx.resume).toHaveBeenCalledTimes(1);
+
+    ctx.resume.mockClear();
+    driver.playClick(800, 0, 0.4);
+    expect(ctx.resume).toHaveBeenCalledTimes(1);
+  });
+
+  it('playClick before unlock is a safe no-op', () => {
+    const ctx = fakeContext();
+    const driver = new WebAudioDriver(() => ctx);
+    expect(() => driver.playClick(800, 0, 0.4)).not.toThrow();
+    expect(ctx.oscillators).toHaveLength(0);
+  });
+
+  it('playClick creates an enveloped oscillator and leaves theremin nodes untouched', () => {
+    const ctx = fakeContext();
+    const driver = new WebAudioDriver(() => ctx);
+    driver.unlock();
+
+    driver.setTone(440);
+    expect(ctx.oscillators).toHaveLength(1);
+    const thereminOsc = ctx.oscillators[0]!;
+    const thereminGain = ctx.gains[0]!;
+
+    thereminOsc.stop.mockClear();
+    thereminOsc.frequency.setTargetAtTime.mockClear();
+    thereminGain.gain.setTargetAtTime.mockClear();
+
+    driver.playClick(900, 0, 0.5);
+
+    expect(thereminOsc.stop).not.toHaveBeenCalled();
+    expect(thereminOsc.frequency.setTargetAtTime).not.toHaveBeenCalled();
+    expect(thereminGain.gain.setTargetAtTime).not.toHaveBeenCalled();
+
+    expect(ctx.oscillators).toHaveLength(2);
+    const clickOsc = ctx.oscillators[1]!;
+    expect(clickOsc.type).toBe('sine');
+    expect(clickOsc.frequency.value).toBe(900);
+    expect(clickOsc.start).toHaveBeenCalledWith(1);
+    expect(clickOsc.stop).toHaveBeenCalledWith(1 + 0.025);
   });
 });

@@ -274,3 +274,51 @@ describe('LabSettings directions toggle (Lane A3)', () => {
   });
 });
 
+describe('LabSettings finding sound toggle (Lane A4)', () => {
+  it('renders Finding sound section with switch button (default on)', () => {
+    const drivers = createMockDrivers();
+    const html = renderToStaticMarkup(
+      createElement(LabSettings, {
+        open: true,
+        onClose: vi.fn(),
+        drivers,
+      }),
+    );
+
+    expect(html).toContain(t('lab.settings.findingSound'));
+    expect(html).toContain(t('lab.settings.findingSoundHint'));
+    expect(html).toContain('role="switch"');
+    expect(html).toContain('aria-checked="true"');
+    expect(html).toContain('Finding sound enabled.');
+  });
+
+  it('renders Finding sound section in Hindi and Gujarati', () => {
+    const prevLang = getLang();
+    const drivers = createMockDrivers();
+
+    setLang('hi');
+    const htmlHi = renderToStaticMarkup(
+      createElement(LabSettings, {
+        open: true,
+        onClose: vi.fn(),
+        drivers,
+      }),
+    );
+    expect(htmlHi).toContain('खोज ध्वनि');
+    expect(htmlHi).toContain('क्लिक की आवाज़ आपकी उंगली को रेखाओं तक वापस ले जाती है।');
+
+    setLang('gu');
+    const htmlGu = renderToStaticMarkup(
+      createElement(LabSettings, {
+        open: true,
+        onClose: vi.fn(),
+        drivers,
+      }),
+    );
+    expect(htmlGu).toContain('શોધ ધ્વનિ');
+    expect(htmlGu).toContain('ક્લિકનો અવાજ તમારી આંગળીને રેખાઓ પર પાછી લાવે છે.');
+
+    setLang(prevLang);
+  });
+});
+

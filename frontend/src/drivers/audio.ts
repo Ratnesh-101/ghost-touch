@@ -67,6 +67,8 @@ export interface AudioDriver {
   playEarcon(kind: EarconKind): void;
   /** Short low buzz voice when haptics are missing. Never disturbs the theremin tone. */
   buzz?(durationMs: number): void;
+  /** Short (<= 30 ms) near-line click cue blip. Optional method. Never disturbs theremin or guide tone. */
+  playClick?(hz: number, pan?: number, gain?: number): void;
   /** 'unavailable' (no Web Audio), 'locked' (not unlocked yet), or the context state. */
   readonly state: string;
 }
@@ -374,6 +376,71 @@ export class WebAudioDriver implements AudioDriver {
     };
     osc.start(now);
     osc.stop(end + BUZZ_STOP_PADDING_S);
+  }
+
+  playClick(hz: number, pan = 0, gain = 0.3): void {
+    try {
+      const ctx = this.ctx;
+      if (ctx === undefined || !Number.isFinite(hz) || hz <= 0) return;
+      if (ctx.state === 'suspended') {
+        this.resumeIfSuspended(ctx);
+      }
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      const now = ctx.currentTime;
+      const targetGain = Number.isFinite(gain) ? Math.max(0, Math.min(1, gain)) : 0.3;
+      const clampedPan = Number.isFinite(pan) ? Math.max(-1, Math.min(1, pan)) : 0;
+
+      osc.type = 'sine';
+      osc.frequency.value = hz;
+
+      gainNode.gain.value = 0;
+      gainNode.gain.setTargetAtTime(targetGain, now, 0.002);
+      gainNode.gain.setTargetAtTime(0, now + 0.004, 0.005);
+
+      let panner: StereoPannerLike | undefined;
+      if (typeof ctx.createStereoPanner === 'function') {
+        try {
+          panner = ctx.createStereoPanner();
+          if (panner?.pan) {
+            panner.pan.value = clampedPan;
+          }
+          osc.connect(gainNode);
+          gainNode.connect(panner);
+          panner.connect(ctx.destination);
+        } catch {
+          osc.connect(gainNode);
+          gainNode.connect(ctx.destination);
+          panner = undefined;
+        }
+      } else {
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+      }
+
+      osc.onended = () => {
+        try {
+          osc.disconnect?.();
+        } catch {
+          // Ignore
+        }
+        try {
+          gainNode.disconnect?.();
+        } catch {
+          // Ignore
+        }
+        try {
+          panner?.disconnect?.();
+        } catch {
+          // Ignore
+        }
+      };
+
+      osc.start(now);
+      osc.stop(now + 0.025);
+    } catch {
+      // Must not throw
+    }
   }
 
   playEarcon(kind: EarconKind): void {

@@ -646,6 +646,30 @@ describe('processPointerMove pipeline', () => {
     expect(mockDrivers.speech.speak).toHaveBeenCalledWith('Point A', undefined);
     expect(mockDrivers.audio.setTone).toHaveBeenCalledWith(null);
   });
+
+  it('includes proximity step in pipeline result when near a line', () => {
+    const view = makeViewport(400, 400);
+    const engineState = initialState();
+    const centreTickState = initialCentreTickState();
+    const axisState = initialAxisState();
+
+    // Finger 30 px off segment s2 (bottom edge: y=340, x between 60 and 340):
+    // Finger at (200, 310) -> dist = 30 px, dy = 30 px
+    const result = processPointerMove(
+      triangleScene,
+      { x: 200, y: 310 },
+      view,
+      1000,
+      engineState,
+      centreTickState,
+      axisState,
+    );
+
+    expect(result.nearest?.id).toBe('s2');
+    expect(result.nearest?.distPx).toBeCloseTo(30);
+    expect(result.proximityEffects).toHaveLength(1);
+    expect(result.proximityEffects[0]!.kind).toBe('click');
+  });
 });
 
 describe('exploreAnnouncement', () => {

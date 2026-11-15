@@ -36,6 +36,10 @@ import {
   getStoredDirectionsSetting,
   setStoredDirectionsSetting,
 } from '../drivers/storage';
+import {
+  getStoredFindingSoundSetting,
+  setStoredFindingSoundSetting,
+} from '../flow/explore';
 import { TEACH_HASH } from '../drivers/hashRoute';
 import {
   getStoredTeacherSetting,
@@ -79,6 +83,7 @@ export function LabSettings({
   const hasSpokenClose = useRef(false);
   const [guideEnabled, setGuideEnabled] = useState(() => getStoredGuideSetting());
   const [directionsEnabled, setDirectionsEnabled] = useState(() => getStoredDirectionsSetting());
+  const [findingSoundEnabled, setFindingSoundEnabled] = useState(() => getStoredFindingSoundSetting());
   const [teacherEnabled, setTeacherEnabled] = useState(() => getStoredTeacherSetting());
 
   const doSpeak = (text: string): void => {
@@ -94,6 +99,14 @@ export function LabSettings({
     setDirectionsEnabled(next);
     setStoredDirectionsSetting(next);
     const spoken = next ? t('lab.settings.directionsOn') : t('lab.settings.directionsOff');
+    doSpeak(spoken);
+  };
+
+  const handleToggleFindingSound = (): void => {
+    const next = !findingSoundEnabled;
+    setFindingSoundEnabled(next);
+    setStoredFindingSoundSetting(next);
+    const spoken = next ? t('lab.settings.findingSoundOn') : t('lab.settings.findingSoundOff');
     doSpeak(spoken);
   };
 
@@ -133,6 +146,7 @@ export function LabSettings({
     if (open) {
       setGuideEnabled(getStoredGuideSetting());
       setDirectionsEnabled(getStoredDirectionsSetting());
+      setFindingSoundEnabled(getStoredFindingSoundSetting());
       setTeacherEnabled(getStoredTeacherSetting());
       hasSpokenClose.current = false;
       if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
@@ -288,6 +302,44 @@ export function LabSettings({
               }}
             >
               {directionsEnabled ? t('lab.settings.directionsOn') : t('lab.settings.directionsOff')}
+            </AccessibleButton>
+          </section>
+
+          <section
+            className="gt-lab-settings__section"
+            aria-labelledby="lab-settings-section-finding-sound"
+          >
+            <h3 id="lab-settings-section-finding-sound" className="gt-lab-settings__section-title">
+              {t('lab.settings.findingSound')}
+            </h3>
+            <p
+              className="gt-lab-settings__hint"
+              style={{
+                margin: '0 0 var(--gt-space-sm, 8px) 0',
+                fontSize: '0.9rem',
+                color: 'var(--gt-bone, #ded6c4)',
+              }}
+            >
+              {t('lab.settings.findingSoundHint')}
+            </p>
+            <AccessibleButton
+              type="button"
+              role="switch"
+              aria-checked={findingSoundEnabled}
+              className={`gt-control gt-btn ${
+                findingSoundEnabled ? 'gt-btn--primary' : 'gt-btn--secondary'
+              }`}
+              onClick={handleToggleFindingSound}
+              style={{
+                minWidth: '48px',
+                minHeight: '48px',
+                padding: '12px 20px',
+                width: '100%',
+              }}
+            >
+              {findingSoundEnabled
+                ? t('lab.settings.findingSoundOn')
+                : t('lab.settings.findingSoundOff')}
             </AccessibleButton>
           </section>
 

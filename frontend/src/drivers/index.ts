@@ -6,6 +6,7 @@
  */
 
 import { DEFAULT_HAPTICS, type Effect } from '../core/hapticEngine';
+import type { ProximityEffect } from '../core/proximity';
 import type { DiagramScene } from '../core/scene';
 import type { GuideEffect } from '../guide';
 import { t, tf } from '../i18n';
@@ -21,6 +22,7 @@ import { WebSpeechDriver, type SpeechDriver } from './speech';
 
 export type { AudioDriver, EarconKind } from './audio';
 export { getEarconSteps, WebAudioDriver } from './audio';
+export type { ProximityEffect } from '../core/proximity';
 export type { DiagramStore, StoreResult } from './diagramStore';
 export { IDBDiagramStore, MemoryDiagramStore } from './diagramStore';
 export type { HapticDriver } from './haptics';
@@ -232,6 +234,17 @@ export function runGuideEffects(
       case 'stopped':
         drivers.audio.setGuideTone?.(null);
         break;
+    }
+  }
+}
+
+export function runProximityEffects(
+  effects: readonly ProximityEffect[],
+  drivers: Drivers,
+): void {
+  for (const effect of effects) {
+    if (effect.kind === 'click') {
+      drivers.audio.playClick?.(effect.hz, effect.pan, effect.gain);
     }
   }
 }
