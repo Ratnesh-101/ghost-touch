@@ -576,3 +576,45 @@ Written by Kiro before the code. Source: `docs/reports/fable-blind-user-plan.md`
 | # | Property | Validates |
 |---|---|---|
 | P96 | **A corner is not repeated inside its quiet window (Kiro, task 50):** (a) any trace that hits one vertex, then leaves it (any non-vertex targets) and re-enters it, all within `quietMs` of the first pulse, emits the corner pattern and the label exactly once, and `quietUntil` after the re-entry equals the first one; (b) a re-entry at or after `quietMs` fires again; (c) entering a different vertex always fires, also inside the window; (d) P3 to P6 are unchanged. 200+ runs. A regression test replays the sample triangle: leave A along AC at 30 px/s, 60 Hz, seeded 2 px jitter, exactly one corner pattern and the first line buzz at most `quietMs + retriggerMs` after it. | 4.9, 4.4, 4.5 |
+
+## Find the line again (Requirement 27, task 51)
+Written by Kiro before the code. One new pure module, `frontend/src/core/proximity.ts`, named exports only, no imports except none (it takes numbers, not scene types, so it needs nothing from `compass.ts`). Same shape as `guide/machine.ts`, own constants as in `guide/config.ts`. All numbers are proposed, pending owner approval.
+
+### Interface
+```ts
+interface ProximityConfig { radiusPx; lineRadiusPx; farMs; nearMs; loHz; hiHz }
+const DEFAULT_PROXIMITY: ProximityConfig = { radiusPx: 48, lineRadiusPx: 14, farMs: 400, nearMs: 90, loHz: 500, hiHz: 1200 }
+const PROXIMITY_GAIN_FAR = 0.3, PROXIMITY_GAIN_NEAR = 0.6   // proposed
+
+type ProximityInput =
+  | { kind: 'move'; t; distPx: number | null; dxPx; onLine: boolean; inQuietWindow: boolean }
+  | { kind: 'lift'; t }
+type ProximityEffect = { kind: 'click'; hz; pan; gain }
+interface ProximityState { lastClickAt: number }            // -Infinity at start
+
+initialProximityState(): ProximityState
+closeness(distPx, cfg): number                              // f in [0, 1]
+clickIntervalMs(distPx, cfg): number                        // farMs at f = 0, nearMs at f = 1
+clickHz(distPx, cfg): number                                // loHz at f = 0, hiHz at f = 1
+clickGain(distPx, cfg): number
+clickPan(dxPx, cfg): number
+proximityStep(state, input, cfg = DEFAULT_PROXIMITY): { state; effects: ProximityEffect[] }
+```
+
+### Rules
+1. Lift, or any non-finite `t`: no effects, same state object.
+2. Move with `onLine && !inQuietWindow`: no effects.
+3. Move with `onLine && inQuietWindow`: distance counts as 0 (closest setting); `dxPx` must be finite.
+4. Move with `!onLine`: needs `distPx` finite, ≥ 0 and ≤ `radiusPx`, and `dxPx` finite; otherwise no effects.
+5. A click is emitted when `t − lastClickAt ≥ clickIntervalMs(d)`; then `lastClickAt = t`. Otherwise no effects, same state. The first click after a fresh state is immediate. Because every interval is ≥ `nearMs`, the gap bound of 27.6 holds for any timestamps, a backwards timestamp gives a negative gap and so no click, and the previous-click time is never reset (not even by a lift).
+6. The vector is never read for its direction beyond `dxPx`: `dyPx` is not an input, so pitch carries distance only, not "above or below" (that is Guide's job).
+
+| # | Property | Validates |
+|---|---|---|
+| P97 | **Audio only, never a vibration (Kiro, task 51):** over random sequences of moves and lifts with any numbers (including NaN, ±Infinity, negative and huge), every emitted effect has `kind === 'click'`; the module's own effect type has no other kind. | 27.7 |
+| P98 | **Closer is faster and higher (Kiro, task 51):** for `d1 ≤ d2` in [0, radiusPx], `clickIntervalMs(d1) ≤ clickIntervalMs(d2)`, `clickHz(d1) ≥ clickHz(d2)` and `clickGain(d1) ≥ clickGain(d2)`; at or inside `lineRadiusPx` all three equal their closest setting; at `radiusPx` they equal the far setting. The emitted click carries exactly these values. | 27.1 |
+| P99 | **Values stay inside the configured bounds (Kiro, task 51):** for random valid configs (nearMs ≤ farMs, loHz ≤ hiHz, lineRadiusPx < radiusPx) and any emitted click, `hz` is in [loHz, hiHz], the interval in [nearMs, farMs], `gain` in [PROXIMITY_GAIN_FAR, PROXIMITY_GAIN_NEAR], and `pan` in [−1, 1]. | 27.1, 27.2 |
+| P100 | **Pan has the sign of dx (Kiro, task 51):** an emitted click has `pan < 0` for `dxPx < 0`, `pan > 0` for `dxPx > 0` (except where `|dxPx|/radiusPx` underflows to 0, below 1e-300), `pan === 0` for `dxPx = 0`, and `\|pan\| = min(1, \|dxPx\|/radiusPx)`. | 27.2 |
+| P101 | **Silence outside the cue's zone (Kiro, task 51):** no effect for `distPx` beyond `radiusPx`, for `distPx = null`, for a lift, and for `onLine` outside the quiet window, from any starting state. Inside the zone, from a fresh state, the first move always clicks; on a line inside the quiet window the click is at the closest setting whatever `distPx` is. | 27.3, 27.4, 27.5 |
+| P102 | **Click gap is never below nearMs (Kiro, task 51):** for any sequence of inputs with any timestamps (unsorted, repeated, NaN, ±Infinity, with lifts between), the times of consecutive emitted clicks differ by at least `nearMs`, and each gap is at least the interval for the distance of the click that ended it. | 27.6 |
+| P103 | **Bad input never throws and changes nothing (Kiro, task 51):** NaN, ±Infinity, negative and huge `t`, `distPx` and `dxPx`, and a missing-field object cast through the type, never throw; a non-finite `t`, `dxPx` (when a cue is due) or a non-finite or negative `distPx` give no effect and the same state object. | 27.5 |

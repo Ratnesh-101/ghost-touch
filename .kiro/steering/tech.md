@@ -26,6 +26,7 @@
 | Label / point of interest | corner pattern + spoken label | speech is cancelled and replaced on each new target |
 | Graph curve | line buzz + theremin tone, 200–1000 Hz, higher on screen = higher pitch | |
 | Centre reference tick (proposed, pending approval) | `vibrate(25)` | one 25 ms pulse, distinct from line and corner patterns; fires on hold start at centre |
+| **PROPOSED, pending owner approval, not phone-tested (task 51, Requirement 27): near-line click cue** | audio only, never `vibrate` | click when off the line within 48 px of it (and on a line inside the 450 ms quiet window, at the closest setting). Interval 400 ms at 48 px to 90 ms at 14 px or less; pitch 500 Hz to 1200 Hz, rising as the finger nears; gain 0.3 to 0.6; pan toward the line. The 14 px is the existing line radius, copied. Lives in `core/proximity.ts` (`DEFAULT_PROXIMITY`); no existing row above changes |
 
 Hit radii: vertex 22 CSS px, line 14 CSS px. Vertex hits take priority over line hits.
 

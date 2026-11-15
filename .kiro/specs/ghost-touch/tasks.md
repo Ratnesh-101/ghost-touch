@@ -383,3 +383,14 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 50.4 Regression test in `tests/haptic.corner.regression.test.ts`: triangle, leave A along AC at 30 px/s, 60 Hz, seeded 2 px jitter
   - [x] 50.5 Gate (`tsc --noEmit` 0 errors, `vitest run` 183 files / 2262 tests); commit
   - _Requirements: 4.4, 4.5, 4.9_
+
+
+## Find the line again (Requirement 27; spec written before the code)
+> Core half only. Do not edit `hitTest.ts`, `hapticEngine.ts`, `compass.ts`, `frontend/src/guide/`, the tuned haptic values, `screens/` or `flow/`. The audio driver and wiring are lane A4 of `docs/reports/fable-blind-user-plan.md`. Every new number is proposed, pending owner approval.
+
+- [x] 51. Near-line click cue machine in `core/proximity.ts`
+  - [x] 51.1 Requirement 27, design section, properties P97-P103 and a separate "proposed" row in `tech.md` written before any code
+  - [x] 51.2 `frontend/src/core/proximity.ts`: `ProximityConfig`, `DEFAULT_PROXIMITY`, `ProximityInput`, `ProximityEffect`, `proximityStep` (plus the pure helpers `clickIntervalMs`, `clickHz`, `clickGain`, `clickPan`); pure, named exports, no `any`
+  - [x] 51.3 Properties P97-P103 in `frontend/tests/proximity.prop.test.ts` (fast-check, 250 runs each); mutation-checked with eight mutants (no gap guard, line outside the quiet window still clicks, pan sign flipped, radius boundary exclusive, pitch inverted, lift resets the click clock, interval swapped, gain constant: all caught)
+  - [x] 51.4 Gate (`tsc --noEmit` 0 errors, `vitest run` 185 files / 2289 tests); BUILD_LOG entry (tool = Kiro)
+  - _Requirements: 27.*_

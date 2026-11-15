@@ -4296,3 +4296,12 @@ Format for each entry:
 - Gate: `tsc --noEmit` 0 errors; `vitest run` 182 files, 2247 tests, all pass.
 - Mutation checks: wrong sector slope (P88, P89 failed), segment projection not clamped to 1 (P92, P93 failed), swapped line-end directions (P91 failed). A fourth mutant (no self-loop guard in `vertexExits`) survives because it is equivalent: the coincident-point check drops a self-loop anyway.
 - No property found a bug in the new code. Nothing wired to speech yet (lanes A3, A5).
+
+## 2026-11-15 - Kiro - Near-line click cue machine (task 51, Requirement 27, P97-P103)
+- Spec first: Requirement 27 'Find the line again', design section, properties P97-P103, task 51, and a separate PROPOSED row in tech.md (no existing row edited). Every number is proposed, pending owner approval, not phone-tested.
+- Built the pure machine in frontend/src/core/proximity.ts (proximityStep, DEFAULT_PROXIMITY, helpers clickIntervalMs, clickHz, clickGain, clickPan). It can only emit click effects, never vibrate. hapticEngine.ts and hitTest.ts are unchanged.
+- Added two constants the brief did not list: PROXIMITY_GAIN_FAR 0.3 and PROXIMITY_GAIN_NEAR 0.6 (a click that gets louder is part of 27.1). Both are proposed.
+- Interpretation to confirm: a lift emits nothing and keeps the last-click time, so a quick lift and touch cannot speed the cue up. A move after a lift is a new touch and clicks normally.
+- Properties in frontend/tests/proximity.prop.test.ts, 250 runs each. Eight mutants all fail the suite. tsc 0 errors, vitest 185 files / 2289 tests pass. The properties found no bug on their first run.
+- Not done here: audio driver, call to nearestElement, Settings toggle, phone tuning (lane A4).
+- Files: frontend/src/core/proximity.ts, frontend/tests/proximity.prop.test.ts, .kiro/specs/ghost-touch/{requirements,design,tasks}.md, .kiro/steering/tech.md, docs/BUILD_LOG.md
