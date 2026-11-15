@@ -4283,3 +4283,16 @@ Format for each entry:
 - Audit round: four read-only Kiro auditors (core, explore, flow, backend; findings in docs/reviews/kiro-audit-2026-11-12-*.md); only confirmed High and Medium findings were fixed (2 High, about 10 Medium). Kiro fixed the core ones (T43 to T47). agy fixed Explore, backend and flow in lanes r7-* and r8-*. Independent Kiro reviews of the lanes caught real problems my gates did not: an unrequested loosening of the facts-matching guard, a regression test that also passed on the old code, a TalkBack coverage regression; each was fixed in a follow-up lane or by Kiro (T49). Kiro also reviewed r8-explore-fix (MERGE) and r8-backend-fix (MERGE).
 - My own edits: removed a stray unused `isColdOpen: false` property in App.tsx (type error in lane r7-flow) and gave two App-flow tests in tests/correct.back.test.tsx a 60 s timeout (load flake seen twice in gates).
 - Skipped on purpose: FLOW-02 (share Back history, needs a real browser) and the Low findings. Gate on main before the push: tsc 0, vitest 181 files / 2231 tests, build ok, backend pytest and ruff clean, Playwright 10/10; CI green on bc511e4.
+
+## 2026-11-15 - Claude Code (orchestrator) - Fable blind-user planning pass
+- Tool = Claude Code. Spawned one read-only Fable 5.2 subagent as a planner that role-played a blind student and ran scripted finger traces through the real `hitTest`/`step` on the three samples (a simulation, not a phone or a person).
+- Output: `docs/reports/fable-blind-user-plan.md` (the only file written; no source, spec, tasks.md or tuned haptic value changed). Contains 5 Kiro tasks and 8 agy lanes (bu1-bu8) with copy-paste prompts.
+- Headline findings: the only signal is buzz or no buzz (no direction, side or distance); 67-89% of the canvas is silent; a 10 degree heading error loses an edge after about 80 px; a corner re-fires about 3 times on slow exit; a held-still finger loses the buzz (engine runs only on pointermove).
+- Nothing implemented yet. Owner decisions pending (ship first slice before Nov 16 or hold; Requirement 13.3 vs absolute touch; cue timings need phone tuning).
+
+## 2026-11-15 - Kiro - T43 compass helpers (Requirement 26, P88-P95)
+- Tool = Kiro. Spec first: Requirement 26, a design section and properties P88-P95, then `frontend/src/core/compass.ts` (`directionOf`, `vertexExits`, `lineEnds`, `nearestElement`) and `frontend/tests/compass.prop.test.ts` (16 tests). `hitTest.ts`, `hapticEngine.ts`, `guide/` and the tuned haptic values are untouched.
+- Design choices: sectors are decided with `tan 22.5 = sqrt(2) - 1` on absolute values and signs, so direction antisymmetry holds exactly (also on a sector boundary); directions use the unit square without `aspect`, as Explore draws it; `distPx` is `Math.hypot(dx, dy)`, so the vector length equals the distance exactly.
+- Gate: `tsc --noEmit` 0 errors; `vitest run` 182 files, 2247 tests, all pass.
+- Mutation checks: wrong sector slope (P88, P89 failed), segment projection not clamped to 1 (P92, P93 failed), swapped line-end directions (P91 failed). A fourth mutant (no self-loop guard in `vertexExits`) survives because it is equivalent: the coincident-point check drops a self-loop anyway.
+- No property found a bug in the new code. Nothing wired to speech yet (lanes A3, A5).
