@@ -54,12 +54,14 @@ if ! agy models 2>/dev/null | awk '{print $1}' | grep -qx "$MODEL"; then
 fi
 
 echo "agy-run: model=$MODEL effort=$EFFORT settings=scripts/agy-settings.json name=$NAME"
+# OWNER OPT-IN (2026-11-15): AGY_DANGEROUS=1 runs agy with --dangerously-skip-permissions (no allow-list).
+# Default stays the safe allow-list. Never open .env files and never print keys, even in this mode.
+if [[ "${AGY_DANGEROUS:-0}" == "1" ]]; then PERM_ARGS=(--dangerously-skip-permissions); echo "agy-run: DANGEROUS mode (owner opt-in)"; else PERM_ARGS=(--mode accept-edits --settings "$ROOT/scripts/agy-settings.json"); fi
 set +e
 env -u GEMINI_API_KEY -u GOOGLE_API_KEY -u GOOGLE_GENAI_API_KEY -u GOOGLE_APPLICATION_CREDENTIALS -u GOOGLE_CLOUD_PROJECT \
   agy --print "$(cat "$FULL")" \
       --model "$MODEL" --effort "$EFFORT" \
-      --mode accept-edits \
-      --settings "$ROOT/scripts/agy-settings.json" \
+      "${PERM_ARGS[@]}" \
       --output-format text \
       --log-file "$AGYLOG" \
   > "$OUT" 2> "$ERR"
