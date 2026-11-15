@@ -46,6 +46,7 @@ import {
   verifyCaveatForScene,
   type ScreenName,
 } from './flow/navigation';
+import { buildOverview } from './flow/overview';
 import { joinAnnouncements } from './flow/explore';
 import { type VerifyMode } from './verify/verify';
 import { createPhotoUrlTracker, type PhotoUrlTracker } from './flow/capture';
@@ -660,7 +661,10 @@ export function App(): JSX.Element {
     lastExploreScene.current = scene;
     lastSavedDiagramId.current = id ?? null;
     // Open an offline saved diagram: goes straight to Explore, no network call, no re-save
-    const base = `${title}. ${t('explore.gestureHint')} ${t('explore.backHint')}`;
+    const isRaw = scene.kind === 'unknown';
+    const overview = isRaw ? '' : buildOverview(scene, title);
+    const lead = overview.length > 0 ? overview : title;
+    const base = joinAnnouncements([lead, t('explore.gestureHint'), t('explore.backHint')]);
     const caveat = verifyCaveatForScene(scene, 'ai');
     const baseAnnounced = caveat ? joinAnnouncements([base, caveat]) : base;
     drivers.speech.speak(baseAnnounced, LANG_BCP47[currentLang]);

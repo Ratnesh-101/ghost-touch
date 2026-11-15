@@ -72,7 +72,7 @@ describe('screen markup (server render)', () => {
       createElement(Explore, {
         scene: { kind: 'geometry', title: 'Triangle' },
         announced:
-          'Triangle. Double-tap and hold, then drag to feel the diagram. You start at the centre. Press Back to leave.',
+          'Triangle. Double-tap and hold, then drag to feel the diagram. Press Back to leave.',
         drivers,
         onBack: vi.fn(),
       }),
@@ -82,7 +82,7 @@ describe('screen markup (server render)', () => {
     expect(
       html,
     ).toContain(
-      'aria-label="Triangle. Double-tap and hold, then drag to feel the diagram. You start at the centre."',
+      'aria-label="Triangle. Double-tap and hold, then drag to feel the diagram."',
     );
     expect(html).toContain('Back');
     expect(html).toContain('gt-explore__back');

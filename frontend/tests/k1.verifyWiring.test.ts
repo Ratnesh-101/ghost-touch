@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { DiagramScene } from '../src/core/scene';
 import { exploreAnnouncement } from '../src/flow/navigation';
+import { buildOverview } from '../src/flow/overview';
+import { joinAnnouncements } from '../src/flow/explore';
 import {
   AskManager,
   caveatForQuestion,
@@ -149,17 +151,22 @@ describe('K1 Verify Wiring — SPEC GHOST (Lane k1-verify-wiring)', () => {
     it('does NOT append caveat for honest sample triangle', () => {
       const announcement = exploreAnnouncement(honestTriangleScene, 'sample');
       expect(announcement).not.toContain("Facts and drawing disagree");
-      expect(announcement).toBe(
-        'Right Triangle ABC. Double-tap and hold, then drag to feel the diagram. You start at the centre. Press Back to leave.',
-      );
+      const hint = `${t('explore.gestureHint')} ${t('explore.backHint')}`;
+      const expected = joinAnnouncements([buildOverview(honestTriangleScene), hint]);
+      expect(announcement).toBe(expected);
     });
 
     it('appends caveat for forged triangle fact ("AC = 7 cm")', () => {
       const announcement = exploreAnnouncement(forgedTriangleScene, 'sample');
-      expect(announcement).toContain("Facts and drawing disagree on AC. I can't tell which is right.");
-      expect(announcement).toBe(
-        "Right Triangle ABC. Double-tap and hold, then drag to feel the diagram. You start at the centre. Press Back to leave. Facts and drawing disagree on AC. I can't tell which is right.",
-      );
+      const caveat = "Facts and drawing disagree on AC. I can't tell which is right.";
+      expect(announcement).toContain(caveat);
+      const hint = `${t('explore.gestureHint')} ${t('explore.backHint')}`;
+      const expected = joinAnnouncements([
+        buildOverview(forgedTriangleScene),
+        hint,
+        caveat,
+      ]);
+      expect(announcement).toBe(expected);
     });
 
     it('appends caveat in AI mode and Raw mode', () => {
@@ -188,9 +195,9 @@ describe('K1 Verify Wiring — SPEC GHOST (Lane k1-verify-wiring)', () => {
       };
       const announcement = exploreAnnouncement(notToScaleScene, 'sample');
       expect(announcement).not.toContain("Facts and drawing disagree");
-      expect(announcement).toBe(
-        'Right Triangle ABC. Double-tap and hold, then drag to feel the diagram. You start at the centre. Press Back to leave.',
-      );
+      const hint = `${t('explore.gestureHint')} ${t('explore.backHint')}`;
+      const expected = joinAnnouncements([buildOverview(notToScaleScene), hint]);
+      expect(announcement).toBe(expected);
     });
 
     it('localises caveat in Hindi and Gujarati', () => {
@@ -223,17 +230,16 @@ describe('K1 Verify Wiring — SPEC GHOST (Lane k1-verify-wiring)', () => {
           '{title}',
           honestTriangleScene.title!,
         );
+        const expectedOverview = buildOverview(honestTriangleScene, expectedTitle);
+        const hint = `${t('explore.gestureHint')} ${t('explore.backHint')}`;
         const expectedHonest = t('share.sharedBy').replace('{name}', 'Teacher Alice');
-        const expectedScene = [
-          `${expectedTitle}. Double-tap and hold, then drag to feel the diagram.`,
-          `You start at the centre. Press Back to leave.`,
-        ].join(' ');
+        const expectedScene = joinAnnouncements([expectedOverview, hint]);
         expect(resolution.sceneAnnouncement).toBe(expectedScene);
-        const expectedSpoken = [
-          `${expectedTitle}. Double-tap and hold, then drag to feel the diagram.`,
-          `You start at the centre. Press Back to leave.`,
-          `${expectedHonest}. ${t('share.honesty')}`,
-        ].join(' ');
+        const expectedSpoken = joinAnnouncements([
+          expectedScene,
+          expectedHonest,
+          t('share.honesty'),
+        ]);
         expect(resolution.spokenAnnouncement).toBe(expectedSpoken);
 
         const speech = createMockSpeechDriver();
@@ -259,26 +265,22 @@ describe('K1 Verify Wiring — SPEC GHOST (Lane k1-verify-wiring)', () => {
 
         expect(resolution.kind).toBe('explore');
         if (resolution.kind === 'explore') {
-          expect(resolution.sceneAnnouncement).toContain(
-            "Facts and drawing disagree on AC. I can't tell which is right.",
-          );
+          const caveat = "Facts and drawing disagree on AC. I can't tell which is right.";
+          expect(resolution.sceneAnnouncement).toContain(caveat);
           const expectedTitle = t('share.titlePrefix').replace(
             '{title}',
             forgedTriangleScene.title!,
           );
+          const expectedOverview = buildOverview(forgedTriangleScene, expectedTitle);
+          const hint = `${t('explore.gestureHint')} ${t('explore.backHint')}`;
           const expectedHonest = t('share.sharedBy').replace('{name}', 'Teacher Bob');
-          const expectedScene = [
-            `${expectedTitle}. Double-tap and hold, then drag to feel the diagram.`,
-            `You start at the centre. Press Back to leave.`,
-            `Facts and drawing disagree on AC. I can't tell which is right.`,
-          ].join(' ');
+          const expectedScene = joinAnnouncements([expectedOverview, hint, caveat]);
           expect(resolution.sceneAnnouncement).toBe(expectedScene);
-          const expectedSpoken = [
-            `${expectedTitle}. Double-tap and hold, then drag to feel the diagram.`,
-            `You start at the centre. Press Back to leave.`,
-            `Facts and drawing disagree on AC. I can't tell which is right.`,
-            `${expectedHonest}. ${t('share.honesty')}`,
-          ].join(' ');
+          const expectedSpoken = joinAnnouncements([
+            expectedScene,
+            expectedHonest,
+            t('share.honesty'),
+          ]);
           expect(resolution.spokenAnnouncement).toBe(expectedSpoken);
 
           const speech = createMockSpeechDriver();

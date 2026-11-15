@@ -5,6 +5,7 @@ import type { DiagramScene } from '../core/scene';
 import type { SceneMode } from '../api/scene';
 import { verifyScene, localizedFindingTarget, type VerifyMode } from '../core/verify';
 import { joinAnnouncements } from './explore';
+import { buildOverview } from './overview';
 import { sanitizeShareTitle } from './share';
 import { t, tf } from '../i18n';
 
@@ -85,10 +86,13 @@ export function exploreAnnouncement(
     name = sceneName(scene);
   }
   const hint = `${t('explore.gestureHint')} ${t('explore.backHint')}`;
+  const isRaw = mode === 'raw' || scene.kind === 'unknown';
+  const overview = isRaw ? '' : buildOverview(scene, name);
+  const lead = overview.length > 0 ? overview : name;
   const base =
     mode === 'raw'
       ? `${t('raw.announce')} ${name}. ${hint}`
-      : `${name}. ${hint}`;
+      : joinAnnouncements([lead, hint]);
 
   const vMode: VerifyMode =
     verifyMode ??

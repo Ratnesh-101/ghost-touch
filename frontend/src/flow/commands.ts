@@ -22,6 +22,8 @@ import {
   matchSemanticPhrase,
   type SemanticName,
 } from '../guide';
+import { joinAnnouncements } from './explore';
+import { buildOverview } from './overview';
 import { t } from '../i18n';
 
 export type CommandType =
@@ -668,16 +670,23 @@ export function executeExploreCommand(
     }
 
     case 'describe': {
-      const title = scene.title ?? t('app.name');
+      const overview = buildOverview(scene);
       let factsText = '';
       if (scene.facts && scene.facts.length > 0) {
         factsText = scene.facts.join('. ');
       } else {
         factsText = t('commands.noFacts');
       }
-      const speech = t('commands.describe')
-        .replace('{title}', title)
-        .replace('{facts}', factsText);
+
+      let speech: string;
+      if (overview.length > 0) {
+        speech = joinAnnouncements([overview, factsText]);
+      } else {
+        const title = scene.title ?? t('app.name');
+        speech = t('commands.describe')
+          .replace('{title}', title)
+          .replace('{facts}', factsText);
+      }
       return { speech, earcon: 'success' };
     }
 

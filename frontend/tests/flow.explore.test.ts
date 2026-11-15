@@ -902,13 +902,13 @@ describe('Announcement coordination and canvas aria-label suppression (Finding 5
   it('preserves canvas aria-label when speech synthesis is unsupported (canSpeak = false)', () => {
     expect(shouldSuppressCanvasAriaLabel(false, 'Triangle. Double-tap and hold...')).toBe(false);
     const label = resolveCanvasAriaLabel(scene, false, 'Triangle. Double-tap and hold...');
-    expect(label).toBe('Triangle. Double-tap and hold, then drag to feel the diagram. You start at the centre.');
+    expect(label).toBe('Triangle. Double-tap and hold, then drag to feel the diagram.');
   });
 
   it('preserves canvas aria-label when announced prompt is empty', () => {
     expect(shouldSuppressCanvasAriaLabel(true, '')).toBe(false);
     const label = resolveCanvasAriaLabel(scene, true, '');
-    expect(label).toBe('Triangle. Double-tap and hold, then drag to feel the diagram. You start at the centre.');
+    expect(label).toBe('Triangle. Double-tap and hold, then drag to feel the diagram.');
   });
 });
 

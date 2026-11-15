@@ -91,7 +91,7 @@ const en: Record<string, string> = {
   'explore.noVibration':
     'No vibration on this device. You will hear a buzz instead. Use Chrome on Android to feel it.',
   'explore.gestureHint':
-    'Double-tap and hold, then drag to feel the diagram. You start at the centre.',
+    'Double-tap and hold, then drag to feel the diagram.',
   'explore.backHint': 'Press Back to leave.',
   'explore.centre': 'Centre.',
   'a11y.tree': 'Diagram features',
@@ -407,6 +407,24 @@ const en: Record<string, string> = {
   'capture.cancelled': 'No photo was taken. Choose Take photo, Choose image, or a sample.',
   'capture.errorOffline':
     'You are offline. Samples still work. Try again when you are connected.',
+  // Diagram overview (Lane A2)
+  'overview.geometry.corners_one': '{count} corner',
+  'overview.geometry.corners_other': '{count} corners',
+  'overview.geometry.sides_one': '{count} side',
+  'overview.geometry.sides_other': '{count} sides',
+  'overview.geometry.summary': '{corners}, {sides}',
+  'overview.geometry.cornerItem': '{label} {pos}',
+  'overview.function.curves_one': '{count} curve',
+  'overview.function.curves_other': '{count} curves',
+  'overview.axes.both': 'x-axis at {xPos}, y-axis at {yPos}',
+  'overview.axes.xOnly': 'x-axis at {xPos}',
+  'overview.axes.yOnly': 'y-axis at {yPos}',
+  'overview.axes.none': 'no axes',
+  'overview.bars.summary_one': '1 bar, left to right: {labels}',
+  'overview.bars.summary_other': '{count} bars, left to right: {labels}',
+  'overview.bars.none': '0 bars',
+  'overview.bars.count_one': '1 bar',
+  'overview.bars.count_other': '{count} bars',
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -464,7 +482,7 @@ const hi: Record<string, string> = {
   'explore.noVibration':
     'इस डिवाइस पर कंपन नहीं है। इसके बजाय आपको एक बज़ सुनाई देगा। इसे महसूस करने के लिए एंड्रॉइड पर क्रोम का उपयोग करें।',
   'explore.gestureHint':
-    'डबल-टैप करके दबाए रखें, फिर चित्र महसूस करने के लिए खींचें। आप केंद्र से शुरू करते हैं।',
+    'डबल-टैप करके दबाए रखें, फिर चित्र महसूस करने के लिए खींचें।',
   'explore.backHint': 'वापस जाने के लिए बैक दबाएं।',
   'explore.centre': 'केंद्र।',
   'a11y.tree': 'आरेख के भाग',
@@ -782,6 +800,24 @@ const hi: Record<string, string> = {
   'capture.cancelled': 'कोई फोटो नहीं ली गई। फोटो लें, छवि चुनें, या कोई नमूना चुनें।',
   'capture.errorOffline':
     'आप ऑफ़लाइन हैं। नमूने अभी भी काम करते हैं। कनेक्ट होने पर पुनः प्रयास करें।',
+  // Diagram overview (Lane A2)
+  'overview.geometry.corners_one': '{count} कोना',
+  'overview.geometry.corners_other': '{count} कोने',
+  'overview.geometry.sides_one': '{count} भुजा',
+  'overview.geometry.sides_other': '{count} भुजाएं',
+  'overview.geometry.summary': '{corners}, {sides}',
+  'overview.geometry.cornerItem': '{label} {pos}',
+  'overview.function.curves_one': '{count} वक्र',
+  'overview.function.curves_other': '{count} वक्र',
+  'overview.axes.both': 'x-अक्ष {xPos}, y-अक्ष {yPos}',
+  'overview.axes.xOnly': 'x-अक्ष {xPos}',
+  'overview.axes.yOnly': 'y-अक्ष {yPos}',
+  'overview.axes.none': 'कोई अक्ष नहीं',
+  'overview.bars.summary_one': '1 बार, बाएँ से दाएँ: {labels}',
+  'overview.bars.summary_other': '{count} बार, बाएँ से दाएँ: {labels}',
+  'overview.bars.none': 'कोई बार नहीं',
+  'overview.bars.count_one': '1 बार',
+  'overview.bars.count_other': '{count} बार',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -839,7 +875,7 @@ const gu: Record<string, string> = {
   'explore.noVibration':
     'આ ઉપકરણ પર વાઇબ્રેશન નથી. તેના બદલે તમને બઝ સંભળાશે. તેને અનુભવવા માટે Android પર Chrome વાપરો.',
   'explore.gestureHint':
-    'ડબલ-ટેપ કરીને દબાવી રાખો, પછી આકૃતિ અનુભવવા માટે ખેંચો. તમે કેન્દ્રથી શરૂ કરો છો.',
+    'ડબલ-ટેપ કરીને દબાવી રાખો, પછી આકૃતિ અનુભવવા માટે ખેંચો.',
   'explore.backHint': 'પાછા જવા માટે બેક દબાવો.',
   'explore.centre': 'કેન્દ્ર.',
   'a11y.tree': 'આકૃતિના ભાગો',
@@ -1158,6 +1194,24 @@ const gu: Record<string, string> = {
     'કોઈ ફોટો લેવામાં આવ્યો નથી. ફોટો લો, ઇમેજ પસંદ કરો, અથવા નમૂનો પસંદ કરો.',
   'capture.errorOffline':
     'તમે ઑફલાઇન છો. નમૂનાઓ હજુ પણ કામ કરે છે. તમે કનેક્ટ થાઓ ત્યારે ફરી પ્રયાસ કરો.',
+  // Diagram overview (Lane A2)
+  'overview.geometry.corners_one': '{count} ખૂણો',
+  'overview.geometry.corners_other': '{count} ખૂણા',
+  'overview.geometry.sides_one': '{count} બાજુ',
+  'overview.geometry.sides_other': '{count} બાજુઓ',
+  'overview.geometry.summary': '{corners}, {sides}',
+  'overview.geometry.cornerItem': '{label} {pos}',
+  'overview.function.curves_one': '{count} વક્ર',
+  'overview.function.curves_other': '{count} વક્રો',
+  'overview.axes.both': 'x-અક્ષ {xPos}, y-અક્ષ {yPos}',
+  'overview.axes.xOnly': 'x-અક્ષ {xPos}',
+  'overview.axes.yOnly': 'y-અક્ષ {yPos}',
+  'overview.axes.none': 'કોઈ અક્ષ નથી',
+  'overview.bars.summary_one': '1 સ્તંભ, ડાબેથી જમણે: {labels}',
+  'overview.bars.summary_other': '{count} સ્તંભ, ડાબેથી જમણે: {labels}',
+  'overview.bars.none': 'કોઈ સ્તંભ નથી',
+  'overview.bars.count_one': '1 સ્તંભ',
+  'overview.bars.count_other': '{count} સ્તંભ',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };
