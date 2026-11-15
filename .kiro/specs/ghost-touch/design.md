@@ -528,3 +528,39 @@ Written by Kiro before the code.
 |---|---|---|
 | P86 | **Canvas box is stable under interaction (Kiro, task 42):** for any container size, any DPR from 1 to 4, and any sequence of events drawn from pointer down, move, up, cancel, status-text change, debug-text change, bitmap resize and re-measure (which models the observer firing after a bitmap resize), `reconcileCanvasBox` leaves the CSS box equal to the first one and reports `changed: false` after the first call. A real viewport change (a different container size) changes the CSS box exactly to that size, once, and `changed` is true once. The CSS size never depends on the DPR. 200+ runs. | 25.1, 25.2, 25.3 |
 | P87 | **Layout rule is declared (Kiro, task 42):** in both stylesheets the Explore screen has a fixed `height` in `dvh`, the canvas container has `flex: 1 1 0` and a pixel `min-height` with no percentage, the status card and debug line have fixed heights with `overflow: hidden`, and the screen, container and canvas carry `touch-action: none` / `overscroll-behavior: contain`. Run over both files with a small CSS parser. 200+ runs over random selector orderings is not meaningful for a static file, so this is an example test, not a fast-check property. | 25.4 to 25.7 |
+
+## Know where the line goes (Requirement 26, task 43)
+Written by Kiro before the code. One new pure module, `frontend/src/core/compass.ts`, named exports only. It imports types from `geometry.ts` and `scene.ts` and nothing else. The 8-way idea is the one in `guide/geometry.ts` (`HintKey`), re-implemented here because the core must not import from `guide/`.
+
+### Interface
+```ts
+type Compass8 = 'up' | 'down' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right';
+
+directionOf(from: NormPoint, to: NormPoint): Compass8 | null
+vertexExits(scene, pointId): { segmentId: string; toId: string; toLabel?: string; dir: Compass8 }[]
+lineEnds(scene, lineId): { aId: string; bId: string; dirToA: Compass8; dirToB: Compass8 } | null
+nearestElement(scene, finger: ScreenPoint, view: Viewport, maxDistPx?: number):
+  { id: string; elementKind: 'vertex' | 'segment' | 'polyline' | 'axis' | 'bar-edge';
+    distPx: number; dxPx: number; dyPx: number } | null
+```
+
+### Rules
+- **Sector test without trigonometry.** With `ax = |dx|`, `ay = |dy|` and `K = tan 22.5° = √2 − 1`: `ay ≤ K·ax` gives `left`/`right` by the sign of `dx`; else `ax ≤ K·ay` gives `up`/`down` by the sign of `dy`; else the diagonal from both signs. Only absolute values and signs are used, and `a − b = −(b − a)` exactly in floating point, so antisymmetry holds exactly, including on a sector boundary (a boundary goes to the axis word). `dx = dy = 0`, or a non-finite difference, gives `null`.
+- **`vertexExits`:** the point is the first with that id. For each segment in order: one end must be the id and the other a different id (no self-loop), the other end must resolve (first point with that id wins, as in `hitTest`), and `directionOf` must be non-null. `toLabel` is the other point's label, trimmed, left out when blank. The shell filters the arrival edge by `segmentId`.
+- **`lineEnds`:** the first segment with the id decides. `dirToA = directionOf(b, a)` and `dirToB = directionOf(a, b)`: the way to travel along the line to reach each end, so the two are always opposite. Spoken later as "Side AB. Up-left to A, down-right to B."
+- **`nearestElement`:** works in screen pixels with the same transform arithmetic as `hitTest` (`offset + norm × scale`), over vertices, segments (first point with an id wins; dangling skipped), polyline pieces (polylines with fewer than two points are skipped), the two axes (`x-axis`, `y-axis`) and four edges per bar. The closest point on a piece is the clamped projection; `dxPx, dyPx` run from the finger to it; `distPx = Math.hypot(dxPx, dyPx)`, so the vector length equals the distance exactly, and the segment distance uses the same arithmetic as `distToSegmentXY`. The first candidate wins a tie, in the order vertices, segments, polylines, axes, bars. A candidate whose distance is not finite is skipped. `maxDistPx` keeps a candidate when `dist ≤ maxDistPx` (a NaN maximum keeps nothing). A viewport with `scale ≤ 0` or NaN, or a non-finite finger, gives `null`.
+- **Scope:** no allocation per piece (same style as `hitTest`), but it is not a replacement for `hitTest`: it ignores radii and priority and answers "what is nearest", not "what is under the finger".
+
+| # | Property | Validates |
+|---|---|---|
+| P88 | **Exits are complete and exact (Kiro, task 43):** for random scenes with distinct positions, dangling and duplicated segments, self-loops and blank, null and padded labels, `vertexExits` has one entry per segment that joins the point to a different existing point, in scene order, with that segment's id, the other end's id, its trimmed label (left out when blank) and `directionOf` from the point to it; no entry names the point itself; an unknown id gives `[]`. | 26.3 |
+| P89 | **Direction is antisymmetric and means what it says (Kiro, task 43):** `directionOf(a, b)` is the opposite word of `directionOf(b, a)` for any two points, `null` exactly when the points coincide, and agrees with an independent `atan2` sector oracle (y down) for every vector more than 0.001° from a sector boundary. | 26.1, 26.2 |
+| P90 | **Direction is invariant under uniform scale and translation (Kiro, task 43):** on integer grids, scaling by a power of two and translating by an integer leaves `directionOf`, `vertexExits` and `lineEnds` unchanged. | 26.2 |
+| P91 | **Line ends are the segment's own (Kiro, task 43):** for every segment with two distinct existing ends, `lineEnds` returns its endpoint ids and two opposite words equal to `directionOf` towards each end; it returns `null` for point, polyline, axis and unknown ids and for dangling or coincident segments. | 26.4 |
+| P92 | **Nearest is truly nearest (Kiro, task 43):** against a brute-force minimum built independently from `distToSegmentXY`, the returned distance equals the minimum, the returned element is at that distance, `Math.hypot(dxPx, dyPx)` equals `distPx`, and finger + (dx, dy) lies on the returned element. | 26.5 |
+| P93 | **Null exactly when nothing is within the maximum (Kiro, task 43):** with `maxDistPx` the result is `null` exactly when the brute-force minimum exceeds it, and otherwise equals the result without a maximum; without a maximum it is `null` only for a scene with nothing drawable. | 26.6 |
+| P94 | **Agrees with `hitTest` (Kiro, task 43):** for random scenes, viewports and fingers biased to the radius band, a line hit gives `distPx ≤ radii.line`, a vertex hit gives `distPx ≤ radii.vertex`, and a bar-interior hit gives a result. | 26.7 |
+| P95 | **Total on bad input (Kiro, task 43):** NaN, ±Infinity, out-of-range and missing coordinates or arrays, dangling and duplicate ids, `__proto__` as an id, zero, negative and NaN viewport scale, and NaN, negative and infinite maxima never throw; every non-null result has only finite numbers, a distance equal to the vector length, and a word from the eight. | 26.8 |
+
+### Not built here
+Wording and i18n (`explore.compass.*` keys), the arrival-edge bookkeeping, the 10 s repeat rule, the 800 ms dwell, the "Directions" setting and the "where am I" sentence are lane A3 and A5. The Hindi and Gujarati direction words can reuse `guide.hint.*`.

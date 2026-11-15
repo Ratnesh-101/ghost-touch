@@ -362,3 +362,13 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 42.5 `docs/kiro-evidence/canvas-resize-bug.md`: root cause, changes, what jsdom cannot show, what to re-check on the S24+
   - [x] 42.6 Gate (`tsc --noEmit`, `vitest run`: 162 files, 2120 tests; `npm run build`); BUILD_LOG entry (tool = Kiro) as the last commit
   - _Requirements: 25.*_
+
+## Know where the line goes (Requirement 26; spec written before the code)
+> Core half only. Do not edit `hitTest.ts`, `hapticEngine.ts`, `frontend/src/guide/`, the tuned haptic values, `screens/` or `flow/`. The speech wiring is lanes A3 and A5 of `docs/reports/fable-blind-user-plan.md`.
+
+- [x] 43. Compass helpers in `core/compass.ts`
+  - [x] 43.1 Requirement 26, design section and properties P88-P95 written before any code
+  - [x] 43.2 `frontend/src/core/compass.ts`: `Compass8`, `directionOf`, `vertexExits`, `lineEnds`, `nearestElement`; pure, named exports, no `any`
+  - [x] 43.3 Properties P88-P95 in `frontend/tests/compass.prop.test.ts` (fast-check, 250 runs each, 1000 for the atan2 oracle, 500 for P95); mutation-checked with four mutants (wrong sector slope, no segment clamp, swapped line-end directions: all caught; dropping the self-loop guard is an equivalent mutant, because the coincident-point check already skips a self-loop)
+  - [x] 43.4 Gate (`tsc --noEmit` 0 errors, `vitest run` 182 files / 2247 tests); BUILD_LOG entry (tool = Kiro). No property found a bug in the new code on its first run
+  - _Requirements: 26.*_
