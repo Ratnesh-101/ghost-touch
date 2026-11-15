@@ -649,3 +649,5 @@ ull.
 | P107 | **No answer outside the curve, never throws (Kiro, task 52):** x outside the x range, NaN or infinite x, a scene that is not a unction_graph, and polylines with fewer than two points give 
 ull; NaN, infinite, out-of-range and missing data never throw. 250 runs. | 5.6 |
 | P108 | **Hint and pitch (Kiro, task 52):** with several candidates the result is the one nearest the hint (first wins a tie), with no hint the first in scene order, and pitchForY of any result is in [200, 1000]. 250 runs. | 5.6, 5.2 |
+
+**Note on P106 and P108 (Kiro, task 54):** a property that samples an x "somewhere on the curve" must clamp it into [first x, last x]. `first + t * (last - first)` can round one ulp past `last` for t near 1 (seed -1034279350, last x = 0.35624768281849445 gave 0.3562476828184945), and `curveYAtX` rightly answers `null` there (5.6). The product rule is unchanged.

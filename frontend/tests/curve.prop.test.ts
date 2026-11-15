@@ -20,6 +20,16 @@ const monotoneArb: fc.Arbitrary<[number, number][]> = fc
     });
   });
 
+/**
+ * An x somewhere on the curve. `first + t * (last - first)` can round one ulp past `last`
+ * (task 54), where `curveYAtX` rightly answers null, so the sample is clamped into the range.
+ */
+const xWithin = (pts: [number, number][], t: number): number => {
+  const first = pts[0]![0];
+  const last = pts[pts.length - 1]![0];
+  return Math.min(last, Math.max(first, first + t * (last - first)));
+};
+
 const graph = (polylines: Polyline[]): DiagramScene => ({ version: 1, kind: 'function_graph', polylines });
 const line = (id: string, points: [number, number][]): Polyline => ({ id, label: null, points });
 
@@ -33,7 +43,7 @@ describe('P106 - height is exact and in range (Requirement 5.6)', () => {
         }
         const lo = Math.min(...pts.map((p) => p[1]));
         const hi = Math.max(...pts.map((p) => p[1]));
-        const x = pts[0]![0] + t * (pts[pts.length - 1]![0] - pts[0]![0]);
+        const x = xWithin(pts, t);
         const r = curveYAtX(scene, x);
         expect(r).not.toBeNull();
         expect(r!.polylineId).toBe('f');
@@ -130,13 +140,29 @@ describe('P108 - hint, order and pitch (Requirements 5.6, 5.2)', () => {
   it('pitchForY of any answer is in [200, 1000] (250 runs)', () => {
     fc.assert(
       fc.property(monotoneArb, fc.double({ min: 0, max: 1, noNaN: true }), (pts, t) => {
-        const x = pts[0]![0] + t * (pts[pts.length - 1]![0] - pts[0]![0]);
-        const r = curveYAtX(graph([line('f', pts)]), x)!;
+        const r = curveYAtX(graph([line('f', pts)]), xWithin(pts, t))!;
         const hz = pitchForY(r.yNorm);
         expect(hz).toBeGreaterThanOrEqual(200);
         expect(hz).toBeLessThanOrEqual(1000);
       }),
       { numRuns: 250 },
     );
+  });
+
+  it('regression (task 54, seed -1034279350): t = 1 on a curve ending at x = 0.35624768281849445 still answers', () => {
+    const pts: [number, number][] = [
+      [0.1062476161456993, 0],
+      [0.12280312216238477, 0],
+      [0.3128919996590637, 0],
+      [0.3551778745875001, 0],
+      [0.35624768281849445, 0],
+    ];
+    // The unclamped formula lands one ulp past the last x; the curve has no answer there.
+    const raw = pts[0]![0] + 1 * (pts[4]![0] - pts[0]![0]);
+    expect(raw).toBeGreaterThan(pts[4]![0]);
+    expect(curveYAtX(graph([line('f', pts)]), raw)).toBeNull();
+    // The clamped sample is the last point and answers exactly.
+    expect(xWithin(pts, 1)).toBe(pts[4]![0]);
+    expect(curveYAtX(graph([line('f', pts)]), xWithin(pts, 1))).toEqual({ polylineId: 'f', yNorm: 0 });
   });
 });

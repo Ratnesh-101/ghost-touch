@@ -4325,3 +4325,11 @@ Format for each entry:
 - Findings 5, 6, 7, 8: spec text (Requirement 26.2, design note) and records only. Requirement 13.1/13.3 reworded to match the code; the open question is OD-1 in docs/reviews/kiro-owner-decisions.md.
 - Gate: `tsc --noEmit` 0 errors; `vitest run` see the next line.
 - Files: frontend/src/core/hapticEngine.ts, frontend/tests/{compass.prop,hapticEngine.reentry.prop}.test.ts, .kiro/specs/ghost-touch/{requirements,design,tasks}.md, docs/BUILD_LOG.md
+
+## 2026-11-15 - Kiro - Flaky P108: test-generator bug, not a product bug (task 54)
+- Symptom: P108 "pitchForY of any answer is in [200, 1000]" failed once in a full run with `Cannot read properties of null (reading 'yNorm')` after 175 tests. 20 re-runs of the file (250 runs each) all passed, so it depends on the seed.
+- Reproduced with a temporary 200000-run hunt (file deleted afterwards): seed -1034279350, shrunk to five points with y = 0, last x = 0.35624768281849445, t = 1. The test sampled `first + t * (last - first)` = 0.3562476828184945, one ulp past the last x. `curveYAtX` answers `null` there, as Requirement 5.6 requires. P106 used the same formula and could fail the same way.
+- Cause: test generator. `core/curve.ts` is unchanged; no tuned value changed.
+- Fix: shared `xWithin(pts, t)` clamps the sample into [first x, last x] in P106 and P108; a pinned regression example uses the counterexample and shows the raw formula lands past the last x. Spec text: design.md note under P108, tasks.md task 54.
+- Gate: `tsc --noEmit` 0 errors; `vitest run` 192 files, 2413 tests pass.
+- Files: frontend/tests/curve.prop.test.ts, .kiro/specs/ghost-touch/{design,tasks}.md, docs/BUILD_LOG.md

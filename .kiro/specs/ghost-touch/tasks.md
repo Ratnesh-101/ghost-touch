@@ -418,3 +418,12 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 53.6 Requirement 13.1 amended (overview, then gesture hint and Back hint, one utterance, no "You start at the centre."); 13.3 reworded to match the code (absolute touch, centre tick inside 24 px); the open question is OD-1 in `docs/reviews/kiro-owner-decisions.md`, not decided here
   - [x] 53.7 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro); path-scoped commit
   - _Requirements: 4.9, 13.1, 13.3, 26.2_
+## Flaky P106/P108: sample x rounds past the curve's last x (task 54)
+> Test-generator bug, no product change. `core/curve.ts` and every tuned value untouched.
+
+- [x] 54. P106 and P108 sample an x that can lie one ulp outside the curve
+  - [x] 54.1 Reproduced with a 200000-run hunt: seed -1034279350, shrunk to five points with y = 0 ending at x = 0.35624768281849445 and t = 1. The test's `first + t * (last - first)` gives 0.3562476828184945, one ulp past the last x, so `curveYAtX` correctly answers `null` (Requirement 5.6: no answer outside the x range)
+  - [x] 54.2 Spec: design.md P106 and P108 say the sampled x is clamped into [first x, last x]; Requirement 5.6 is unchanged
+  - [x] 54.3 Tests: shared `xWithin(pts, t)` helper clamps to the curve's x range, used by P106 and P108; pinned example with the counterexample; both fail with the old formula and pass with the helper
+  - [x] 54.4 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro)
+  - _Requirements: 5.6_
