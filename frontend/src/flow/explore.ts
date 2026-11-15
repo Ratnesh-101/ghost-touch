@@ -389,3 +389,87 @@ export function processPointerMove(
     nextAxisState,
   };
 }
+
+/**
+ * Hold keep-alive interval: 60 ms.
+ * Ensures stationary fingers resting on lines continue receiving haptic feedback.
+ */
+export const KEEP_ALIVE_INTERVAL_MS = 60;
+
+/**
+ * Determines whether a keep-alive move event should be dispatched.
+ * Returns true when at least intervalMs has elapsed since the last handled move (or down/keep-alive).
+ */
+export function shouldKeepAlive(
+  lastMoveAt: number,
+  now: number,
+  intervalMs: number = KEEP_ALIVE_INTERVAL_MS,
+): boolean {
+  if (intervalMs <= 0) return true;
+  return now - lastMoveAt >= intervalMs;
+}
+
+export interface HoldKeepAliveOptions {
+  intervalMs?: number;
+  shouldRun?: () => boolean;
+  onTick: (coords: ScreenPoint, now: number) => void;
+}
+
+export interface HoldKeepAliveTimer {
+  start(coords: ScreenPoint, now?: number): void;
+  update(coords: ScreenPoint, now?: number): void;
+  stop(): void;
+  isActive(): boolean;
+}
+
+/**
+ * Creates a hold keep-alive timer that ticks at intervalMs (default 60 ms).
+ * Calls onTick with the last known coordinates when no move has occurred within intervalMs.
+ */
+export function createHoldKeepAliveTimer(
+  options: HoldKeepAliveOptions,
+): HoldKeepAliveTimer {
+  const intervalMs = options.intervalMs ?? KEEP_ALIVE_INTERVAL_MS;
+  let timer: ReturnType<typeof setInterval> | null = null;
+  let lastMoveAt = 0;
+  let lastCoords: ScreenPoint | null = null;
+
+  const stop = (): void => {
+    if (timer !== null) {
+      clearInterval(timer);
+      timer = null;
+    }
+    lastCoords = null;
+  };
+
+  const start = (coords: ScreenPoint, now: number = performance.now()): void => {
+    stop();
+    lastCoords = coords;
+    lastMoveAt = now;
+    timer = setInterval(() => {
+      if (options.shouldRun && !options.shouldRun()) {
+        stop();
+        return;
+      }
+      if (!lastCoords) return;
+      const currentNow = performance.now();
+      if (shouldKeepAlive(lastMoveAt, currentNow, intervalMs)) {
+        lastMoveAt = currentNow;
+        options.onTick(lastCoords, currentNow);
+      }
+    }, intervalMs);
+  };
+
+  const update = (coords: ScreenPoint, now: number = performance.now()): void => {
+    lastCoords = coords;
+    lastMoveAt = now;
+  };
+
+  return {
+    start,
+    update,
+    stop,
+    isActive: () => timer !== null,
+  };
+}
+

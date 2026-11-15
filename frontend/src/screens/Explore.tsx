@@ -36,19 +36,24 @@ import {
   checkCentreTick,
   checkTwoFingerLongPress,
   checkTwoFingerSwipeDown,
+  createHoldKeepAliveTimer,
   initialAxisState,
   initialCentreTickState,
   initialState,
+  KEEP_ALIVE_INTERVAL_MS,
   mergeAnnouncements,
   processPointerMove,
   rearmCentreTick,
   seedAxisState,
+  shouldKeepAlive,
   step,
   TWO_FINGER_LONG_PRESS_MS,
   TWO_FINGER_MAX_MOVE_PX,
   type AxisTrackerState,
   type CentreTickState,
   type EngineState,
+  type HoldKeepAliveOptions,
+  type HoldKeepAliveTimer,
   type PointerHistory,
 } from '../flow/explore';
 import { canvasAriaLabel, exploreAnnouncement, sceneName } from '../flow/navigation';
@@ -61,7 +66,17 @@ import {
 } from '../flow/alive';
 import { buildA11yFeatures, MAX_A11Y_FEATURES, type A11yFeature } from '../flow/a11yFeatures';
 
-export { buildA11yFeatures, MAX_A11Y_FEATURES, resetAliveForTesting, type A11yFeature };
+export {
+  buildA11yFeatures,
+  MAX_A11Y_FEATURES,
+  resetAliveForTesting,
+  createHoldKeepAliveTimer,
+  KEEP_ALIVE_INTERVAL_MS,
+  shouldKeepAlive,
+  type A11yFeature,
+  type HoldKeepAliveOptions,
+  type HoldKeepAliveTimer,
+};
 
 export interface PointerPromotionResult {
   promotedPointerId: number | null;
@@ -243,6 +258,7 @@ export function Explore({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const busyRef = useRef(false);
   const askActive = useRef(false);
+  const keepAliveTimer = useRef<HoldKeepAliveTimer | null>(null);
 
   const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
   const [statusMessage, setStatusMessage] = useState(announced);
@@ -409,6 +425,7 @@ export function Explore({
     if (!offeredTarget) return;
     const resolved = resolveTarget(sceneRef.current, offeredTarget);
     if (resolved && guideController.current) {
+      keepAliveTimer.current?.stop();
       setOfferedTarget(null);
       drivers.audio.unlock();
       drivers.audio.setTone(null);
@@ -422,6 +439,7 @@ export function Explore({
   };
 
   const handleExit = (): void => {
+    keepAliveTimer.current?.stop();
     if (guideController.current?.isGuiding()) {
       guideController.current.stop('back');
       return;
@@ -448,6 +466,7 @@ export function Explore({
     if (busyRef.current || askManager.current.isBusy()) return;
     busyRef.current = true;
     clearLongPressTimer();
+    keepAliveTimer.current?.stop();
     setIsBusy(true);
 
     // GT-02: Stop tone and haptics and mark askActive while voice listening is open
@@ -539,6 +558,7 @@ export function Explore({
         if (result.stopGuide) {
           guideController.current?.stop('voice');
         } else if (result.guideTarget) {
+          keepAliveTimer.current?.stop();
           drivers.audio.setTone(null);
           engineState.current = initialState();
           guideController.current?.start(result.guideTarget);
@@ -968,6 +988,7 @@ export function Explore({
     guideController.current = gc;
 
     const unbindBack = subscribeBack(() => {
+      keepAliveTimer.current?.stop();
       if (guideController.current?.isGuiding()) {
         guideController.current.stop('back');
         pushExploreEntry();
@@ -992,6 +1013,7 @@ export function Explore({
     // GT-04: Clear active pointers, primary pointer, and engine tone on visibilitychange hidden or window blur
     const handleVisibilityChange = (): void => {
       if (document.hidden) {
+        keepAliveTimer.current?.stop();
         if (guideController.current?.isGuiding()) {
           guideController.current.stop('user');
         }
@@ -1008,6 +1030,7 @@ export function Explore({
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const handleWindowBlur = (): void => {
+      keepAliveTimer.current?.stop();
       if (guideController.current?.isGuiding()) {
         guideController.current.stop('user');
       }
@@ -1046,6 +1069,7 @@ export function Explore({
     }
 
     return () => {
+      keepAliveTimer.current?.stop();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
       gc.destroy();
@@ -1109,6 +1133,32 @@ export function Explore({
     runEffects(moveEffects, drivers, lang);
   };
 
+  if (!keepAliveTimer.current) {
+    keepAliveTimer.current = createHoldKeepAliveTimer({
+      intervalMs: KEEP_ALIVE_INTERVAL_MS,
+      shouldRun: () =>
+        !leaving.current &&
+        primaryPointerId.current !== null &&
+        !askActive.current &&
+        !guideController.current?.isGuiding(),
+      onTick: (coords, now) => {
+        const view = viewportRef.current;
+        const lang = LANG_BCP47[getLang()] ?? 'en-IN';
+        const moveResult = processPointerMove(
+          sceneRef.current,
+          coords,
+          view,
+          now,
+          engineState.current,
+          centreTickState.current,
+          axisState.current,
+        );
+        applyMoveResult(moveResult, lang);
+        scheduleDraw(view, coords);
+      },
+    });
+  }
+
   const handlePointerDown = (e: PointerEvent<HTMLCanvasElement>): void => {
     if (leaving.current) return;
     drivers.audio.unlock();
@@ -1139,6 +1189,7 @@ export function Explore({
     }
 
     if (guideController.current?.isGuiding()) {
+      keepAliveTimer.current?.stop();
       primaryPointerId.current = e.pointerId;
       const norm = toNorm(coords, view);
       guideController.current.move(norm, now);
@@ -1151,6 +1202,9 @@ export function Explore({
       primaryPointerId.current,
       activePointers.current,
     );
+    if (primaryPointerId.current === null) {
+      keepAliveTimer.current?.stop();
+    }
 
     // Only the first active pointer drives the engine (finding 11)
     if (primaryPointerId.current !== null) {
@@ -1181,6 +1235,7 @@ export function Explore({
 
     // EX-02: Gate pointerdown while Ask listening is open (no tone, vibration or speech)
     if (askActive.current) {
+      keepAliveTimer.current?.stop();
       const moveResult = processPointerMove(
         scene,
         coords,
@@ -1223,6 +1278,7 @@ export function Explore({
     );
     applyMoveResult(moveResult, lang, centreAnnouncements);
     scheduleDraw(view, coords);
+    keepAliveTimer.current?.start(coords, now);
   };
 
   const handlePointerMove = (e: PointerEvent<HTMLCanvasElement>): void => {
@@ -1261,6 +1317,7 @@ export function Explore({
     }
 
     if (guideController.current?.isGuiding()) {
+      keepAliveTimer.current?.stop();
       const norm = toNorm(coords, view);
       guideController.current.move(norm, now);
       scheduleDraw(view, coords);
@@ -1269,6 +1326,7 @@ export function Explore({
 
     // GT-02: When Ask starts, skip runEffects and axis speech until listening ends
     if (askActive.current) {
+      keepAliveTimer.current?.stop();
       const moveResult = processPointerMove(
         scene,
         coords,
@@ -1297,6 +1355,7 @@ export function Explore({
     );
     applyMoveResult(moveResult, lang);
     scheduleDraw(view, coords);
+    keepAliveTimer.current?.update(coords, now);
   };
 
   const handlePointerLift = (e: PointerEvent<HTMLCanvasElement>): void => {
@@ -1316,6 +1375,7 @@ export function Explore({
 
     if (guideController.current?.isGuiding()) {
       if (isPrimaryLift) {
+        keepAliveTimer.current?.stop();
         primaryPointerId.current = promotedPointerId;
         if (promotedPointerId === null || promotedCoords === null) {
           guideController.current.lift(performance.now());
@@ -1330,6 +1390,7 @@ export function Explore({
     }
 
     if (isPrimaryLift) {
+      keepAliveTimer.current?.stop();
       if (promotedPointerId !== null && promotedCoords !== null) {
         // Promote oldest surviving pointer to primary (Finding 14, Requirement 4.8)
         primaryPointerId.current = promotedPointerId;
@@ -1356,6 +1417,9 @@ export function Explore({
         );
         applyMoveResult(moveResult, lang);
         scheduleDraw(view, promotedCoords);
+        if (!guideController.current?.isGuiding() && !askActive.current) {
+          keepAliveTimer.current?.start(promotedCoords, now);
+        }
       } else {
         // All fingers lifted: silence effects
         primaryPointerId.current = null;

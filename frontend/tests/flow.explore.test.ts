@@ -13,10 +13,12 @@ import {
   initialAxisState,
   initialCentreTickState,
   initialState,
+  KEEP_ALIVE_INTERVAL_MS,
   pitchForY,
   processPointerMove,
   rearmCentreTick,
   seedAxisState,
+  shouldKeepAlive,
   step,
   TWO_FINGER_LONG_PRESS_MS,
   TWO_FINGER_MAX_MOVE_PX,
@@ -909,3 +911,27 @@ describe('Announcement coordination and canvas aria-label suppression (Finding 5
     expect(label).toBe('Triangle. Double-tap and hold, then drag to feel the diagram. You start at the centre.');
   });
 });
+
+describe('Hold keep-alive decision logic (shouldKeepAlive)', () => {
+  it('returns true when at least intervalMs has elapsed', () => {
+    expect(shouldKeepAlive(100, 160, 60)).toBe(true);
+    expect(shouldKeepAlive(100, 200, 60)).toBe(true);
+  });
+
+  it('returns false when less than intervalMs has elapsed', () => {
+    expect(shouldKeepAlive(100, 159, 60)).toBe(false);
+    expect(shouldKeepAlive(100, 100, 60)).toBe(false);
+  });
+
+  it('defaults to KEEP_ALIVE_INTERVAL_MS = 60 ms', () => {
+    expect(KEEP_ALIVE_INTERVAL_MS).toBe(60);
+    expect(shouldKeepAlive(0, 60)).toBe(true);
+    expect(shouldKeepAlive(0, 59)).toBe(false);
+  });
+
+  it('returns true when intervalMs <= 0', () => {
+    expect(shouldKeepAlive(100, 100, 0)).toBe(true);
+    expect(shouldKeepAlive(100, 50, -5)).toBe(true);
+  });
+});
+
