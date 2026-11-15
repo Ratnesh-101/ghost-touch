@@ -64,7 +64,11 @@ function sceneArb(withLongPolyline: boolean): fc.Arbitrary<DiagramScene> {
       const polylines: Polyline[] = g.lines.map((pts, i) => ({ id: `pl${i}`, points: pts, label: null }));
       if (withLongPolyline) polylines.push(longPolyline(g.longSeed));
       const bars: Bar[] = g.bars.map((b, i) => ({ id: `b${i}`, label: `bar ${i}`, value: b.value, x0: b.x0, x1: b.x1, y_top: b.yTop, y_base: b.yBase }));
-      return { version: 1, kind: 'geometry', points, segments, polylines, bars, axes: { x_axis_y: g.xAxis, y_axis_x: g.yAxis } };
+      // Requirement 5.5 (task 52): a polyline within the radius now beats an axis, which the frozen
+      // oracle does not do. P52 therefore keeps polylines and axes apart; P104 and P105 in
+      // hitTest.curveAxis.prop.test.ts cover scenes that have both.
+      const axes = polylines.length > 0 ? { x_axis_y: null, y_axis_x: null } : { x_axis_y: g.xAxis, y_axis_x: g.yAxis };
+      return { version: 1, kind: 'geometry', points, segments, polylines, bars, axes };
     });
 }
 

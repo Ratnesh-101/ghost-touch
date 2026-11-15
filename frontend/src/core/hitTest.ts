@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Pure hit-testing core - maps a finger position to a diagram target.
  *
  * Per architecture rules (tech.md): this module is pure (no DOM, React, or
@@ -13,6 +13,8 @@
  *     On an exact tie the first one in scene order wins.
  *   - A bar is reported when the finger is inside the bar rectangle.
  *   - Bar boundary edges are tested as lines (Requirement 6.3).
+ *   - A polyline within the line radius beats an axis within it (Requirement 5.5); every other
+ *     line comparison is still nearest-wins, first-in-scene-order on a tie.
  *
  * Performance (PERF-01): this runs on every pointer move, 60-120 times a second, and a curve
  * may have 2000 points. The loops therefore allocate nothing per point or per piece, transform
@@ -167,6 +169,9 @@ function findLine(
   let bestId = '';
   let bestKind: LineElementKind = 'segment';
   let bestDist = 0;
+  // Requirement 5.5: set when any polyline piece is within the radius, even if a nearer segment
+  // is the best so far. Axes are offered after polylines, so they are then simply ignored.
+  let polylineSeen = false;
 
   /** Measure one piece (screen coordinates) and keep it if it is the new nearest. */
   const offer = (
@@ -177,9 +182,11 @@ function findLine(
     bx: number,
     by: number,
   ): void => {
+    if (kind === 'axis' && polylineSeen) return;
     if (outOfReach(fx, ax, bx, radius) || outOfReach(fy, ay, by, radius)) return;
     const dist = distToSegmentXY(fx, fy, ax, ay, bx, by);
     if (!Number.isFinite(dist) || dist > radius) return;
+    if (kind === 'polyline') polylineSeen = true;
     if (!found || dist < bestDist) {
       found = true;
       bestId = id;
