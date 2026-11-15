@@ -372,3 +372,14 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 43.3 Properties P88-P95 in `frontend/tests/compass.prop.test.ts` (fast-check, 250 runs each, 1000 for the atan2 oracle, 500 for P95); mutation-checked with four mutants (wrong sector slope, no segment clamp, swapped line-end directions: all caught; dropping the self-loop guard is an equivalent mutant, because the coincident-point check already skips a self-loop)
   - [x] 43.4 Gate (`tsc --noEmit` 0 errors, `vitest run` 182 files / 2247 tests); BUILD_LOG entry (tool = Kiro). No property found a bug in the new code on its first run
   - _Requirements: 26.*_
+
+## A corner does not repeat on a shaky finger (Requirement 4.9; spec written before the code)
+> Numbered 50 because the `kiro: T44` to `T49` commit messages are already used by the K4 audit fixes. Only `core/hapticEngine.ts` changes. Tuned haptic values untouched.
+
+- [ ] 50. Suppress a repeated corner inside its quiet window
+  - [x] 50.1 Requirement 4.9, design section and property P96 written before any code
+  - [ ] 50.2 `core/hapticEngine.ts`: optional `lastCornerId`; re-entry of the last corner's vertex while `t < quietUntil` emits nothing and keeps `quietUntil`
+  - [ ] 50.3 P96 (a) to (c) in `tests/hapticEngine.reentry.prop.test.ts` (200+ runs), mutation-checked; P3 to P6 unchanged
+  - [ ] 50.4 Regression test in `tests/haptic.corner.regression.test.ts`: triangle, leave A along AC at 30 px/s, 60 Hz, seeded 2 px jitter
+  - [ ] 50.5 Gate (`tsc --noEmit`, `vitest run`); commit
+  - _Requirements: 4.4, 4.5, 4.9_

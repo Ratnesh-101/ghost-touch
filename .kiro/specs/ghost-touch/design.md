@@ -564,3 +564,15 @@ nearestElement(scene, finger: ScreenPoint, view: Viewport, maxDistPx?: number):
 
 ### Not built here
 Wording and i18n (`explore.compass.*` keys), the arrival-edge bookkeeping, the 10 s repeat rule, the 800 ms dwell, the "Directions" setting and the "where am I" sentence are lane A3 and A5. The Hindi and Gujarati direction words can reuse `guide.hint.*`.
+
+## A corner does not repeat on a shaky finger (Requirement 4.9, task 50)
+Written by Kiro before the code. Source: `docs/reports/fable-blind-user-plan.md` section 2.3: leaving a corner slowly with 2 px tremor fired the corner pattern 3 times (median, up to 5), each restarting the 450 ms quiet window, so the first line buzz slipped to 700 to 850 ms.
+
+- Cause: `step()` sets `lastVertexId = null` on any non-vertex target, so a finger on the 22 px boundary re-enters the vertex and rule 1 fires again.
+- Change (`core/hapticEngine.ts` only): `EngineState` gains an optional `lastCornerId: string | null` (optional so existing state literals still type-check), the id of the vertex whose corner pattern fired last. `lastVertexId` keeps its meaning and is still cleared on a non-vertex target.
+- Rule 1 becomes: on entering a vertex that differs from `lastVertexId`, set `lastVertexId`. If `lastCornerId === id` and `t < quietUntil`, emit nothing and leave `quietUntil` and `lastCornerId` as they are. Otherwise fire as before and set `lastCornerId = id`.
+- Time constant: `quietMs` only. `DEFAULT_HAPTICS` is unchanged. A lift returns `initialState()`, which clears the memory. A different vertex always fires, even inside the window.
+
+| # | Property | Validates |
+|---|---|---|
+| P96 | **A corner is not repeated inside its quiet window (Kiro, task 50):** (a) any trace that hits one vertex, then leaves it (any non-vertex targets) and re-enters it, all within `quietMs` of the first pulse, emits the corner pattern and the label exactly once, and `quietUntil` after the re-entry equals the first one; (b) a re-entry at or after `quietMs` fires again; (c) entering a different vertex always fires, also inside the window; (d) P3 to P6 are unchanged. 200+ runs. A regression test replays the sample triangle: leave A along AC at 30 px/s, 60 Hz, seeded 2 px jitter, exactly one corner pattern and the first line buzz at most `quietMs + retriggerMs` after it. | 4.9, 4.4, 4.5 |

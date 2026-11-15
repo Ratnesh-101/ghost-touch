@@ -58,6 +58,8 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 7. WHEN the finger lifts THEN the system SHALL stop all vibration and tones.
 8. WHEN multiple fingers touch the Explore canvas and the primary finger lifts while another finger remains in contact, the system SHALL immediately promote the oldest remaining active pointer to primary, update cursor tracking, and continue delivering haptic and tone effects without entering a dead-zone. (agy, awaiting Kiro review)
 
+9. (Kiro, task 50, from `docs/reports/fable-blind-user-plan.md` section 2.3) WHEN the finger re-enters the vertex that fired the most recent corner pattern, AND the quiet window of that pulse has not ended (`t < quietUntil`), THEN the system SHALL NOT play the corner pattern, SHALL NOT speak the label again, and SHALL NOT change the quiet window (`quietUntil` stays as the first pulse set it). The only time constant is `quietMs`; no new tuned value is added. WHEN the re-entry happens at or after the end of that window, OR the vertex is a different one from the last corner, THEN the corner pattern and label SHALL play as in 4.3. A lift resets this memory.
+
 ### Requirement 5: Hear graph height (theremin)
 **User Story:** As a blind student studying functions, I want to hear the curve rise and fall, so that I understand its shape and turning points.
 
