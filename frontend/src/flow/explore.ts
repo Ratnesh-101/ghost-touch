@@ -11,6 +11,12 @@
 import { hitTest, type Radii, type Target } from '../core/hitTest';
 import { toNorm, type ScreenPoint, type Viewport } from '../core/geometry';
 import type { DiagramScene } from '../core/scene';
+import { lineEnds, vertexExits, type Compass8 } from '../core/compass';
+import {
+  getStoredDirectionsSetting,
+  setStoredDirectionsSetting,
+  STORAGE_KEY_DIRECTIONS,
+} from '../drivers/storage';
 import {
   step,
   initialState,
@@ -22,8 +28,16 @@ import {
 import { pitchForY } from '../core/pitch';
 import { t, tf } from '../i18n';
 
-export { step, initialState, DEFAULT_HAPTICS, pitchForY };
-export type { EngineState, Effect, HapticConfig };
+export {
+  step,
+  initialState,
+  DEFAULT_HAPTICS,
+  pitchForY,
+  getStoredDirectionsSetting,
+  setStoredDirectionsSetting,
+  STORAGE_KEY_DIRECTIONS,
+};
+export type { EngineState, Effect, HapticConfig, Compass8 };
 
 /**
  * Proposed centre tick pattern: 25 ms single pulse.
@@ -143,14 +157,18 @@ export function speechText(effect: Effect): string | null {
   return null;
 }
 
-export function mergeAnnouncements(axisCrossings: readonly string[], effects: Effect[]): Effect[] {
+export function mergeAnnouncements(
+  axisCrossings: readonly string[],
+  effects: Effect[],
+  afterAnnouncements: readonly string[] = [],
+): Effect[] {
   // Keyed speech (an unlabelled corner) counts as speech too, so it is joined with the axis
   // crossings instead of being spoken separately and cutting them off.
   const engineSpeech = effects.flatMap((e) => {
     const words = speechText(e);
     return words === null ? [] : [words];
   });
-  const text = joinAnnouncements([...axisCrossings, ...engineSpeech]);
+  const text = joinAnnouncements([...axisCrossings, ...engineSpeech, ...afterAnnouncements]);
   if (text === '') return effects;
 
   const merged: Effect[] = [];
@@ -472,4 +490,110 @@ export function createHoldKeepAliveTimer(
     isActive: () => timer !== null,
   };
 }
+
+export const VERTEX_VISIT_WINDOW_MS = 10000;
+export const LINE_DWELL_MS = 800;
+
+function capitalize(str: string): string {
+  if (!str) return '';
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/**
+ * Pure corner compass helper:
+ * - Text after the label: one short clause per exit, e.g. "Down-right to B."
+ * - Skips the segment the finger arrived on.
+ * - If more than 4 exits: says "{n} edges" only.
+ * - If visitedRecently is true: returns ''.
+ * - Words through i18n keys in en, hi, and gu.
+ * - Compass text never longer than 12 words.
+ */
+export function cornerCompass(
+  scene: DiagramScene,
+  vertexId: string,
+  arrivedLineId: string | null = null,
+  visitedRecently: boolean = false,
+): string {
+  if (visitedRecently) return '';
+
+  const allExits = vertexExits(scene, vertexId);
+  if (allExits.length === 0) return '';
+
+  const exits = arrivedLineId
+    ? allExits.filter((e) => e.segmentId !== arrivedLineId)
+    : allExits;
+
+  if (allExits.length > 4 || exits.length > 4) {
+    const count = allExits.length > 4 ? allExits.length : exits.length;
+    return `${tf('compass.edges', { n: String(count) })}.`;
+  }
+
+  if (exits.length === 0) return '';
+
+  const clauses = exits.map((exit) => {
+    const target = exit.toLabel || exit.toId;
+    const dirWord = t(`compass.dir.${exit.dir}`);
+    const clause = tf('compass.toTarget', { dir: dirWord, target });
+    return `${capitalize(clause)}.`;
+  });
+
+  const text = clauses.join(' ');
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (words.length > 12) {
+    return `${tf('compass.edges', { n: String(allExits.length) })}.`;
+  }
+  return text;
+}
+
+/**
+ * Pure line name helper:
+ * - Segment: e.g. "Side AB. Up-left to A, down-right to B."
+ * - Axes: "x-axis, left to right" or "y-axis, top to bottom".
+ * - Polylines and bar edges: their label only.
+ * - All words through i18n keys in en, hi, gu.
+ */
+export function lineName(scene: DiagramScene, lineId: string): string {
+  if (lineId === 'x-axis') {
+    return t('compass.xAxis');
+  }
+  if (lineId === 'y-axis') {
+    return t('compass.yAxis');
+  }
+
+  // Check polylines: label only
+  const poly = scene.polylines?.find((p) => p.id === lineId);
+  if (poly) {
+    return poly.label?.trim() || poly.id;
+  }
+
+  // Check bar edges: label only
+  const bar = scene.bars?.find((b) => b.id === lineId);
+  if (bar) {
+    return bar.label?.trim() || bar.id;
+  }
+
+  // Check segments
+  const seg = scene.segments?.find((s) => s.id === lineId);
+  if (seg) {
+    const sideName = seg.label?.trim() || seg.id;
+    const sidePart = tf('compass.side', { name: sideName });
+    const ends = lineEnds(scene, lineId);
+    if (!ends) {
+      return `${sidePart}.`;
+    }
+    const pointA = scene.points?.find((p) => p.id === ends.aId);
+    const pointB = scene.points?.find((p) => p.id === ends.bId);
+    const labelA = pointA?.label?.trim() || ends.aId;
+    const labelB = pointB?.label?.trim() || ends.bId;
+    const dirA = t(`compass.dir.${ends.dirToA}`);
+    const dirB = t(`compass.dir.${ends.dirToB}`);
+    const clauseA = capitalize(tf('compass.toTarget', { dir: dirA, target: labelA }));
+    const clauseB = tf('compass.toTarget', { dir: dirB, target: labelB });
+    const endsPart = tf('compass.lineEnds', { clauseA, clauseB });
+    return `${sidePart}. ${endsPart}.`;
+  }
+
+  return '';
+}
+
 

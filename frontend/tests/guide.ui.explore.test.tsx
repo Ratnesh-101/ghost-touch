@@ -120,7 +120,6 @@ describe('Guide UI Explore & LabSettings (Server/Node Markup & Flow)', () => {
       );
 
       expect(html).not.toContain(t('settings.guideHeading'));
-      expect(html).not.toContain('role="switch"');
       expect(html).not.toContain(t('settings.guideToggle'));
     });
 

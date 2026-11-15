@@ -21,6 +21,7 @@ import {
   type Viewport,
 } from '../core/geometry';
 import type { DiagramScene } from '../core/scene';
+import type { Target } from '../core/hitTest';
 import { FallbackHapticDriver, runEffects, type Drivers } from '../drivers';
 import type { PulseKind } from '../drivers/haptics';
 import { leaveExploreEntry, onBack as subscribeBack, pushExploreEntry } from '../drivers/navigation';
@@ -36,11 +37,15 @@ import {
   checkCentreTick,
   checkTwoFingerLongPress,
   checkTwoFingerSwipeDown,
+  cornerCompass,
   createHoldKeepAliveTimer,
+  getStoredDirectionsSetting,
   initialAxisState,
   initialCentreTickState,
   initialState,
   KEEP_ALIVE_INTERVAL_MS,
+  LINE_DWELL_MS,
+  lineName,
   mergeAnnouncements,
   processPointerMove,
   rearmCentreTick,
@@ -49,6 +54,7 @@ import {
   step,
   TWO_FINGER_LONG_PRESS_MS,
   TWO_FINGER_MAX_MOVE_PX,
+  VERTEX_VISIT_WINDOW_MS,
   type AxisTrackerState,
   type CentreTickState,
   type EngineState,
@@ -248,6 +254,13 @@ export function Explore({
   const pendingCursor = useRef<ScreenPoint | null>(null);
   const lastSpokenRef = useRef<string>(announced);
   const cornerIndexRef = useRef<number>(-1);
+  const prevTargetRef = useRef<Target>({ kind: 'none' });
+  const lastVertexVisitRef = useRef<Map<string, number>>(new Map());
+  const lineDwellRef = useRef<{ lineId: string | null; enterTime: number; spoken: boolean }>({
+    lineId: null,
+    enterTime: 0,
+    spoken: false,
+  });
 
   const sceneRef = useRef(scene);
   sceneRef.current = scene;
@@ -457,6 +470,8 @@ export function Explore({
     clearLongPressTimer();
     activePointers.current.clear();
     primaryPointerId.current = null;
+    lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
+    prevTargetRef.current = { kind: 'none' };
     leaveExploreEntry();
     onBack();
   };
@@ -1022,6 +1037,8 @@ export function Explore({
         clearLongPressTimer();
         activePointers.current.clear();
         primaryPointerId.current = null;
+        lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
+        prevTargetRef.current = { kind: 'none' };
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
         engineState.current = state;
         runEffects(effects, drivers);
@@ -1039,6 +1056,8 @@ export function Explore({
       clearLongPressTimer();
       activePointers.current.clear();
       primaryPointerId.current = null;
+      lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
+      prevTargetRef.current = { kind: 'none' };
       const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
       engineState.current = state;
       runEffects(effects, drivers);
@@ -1109,6 +1128,7 @@ export function Explore({
     moveResult: ReturnType<typeof processPointerMove>,
     lang: string,
     extraAnnouncements: readonly string[] = [],
+    afterAnnouncements: readonly string[] = [],
   ): void => {
     engineState.current = moveResult.nextEngineState;
     centreTickState.current = moveResult.centreCheck.nextState;
@@ -1124,6 +1144,7 @@ export function Explore({
     const moveEffects = mergeAnnouncements(
       [...extraAnnouncements, ...moveResult.axisCrossings],
       moveResult.effects,
+      afterAnnouncements,
     );
     // R3-02: update lastSpokenRef unconditionally from the merged speak effect
     const joined = moveEffects.find((e) => e.kind === 'speak');
@@ -1131,6 +1152,55 @@ export function Explore({
       lastSpokenRef.current = joined.text;
     }
     runEffects(moveEffects, drivers, lang);
+  };
+
+  const checkVertexCompass = (target: Target, now: number): string[] => {
+    if (target.kind !== 'vertex') return [];
+    const vertexId = target.id;
+    const isNewEntry =
+      prevTargetRef.current.kind !== 'vertex' || prevTargetRef.current.id !== vertexId;
+    if (!isNewEntry) return [];
+
+    const arrivedLineId =
+      prevTargetRef.current.kind === 'line' ? prevTargetRef.current.id : null;
+    const lastVisit = lastVertexVisitRef.current.get(vertexId);
+    const visitedRecently =
+      lastVisit !== undefined && now - lastVisit < VERTEX_VISIT_WINDOW_MS;
+
+    lastVertexVisitRef.current.set(vertexId, now);
+
+    if (!getStoredDirectionsSetting()) return [];
+
+    const text = cornerCompass(sceneRef.current, vertexId, arrivedLineId, visitedRecently);
+    return text ? [text] : [];
+  };
+
+  const checkLineDwell = (target: Target, now: number, lang: string): void => {
+    if (target.kind === 'line') {
+      const lineId = target.id;
+      if (lineDwellRef.current.lineId !== lineId) {
+        lineDwellRef.current = { lineId, enterTime: now, spoken: false };
+      } else if (
+        !lineDwellRef.current.spoken &&
+        now - lineDwellRef.current.enterTime >= LINE_DWELL_MS
+      ) {
+        if (
+          getStoredDirectionsSetting() &&
+          !askActive.current &&
+          !guideController.current?.isGuiding()
+        ) {
+          lineDwellRef.current.spoken = true;
+          const text = lineName(sceneRef.current, lineId);
+          if (text) {
+            drivers.speech.speak(text, lang);
+            lastSpokenRef.current = text;
+            setStatusMessage(text);
+          }
+        }
+      }
+    } else {
+      lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
+    }
   };
 
   if (!keepAliveTimer.current) {
@@ -1153,7 +1223,10 @@ export function Explore({
           centreTickState.current,
           axisState.current,
         );
-        applyMoveResult(moveResult, lang);
+        const compassAnnouncements = checkVertexCompass(moveResult.target, now);
+        checkLineDwell(moveResult.target, now, lang);
+        applyMoveResult(moveResult, lang, [], compassAnnouncements);
+        prevTargetRef.current = moveResult.target;
         scheduleDraw(view, coords);
       },
     });
@@ -1248,6 +1321,7 @@ export function Explore({
       engineState.current = moveResult.nextEngineState;
       centreTickState.current = moveResult.centreCheck.nextState;
       axisState.current = moveResult.nextAxisState;
+      prevTargetRef.current = moveResult.target;
       scheduleDraw(view, coords);
       return;
     }
@@ -1276,7 +1350,9 @@ export function Explore({
       centreTickState.current,
       axisState.current,
     );
+    checkLineDwell(moveResult.target, now, lang);
     applyMoveResult(moveResult, lang, centreAnnouncements);
+    prevTargetRef.current = moveResult.target;
     scheduleDraw(view, coords);
     keepAliveTimer.current?.start(coords, now);
   };
@@ -1339,6 +1415,7 @@ export function Explore({
       engineState.current = moveResult.nextEngineState;
       centreTickState.current = moveResult.centreCheck.nextState;
       axisState.current = moveResult.nextAxisState;
+      prevTargetRef.current = moveResult.target;
       scheduleDraw(view, coords);
       return;
     }
@@ -1353,7 +1430,10 @@ export function Explore({
       centreTickState.current,
       axisState.current,
     );
-    applyMoveResult(moveResult, lang);
+    const compassAnnouncements = checkVertexCompass(moveResult.target, now);
+    checkLineDwell(moveResult.target, now, lang);
+    applyMoveResult(moveResult, lang, [], compassAnnouncements);
+    prevTargetRef.current = moveResult.target;
     scheduleDraw(view, coords);
     keepAliveTimer.current?.update(coords, now);
   };
@@ -1415,7 +1495,10 @@ export function Explore({
           centreTickState.current,
           axisState.current,
         );
-        applyMoveResult(moveResult, lang);
+        const compassAnnouncements = checkVertexCompass(moveResult.target, now);
+        checkLineDwell(moveResult.target, now, lang);
+        applyMoveResult(moveResult, lang, [], compassAnnouncements);
+        prevTargetRef.current = moveResult.target;
         scheduleDraw(view, promotedCoords);
         if (!guideController.current?.isGuiding() && !askActive.current) {
           keepAliveTimer.current?.start(promotedCoords, now);
@@ -1423,6 +1506,8 @@ export function Explore({
       } else {
         // All fingers lifted: silence effects
         primaryPointerId.current = null;
+        lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
+        prevTargetRef.current = { kind: 'none' };
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
         engineState.current = state;
         runEffects(effects, drivers);

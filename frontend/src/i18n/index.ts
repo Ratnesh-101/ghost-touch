@@ -425,6 +425,28 @@ const en: Record<string, string> = {
   'overview.bars.none': '0 bars',
   'overview.bars.count_one': '1 bar',
   'overview.bars.count_other': '{count} bars',
+
+  // Directions setting (Lane A3)
+  'lab.settings.directions': 'Directions',
+  'lab.settings.directionsHint': 'Speak compass directions at corners and line names on hold.',
+  'lab.settings.directionsOn': 'Directions enabled.',
+  'lab.settings.directionsOff': 'Directions disabled.',
+
+  // Corner compass & line names (Lane A3)
+  'compass.dir.up': 'up',
+  'compass.dir.down': 'down',
+  'compass.dir.left': 'left',
+  'compass.dir.right': 'right',
+  'compass.dir.up-left': 'up-left',
+  'compass.dir.up-right': 'up-right',
+  'compass.dir.down-left': 'down-left',
+  'compass.dir.down-right': 'down-right',
+  'compass.toTarget': '{dir} to {target}',
+  'compass.edges': '{n} edges',
+  'compass.lineEnds': '{clauseA}, {clauseB}',
+  'compass.xAxis': 'x-axis, left to right',
+  'compass.yAxis': 'y-axis, top to bottom',
+  'compass.side': 'Side {name}',
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -818,6 +840,28 @@ const hi: Record<string, string> = {
   'overview.bars.none': 'कोई बार नहीं',
   'overview.bars.count_one': '1 बार',
   'overview.bars.count_other': '{count} बार',
+
+  // Directions setting (Lane A3)
+  'lab.settings.directions': 'दिशाएं',
+  'lab.settings.directionsHint': 'कोनों पर दिशाएं और रुकने पर रेखाओं के नाम बोलें।',
+  'lab.settings.directionsOn': 'दिशाएं सक्षम की गईं।',
+  'lab.settings.directionsOff': 'दिशाएं अक्षम की गईं।',
+
+  // Corner compass & line names (Lane A3)
+  'compass.dir.up': 'ऊपर',
+  'compass.dir.down': 'नीचे',
+  'compass.dir.left': 'बाएँ',
+  'compass.dir.right': 'दाएँ',
+  'compass.dir.up-left': 'ऊपर-बाएँ',
+  'compass.dir.up-right': 'ऊपर-दाएँ',
+  'compass.dir.down-left': 'नीचे-बाएँ',
+  'compass.dir.down-right': 'नीचे-दाएँ',
+  'compass.toTarget': '{dir} {target} की ओर',
+  'compass.edges': '{n} किनारे',
+  'compass.lineEnds': '{clauseA}, {clauseB}',
+  'compass.xAxis': 'x-अक्ष, बाएँ से दाएँ',
+  'compass.yAxis': 'y-अक्ष, ऊपर से नीचे',
+  'compass.side': 'भुजा {name}',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -1212,6 +1256,28 @@ const gu: Record<string, string> = {
   'overview.bars.none': 'કોઈ સ્તંભ નથી',
   'overview.bars.count_one': '1 સ્તંભ',
   'overview.bars.count_other': '{count} સ્તંભ',
+
+  // Directions setting (Lane A3)
+  'lab.settings.directions': 'દિશાઓ',
+  'lab.settings.directionsHint': 'ખૂણા પર દિશાઓ અને રોકાવા પર રેખાઓના નામ બોલો.',
+  'lab.settings.directionsOn': 'દિશાઓ સક્ષમ કરી.',
+  'lab.settings.directionsOff': 'દિશાઓ અક્ષમ કરી.',
+
+  // Corner compass & line names (Lane A3)
+  'compass.dir.up': 'ઉપર',
+  'compass.dir.down': 'નીચે',
+  'compass.dir.left': 'ડાબે',
+  'compass.dir.right': 'જમણે',
+  'compass.dir.up-left': 'ઉપર-ડાબે',
+  'compass.dir.up-right': 'ઉપર-જમણે',
+  'compass.dir.down-left': 'નીચે-ડાબે',
+  'compass.dir.down-right': 'નીચે-જમણે',
+  'compass.toTarget': '{dir} {target} તરફ',
+  'compass.edges': '{n} કાંઠા',
+  'compass.lineEnds': '{clauseA}, {clauseB}',
+  'compass.xAxis': 'x-અક્ષ, ડાબેથી જમણે',
+  'compass.yAxis': 'y-અક્ષ, ઉપરથી નીચે',
+  'compass.side': 'બાજુ {name}',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };

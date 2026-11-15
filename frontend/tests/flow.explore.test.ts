@@ -14,6 +14,10 @@ import {
   initialCentreTickState,
   initialState,
   KEEP_ALIVE_INTERVAL_MS,
+  LINE_DWELL_MS,
+  VERTEX_VISIT_WINDOW_MS,
+  cornerCompass,
+  lineName,
   pitchForY,
   processPointerMove,
   rearmCentreTick,
@@ -934,4 +938,39 @@ describe('Hold keep-alive decision logic (shouldKeepAlive)', () => {
     expect(shouldKeepAlive(100, 50, -5)).toBe(true);
   });
 });
+
+describe('Corner compass & line names (Lane A3)', () => {
+  const triangleScene: DiagramScene = {
+    kind: 'geometry',
+    points: [
+      { id: 'A', x: 0.25, y: 0.25, label: 'A' },
+      { id: 'B', x: 0.7, y: 0.85, label: 'B' },
+      { id: 'C', x: 0.25, y: 0.85, label: 'C' },
+    ],
+    segments: [
+      { id: 'CA', a: 'C', b: 'A', label: 'CA' },
+      { id: 'AB', a: 'A', b: 'B', label: 'AB' },
+      { id: 'BC', a: 'B', b: 'C', label: 'BC' },
+    ],
+  };
+
+  it('generates exit directions skipping arrived segment', () => {
+    expect(cornerCompass(triangleScene, 'A', 'CA', false)).toBe('Down-right to B.');
+    expect(cornerCompass(triangleScene, 'A', 'AB', false)).toBe('Down to C.');
+  });
+
+  it('returns empty string when visited recently', () => {
+    expect(cornerCompass(triangleScene, 'A', 'CA', true)).toBe('');
+    expect(VERTEX_VISIT_WINDOW_MS).toBe(10000);
+    expect(LINE_DWELL_MS).toBe(800);
+  });
+
+  it('formats segment lineName with opposite directional ends', () => {
+    expect(lineName(triangleScene, 'AB')).toBe('Side AB. Up-left to A, down-right to B.');
+    expect(lineName(triangleScene, 'CA')).toBe('Side CA. Down to C, up to A.');
+    expect(lineName(triangleScene, 'x-axis')).toBe('x-axis, left to right');
+    expect(lineName(triangleScene, 'y-axis')).toBe('y-axis, top to bottom');
+  });
+});
+
 

@@ -36,3 +36,25 @@ export function safeRemove(key: string): void {
     // localStorage unavailable or restricted
   }
 }
+
+export const STORAGE_KEY_DIRECTIONS = 'gt_directions_enabled';
+
+let inMemoryDirectionsSetting: boolean | null = null;
+
+export function getStoredDirectionsSetting(): boolean {
+  const stored = safeGet(STORAGE_KEY_DIRECTIONS);
+  if (stored !== null) {
+    return stored === 'true';
+  }
+  return inMemoryDirectionsSetting ?? true;
+}
+
+export function setStoredDirectionsSetting(enabled: boolean): void {
+  safeSet(STORAGE_KEY_DIRECTIONS, enabled ? 'true' : 'false');
+  inMemoryDirectionsSetting = enabled;
+}
+
+export function _resetDirectionsSettingForTesting(): void {
+  inMemoryDirectionsSetting = null;
+  safeRemove(STORAGE_KEY_DIRECTIONS);
+}

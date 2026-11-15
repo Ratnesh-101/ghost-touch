@@ -155,6 +155,6 @@ describe('EX-01: askActive gate reset on unsupported voice ask', () => {
 
     // Vertex A must vibrate with corner pattern [50, 90, 50] and speak 'A'
     expect(vibrate).toHaveBeenCalledWith([50, 90, 50]);
-    expect(speak).toHaveBeenCalledWith('A', expect.any(String));
+    expect(speak).toHaveBeenCalledWith(expect.stringMatching(/^A[. ]/), expect.any(String));
   });
 });

@@ -32,6 +32,10 @@ import {
   isShareEnvOn,
   setStoredGuideSetting,
 } from '../config/features';
+import {
+  getStoredDirectionsSetting,
+  setStoredDirectionsSetting,
+} from '../drivers/storage';
 import { TEACH_HASH } from '../drivers/hashRoute';
 import {
   getStoredTeacherSetting,
@@ -74,6 +78,7 @@ export function LabSettings({
   const wasOpen = useRef(false);
   const hasSpokenClose = useRef(false);
   const [guideEnabled, setGuideEnabled] = useState(() => getStoredGuideSetting());
+  const [directionsEnabled, setDirectionsEnabled] = useState(() => getStoredDirectionsSetting());
   const [teacherEnabled, setTeacherEnabled] = useState(() => getStoredTeacherSetting());
 
   const doSpeak = (text: string): void => {
@@ -82,6 +87,14 @@ export function LabSettings({
     } else if (drivers?.speech?.speak) {
       drivers.speech.speak(text);
     }
+  };
+
+  const handleToggleDirections = (): void => {
+    const next = !directionsEnabled;
+    setDirectionsEnabled(next);
+    setStoredDirectionsSetting(next);
+    const spoken = next ? t('lab.settings.directionsOn') : t('lab.settings.directionsOff');
+    doSpeak(spoken);
   };
 
   const handleToggleGuide = (): void => {
@@ -119,6 +132,7 @@ export function LabSettings({
   useEffect(() => {
     if (open) {
       setGuideEnabled(getStoredGuideSetting());
+      setDirectionsEnabled(getStoredDirectionsSetting());
       setTeacherEnabled(getStoredTeacherSetting());
       hasSpokenClose.current = false;
       if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
@@ -239,6 +253,42 @@ export function LabSettings({
               {t('lab.settings.rate')}
             </h3>
             <RateSelector drivers={drivers} />
+          </section>
+
+          <section
+            className="gt-lab-settings__section"
+            aria-labelledby="lab-settings-section-directions"
+          >
+            <h3 id="lab-settings-section-directions" className="gt-lab-settings__section-title">
+              {t('lab.settings.directions')}
+            </h3>
+            <p
+              className="gt-lab-settings__hint"
+              style={{
+                margin: '0 0 var(--gt-space-sm, 8px) 0',
+                fontSize: '0.9rem',
+                color: 'var(--gt-bone, #ded6c4)',
+              }}
+            >
+              {t('lab.settings.directionsHint')}
+            </p>
+            <AccessibleButton
+              type="button"
+              role="switch"
+              aria-checked={directionsEnabled}
+              className={`gt-control gt-btn ${
+                directionsEnabled ? 'gt-btn--primary' : 'gt-btn--secondary'
+              }`}
+              onClick={handleToggleDirections}
+              style={{
+                minWidth: '48px',
+                minHeight: '48px',
+                padding: '12px 20px',
+                width: '100%',
+              }}
+            >
+              {directionsEnabled ? t('lab.settings.directionsOn') : t('lab.settings.directionsOff')}
+            </AccessibleButton>
           </section>
 
           <section

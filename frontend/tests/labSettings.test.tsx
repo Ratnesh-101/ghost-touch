@@ -225,3 +225,52 @@ describe('LabSettings focus management and keyboard handling', () => {
     expect(html).toContain('gt-lab-settings');
   });
 });
+
+describe('LabSettings directions toggle (Lane A3)', () => {
+  it('renders Directions section with switch button (default on)', () => {
+    const drivers = createMockDrivers();
+    const html = renderToStaticMarkup(
+      createElement(LabSettings, {
+        open: true,
+        onClose: vi.fn(),
+        drivers,
+      }),
+    );
+
+    expect(html).toContain(t('lab.settings.directions'));
+    expect(html).toContain(t('lab.settings.directionsHint'));
+    expect(html).toContain('role="switch"');
+    expect(html).toContain('aria-checked="true"');
+    expect(html).toContain('Directions enabled.');
+  });
+
+  it('renders Directions section in Hindi and Gujarati', () => {
+    const prevLang = getLang();
+    const drivers = createMockDrivers();
+
+    setLang('hi');
+    const htmlHi = renderToStaticMarkup(
+      createElement(LabSettings, {
+        open: true,
+        onClose: vi.fn(),
+        drivers,
+      }),
+    );
+    expect(htmlHi).toContain('दिशाएं');
+    expect(htmlHi).toContain('कोनों पर दिशाएं और रुकने पर रेखाओं के नाम बोलें।');
+
+    setLang('gu');
+    const htmlGu = renderToStaticMarkup(
+      createElement(LabSettings, {
+        open: true,
+        onClose: vi.fn(),
+        drivers,
+      }),
+    );
+    expect(htmlGu).toContain('દિશાઓ');
+    expect(htmlGu).toContain('ખૂણા પર દિશાઓ અને રોકાવા પર રેખાઓના નામ બોલો.');
+
+    setLang(prevLang);
+  });
+});
+
