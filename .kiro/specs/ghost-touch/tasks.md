@@ -369,7 +369,7 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 - [x] 43. Compass helpers in `core/compass.ts`
   - [x] 43.1 Requirement 26, design section and properties P88-P95 written before any code
   - [x] 43.2 `frontend/src/core/compass.ts`: `Compass8`, `directionOf`, `vertexExits`, `lineEnds`, `nearestElement`; pure, named exports, no `any`
-  - [x] 43.3 Properties P88-P95 in `frontend/tests/compass.prop.test.ts` (fast-check, 250 runs each, 1000 for the atan2 oracle, 500 for P95); mutation-checked with four mutants (wrong sector slope, no segment clamp, swapped line-end directions: all caught; dropping the self-loop guard is an equivalent mutant, because the coincident-point check already skips a self-loop)
+  - [x] 43.3 Properties P88-P95 in `frontend/tests/compass.prop.test.ts` (fast-check, 250 runs each, 1000 for the atan2 oracle, 500 for P95); mutation-checked with four mutants (wrong sector slope, no segment clamp, swapped line-end directions: all caught; dropping the self-loop guard is an equivalent mutant, because the coincident-point check already skips a self-loop). Correction (independent review, 2026-11-15, finding 2): two more mutants were NOT caught by P88-P95 as first written (dropping the last piece of every polyline; dropping one bar edge). Closed in task 53.2 with new property tests that put the finger beside those pieces; the "four mutants" above was not the whole claim "no element is nearer" needs
   - [x] 43.4 Gate (`tsc --noEmit` 0 errors, `vitest run` 182 files / 2247 tests); BUILD_LOG entry (tool = Kiro). No property found a bug in the new code on its first run
   - _Requirements: 26.*_
 
@@ -394,3 +394,27 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 51.3 Properties P97-P103 in `frontend/tests/proximity.prop.test.ts` (fast-check, 250 runs each); mutation-checked with eight mutants (no gap guard, line outside the quiet window still clicks, pan sign flipped, radius boundary exclusive, pitch inverted, lift resets the click clock, interval swapped, gain constant: all caught)
   - [x] 51.4 Gate (`tsc --noEmit` 0 errors, `vitest run` 185 files / 2289 tests); BUILD_LOG entry (tool = Kiro)
   - _Requirements: 27.*_
+
+## A curve beats an axis; curve height at x (Requirement 5.5, 5.6; spec written before the code)
+> Core only. Do not edit hapticEngine.ts, compass.ts, proximity.ts, screens/, low/, or the tuned haptic values. The scan audio wiring is lane A6 of docs/reports/fable-blind-user-plan.md.
+
+- [x] 52. Curve beats axis in hitTest, and core/curve.ts
+  - [x] 52.1 Requirement 5.5 and 5.6, design section and properties P104-P108 written before any code
+  - [x] 52.2 core/hitTest.ts indLine: drop axis candidates when a polyline is within the radius
+  - [x] 52.3 core/curve.ts: curveYAtX
+  - [x] 52.4 Properties P104-P108 (200+ runs), P52 restricted, any other changed test named; mutation-check
+  - [x] 52.5 Gate (	sc --noEmit, itest run); BUILD_LOG entry (tool = Kiro)
+  - _Requirements: 5.5, 5.6_
+
+## Close the review of K1 and K2 (docs/reviews/kiro-review-k1-k2.md; spec written before the tests)
+> Tests, spec text and one silent-safe engine effect. Tuned haptic values (`DEFAULT_HAPTICS`, tech.md table) untouched. No `screens/` or `flow/` change.
+
+- [x] 53. Findings 1-6 of the K1/K2 review, and Requirement 13.1/13.3 from lane bu2
+  - [x] 53.1 Finding 1 (MEDIUM): P96 clause (e) in `tests/hapticEngine.reentry.prop.test.ts` and in design.md; mutation-check against the mutant that sets `lastVertexId` only when the pulse fires
+  - [x] 53.2 Finding 2 (MEDIUM): P92 gains properties with the finger beside the last piece of a polyline and beside each of the four bar edges; kills the two surviving mutants
+  - [x] 53.3 Finding 3 (LOW): one example test for "first point with an id wins", one for "first candidate wins a tie"
+  - [x] 53.4 Finding 4 (LOW): decision recorded: a suppressed re-entry emits `tone(null)` and nothing else. Requirement 4.9 and design.md amended first; P96(a) updated; P3-P6 and P96 pass
+  - [x] 53.5 Finding 5 (LOW): Requirement 26.2 qualified to what P90 tests. Finding 6: no code action (history), recorded. Finding 7 (BOM) and 8 (A5 note): recorded
+  - [x] 53.6 Requirement 13.1 amended (overview, then gesture hint and Back hint, one utterance, no "You start at the centre."); 13.3 reworded to match the code (absolute touch, centre tick inside 24 px); the open question is OD-1 in `docs/reviews/kiro-owner-decisions.md`, not decided here
+  - [x] 53.7 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro); path-scoped commit
+  - _Requirements: 4.9, 13.1, 13.3, 26.2_

@@ -563,6 +563,8 @@ nearestElement(scene, finger: ScreenPoint, view: Viewport, maxDistPx?: number):
 | P95 | **Total on bad input (Kiro, task 43):** NaN, ±Infinity, out-of-range and missing coordinates or arrays, dangling and duplicate ids, `__proto__` as an id, zero, negative and NaN viewport scale, and NaN, negative and infinite maxima never throw; every non-null result has only finite numbers, a distance equal to the vector length, and a word from the eight. | 26.8 |
 
 ### Not built here
+For A5 ("where am I"): `nearestElement` answers "what is nearest", not "what is under the finger". A finger beside a corner usually gets `segment`, because a vertex is the end of its segments (review finding 8). Use `hitTest` for "on a corner" and `nearestElement` only when `hitTest` says `none`.
+
 Wording and i18n (`explore.compass.*` keys), the arrival-edge bookkeeping, the 10 s repeat rule, the 800 ms dwell, the "Directions" setting and the "where am I" sentence are lane A3 and A5. The Hindi and Gujarati direction words can reuse `guide.hint.*`.
 
 ## A corner does not repeat on a shaky finger (Requirement 4.9, task 50)
@@ -570,12 +572,14 @@ Written by Kiro before the code. Source: `docs/reports/fable-blind-user-plan.md`
 
 - Cause: `step()` sets `lastVertexId = null` on any non-vertex target, so a finger on the 22 px boundary re-enters the vertex and rule 1 fires again.
 - Change (`core/hapticEngine.ts` only): `EngineState` gains an optional `lastCornerId: string | null` (optional so existing state literals still type-check), the id of the vertex whose corner pattern fired last. `lastVertexId` keeps its meaning and is still cleared on a non-vertex target.
-- Rule 1 becomes: on entering a vertex that differs from `lastVertexId`, set `lastVertexId`. If `lastCornerId === id` and `t < quietUntil`, emit nothing and leave `quietUntil` and `lastCornerId` as they are. Otherwise fire as before and set `lastCornerId = id`.
+- Rule 1 becomes: on entering a vertex that differs from `lastVertexId`, set `lastVertexId`. If `lastCornerId === id` and `t < quietUntil`, emit only `tone(null)` and leave `quietUntil` and `lastCornerId` as they are. Otherwise fire as before and set `lastCornerId = id`.
+- `tone(null)` on the suppressed re-entry (review finding 4, decided 2026-11-15): a corner stops the tone, so a theremin tone that started on a curve between the two visits must not keep sounding on the vertex. It is silence only; it touches neither the corner pulse, the label, nor the window, so P3 to P6 are unchanged. Chosen over documenting the gap because it is silent-safe and costs one effect. Requirement 4.9 allows it.
+- The suppressed branch must still set `lastVertexId`: that is what keeps a finger that stays on the vertex across `quietUntil` from firing late (clause (e)).
 - Time constant: `quietMs` only. `DEFAULT_HAPTICS` is unchanged. A lift returns `initialState()`, which clears the memory. A different vertex always fires, even inside the window.
 
 | # | Property | Validates |
 |---|---|---|
-| P96 | **A corner is not repeated inside its quiet window (Kiro, task 50):** (a) any trace that hits one vertex, then leaves it (any non-vertex targets) and re-enters it, all within `quietMs` of the first pulse, emits the corner pattern and the label exactly once, and `quietUntil` after the re-entry equals the first one; (b) a re-entry at or after `quietMs` fires again; (c) entering a different vertex always fires, also inside the window; (d) P3 to P6 are unchanged. 200+ runs. A regression test replays the sample triangle: leave A along AC at 30 px/s, 60 Hz, seeded 2 px jitter, exactly one corner pattern and the first line buzz at most `quietMs + retriggerMs` after it. | 4.9, 4.4, 4.5 |
+| P96 | **A corner is not repeated inside its quiet window (Kiro, task 50; clause (e) and the `tone(null)` rule added in task 53):** (a) any trace that hits one vertex, then leaves it (any non-vertex targets) and re-enters it, all within `quietMs` of the first pulse, emits the corner pattern and the label exactly once, the suppressed re-entry emits nothing except `tone(null)`, and `quietUntil` after the re-entry equals the first one; (b) a re-entry at or after `quietMs` fires again; (c) entering a different vertex always fires, also inside the window; (d) P3 to P6 are unchanged; (e) after a suppressed re-entry the finger stays on the vertex with moves that cross `t0 + quietMs`: exactly one corner pattern and one label for the whole trace (kills the mutant that sets `lastVertexId` only when the pulse fires). 200+ runs. A regression test replays the sample triangle: leave A along AC at 30 px/s, 60 Hz, seeded 2 px jitter, exactly one corner pattern and the first line buzz at most `quietMs + retriggerMs` after it. | 4.9, 4.4, 4.5 |
 
 ## Find the line again (Requirement 27, task 51)
 Written by Kiro before the code. One new pure module, `frontend/src/core/proximity.ts`, named exports only, no imports except none (it takes numbers, not scene types, so it needs nothing from `compass.ts`). Same shape as `guide/machine.ts`, own constants as in `guide/config.ts`. All numbers are proposed, pending owner approval.
@@ -618,3 +622,30 @@ proximityStep(state, input, cfg = DEFAULT_PROXIMITY): { state; effects: Proximit
 | P101 | **Silence outside the cue's zone (Kiro, task 51):** no effect for `distPx` beyond `radiusPx`, for `distPx = null`, for a lift, and for `onLine` outside the quiet window, from any starting state. Inside the zone, from a fresh state, the first move always clicks; on a line inside the quiet window the click is at the closest setting whatever `distPx` is. | 27.3, 27.4, 27.5 |
 | P102 | **Click gap is never below nearMs (Kiro, task 51):** for any sequence of inputs with any timestamps (unsorted, repeated, NaN, ±Infinity, with lifts between), the times of consecutive emitted clicks differ by at least `nearMs`, and each gap is at least the interval for the distance of the click that ended it. | 27.6 |
 | P103 | **Bad input never throws and changes nothing (Kiro, task 51):** NaN, ±Infinity, negative and huge `t`, `distPx` and `dxPx`, and a missing-field object cast through the type, never throw; a non-finite `t`, `dxPx` (when a cue is due) or a non-finite or negative `distPx` give no effect and the same state object. | 27.5 |
+
+## A curve beats an axis, and the curve's height at x (Requirement 5.5 and 5.6, task 52)
+Written by Kiro before the code. Source: docs/reports/fable-blind-user-plan.md sections 2.7 and 7 K4.
+
+### Hit test (core/hitTest.ts, indLine)
+- One extra boolean, polylineSeen, set whenever a polyline piece is within the line radius (even if a nearer segment is the best so far). The axes are offered after the polylines, so an axis candidate is dropped when polylineSeen is true. No other rule changes: nearest wins, the first in scene order wins a tie, radii and the no-allocation loop stay. Vertex > line > bar > none is unchanged.
+- Consequence: an axis can still win against a segment or a bar edge when no polyline is within the radius, and a segment or bar edge nearer than the curve still wins over the curve, as before.
+
+### core/curve.ts
+`	s
+curveYAtX(scene: DiagramScene, xNorm: number, yHint?: number): { polylineId: string; yNorm: number } | null
+`
+- 
+ull unless scene.kind === 'function_graph' and xNorm is finite.
+- Pieces are consecutive point pairs of each polyline (scene order) whose four numbers are finite. A piece covers x when min(x1, x2) <= x <= max(x1, x2). At x === x1 the answer is exactly y1, at x === x2 exactly y2; elsewhere y1 + (y2 - y1) * (x - x1) / (x2 - x1), kept inside [min(y1, y2), max(y1, y2)]. A vertical piece (x1 === x2 === x) offers both y1 and y2.
+- All offers are collected in scene order. With a finite yHint the offer nearest to it wins (the first wins a tie); otherwise the first offer wins. No offer gives 
+ull.
+- Pure, never throws, no pitch rule of its own: the shell calls pitchForY(result.yNorm).
+
+| # | Property | Validates |
+|---|---|---|
+| P104 | **A curve beats an axis (Kiro, task 52):** on random scenes with a polyline and axes, and fingers aimed at the radius band, whenever some polyline piece is within the line radius hitTest never returns an axis, and the answer equals the frozen previous hitTest on the same scene with the axes removed. 300 runs. | 5.5 |
+| P105 | **Everything else is as before (Kiro, task 52):** when no polyline piece is within the line radius, or the scene has no polylines, hitTest deep-equals the frozen previous hitTest, ties included. P52 itself is restricted to scenes without both polylines and axes. 300 runs. | 5.5 |
+| P106 | **Height is exact and in range (Kiro, task 52):** for a polyline with strictly increasing x, curveYAtX at a point's x returns that point's y exactly, and at any x in range returns a y within the polyline's y range, with the polyline's id. 250 runs. | 5.6 |
+| P107 | **No answer outside the curve, never throws (Kiro, task 52):** x outside the x range, NaN or infinite x, a scene that is not a unction_graph, and polylines with fewer than two points give 
+ull; NaN, infinite, out-of-range and missing data never throw. 250 runs. | 5.6 |
+| P108 | **Hint and pitch (Kiro, task 52):** with several candidates the result is the one nearest the hint (first wins a tie), with no hint the first in scene order, and pitchForY of any result is in [200, 1000]. 250 runs. | 5.6, 5.2 |

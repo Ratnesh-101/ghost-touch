@@ -444,6 +444,125 @@ describe('P92 nearest is truly nearest', () => {
   });
 });
 
+describe('P92 (task 53) the last piece of a curve and every bar edge are measured', () => {
+  const baseScene = (over: Partial<FullScene>): FullScene =>
+    ({ version: 1, kind: 'geometry', points: [], segments: [], polylines: [], bars: [], axes: null, facts: [], ...over }) as FullScene;
+
+  it('a finger beside the middle of the LAST piece of a polyline gets that distance', () => {
+    const view = makeViewport(400, 400);
+    fc.assert(
+      fc.property(
+        // Points stay well apart so the last piece is long and its middle is far from other pieces.
+        fc.array(fc.tuple(fc.double({ min: 0.05, max: 0.95, noNaN: true }), fc.double({ min: 0.05, max: 0.95, noNaN: true })), {
+          minLength: 2,
+          maxLength: 6,
+        }),
+        fc.double({ min: 0.5, max: 8, noNaN: true }),
+        fc.constantFrom(-1, 1),
+        (pts, off, side) => {
+          const scene = baseScene({ polylines: [{ id: 'pl', points: pts, label: null }] as FullScene['polylines'] });
+          const pieces = piecesOf(scene, view);
+          const last = pieces[pieces.length - 1]!;
+          const len = Math.hypot(last.b.x - last.a.x, last.b.y - last.a.y);
+          fc.pre(len > 20);
+          const mx = (last.a.x + last.b.x) / 2;
+          const my = (last.a.y + last.b.y) / 2;
+          const nx = (-(last.b.y - last.a.y) / len) * side * off;
+          const ny = ((last.b.x - last.a.x) / len) * side * off;
+          const f = { x: mx + nx, y: my + ny };
+          const got = nearestElement(scene, f, view);
+          const min = minDist(pieces, f);
+          expect(got).not.toBeNull();
+          expect(Math.abs(got!.distPx - min)).toBeLessThanOrEqual(1e-9 * (1 + min));
+          // The last piece is no farther than `off`, so the answer can be no farther either.
+          expect(got!.distPx).toBeLessThanOrEqual(off + 1e-9);
+        },
+      ),
+      RUNS,
+    );
+  });
+
+  it('a finger just outside each of the four edges of a bar is measured to that edge', () => {
+    const view = makeViewport(400, 400);
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.1, max: 0.4, noNaN: true }),
+        fc.double({ min: 0.6, max: 0.9, noNaN: true }),
+        fc.double({ min: 0.1, max: 0.4, noNaN: true }),
+        fc.double({ min: 0.6, max: 0.9, noNaN: true }),
+        fc.double({ min: 0.5, max: 8, noNaN: true }),
+        fc.constantFrom('top', 'bottom', 'left', 'right'),
+        (x0, x1, yTop, yBase, off, edge) => {
+          const scene = baseScene({
+            bars: [{ id: 'b', label: 'bar', value: 1, x0, x1, y_top: yTop, y_base: yBase }] as FullScene['bars'],
+          });
+          const sx = (x: number): number => view.offsetX + x * view.scale;
+          const sy = (y: number): number => view.offsetY + y * view.scale;
+          const midX = (sx(x0) + sx(x1)) / 2;
+          const midY = (sy(yTop) + sy(yBase)) / 2;
+          const f =
+            edge === 'top'
+              ? { x: midX, y: sy(yTop) - off }
+              : edge === 'bottom'
+                ? { x: midX, y: sy(yBase) + off }
+                : edge === 'left'
+                  ? { x: sx(x0) - off, y: midY }
+                  : { x: sx(x1) + off, y: midY };
+          const got = nearestElement(scene, f, view);
+          expect(got).not.toBeNull();
+          expect(got!.elementKind).toBe('bar-edge');
+          expect(got!.id).toBe('b');
+          expect(Math.abs(got!.distPx - off)).toBeLessThanOrEqual(1e-9 * (1 + off));
+        },
+      ),
+      RUNS,
+    );
+  });
+});
+
+describe('task 53 tie and duplicate-id rules (examples)', () => {
+  const view = makeViewport(100, 100);
+  const mk = (over: Partial<FullScene>): FullScene =>
+    ({ version: 1, kind: 'geometry', points: [], segments: [], polylines: [], bars: [], axes: null, facts: [], ...over }) as FullScene;
+
+  it('the first point with an id wins (vertexExits)', () => {
+    const scene = mk({
+      points: [
+        { id: 'A', x: 0.5, y: 0.5, label: null },
+        { id: 'A', x: 0.9, y: 0.9, label: null },
+        { id: 'B', x: 0.5, y: 0.1, label: null },
+      ],
+      segments: [{ id: 's', a: 'A', b: 'B', label: null }],
+    } as Partial<FullScene>);
+    // From the first A (0.5, 0.5) the way to B (0.5, 0.1) is up; from the second A it would be up-left.
+    expect(vertexExits(scene, 'A')).toEqual([{ segmentId: 's', toId: 'B', dir: 'up' }]);
+    expect(lineEnds(scene, 's')).toEqual({ aId: 'A', bId: 'B', dirToA: 'down', dirToB: 'up' });
+  });
+
+  it('the first candidate wins a tie, in the order vertex, segment, polyline, axis, bar', () => {
+    // A vertex at (50, 50) and a segment through it, a curve through it and the x-axis through it:
+    // all are at distance 0 from the finger, so the vertex must be named.
+    const scene = mk({
+      kind: 'function_graph',
+      points: [
+        { id: 'A', x: 0.5, y: 0.5, label: null },
+        { id: 'B', x: 0.9, y: 0.5, label: null },
+      ],
+      segments: [{ id: 's', a: 'A', b: 'B', label: null }],
+      polylines: [{ id: 'pl', points: [[0.1, 0.5], [0.9, 0.5]], label: null }],
+      axes: { x_axis_y: 0.5, y_axis_x: null },
+    } as Partial<FullScene>);
+    expect(nearestElement(scene, { x: 50, y: 50 }, view)).toMatchObject({ id: 'A', elementKind: 'vertex', distPx: 0 });
+    // Without the vertex, a finger on the segment/curve/axis ties at 0 and the segment comes first.
+    const noPoint = { ...scene, points: [scene.points![1]!, { id: 'C', x: 0.2, y: 0.9, label: null }] } as FullScene;
+    const tie = nearestElement({ ...noPoint, segments: [{ id: 's', a: 'B', b: 'C', label: null }] } as FullScene, { x: 70, y: 50 }, view);
+    expect(tie).not.toBeNull();
+    // Segment B-C passes through (90, 50) only at B; the finger at (70, 50) is on the curve and axis, curve first.
+    expect(tie).toMatchObject({ id: 'pl', elementKind: 'polyline', distPx: 0 });
+  });
+});
+
+
 describe('P93 null exactly when nothing is within the maximum', () => {
   it('compares the brute-force minimum with maxDistPx', () => {
     fc.assert(

@@ -93,7 +93,7 @@ describe('P96 — a corner is not repeated inside its quiet window', () => {
     );
   });
 
-  it('(a) the suppressed re-entry emits no effects at all', () => {
+  it('(a) the suppressed re-entry emits nothing except tone(null)', () => {
     fc.assert(
       fc.property(
         t0Arb,
@@ -107,12 +107,62 @@ describe('P96 — a corner is not repeated inside its quiet window', () => {
             { at: backAt, target: vertex('V') },
           ];
           const { perHop } = run(hops, t0);
-          return perHop[2]!.length === 0;
+          return (
+            perHop[2]!.length === 1 &&
+            perHop[2]![0]!.kind === 'tone' &&
+            (perHop[2]![0] as { hz: number | null }).hz === null
+          );
         },
       ),
       { numRuns: 200 },
     );
   });
+
+  it('(a) a tone started on a curve between the two visits is silenced on the suppressed re-entry', () => {
+    const { perHop } = run(
+      [
+        { at: 0, target: vertex('V') },
+        { at: 100, target: { kind: 'line', id: 'P', elementKind: 'polyline' } },
+        { at: 200, target: vertex('V') },
+      ],
+      1000,
+      0.3,
+    );
+    expect(perHop[1]!.some((e) => e.kind === 'tone' && e.hz !== null)).toBe(true);
+    expect(perHop[2]).toEqual([{ kind: 'tone', hz: null }]);
+  });
+
+  it('(e) staying on the vertex across quietUntil after a suppressed re-entry fires nothing more', () => {
+    fc.assert(
+      fc.property(
+        t0Arb,
+        fc.integer({ min: 1, max: Q - 2 }),
+        fc.integer({ min: 0, max: Q - 2 }),
+        fc.uniqueArray(fc.integer({ min: 1, max: 2000 }), { minLength: 1, maxLength: 30 }),
+        (t0, leaveAt, gap, stays) => {
+          const backAt = Math.min(leaveAt + gap, Q - 1);
+          const hops: Hop[] = [
+            { at: 0, target: vertex('V') },
+            { at: leaveAt, target: { kind: 'none' } },
+            { at: backAt, target: vertex('V') },
+          ];
+          // Moves that stay on V, always including one before and one after the window ends.
+          const times = [...stays.map((s) => backAt + s), Q - 1, Q, Q + 1].filter((x) => x > backAt);
+          for (const at of [...new Set(times)].sort((a, b) => a - b)) {
+            hops.push({ at, target: vertex('V') });
+          }
+          const { corners, speeches, perHop } = run(hops, t0);
+          return (
+            corners === 1 &&
+            speeches === 1 &&
+            perHop.slice(3).every((effs) => effs.length === 0)
+          );
+        },
+      ),
+      { numRuns: 300 },
+    );
+  });
+
 
   it('(b) re-entry at or after quietMs fires again and starts a new window', () => {
     fc.assert(

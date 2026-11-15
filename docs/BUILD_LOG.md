@@ -4305,3 +4305,23 @@ Format for each entry:
 - Properties in frontend/tests/proximity.prop.test.ts, 250 runs each. Eight mutants all fail the suite. tsc 0 errors, vitest 185 files / 2289 tests pass. The properties found no bug on their first run.
 - Not done here: audio driver, call to nearestElement, Settings toggle, phone tuning (lane A4).
 - Files: frontend/src/core/proximity.ts, frontend/tests/proximity.prop.test.ts, .kiro/specs/ghost-touch/{requirements,design,tasks}.md, .kiro/steering/tech.md, docs/BUILD_LOG.md
+
+## 2026-11-15 - Kiro - Curve beats axis, and curve height at x (task 52, Requirement 5.5 and 5.6, P104-P108)
+- Spec first: Requirement 5.5 and 5.6, design section, P104-P108, task 52.
+- hitTest.ts findLine: a `polylineSeen` flag; axis candidates are dropped once any polyline piece is within the line radius. Nearest-wins, first-wins-a-tie, radii, vertex > line > bar order and the no-allocation loop are unchanged. A segment or bar edge nearer than the curve still wins over it.
+- New frontend/src/core/curve.ts: `curveYAtX(scene, xNorm, yHint?)`. Null unless function_graph and finite x. Exact at piece ends, linear inside, nearest-to-hint else first.
+- Bug the properties found in my own first version: `y2 - y1` and `x2 - x1` overflow with coordinates near 1e308, which gave Infinity or a wrong ratio. Fixed by computing the ratio on halved values and interpolating as y1*(1-t)+y2*t.
+- Tests changed: only `tests/hitTest.perf.prop.test.ts` (P52). Its generator now gives axes only to scenes with no polylines, because the frozen oracle has the old axis-vs-curve rule. No other existing test changed expectation. New: `hitTest.curveAxis.prop.test.ts` (P104, P105; expected answers built from the frozen oracle, with and without axes) and `curve.prop.test.ts` (P106-P108). 250-300 runs each.
+- Mutation checks: no rule, any-polyline-kills-axis (even far away), flag never set, farthest-to-hint, no right x bound: all fail the suite. Two curve mutants survive and are equivalent (the t = 1 branch gives exactly y2 anyway; the no-hint early return is covered by a NaN gap that never replaces).
+- Gate: `tsc --noEmit` 0 errors; `vitest run` 188 files, 2318 tests pass. One full run showed 8 failures in screens.render, flow.explore and k1.verifyWiring that did not reproduce in isolation or in the next full run; I did not investigate further.
+- Not done: scan audio wiring (lane A6). No tuned value changed.
+- Files: frontend/src/core/hitTest.ts, frontend/src/core/curve.ts, frontend/tests/{hitTest.curveAxis.prop,curve.prop,hitTest.perf.prop}.test.ts, .kiro/specs/ghost-touch/{requirements,design,tasks}.md, docs/BUILD_LOG.md
+
+## 2026-11-15 - Kiro - Close the K1/K2 review (task 53, findings 1-6, Requirement 13.1/13.3)
+- Resumed after a stream error in the previous run (stale .git/index.lock removed by the owner). The earlier run had written the P96 tests for finding 4 but not the engine change.
+- Engine: `core/hapticEngine.ts` now emits `tone(null)` and nothing else on a suppressed corner re-entry (no vibrate, no speech, `quietUntil` and `lastCornerId` unchanged, `lastVertexId` still set). No tuned value changed; P3-P6 and all P96 clauses (a)-(e) pass.
+- Finding 2: two new P92 properties in `tests/compass.prop.test.ts` put the finger beside the last piece of a polyline and beside each of the four bar edges. Mutants checked: dropping the last polyline piece (3 tests fail) and dropping the right bar edge (1 fails). Compass.ts restored after.
+- Finding 3: example tests for "first point with an id wins" and "first candidate wins a tie".
+- Findings 5, 6, 7, 8: spec text (Requirement 26.2, design note) and records only. Requirement 13.1/13.3 reworded to match the code; the open question is OD-1 in docs/reviews/kiro-owner-decisions.md.
+- Gate: `tsc --noEmit` 0 errors; `vitest run` see the next line.
+- Files: frontend/src/core/hapticEngine.ts, frontend/tests/{compass.prop,hapticEngine.reentry.prop}.test.ts, .kiro/specs/ghost-touch/{requirements,design,tasks}.md, docs/BUILD_LOG.md
