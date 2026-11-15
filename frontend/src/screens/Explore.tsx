@@ -45,6 +45,7 @@ import {
   DEFAULT_RADII,
   getStoredDirectionsSetting,
   getStoredFindingSoundSetting,
+  getStoredGraphScanSetting,
   initialAxisState,
   initialCentreTickState,
   initialProximityState,
@@ -58,6 +59,7 @@ import {
   proximityStep,
   rearmCentreTick,
   resetWhereAmIDwellOnLift,
+  scanTone,
   seedAxisState,
   shouldKeepAlive,
   step,
@@ -288,6 +290,7 @@ export function Explore({
   const whereAmIDwellState = useRef<WhereAmIDwellState>(initialWhereAmIDwellState());
   const lastSpeechStartRef = useRef<number>(performance.now());
   const lastFingerNormRef = useRef<NormPoint | null>(null);
+  const playingScanToneRef = useRef(false);
 
   const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
   const [statusMessage, setStatusMessage] = useState(announced);
@@ -397,12 +400,41 @@ export function Explore({
         guideController.current.stop('user');
       }
       setOfferedTarget(null);
+      drivers.audio.setTone(null);
+      playingScanToneRef.current = false;
       if (shouldPlayAlive(scene)) {
         markAlivePlayed(scene);
         setIsAlive(true);
       }
     }
   }, [scene]);
+
+  useEffect(() => {
+    const stopAudio = (): void => {
+      drivers.audio.setTone(null);
+      playingScanToneRef.current = false;
+    };
+    const onVisibilityChange = (): void => {
+      if (typeof document !== 'undefined' && document.hidden) {
+        stopAudio();
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('blur', stopAudio);
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibilityChange);
+    }
+    return () => {
+      stopAudio();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('blur', stopAudio);
+      }
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      }
+    };
+  }, [drivers.audio]);
 
   const handleAliveDone = useCallback((): void => {
     setIsAlive(false);
@@ -464,6 +496,7 @@ export function Explore({
       setOfferedTarget(null);
       drivers.audio.unlock();
       drivers.audio.setTone(null);
+      playingScanToneRef.current = false;
       engineState.current = initialState();
       guideController.current.start(resolved);
       setIsGuiding(true);
@@ -489,6 +522,8 @@ export function Explore({
     }
     askActive.current = false;
     askManager.current.abort();
+    drivers.audio.setTone(null);
+    playingScanToneRef.current = false;
     drivers.audio.playEarcon?.('back');
     clearLongPressTimer();
     activePointers.current.clear();
@@ -513,6 +548,7 @@ export function Explore({
     sendProximityLift();
     try {
       drivers.audio.setTone(null);
+      playingScanToneRef.current = false;
       drivers.haptics.stop();
     } catch {
       // ignore
@@ -1194,6 +1230,40 @@ export function Explore({
     ) {
       runProximityEffects(moveResult.proximityEffects, drivers);
     }
+
+    // Graph scan tone (Lane A6)
+    if (
+      getStoredGraphScanSetting() &&
+      !askActive.current &&
+      !guideController.current?.isGuiding()
+    ) {
+      const scan = scanTone(
+        sceneRef.current,
+        moveResult.target,
+        moveResult.xNorm,
+        moveResult.yNorm,
+      );
+      if (scan !== null) {
+        drivers.audio.setTone(scan.hz, scan.level);
+        playingScanToneRef.current = true;
+      } else if (playingScanToneRef.current) {
+        playingScanToneRef.current = false;
+        const isPolyline =
+          moveResult.target.kind === 'line' && moveResult.target.elementKind === 'polyline';
+        const isBar = moveResult.target.kind === 'bar';
+        if (!isPolyline && !isBar) {
+          drivers.audio.setTone(null);
+        }
+      }
+    } else if (playingScanToneRef.current) {
+      playingScanToneRef.current = false;
+      const isPolyline =
+        moveResult.target.kind === 'line' && moveResult.target.elementKind === 'polyline';
+      const isBar = moveResult.target.kind === 'bar';
+      if (!isPolyline && !isBar) {
+        drivers.audio.setTone(null);
+      }
+    }
   };
 
   const checkVertexCompass = (target: Target, now: number): string[] => {
@@ -1617,6 +1687,7 @@ export function Explore({
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
         engineState.current = state;
         runEffects(effects, drivers);
+        playingScanToneRef.current = false;
         sendProximityLift(performance.now());
         scheduleDraw(viewportRef.current, null);
       }

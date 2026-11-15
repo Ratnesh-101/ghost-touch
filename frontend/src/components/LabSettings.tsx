@@ -38,7 +38,9 @@ import {
 } from '../drivers/storage';
 import {
   getStoredFindingSoundSetting,
+  getStoredGraphScanSetting,
   setStoredFindingSoundSetting,
+  setStoredGraphScanSetting,
 } from '../flow/explore';
 import { TEACH_HASH } from '../drivers/hashRoute';
 import {
@@ -84,6 +86,7 @@ export function LabSettings({
   const [guideEnabled, setGuideEnabled] = useState(() => getStoredGuideSetting());
   const [directionsEnabled, setDirectionsEnabled] = useState(() => getStoredDirectionsSetting());
   const [findingSoundEnabled, setFindingSoundEnabled] = useState(() => getStoredFindingSoundSetting());
+  const [graphScanEnabled, setGraphScanEnabled] = useState(() => getStoredGraphScanSetting());
   const [teacherEnabled, setTeacherEnabled] = useState(() => getStoredTeacherSetting());
 
   const doSpeak = (text: string): void => {
@@ -107,6 +110,14 @@ export function LabSettings({
     setFindingSoundEnabled(next);
     setStoredFindingSoundSetting(next);
     const spoken = next ? t('lab.settings.findingSoundOn') : t('lab.settings.findingSoundOff');
+    doSpeak(spoken);
+  };
+
+  const handleToggleGraphScan = (): void => {
+    const next = !graphScanEnabled;
+    setGraphScanEnabled(next);
+    setStoredGraphScanSetting(next);
+    const spoken = next ? t('lab.settings.graphScanOn') : t('lab.settings.graphScanOff');
     doSpeak(spoken);
   };
 
@@ -147,6 +158,7 @@ export function LabSettings({
       setGuideEnabled(getStoredGuideSetting());
       setDirectionsEnabled(getStoredDirectionsSetting());
       setFindingSoundEnabled(getStoredFindingSoundSetting());
+      setGraphScanEnabled(getStoredGraphScanSetting());
       setTeacherEnabled(getStoredTeacherSetting());
       hasSpokenClose.current = false;
       if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
@@ -340,6 +352,44 @@ export function LabSettings({
               {findingSoundEnabled
                 ? t('lab.settings.findingSoundOn')
                 : t('lab.settings.findingSoundOff')}
+            </AccessibleButton>
+          </section>
+
+          <section
+            className="gt-lab-settings__section"
+            aria-labelledby="lab-settings-section-graph-scan"
+          >
+            <h3 id="lab-settings-section-graph-scan" className="gt-lab-settings__section-title">
+              {t('lab.settings.graphScan')}
+            </h3>
+            <p
+              className="gt-lab-settings__hint"
+              style={{
+                margin: '0 0 var(--gt-space-sm, 8px) 0',
+                fontSize: '0.9rem',
+                color: 'var(--gt-bone, #ded6c4)',
+              }}
+            >
+              {t('lab.settings.graphScanHint')}
+            </p>
+            <AccessibleButton
+              type="button"
+              role="switch"
+              aria-checked={graphScanEnabled}
+              className={`gt-control gt-btn ${
+                graphScanEnabled ? 'gt-btn--primary' : 'gt-btn--secondary'
+              }`}
+              onClick={handleToggleGraphScan}
+              style={{
+                minWidth: '48px',
+                minHeight: '48px',
+                padding: '12px 20px',
+                width: '100%',
+              }}
+            >
+              {graphScanEnabled
+                ? t('lab.settings.graphScanOn')
+                : t('lab.settings.graphScanOff')}
             </AccessibleButton>
           </section>
 

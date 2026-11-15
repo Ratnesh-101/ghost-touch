@@ -273,4 +273,45 @@ describe('WebAudioDriver', () => {
     expect(clickOsc.start).toHaveBeenCalledWith(1);
     expect(clickOsc.stop).toHaveBeenCalledWith(1 + 0.025);
   });
+
+  describe('setTone optional level scaling (Lane A6)', () => {
+    it('setTone(hz) defaults to level 1 and target gain 0.15', () => {
+      const ctx = fakeContext();
+      const driver = new WebAudioDriver(() => ctx);
+      driver.unlock();
+      driver.setTone(600);
+      expect(ctx.oscillators[0]?.frequency.setTargetAtTime).toHaveBeenCalledWith(600, 1, 0.02);
+      expect(ctx.gains[0]?.gain.setTargetAtTime).toHaveBeenCalledWith(0.15, 1, 0.02);
+    });
+
+    it('setTone(hz, level) scales the on-gain by level with existing time constants', () => {
+      const ctx = fakeContext();
+      const driver = new WebAudioDriver(() => ctx);
+      driver.unlock();
+      driver.setTone(600, 0.33);
+      expect(ctx.oscillators[0]?.frequency.setTargetAtTime).toHaveBeenCalledWith(600, 1, 0.02);
+      const expectedGain = 0.15 * 0.33;
+      expect(ctx.gains[0]?.gain.setTargetAtTime).toHaveBeenCalledWith(expectedGain, 1, 0.02);
+    });
+
+    it('clamps level to [0, 1]', () => {
+      const ctx = fakeContext();
+      const driver = new WebAudioDriver(() => ctx);
+      driver.unlock();
+
+      driver.setTone(500, 1.5);
+      expect(ctx.gains[0]?.gain.setTargetAtTime).toHaveBeenCalledWith(0.15, 1, 0.02);
+
+      driver.setTone(500, -0.2);
+      expect(ctx.gains[0]?.gain.setTargetAtTime).toHaveBeenCalledWith(0, 1, 0.02);
+    });
+
+    it('fades out with GAIN_OFF_TIME_CONSTANT (0.03) when hz is null regardless of level', () => {
+      const ctx = fakeContext();
+      const driver = new WebAudioDriver(() => ctx);
+      driver.unlock();
+      driver.setTone(null, 0.33);
+      expect(ctx.gains[0]?.gain.setTargetAtTime).toHaveBeenCalledWith(0, 1, 0.03);
+    });
+  });
 });

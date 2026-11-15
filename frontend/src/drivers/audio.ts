@@ -57,8 +57,8 @@ export function getEarconSteps(kind: EarconKind): readonly EarconToneStep[] {
 export interface AudioDriver {
   /** Create/resume the AudioContext and the single oscillator. Call from a user gesture. */
   unlock(): void;
-  /** Play a continuous tone at `hz`, or fade out with `null`. No-op before `unlock`. */
-  setTone(hz: number | null): void;
+  /** Play a continuous tone at `hz`, or fade out with `null`. Optional level in [0, 1] scales gain. No-op before `unlock`. */
+  setTone(hz: number | null, level?: number): void;
   /** Play a continuous guide tone at `hz` with stereo pan [-1, 1], or fade out with `null`. */
   setGuideTone?(hz: number | null, pan?: number): void;
   /** Short one-shot cue (progress / listening tones). Never disturbs the main tone. */
@@ -161,6 +161,7 @@ export class WebAudioDriver implements AudioDriver {
   private guidePanner: StereoPannerLike | undefined;
   private unavailable = false;
   private activeToneHz: number | null = null;
+  private activeToneLevel = 1;
   private activeGuideHz: number | null = null;
   private activeGuidePan = 0;
   private earconRestoreAt: number | null = null;
@@ -207,8 +208,9 @@ export class WebAudioDriver implements AudioDriver {
     this.attachLifecycleListeners();
   }
 
-  setTone(hz: number | null): void {
+  setTone(hz: number | null, level = 1): void {
     this.activeToneHz = hz !== null && Number.isFinite(hz) ? hz : null;
+    this.activeToneLevel = Number.isFinite(level) ? Math.max(0, Math.min(1, level)) : 1;
     const { ctx, osc, gain } = this;
     if (ctx === undefined || osc === undefined || gain === undefined) return;
     if (ctx.state === 'suspended') {
@@ -219,15 +221,16 @@ export class WebAudioDriver implements AudioDriver {
     osc.frequency.cancelScheduledValues?.(now);
 
     if (this.activeToneHz !== null) {
+      const targetGain = TONE_GAIN * this.activeToneLevel;
       if (this.earconRestoreAt !== null && now < this.earconRestoreAt) {
         // Earcon is currently playing: remain ducked until earcon finishes, then restore at earconRestoreAt
         gain.gain.setTargetAtTime(0, now, GAIN_OFF_TIME_CONSTANT);
         osc.frequency.setTargetAtTime(this.activeToneHz, this.earconRestoreAt, FREQ_TIME_CONSTANT);
-        gain.gain.setTargetAtTime(TONE_GAIN, this.earconRestoreAt, GAIN_ON_TIME_CONSTANT);
+        gain.gain.setTargetAtTime(targetGain, this.earconRestoreAt, GAIN_ON_TIME_CONSTANT);
       } else {
         this.earconRestoreAt = null;
         osc.frequency.setTargetAtTime(this.activeToneHz, now, FREQ_TIME_CONSTANT);
-        gain.gain.setTargetAtTime(TONE_GAIN, now, GAIN_ON_TIME_CONSTANT);
+        gain.gain.setTargetAtTime(targetGain, now, GAIN_ON_TIME_CONSTANT);
       }
     } else {
       this.earconRestoreAt = null;
@@ -514,7 +517,7 @@ export class WebAudioDriver implements AudioDriver {
       this.earconRestoreAt = restoreAt;
       if (hasTheremin && this.gain !== undefined && this.osc !== undefined && this.activeToneHz !== null) {
         this.osc.frequency.setTargetAtTime(this.activeToneHz, restoreAt, FREQ_TIME_CONSTANT);
-        this.gain.gain.setTargetAtTime(TONE_GAIN, restoreAt, GAIN_ON_TIME_CONSTANT);
+        this.gain.gain.setTargetAtTime(TONE_GAIN * this.activeToneLevel, restoreAt, GAIN_ON_TIME_CONSTANT);
       }
       if (hasGuide && this.guideGain !== undefined && this.guideOsc !== undefined && this.activeGuideHz !== null) {
         this.guideOsc.frequency.setTargetAtTime(this.activeGuideHz, restoreAt, FREQ_TIME_CONSTANT);

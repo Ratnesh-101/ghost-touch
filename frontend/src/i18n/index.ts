@@ -438,6 +438,12 @@ const en: Record<string, string> = {
   'lab.settings.findingSoundOn': 'Finding sound enabled.',
   'lab.settings.findingSoundOff': 'Finding sound disabled.',
 
+  // Graph scan setting (Lane A6)
+  'lab.settings.graphScan': 'Graph scan',
+  'lab.settings.graphScanHint': 'Hear curve pitch anywhere on the graph.',
+  'lab.settings.graphScanOn': 'Graph scan enabled.',
+  'lab.settings.graphScanOff': 'Graph scan disabled.',
+
   // Corner compass & line names (Lane A3)
   'compass.dir.up': 'up',
   'compass.dir.down': 'down',
@@ -881,6 +887,12 @@ const hi: Record<string, string> = {
   'lab.settings.findingSoundHint': 'क्लिक की आवाज़ आपकी उंगली को रेखाओं तक वापस ले जाती है।',
   'lab.settings.findingSoundOn': 'खोज ध्वनि सक्षम की गई।',
   'lab.settings.findingSoundOff': 'खोज ध्वनि अक्षम की गई।',
+
+  // Graph scan setting (Lane A6)
+  'lab.settings.graphScan': 'ग्राफ़ स्कैन',
+  'lab.settings.graphScanHint': 'ग्राफ़ पर कहीं भी वक्र की ध्वनि सुनें।',
+  'lab.settings.graphScanOn': 'ग्राफ़ स्कैन सक्षम किया गया।',
+  'lab.settings.graphScanOff': 'ग्राफ़ स्कैन अक्षम किया गया।',
 
   // Corner compass & line names (Lane A3)
   'compass.dir.up': 'ऊपर',
@@ -1326,6 +1338,12 @@ const gu: Record<string, string> = {
   'lab.settings.findingSoundHint': 'ક્લિકનો અવાજ તમારી આંગળીને રેખાઓ પર પાછી લાવે છે.',
   'lab.settings.findingSoundOn': 'શોધ ધ્વનિ સક્ષમ કરી.',
   'lab.settings.findingSoundOff': 'શોધ ધ્વનિ અક્ષમ કરી.',
+
+  // Graph scan setting (Lane A6)
+  'lab.settings.graphScan': 'આલેખ સ્કેન',
+  'lab.settings.graphScanHint': 'આલેખ પર ગમે ત્યાં વક્રનો સૂર સાંભળો.',
+  'lab.settings.graphScanOn': 'આલેખ સ્કેન સક્ષમ કરી.',
+  'lab.settings.graphScanOff': 'આલેખ સ્કેન અક્ષમ કરી.',
 
   // Corner compass & line names (Lane A3)
   'compass.dir.up': 'ઉપર',

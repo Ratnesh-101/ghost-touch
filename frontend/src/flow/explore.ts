@@ -11,6 +11,7 @@
 import { hitTest, type Radii, type Target } from '../core/hitTest';
 import { toNorm, type ScreenPoint, type Viewport } from '../core/geometry';
 import type { DiagramScene } from '../core/scene';
+import { curveYAtX } from '../core/curve';
 import { lineEnds, nearestElement, vertexExits, type Compass8, type NearestElement } from '../core/compass';
 import {
   DEFAULT_PROXIMITY,
@@ -59,6 +60,62 @@ export function setStoredFindingSoundSetting(enabled: boolean): void {
 export function _resetFindingSoundSettingForTesting(): void {
   inMemoryFindingSoundSetting = null;
   safeRemove(STORAGE_KEY_FINDING_SOUND);
+}
+
+export const STORAGE_KEY_GRAPH_SCAN = 'gt_graph_scan_enabled';
+
+let inMemoryGraphScanSetting: boolean | null = null;
+
+export function getStoredGraphScanSetting(): boolean {
+  const stored = safeGet(STORAGE_KEY_GRAPH_SCAN);
+  if (stored !== null) {
+    return stored === 'true';
+  }
+  return inMemoryGraphScanSetting ?? true;
+}
+
+export function setStoredGraphScanSetting(enabled: boolean): void {
+  safeSet(STORAGE_KEY_GRAPH_SCAN, enabled ? 'true' : 'false');
+  inMemoryGraphScanSetting = enabled;
+}
+
+export function _resetGraphScanSettingForTesting(): void {
+  inMemoryGraphScanSetting = null;
+  safeRemove(STORAGE_KEY_GRAPH_SCAN);
+}
+
+/**
+ * Pure graph scan tone helper (Lane A6).
+ *
+ * Only for kind 'function_graph'. Target is the polyline: null (the engine
+ * already plays it at full level). Otherwise use curveYAtX(scene, xNorm, yNorm):
+ * if it returns a value, hz = pitchForY(yNorm of curve), level 0.33; else null.
+ */
+export function scanTone(
+  scene: DiagramScene,
+  target: Target,
+  xNorm: number,
+  yNorm: number,
+): { hz: number; level: number } | null {
+  if (scene.kind !== 'function_graph') return null;
+  if (target.kind === 'line' && target.elementKind === 'polyline') {
+    return null;
+  }
+  let curve = curveYAtX(scene, xNorm, yNorm);
+  if (curve === null && Number.isFinite(xNorm)) {
+    // Handle floating-point imprecision near boundaries (e.g. 0.9000000000000006)
+    const rounded = Math.round(xNorm * 100000) / 100000;
+    if (rounded !== xNorm) {
+      curve = curveYAtX(scene, rounded, yNorm);
+    }
+  }
+  if (curve !== null) {
+    return {
+      hz: pitchForY(curve.yNorm),
+      level: 0.33,
+    };
+  }
+  return null;
 }
 
 export {
@@ -399,6 +456,7 @@ export function checkTwoFingerLongPress(
 
 export interface MovePipelineResult {
   target: Target;
+  xNorm: number;
   yNorm: number;
   effects: Effect[];
   nextEngineState: EngineState;
@@ -470,6 +528,7 @@ export function processPointerMove(
 
   return {
     target,
+    xNorm: norm.x,
     yNorm: norm.y,
     effects,
     nextEngineState,
