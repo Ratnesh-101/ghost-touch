@@ -1,11 +1,11 @@
 # Implementation Plan: Ghost Touch
 
 Spec-driven implementation plan for Ghost Touch (React PWA + FastAPI).
-Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
+Properties P1â€“P13 validate the core contracts via fast-check and Hypothesis.
 
 ---
 
-## Phase 1 — MVP (STEMergent Hacks)
+## Phase 1 â€” MVP (STEMergent Hacks)
 
 - [x] 1. Project skeleton and environment
   - [x] 1.1 Repo layout: `frontend/` (Vite + React + TS), `backend/` (FastAPI + Python 3.11), `prototypes/`
@@ -16,11 +16,11 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 - [x] 2. Pure geometry, hit-testing, and property tests (P1, P2, P8)
   - [x] 2.1 `frontend/src/core/geometry.ts`: `toScreen`, `toNorm`, `distToSegment`
   - [x] 2.2 `frontend/src/core/hitTest.ts`: `Target` discriminator, priority `vertex > bar edge/line > bar interior > none`
-  - [x] 2.3 Property P8: coordinate round-trip `toNorm(toScreen(p)) ≈ p`
+  - [x] 2.3 Property P8: coordinate round-trip `toNorm(toScreen(p)) â‰ˆ p`
   - [x] 2.4 Property P1: every point is reachable; at its screen position hitTest returns that vertex
   - [x] 2.5 Property P2: vertex beats line within vertex radius (22 CSS px)
 - [x] 3. Audio & pitch mapping (theremin tone) and property P7
-  - [x] 3.1 `frontend/src/core/pitch.ts`: `pitchForY` (200–1000 Hz, top higher) and `pitchForValue`
+  - [x] 3.1 `frontend/src/core/pitch.ts`: `pitchForY` (200â€“1000 Hz, top higher) and `pitchForValue`
   - [x] 3.2 Property P7: pitch is monotonic with graph height and stays in [200, 1000]
   - [x] 3.3 `frontend/src/drivers/audio.ts`: Web Audio API wrapper (one sine oscillator, smoothed frequency/gain, audio unlock on first user gesture)
 - [x] 4. Haptic engine state machine and properties (P3, P4, P5, P6)
@@ -44,9 +44,9 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 6.5 Bundle 3 offline sample diagrams in `frontend/public/samples/` (triangle, sine curve, bar chart)
 - [x] 7. Backend service: schema, validation, Raw Mode, and property tests (P9, P10)
   - [x] 7.1 `backend/app/schema.py`: Pydantic `DiagramScene` model with four kinds
-  - [x] 7.2 `backend/app/validate.py`: post-LLM validation, repair (clamp ±0.02, drop dangling segments), enforce unique ids
+  - [x] 7.2 `backend/app/validate.py`: post-LLM validation, repair (clamp Â±0.02, drop dangling segments), enforce unique ids
   - [x] 7.3 Property P9: validator invariants hold on any accepted scene; garbage input never raises 500
-  - [x] 7.4 `backend/app/raw_mode.py`: OpenCV edge detection -> simplified segments (Douglas–Peucker, <=300 segments)
+  - [x] 7.4 `backend/app/raw_mode.py`: OpenCV edge detection -> simplified segments (Douglasâ€“Peucker, <=300 segments)
   - [x] 7.5 Property P10: Raw Mode bound (<=300 segments, all normalized in [0, 1])
   - [x] 7.6 `backend/app/vision/`: provider interface + concrete Gemini / Claude vision provider from env var
   - [x] 7.7 `POST /api/v1/scene`: 15 s timeout, 1 retry on invalid JSON, fallback to Raw Mode
@@ -68,7 +68,7 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [~] 10.2 Record a short demo; write the STEMergent description (problem, STEM link, AI disclosure)
   - [~] 10.3 Submit before **Nov 16, 9:00 am IST**
 
-## Phase 2 — Kiroween polish
+## Phase 2 â€” Kiroween polish
 
 - [x] 11. Teacher Correct mode (overlay, drag points, edit labels, validate on save)
   - [x] 11.1 Pure core `core/correct.ts`: immutable edits (movePoint, renameLabel, deletePoint, deleteSegment) and history reducer
@@ -76,31 +76,31 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 11.3 Client `api/validate.ts` for `POST /api/v1/validate` and unit tests
   - [x] 11.4 Screen `screens/Correct.tsx`, `flow/correct.ts`, styling `styles/correct.css`
   - [x] 11.5 Explore entry button, photo URL state in `App.tsx`, and i18n keys
-  - _Requirements: 9.1–9.3_
+  - _Requirements: 9.1â€“9.3_
 - [x] 12. Hindi and Gujarati (i18n strings, speech language, ask language)
   - _Requirements: 10.1, 10.2_
 - [x] 13. Saved diagrams and offline exploring (IndexedDB)
-  - _Requirements: 11.1–11.7_
+  - _Requirements: 11.1â€“11.7_
   - [x] 13.1 P11 bar pitch order
-  - [x] 13.2 `core/savedDiagrams.ts`: `SavedDiagram` type, `savedTitle`, `makeId`, `chooseEviction`, `capExceeded`, `orderForDisplay` — pure, no browser APIs
+  - [x] 13.2 `core/savedDiagrams.ts`: `SavedDiagram` type, `savedTitle`, `makeId`, `chooseEviction`, `capExceeded`, `orderForDisplay` â€” pure, no browser APIs
   - [x] 13.3 P14 serialise round-trip (fast-check, 200 runs)
   - [x] 13.4 P15 eviction invariants (fast-check, 200 runs)
   - [x] 13.5 `drivers/diagramStore.ts`: `DiagramStore` interface, `IDBDiagramStore` (IndexedDB), `MemoryDiagramStore` (in-memory fake for tests); all calls in try/catch; storage-unavailable path returns error string
   - [x] 13.6 Save on scene load: after every successful `handleScene`, generate thumbnail (canvas toDataURL) and call `diagramStore.put`; if it fails speak `t('saved.errorSave')`
-  - [x] 13.7 `screens/SavedDiagrams.tsx`: list view reachable from Capture via "Saved diagrams" button (48×48 px, accessible name); each entry has open and delete controls; pinning control; spoken state changes; `t()` for all strings; offline-open goes straight to Explore
+  - [x] 13.7 `screens/SavedDiagrams.tsx`: list view reachable from Capture via "Saved diagrams" button (48Ã—48 px, accessible name); each entry has open and delete controls; pinning control; spoken state changes; `t()` for all strings; offline-open goes straight to Explore
   - [x] 13.8 i18n: add all `saved.*` and any new `capture.*` keys to `en`, `hi`, and `gu` tables
   - [x] 13.9 Unit + render tests: `tests/drivers.diagramStore.test.ts`, additions to `tests/screens.render.test.ts` for SavedDiagrams, i18n parity test that all `saved.*` keys exist in every language table
 - [~] 14. Accessibility pass (TalkBack walkthrough, 48 px targets, 7:1 contrast) and Halloween presentation layer (creature mascot, theremin branding)
-  - _Requirements: 12.1–12.3_
+  - _Requirements: 12.1â€“12.3_
 - [~] 15. Budget-phone test and Capacitor decision
   - Test on one budget Android phone; if patterns blur, implement `CapacitorHapticDriver`
 - [ ] 16. Kiroween submission package
   - [~] 16.1 Demo video under 3 minutes (eyes-closed trace by a sighted helper, or a real student with consent)
-  - [~] 16.2 Kiro write-up: specs, steering, hooks, property-based tests (P1–P13), what PBT caught
+  - [~] 16.2 Kiro write-up: specs, steering, hooks, property-based tests (P1â€“P13), what PBT caught
   - [~] 16.3 Blog post mentioning Kiroween 2026; social post starting with `#KiroweenHackathon26`
   - [~] 16.4 Confirm `/.kiro` is committed, license visible in GitHub About, repo public
   - [~] 16.5 Submit before **Dec 5, 3:30 am IST**; request Kiro credits before **Dec 1**
-- [x] 17. Frankenstein's Laboratory theme, retroactive spec verification, and CSS correctness properties (Requirement 14, P18–P20)
+- [x] 17. Frankenstein's Laboratory theme, retroactive spec verification, and CSS correctness properties (Requirement 14, P18â€“P20)
   - UI components and stylesheets implemented by Antigravity; specification, design, and property tests written by Antigravity, awaiting Kiro review.
   - [x] 17.1 Retroactive spec & design documentation for Frankenstein Lab theme in requirements.md and design.md (agy)
   - [x] 17.2 Property test P18: Alive animation bound and flash frequency (fast-check in frontend/tests/labTheme.prop.test.ts) (agy)
@@ -114,12 +114,12 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 18.4 Backend SEC-01: Wrap `/api/v1/scene` in concurrency semaphore `asyncio.Semaphore(2)` with HTTP 503/429 retry headers (already implemented and merged by agy lane x-hardening; verify against the code)
   - [x] 18.5 Backend SEC-02: Lower `MAX_IMAGE_PIXELS` from 40 MP to 12 MP in `backend/app/image_utils.py` to prevent memory exhaustion (already implemented and merged by agy lane x-hardening; verify against the code)
   - [x] 18.6 Backend SEC-03: Add `await request.is_disconnected()` cancellation checks before provider dispatch and Raw Mode worker threads (already implemented and merged by agy lane x-hardening; verify against the code)
-  - [x] 18.7 Backend SEC-04: Parse EXIF orientation tag in OpenCV Raw Mode to prevent 90° rotated diagram geometry (already implemented and merged by agy lane x-hardening; verify against the code)
+  - [x] 18.7 Backend SEC-04: Parse EXIF orientation tag in OpenCV Raw Mode to prevent 90Â° rotated diagram geometry (already implemented and merged by agy lane x-hardening; verify against the code)
   - [x] 18.8 Backend SEC-06: Apply scene element count and size bounds on `POST /api/v1/validate` (already implemented and merged by agy lane x-hardening; verify against the code)
   - [x] 18.9 Backend SEC-07 & SEC-08: Add security headers (`X-Content-Type-Options: nosniff`, `Cache-Control: no-store`) and disable OpenAPI docs in production (already implemented and merged by agy lane x-hardening; verify against the code)
   - [x] 18.10 Backend SEC-09: Align `docs/DEPLOY.md` model configuration with `render.yaml` (`gemini-3.5-flash-lite`) (already implemented and merged by agy lane x-hardening; verify against the code)
 
-## Phase 3 — Kiro review, property gaps, and open items (Kiro, 2026-11-07)
+## Phase 3 â€” Kiro review, property gaps, and open items (Kiro, 2026-11-07)
 
 > Rule from the owner: every new piece of work starts as a task here before any code is written.
 > Legend: `[ ]` open, `[x]` done and verified, `[~]` needs the owner, a device, or an outside service.
@@ -131,7 +131,7 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 19.4 Req 11: add P33 (`orderForDisplay` is a newest-first permutation; `savedTitle` is never blank and uses the scene title when present), P34 (re-saving or pinning an existing id never evicts and never changes the count), P35 (`deserialise` never throws on arbitrary input) in `tests/savedDiagrams.prop.test.ts`
   - [x] 19.5 Req 13: add P36 (centre tick fires once per excursion), P37 (centre tick never fires inside the corner quiet window; "Centre." is spoken at most once), P38 (two-finger exit swipe accepts only downward, fast, mostly vertical motion) in `tests/explore.gesture.prop.test.ts`
   - [x] 19.6 Req 9.3: add P39 backend property (Hypothesis, 200 examples): a valid scene passes `validate_scene` unchanged, and `validate_scene` is idempotent on its own output
-  - [x] 19.7 Update `design.md` (P31–P39 rows; `DiagramStore` signature now returns `StoreResult`; `serialise` returns a string; `applyAdd` replaces an existing id in place)
+  - [x] 19.7 Update `design.md` (P31â€“P39 rows; `DiagramStore` signature now returns `StoreResult`; `serialise` returns a string; `applyAdd` replaces an existing id in place)
   - [x] 19.8 Raise backend property tests below 200 cases (P10 uses 40; P13 has no explicit setting) or document the exception (2026-11-10, PR #25: the last two below 200, in `backend/tests/test_ask_target_props.py`, raised from 100 and 150 to 200)
   - [x] 19.9 Run `tsc`, full Vitest, ruff and pytest; record real results in `docs/BUILD_LOG.md` with "Kiro" as the tool
   - _Requirements: 9.2, 9.3, 11.1, 11.3, 11.5, 11.6, 13.2, 13.3, 13.5_
@@ -155,7 +155,7 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [ ] 21.3 Re-verify audit claims A1 G-RUN-02 (theremin during guiding) and G-RUN-04 (Back and history); record NOT REPRODUCED if false
   - [ ] 21.4 Confirm the five hooks (plus a11y, css-guard, pre-commit-build-log) appear in the Kiro hooks panel and fire; save a screenshot to `docs/kiro-evidence/`
   - [ ] 21.5 Decide on the centre reference tick (25 ms): approve it into `tech.md` or change it, using the phone-test result (task 22.4)
-  - [ ] 21.6 Review Req 14/15, Task 17/18, P18–P30 and the three new hooks (all "agy, awaiting Kiro review")
+  - [ ] 21.6 Review Req 14/15, Task 17/18, P18â€“P30 and the three new hooks (all "agy, awaiting Kiro review")
   - [ ] 21.7 Tick parent tasks 7, 10, 14, 15, 16 only after the matching device and deployment checks
   - [~] 21.8 Owner: native-speaker check of Hindi and Gujarati (`docs/user-test/translation-review.md`), including key `capture.errorBusy`
   - [~] 21.9 Owner: fill the remaining `[FILL]` markers in `STEMERGENT_SUBMISSION.md`, `SOCIAL.md`, `KIRO_WRITEUP.md`; set the TalkBack row to "verified" only after the phone test passes
@@ -164,23 +164,23 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 
 - [~] 22. Phone test (`docs/PHONE_TEST.md`, OnePlus Nord CE6, Chrome): `PHONE_TEST.md` is still an unfilled script with no recorded results, so these tasks cover running it and triaging what it finds
   - [~] 22.1 Step 0: wake the Render backend and confirm `{"ok":true}` before testing
-  - [~] 22.2 Steps 5.1–5.4: TalkBack on, Explore entry, double-tap-hold pass-through; if TalkBack is silent on entry, revert the canvas `aria-label` suppression (Finding 5)
+  - [~] 22.2 Steps 5.1â€“5.4: TalkBack on, Explore entry, double-tap-hold pass-through; if TalkBack is silent on entry, revert the canvas `aria-label` suppression (Finding 5)
   - [~] 22.3 Step 4.4: corner "bzzzz-tap" `[50, 90, 50]` with the 450 ms quiet window is still distinct from the line buzz
   - [~] 22.4 Steps 5.2 and 5.4: centre tick (25 ms) is felt and distinct; feeds task 21.5
   - [~] 22.5 Steps 6.x and 12.x: voice recognition and text-to-speech in English, Hindi, Gujarati
   - [~] 22.6 Steps 8 and 9: a real photo (AI vs Raw Mode, reason and seconds) and a PDF first page
-  - [~] 22.7 Steps 13.1–13.9 (Guide my finger) and 14.1–14.8 (Teacher share), only if the feature flags are turned on
+  - [~] 22.7 Steps 13.1â€“13.9 (Guide my finger) and 14.1â€“14.8 (Teacher share), only if the feature flags are turned on
   - [ ] 22.8 Record each result in `PHONE_TEST.md`; turn every FAIL into a new task under this heading before any code is written
   - _Requirements: 4.*, 5.*, 10.*, 12.*, 13.*_
 
-## Phase 5 — Round 2 fixes (Kiro, 2026-11-07)
+## Phase 5 â€” Round 2 fixes (Kiro, 2026-11-07)
 
 > Order of work for every task: finding verified and recorded in `docs/reviews/kiro-round2.md` (FIXED / NOT REPRODUCED / SKIPPED), then tests, then code. Gate before ticking: frontend `npx tsc --noEmit; npx vitest run; npm run build`; backend `pytest; ruff check; ruff format --check`. One commit per task: `kiro: T<n> <summary>`.
 > Not changed in this round: contract decisions A2 SEC-01, A2 SEC-04, A5-05; the tuned haptic constants; `frontend/src/core` except for a real bug noted in the review.
 
-- [x] 23. Spec for round 2: Requirements 16 and 17, design section, properties P40–P46, tasks 23–28
+- [x] 23. Spec for round 2: Requirements 16 and 17, design section, properties P40â€“P46, tasks 23â€“28
   - [x] 23.1 Requirement 16 (security and robustness) and Requirement 17 (navigation and announcement integrity) in `requirements.md`
-  - [x] 23.2 Design section "Security and Robustness, round 2" and rows P40–P46 in `design.md`
+  - [x] 23.2 Design section "Security and Robustness, round 2" and rows P40â€“P46 in `design.md`
   - [x] 23.3 Create `docs/reviews/kiro-round2.md` with one row per finding, filled in as each task verifies it
   - _Requirements: 16.*, 17.*_
 
@@ -230,7 +230,7 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 28.3 `docs/BUILD_LOG.md` entry: Kiro did this work; agent-written findings and code are credited to Antigravity (finished by Claude Code after Kiro was stopped; verified by Kiro 2026-11-09)
   - [x] 28.4 Commit `kiro: T28 ...`; nothing is pushed (committed as `1ca4cdb` by Claude Code after Kiro was stopped; nothing pushed)
 
-## Phase 6 — Round 3 (Kiro, 2026-11-09)
+## Phase 6 â€” Round 3 (Kiro, 2026-11-09)
 
 > Same rules as round 2: task first, failing test before the fix, one commit per task (`kiro: T<nn> ...`), full gate before ticking, BUILD_LOG entry with tool = Kiro.
 > Do not edit while lanes k1, k4, k6 are being merged: `App.tsx`, `Explore.tsx`, `Correct.tsx`, `vite.config.ts`, `backend/app/main.py`. New i18n keys go in a separate, last commit after k1 and k6 are on `main`.
@@ -298,7 +298,7 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 36.1 Pure module `frontend/src/flow/ghostwriter.ts` as in design.md: the caps, `planAddPoint`, `planAddSegment`, `describeUndo`, `nextMode`, `ghostwriterSpeech`, `undoSpeech`, `GHOSTWRITER_KEYS`. No React, no browser API
   - [x] 36.2 Properties P58-P61 in `frontend/tests/ghostwriter.prop.test.ts`, at least 200 runs each; mutation-check each one and record the mutants in the report
   - [x] 36.3 i18n: every key in the design table in `en`, `hi`, `gu` with the same placeholders, plus rows in `docs/user-test/translation-review.csv` and `.md` marked for native review
-  - [x] 36.4 `screens/Teach.tsx`: "Add vertex" becomes "Add point" (20.2.6); add the "Add edge" control; both at least 48 × 48 CSS px with accessible names; apply adds through `applySceneEdit` / `applyEdit`; speak every outcome; undo speaks `undoSpeech` for an add
+  - [x] 36.4 `screens/Teach.tsx`: "Add vertex" becomes "Add point" (20.2.6); add the "Add edge" control; both at least 48 Ã— 48 CSS px with accessible names; apply adds through `applySceneEdit` / `applyEdit`; speak every outcome; undo speaks `undoSpeech` for an add
   - [x] 36.5 Component tests in `frontend/tests/ghostwriter.teach.test.tsx` (jsdom), the list in design.md, including the 20.6 example
   - [x] 36.6 Report what happened to `flow/teach.ts` `addVertex` / `generateUniquePointId` and their tests (kept for another caller, or removed)
   - [x] 36.7 Gate (`tsc` 0 errors, `npm test` green with nothing skipped, build); BUILD_LOG entry (tool = "agy, reviewed by Claude"); report in `docs/reports/agy-g1-ghostwriter-ui-report.md`
@@ -376,10 +376,10 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 ## A corner does not repeat on a shaky finger (Requirement 4.9; spec written before the code)
 > Numbered 50 because the `kiro: T44` to `T49` commit messages are already used by the K4 audit fixes. Only `core/hapticEngine.ts` changes. Tuned haptic values untouched.
 
-- [ ] 50. Suppress a repeated corner inside its quiet window
+- [x] 50. Suppress a repeated corner inside its quiet window
   - [x] 50.1 Requirement 4.9, design section and property P96 written before any code
-  - [ ] 50.2 `core/hapticEngine.ts`: optional `lastCornerId`; re-entry of the last corner's vertex while `t < quietUntil` emits nothing and keeps `quietUntil`
-  - [ ] 50.3 P96 (a) to (c) in `tests/hapticEngine.reentry.prop.test.ts` (200+ runs), mutation-checked; P3 to P6 unchanged
-  - [ ] 50.4 Regression test in `tests/haptic.corner.regression.test.ts`: triangle, leave A along AC at 30 px/s, 60 Hz, seeded 2 px jitter
-  - [ ] 50.5 Gate (`tsc --noEmit`, `vitest run`); commit
+  - [x] 50.2 `core/hapticEngine.ts`: optional `lastCornerId`; re-entry of the last corner's vertex while `t < quietUntil` emits nothing and keeps `quietUntil`
+  - [x] 50.3 P96 (a) to (c) in `tests/hapticEngine.reentry.prop.test.ts` (200+ runs), mutation-checked; P3 to P6 unchanged
+  - [x] 50.4 Regression test in `tests/haptic.corner.regression.test.ts`: triangle, leave A along AC at 30 px/s, 60 Hz, seeded 2 px jitter
+  - [x] 50.5 Gate (`tsc --noEmit` 0 errors, `vitest run` 183 files / 2262 tests); commit
   - _Requirements: 4.4, 4.5, 4.9_

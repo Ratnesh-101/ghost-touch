@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Pure haptic engine - a state machine that turns finger movement over a
  * DiagramScene into plain-data effects.
  *
@@ -53,6 +53,12 @@ export type Input =
 /** Mutable engine state carried between steps. */
 export interface EngineState {
   lastVertexId: string | null;
+  /**
+   * Id of the vertex whose corner pattern fired last (Requirement 4.9). Unlike lastVertexId it
+   * survives leaving the vertex, so a re-entry inside the quiet window can be recognised.
+   * Optional so older state literals still type-check; absent means null.
+   */
+  lastCornerId?: string | null;
   lastBarId: string | null;
   onLine: boolean;
   lastBuzz: number;
@@ -103,6 +109,8 @@ export function initialState(): EngineState {
  * 1. Enter a new vertex -> vibrate(cornerPattern), speak(label) or, with no label,
  *    speakKey('vertex.unlabelled', { id }), tone(null); set quietUntil = t + quietMs.
  * 2. Same vertex as last step -> no effects.
+ * 2b. Re-entering the last corner's vertex while t < quietUntil -> no effects, quietUntil kept
+ *    (Requirement 4.9).
  * 3. On a line, t >= quietUntil and t - lastBuzz > retriggerMs -> vibrate(lineMs).
  * 4. On a curve (polyline line) -> also tone(pitchForY(yNorm)).
  * 5. Leave all lines -> vibrate(0) only if t >= quietUntil; tone(null).
@@ -133,9 +141,16 @@ export function step(
     next.onLine = false;
     next.lastBarId = null;
     if (state.lastVertexId !== target.id) {
+      next.lastVertexId = target.id;
+      if (state.lastCornerId === target.id && t < state.quietUntil) {
+        // Rule 1b (Requirement 4.9): re-entering the vertex whose corner pulse is still inside
+        // its quiet window (finger jitter on the vertex radius). Say nothing and leave
+        // quietUntil as the first pulse set it.
+        return { state: next, effects };
+      }
       // Rule 1: New vertex -> corner pulse, speak the label (or, for an unlabelled corner,
       // the 'vertex.unlabelled' sentence in the active language), stop tone.
-      next.lastVertexId = target.id;
+      next.lastCornerId = target.id;
       next.quietUntil = t + cfg.quietMs;
       effects.push({ kind: 'vibrate', pattern: cfg.cornerPattern });
       if (target.label !== undefined && target.label.trim() !== '') {

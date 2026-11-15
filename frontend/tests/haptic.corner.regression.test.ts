@@ -100,3 +100,80 @@ describe('WebHapticDriver array fallback', () => {
     expect(vibrate).toHaveBeenCalledTimes(3);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Requirement 4.9 / P96 regression (task 50): a slow, shaky finger leaving a corner.
+// ---------------------------------------------------------------------------
+
+/** Small seeded PRNG so the jitter is the same on every run. */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+describe('sample triangle: a shaky finger leaving corner A along AC (Requirement 4.9)', () => {
+  const A = { x: 100, y: 100 }; // 0.25 * 400
+  const SPEED = 30; // px/s, downwards along AC (x stays 100)
+  const DT = 1000 / 60;
+  const JITTER = 2; // px, uniform in [-2, 2] on each axis
+  const START_OFFSET = 18; // px below A: inside the 22 px vertex radius even with jitter
+
+  function replay(seed: number) {
+    const rand = mulberry32(seed);
+    let engine = initialState();
+    let centre = initialCentreTickState();
+    let axis = initialAxisState();
+    const t0 = 1000;
+    let corners = 0;
+    let speaks = 0;
+    let cornerAt = -1;
+    let firstLineBuzz = -1;
+    let boundaryCrossings = 0;
+    let wasVertex = false;
+    for (let i = 0; i * DT <= 2000; i++) {
+      const t = t0 + i * DT;
+      const finger = {
+        x: A.x + (rand() * 2 - 1) * JITTER,
+        y: A.y + START_OFFSET + (SPEED * (i * DT)) / 1000 + (rand() * 2 - 1) * JITTER,
+      };
+      const r = processPointerMove(scene, finger, view, t, engine, centre, axis);
+      engine = r.nextEngineState;
+      centre = r.centreCheck.nextState;
+      axis = r.nextAxisState;
+      const isVertex = r.target.kind === 'vertex';
+      if (wasVertex !== isVertex) boundaryCrossings++;
+      wasVertex = isVertex;
+      for (const e of r.effects) {
+        if (e.kind === 'vibrate' && Array.isArray(e.pattern)) {
+          corners++;
+          if (cornerAt < 0) cornerAt = t;
+        }
+        if (e.kind === 'speak' && e.text === 'A') speaks++;
+        if (e.kind === 'vibrate' && e.pattern === 80 && firstLineBuzz < 0) firstLineBuzz = t;
+      }
+    }
+    return { corners, speaks, cornerAt, firstLineBuzz, boundaryCrossings };
+  }
+
+  for (const seed of [1, 2, 3, 7, 42, 2026]) {
+    it(`seed ${seed}: one corner pattern, one "A", first line buzz within quietMs + retriggerMs`, () => {
+      const r = replay(seed);
+      expect(r.corners).toBe(1);
+      expect(r.speaks).toBe(1);
+      expect(r.firstLineBuzz).toBeGreaterThanOrEqual(r.cornerAt + 450);
+      expect(r.firstLineBuzz).toBeLessThanOrEqual(r.cornerAt + 450 + 70 + 1000 / 60);
+    });
+  }
+
+  it('the trace really does cross the vertex boundary more than once (the test is not vacuous)', () => {
+    // At least one seed must flap at the boundary, otherwise a pass proves nothing.
+    const flapped = [1, 2, 3, 7, 42, 2026].filter((s) => replay(s).boundaryCrossings > 2);
+    expect(flapped.length).toBeGreaterThan(0);
+  });
+});
