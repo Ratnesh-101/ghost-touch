@@ -523,3 +523,21 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 4. THE guard SHALL be total and pure: for any value, including cyclic-free JSON of any shape, it returns a boolean and never throws; no React, no browser API, no i18n, no import except scene types.
 5. `deserialise` SHALL return `undefined` for a saved entry whose scene the guard rejects, in addition to its existing checks. A saved entry written before this requirement with a missing array is therefore dropped as corrupt (decided by the owner's brief: a missing array is not acceptable).
 6. FOR ANY accepted scene, AND any finger position and viewport, `hitTest`, `step`, `directionOf`/`vertexExits`/`lineEnds`/`nearestElement`, `curveYAtX` and `followTarget` SHALL NOT throw and SHALL return only finite numbers. IF a counterexample is found in `core/`, THEN work SHALL stop, the counterexample SHALL be logged in `docs/BUILD_LOG.md`, and the fix SHALL be its own specified task.
+
+
+
+### Requirement 36: Vibration and tone are off after the last finger or a lost page, whatever the input (task 64)
+> Written by Kiro on 2026-11-16 BEFORE the test, for the pure touch pipeline: `hitTest` (or `followTarget` when sticky lines are on), `step()` and, when it is on, `heartbeatStep`. Test only: no file under `frontend/src/` changes and no tuned value changes. The Explore screen's own event handling (pointer capture, the keep-alive timer, visibility listeners) is not exercised here; the test models it as the five events below and says so.
+
+**User Story:** As a blind student, I want the phone to go quiet the moment I lift my finger or the page is hidden, however strange the touches before it were, so that a stuck buzz or tone never tells me something is under my finger when nothing is.
+
+#### Definitions
+- **Event:** pointer down, move, up or cancel of pointer 0, 1 or 2 at any screen position (outside the canvas, exactly on a corner, NaN or infinite included); `blur`; `hidden`. The first pointer down is the primary one; the oldest remaining pointer becomes primary when the primary one ends (Requirement 4.8).
+- **Lift:** the last pointer up or cancelled, or `blur`, or `hidden`. A `blur` or `hidden` clears every pointer.
+
+#### Acceptance Criteria
+1. FOR ANY sequence of 1 to 400 events with time steps from 0 ms to 5 s (equal timestamps included), over any bundled sample scene or any valid scene, including scenes with zero-length segments, coincident points, bars with `x0 == x1`, polylines of two identical points and a viewport with zero width or height, THE pipeline SHALL NOT throw, SHALL produce at most 4 effects per step, and every `tone` effect SHALL carry `null` or a finite frequency.
+2. AFTER a lift THE effect list of that step SHALL end with `vibrate(0)` as its last vibration effect and `tone(null)` as its last tone effect, THE engine state SHALL equal `initialState()`, the heartbeat state SHALL equal its initial state, the followed target SHALL be none, and NO further effect SHALL be produced until the next pointer down. This holds with the heartbeat and sticky lines on or off.
+3. WHILE one touch lasts, TWO consecutive corner announcements of the same vertex SHALL be at least `quietMs` apart (Requirement 4.9). Labels in the generated scenes are unique per vertex, so a repeat is the same vertex.
+4. THE same event sequence over the same scene SHALL give exactly the same effects, and the scene SHALL be unchanged afterwards.
+5. IF a sequence breaks 1 to 4 THEN its seed SHALL be kept as a pinned regression example in the test file and reported; the invariant SHALL NOT be weakened to get a green run.

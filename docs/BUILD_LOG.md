@@ -4391,3 +4391,11 @@ Format for each entry:
 - Gate: \	sc --noEmit\ 0 errors; \itest run\ 198 files, 2512 passed.
 - Files: frontend/src/core/sceneGuard.ts, frontend/src/core/savedDiagrams.ts, frontend/tests/{sceneGuard.prop,savedDiagrams,drivers.diagramStore}.test.ts, .kiro/specs/ghost-touch/{requirements,design,tasks}.md, docs/BUILD_LOG.md
 
+
+### Task 64: chaos run of the pure touch pipeline (tool = Kiro)
+- Spec first: Requirement 36, design section, P132-P136, task 64. The tree held no partial edits for this task (git status showed only unrelated untracked docs), so everything was written fresh.
+- Test only: `frontend/tests/touch.chaos.prop.test.ts`. A model of Explore's pointer handling (down, move, up, cancel, second pointer with promotion, blur, hidden) drives the real hitTest, followTarget, step and heartbeatStep, with sticky and heartbeat each on or off. Scenes: the three samples, random valid scenes, a degenerate family (zero-length segments, coincident points, x0 == x1 bars, two-identical-point polyline, border axes); viewports with zero width or height; NaN and Infinity fingers; time steps 0 to 5000 ms.
+- Result: no invariant failed, so no seed was pinned and no product bug is reported. Explore.tsx itself is not exercised.
+- Mutants (src edited temporarily, restored, `git status` on frontend/src clean): lift keeps engine state, lift drops tone(null), heartbeat lift keeps state, corner emits 5 effects: caught. Removing the Requirement 4.9 re-entry branch survived the random generator, so a jitter generator and an example were added; it is now caught.
+- Gate: `tsc --noEmit` 0 errors; `vitest run` 201 files, 2544 passed, 1 todo.
+- Files: frontend/tests/touch.chaos.prop.test.ts, .kiro/specs/ghost-touch/{requirements,design,tasks}.md, docs/BUILD_LOG.md

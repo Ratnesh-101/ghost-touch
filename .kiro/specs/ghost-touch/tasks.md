@@ -528,3 +528,15 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
     - (b) Compressed-length heuristic: the compressed form has no cheap distinct-symbol count, so a ratio check before decompressing is not reliable. Not recommended.
     - (c) Recommended: decompress through lz-string's internal `_decompress` with a `getNextValue` wrapper is not possible to cap, so instead vendor a small bounded decoder (stop after `maxDecompressedChars + 1` output chars) in `share/`, and keep LZString for encoding. Needs approval for the new module and a property test that it equals `LZString.decompressFromEncodedURIComponent` whenever the output is within the cap.
   - _Requirements: 16.4 spirit (bounded resource use); share contract SEC-01_
+
+
+
+## Chaos property for the pure touch pipeline (Requirement 36; spec written before the test; tests only)
+> Test file only. Do not edit `frontend/src/` (so not `core/`), `DEFAULT_HAPTICS`, `DEFAULT_RADII` or any tuned value. A failing seed is pinned as a regression example and reported, never hidden.
+
+- [x] 64. Chaos property P132-P136 in `frontend/tests/touch.chaos.prop.test.ts`
+  - [x] 64.1 Requirement 36, design section and properties P132-P136 written before any code
+  - [x] 64.2 Harness (pointer model, sticky and heartbeat wrappers), scene and event generators including degenerate inputs
+  - [x] 64.3 Properties at 200-300 runs through `runs()`; mutation-check at least three mutants of the harness-visible rules, reverted
+  - [x] 64.4 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro); path-scoped commit
+  - _Requirements: 36.*_
