@@ -16,3 +16,8 @@ You build what a brief in `docs/briefs/` tells you to build. Claude Code plans a
 6. **Ask first** (put it in the report, don't block): new dependencies, stack changes, deleting files, paid services. Don't change the tuned haptic values in `tech.md`.
 7. **Architecture.** Browser APIs only in `frontend/src/drivers/`. Every user-facing string through `t()`. Every control has an accessible name and a target of at least 48×48 CSS px. Every state change is spoken. No `any`, no `console.log` / `print()`.
 8. **Finish with proof.** Run the brief's Definition of Done commands and record the real results, including failures. Write `docs/handoffs/TNN-report.md` last. Add a `docs/BUILD_LOG.md` entry (tool = Antigravity) listing what you built, what broke, and files touched.
+
+## Permission modes
+
+Automated agents operate under strict permission boundaries. Running an agent with skipped permissions or dangerous flags (such as `AGY_DANGEROUS=1` or `--dangerously-skip-permissions`) is permitted only in an isolated workspace where no `.env` file exists and never against untrusted input. Agents must never possess network access and unrestricted shell execution simultaneously. All changes must pass orchestrator gates and automated secret scanning before merge. For operational guardrails, key rotation procedures, and incident response, consult `docs/SECURITY_RUNBOOK.md`.
+

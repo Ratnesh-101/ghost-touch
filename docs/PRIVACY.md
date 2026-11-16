@@ -120,7 +120,7 @@ Our backend application uses standard Python logging. We examined every logger c
   ask processed: provider=gemini source=ai question_len=24 scene_points=3 elapsed_ms=812
   ```
   **The actual text of the student's question is NOT written to server logs.**
-- **Diagram Complexity Only:** Only the count of scene points (`scene_points=%d`) is logged, not coordinates or element labels.
+- **Diagram Complexity Only:** Only the count of scene points (`scene_points=%d`) is logged, not coordinates or element labels. *(Note: in `backend/app/main.py:361`, when an optional background improve pass fails validation, `val_result.errors` is logged; hardening lane hx3 updates this to log the error count only).*
 - **Rate Limit Hits:** `rate limit hit: path=/api/v1/ask` (client IP is **not** logged in this message).
 - **Service Configuration:** CORS allowed origins and startup timeout configuration.
 
@@ -181,11 +181,21 @@ Ghost Touch stores only non-identifying user preference flags in `localStorage`:
 
 When Ghost Touch sends photos or questions to vision providers, data handling is governed by those providers' terms:
 - **Google Gemini API:** Subject to Google Cloud / Google AI terms.
-- **OpenAI API:** Subject to OpenAI API data privacy terms (OpenAI states API data is not used to train models unless opted in).
+- **OpenAI API:** Subject to OpenAI API terms and privacy policies.
 - **Nebius Token Factory:** Subject to Nebius Token Factory service terms.
 
 > [!IMPORTANT]
-> **UNVERIFIED STATUS:** We can verify from our code that images and questions are transmitted over encrypted HTTPS to these providers. However, how long Google, OpenAI, or Nebius retain server-side inference payloads or whether they log inputs on their internal infrastructure **cannot be verified from our code repository**.
+> **UNVERIFIED STATUS:** We can verify from our code that images and questions are transmitted over encrypted HTTPS to these providers. However, how long Google, OpenAI, or Nebius retain server-side inference payloads or whether they log inputs on their internal infrastructure **cannot be verified from our code repository**. Furthermore, whether provider API tiers retain data or train models on user inputs cannot be verified from code alone.
+
+### 10.1 Owner Action: Provider Data Terms Register
+
+Because external provider data retention and training policies cannot be verified from the codebase, the repository owner must periodically review each provider's current data terms, verify terms for the active subscription tier, and record findings in the register below:
+
+| Provider | Active API Tier | Data Terms & Privacy URL | Retention Period | Model Training on Data | Date Checked | Verified By |
+|---|---|---|---|---|---|---|
+| **Google Gemini API** | *[Owner to record]* | *[Owner to record]* | *[Owner to record]* | *[Owner to record]* | *[Pending]* | *[Pending]* |
+| **OpenAI API** | *[Owner to record]* | *[Owner to record]* | *[Owner to record]* | *[Owner to record]* | *[Pending]* | *[Pending]* |
+| **Nebius Token Factory** | *[Owner to record]* | *[Owner to record]* | *[Owner to record]* | *[Owner to record]* | *[Pending]* | *[Pending]* |
 
 ---
 
@@ -203,6 +213,8 @@ During our thorough audit of the backend and frontend codebases, we identified t
    If a diagram is recognized as a mathematical graph, the backend sends a second request containing the image to the provider chain to sample the curve equation (`backend/app/graphs/route.py`). This is a functional requirement for curve sonification, but means two provider calls receive the diagram image.
 5. **Background Improve Pass:**
    If `GEMINI_IMPROVE_MODEL` is configured in environment variables, an asynchronous background task re-submits the image bytes to Gemini to seek a higher-fidelity scene. This feature is opt-in and disabled by default.
+6. **Improve Pass Validation Logging (Code Gap B13):**
+   In `backend/app/main.py:361`, if `GEMINI_IMPROVE_MODEL` is enabled and an improved scene fails validation, `val_result.errors` is logged. While intended for diagnostics, validator error messages could contain element labels. Hardening lane hx3 addresses this by logging the count of errors instead of raw error objects.
 
 ---
 
