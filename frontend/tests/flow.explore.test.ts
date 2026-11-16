@@ -7,11 +7,13 @@ import {
   CENTRE_TICK_MS,
   checkAxisCrossing,
   checkCentreTick,
+  checkPageEdge,
   checkTwoFingerLongPress,
   checkTwoFingerSwipeDown,
   DEFAULT_RADII,
   initialAxisState,
   initialCentreTickState,
+  initialPageEdgeState,
   initialState,
   KEEP_ALIVE_INTERVAL_MS,
   LINE_DWELL_MS,
@@ -994,6 +996,45 @@ describe('Corner compass & line names (Lane A3)', () => {
     expect(lineName(triangleScene, 'CA')).toBe('Side CA. Down to C, up to A.');
     expect(lineName(triangleScene, 'x-axis')).toBe('x-axis, left to right');
     expect(lineName(triangleScene, 'y-axis')).toBe('y-axis, top to bottom');
+  });
+});
+
+describe('Page edge cue (Lane bu8b checkPageEdge)', () => {
+  it('fires once per exit on all four sides and not again until re-armed', () => {
+    const scale = 400; // margin = 20 / 400 = 0.05
+    let state = initialPageEdgeState();
+
+    // 1. Left
+    expect(checkPageEdge({ x: -0.05, y: 0.5 }, state, scale).spoken).toBe('Edge, left');
+    state = checkPageEdge({ x: -0.05, y: 0.5 }, state, scale).nextState;
+    expect(checkPageEdge({ x: -0.1, y: 0.5 }, state, scale).spoken).toBeNull();
+    // Move inside < 20 px (0.02 < 0.05) -> not rearmed
+    state = checkPageEdge({ x: 0.02, y: 0.5 }, state, scale).nextState;
+    expect(checkPageEdge({ x: -0.05, y: 0.5 }, state, scale).spoken).toBeNull();
+    // Move inside >= 20 px (0.1 > 0.05) -> rearmed
+    state = checkPageEdge({ x: 0.1, y: 0.5 }, state, scale).nextState;
+    expect(state.armed).toBe(true);
+
+    // 2. Right
+    expect(checkPageEdge({ x: 1.05, y: 0.5 }, state, scale).spoken).toBe('Edge, right');
+    state = checkPageEdge({ x: 1.05, y: 0.5 }, state, scale).nextState;
+    expect(checkPageEdge({ x: 1.1, y: 0.5 }, state, scale).spoken).toBeNull();
+    state = checkPageEdge({ x: 0.5, y: 0.5 }, state, scale).nextState;
+    expect(state.armed).toBe(true);
+
+    // 3. Top
+    expect(checkPageEdge({ x: 0.5, y: -0.05 }, state, scale).spoken).toBe('Edge, top');
+    state = checkPageEdge({ x: 0.5, y: -0.05 }, state, scale).nextState;
+    expect(checkPageEdge({ x: 0.5, y: -0.1 }, state, scale).spoken).toBeNull();
+    state = checkPageEdge({ x: 0.5, y: 0.5 }, state, scale).nextState;
+    expect(state.armed).toBe(true);
+
+    // 4. Bottom
+    expect(checkPageEdge({ x: 0.5, y: 1.05 }, state, scale).spoken).toBe('Edge, bottom');
+    state = checkPageEdge({ x: 0.5, y: 1.05 }, state, scale).nextState;
+    expect(checkPageEdge({ x: 0.5, y: 1.1 }, state, scale).spoken).toBeNull();
+    state = checkPageEdge({ x: 0.5, y: 0.5 }, state, scale).nextState;
+    expect(state.armed).toBe(true);
   });
 });
 

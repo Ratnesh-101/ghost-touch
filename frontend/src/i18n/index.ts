@@ -452,11 +452,25 @@ const en: Record<string, string> = {
   'lab.settings.findingSoundOn': 'Finding sound enabled.',
   'lab.settings.findingSoundOff': 'Finding sound disabled.',
 
+  // Stay on line setting (Lane bu12 / Task T58b)
+  'lab.settings.stickyLine': 'Stay on line',
+  'lab.settings.stickyLineHint': 'Keep following a line even if your finger drifts slightly.',
+  'lab.settings.stickyLineOn': 'Stay on line enabled.',
+  'lab.settings.stickyLineOff': 'Stay on line disabled.',
+
   // Graph scan setting (Lane A6)
   'lab.settings.graphScan': 'Graph scan',
   'lab.settings.graphScanHint': 'Hear curve pitch anywhere on the graph.',
   'lab.settings.graphScanOn': 'Graph scan enabled.',
   'lab.settings.graphScanOff': 'Graph scan disabled.',
+
+  // Speech detail setting (Lane A7)
+  'lab.settings.speechDetail': 'Speech detail',
+  'lab.settings.speechDetailHint': 'Choose full announcements or short labels during fast sweeps.',
+  'lab.settings.speechDetailFull': 'Full',
+  'lab.settings.speechDetailShort': 'Short',
+  'lab.settings.speechDetailSetFull': 'Speech detail set to full.',
+  'lab.settings.speechDetailSetShort': 'Speech detail set to short.',
 
   // Corner heartbeat setting (Lane hb2)
   'lab.settings.cornerHeartbeat': 'Corner heartbeat',
@@ -506,6 +520,11 @@ const en: Record<string, string> = {
   // Crash screen & error boundary (Lane hx1)
   'crash.message': 'Something went wrong. Double tap the screen to start again.',
   'crash.restart': 'Restart',
+  // Page edge cues (Lane bu8b)
+  'edge.top': 'Edge, top',
+  'edge.bottom': 'Edge, bottom',
+  'edge.left': 'Edge, left',
+  'edge.right': 'Edge, right',
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -926,11 +945,25 @@ const hi: Record<string, string> = {
   'lab.settings.findingSoundOn': 'खोज ध्वनि सक्षम की गई।',
   'lab.settings.findingSoundOff': 'खोज ध्वनि अक्षम की गई।',
 
+  // Stay on line setting (Lane bu12 / Task T58b)
+  'lab.settings.stickyLine': 'रेखा पर बने रहें',
+  'lab.settings.stickyLineHint': 'उंगली थोड़ा भटकने पर भी रेखा का अनुसरण जारी रखें।',
+  'lab.settings.stickyLineOn': 'रेखा पर बने रहें सक्षम किया गया।',
+  'lab.settings.stickyLineOff': 'रेखा पर बने रहें अक्षम किया गया।',
+
   // Graph scan setting (Lane A6)
   'lab.settings.graphScan': 'ग्राफ़ स्कैन',
   'lab.settings.graphScanHint': 'ग्राफ़ पर कहीं भी वक्र की ध्वनि सुनें।',
   'lab.settings.graphScanOn': 'ग्राफ़ स्कैन सक्षम किया गया।',
   'lab.settings.graphScanOff': 'ग्राफ़ स्कैन अक्षम किया गया।',
+
+  // Speech detail setting (Lane A7)
+  'lab.settings.speechDetail': 'वाणी विवरण',
+  'lab.settings.speechDetailHint': 'तीव्र स्वीप के दौरान पूर्ण घोषणाएं या संक्षिप्त लेबल चुनें।',
+  'lab.settings.speechDetailFull': 'पूर्ण',
+  'lab.settings.speechDetailShort': 'संक्षिप्त',
+  'lab.settings.speechDetailSetFull': 'वाणी विवरण पूर्ण पर सेट किया गया।',
+  'lab.settings.speechDetailSetShort': 'वाणी विवरण संक्षिप्त पर सेट किया गया।',
 
   // Corner heartbeat setting (Lane hb2)
   'lab.settings.cornerHeartbeat': 'कोना धड़कन',
@@ -980,6 +1013,11 @@ const hi: Record<string, string> = {
   // Crash screen & error boundary (Lane hx1)
   'crash.message': 'कुछ गलत हो गया। फिर से शुरू करने के लिए स्क्रीन पर डबल-टैप करें।',
   'crash.restart': 'पुनः शुरू करें',
+  // Page edge cues (Lane bu8b)
+  'edge.top': 'किनारा, ऊपर',
+  'edge.bottom': 'किनारा, नीचे',
+  'edge.left': 'किनारा, बाएँ',
+  'edge.right': 'किनारा, दाएँ',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -1401,11 +1439,25 @@ const gu: Record<string, string> = {
   'lab.settings.findingSoundOn': 'શોધ ધ્વનિ સક્ષમ કરી.',
   'lab.settings.findingSoundOff': 'શોધ ધ્વનિ અક્ષમ કરી.',
 
+  // Stay on line setting (Lane bu12 / Task T58b)
+  'lab.settings.stickyLine': 'રેખા પર રહો',
+  'lab.settings.stickyLineHint': 'આંગળી થોડી ખસી જાય તો પણ રેખા અનુસરવાનું ચાલુ રાખો.',
+  'lab.settings.stickyLineOn': 'રેખા પર રહો સક્ષમ કરી.',
+  'lab.settings.stickyLineOff': 'રેખા પર રહો અક્ષમ કરી.',
+
   // Graph scan setting (Lane A6)
   'lab.settings.graphScan': 'આલેખ સ્કેન',
   'lab.settings.graphScanHint': 'આલેખ પર ગમે ત્યાં વક્રનો સૂર સાંભળો.',
   'lab.settings.graphScanOn': 'આલેખ સ્કેન સક્ષમ કરી.',
   'lab.settings.graphScanOff': 'આલેખ સ્કેન અક્ષમ કરી.',
+
+  // Speech detail setting (Lane A7)
+  'lab.settings.speechDetail': 'વાણી વિગત',
+  'lab.settings.speechDetailHint': 'ઝડપી સ્વીપ દરમિયાન સંપૂર્ણ ઘોષણાઓ અથવા ટૂંકા લેબલ પસંદ કરો.',
+  'lab.settings.speechDetailFull': 'સંપૂર્ણ',
+  'lab.settings.speechDetailShort': 'ટૂંકું',
+  'lab.settings.speechDetailSetFull': 'વાણી વિગત સંપૂર્ણ પર સેટ થઈ.',
+  'lab.settings.speechDetailSetShort': 'વાણી વિગત ટૂંકા પર સેટ થઈ.',
 
   // Corner heartbeat setting (Lane hb2)
   'lab.settings.cornerHeartbeat': 'ખૂણાના ધબકારા',
@@ -1455,6 +1507,11 @@ const gu: Record<string, string> = {
   // Crash screen & error boundary (Lane hx1)
   'crash.message': 'કંઈક ખોટું થયું. ફરી શરૂ કરવા માટે સ્ક્રીન પર ડબલ-ટેપ કરો.',
   'crash.restart': 'ફરી શરૂ કરો',
+  // Page edge cues (Lane bu8b)
+  'edge.top': 'કિનારો, ઉપર',
+  'edge.bottom': 'કિનારો, નીચે',
+  'edge.left': 'કિનારો, ડાબે',
+  'edge.right': 'કિનારો, જમણે',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };

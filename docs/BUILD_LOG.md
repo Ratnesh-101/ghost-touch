@@ -4426,3 +4426,26 @@ Format for each entry:
   - `frontend/tests/n2.round4.test.ts`
   - `docs/reports/agy-hx6-report.md`
   - `docs/BUILD_LOG.md`
+## 2026-11-16 — Antigravity — Conflict resolution in lane bu7b
+- Resolved git merge conflict markers left from merging main into lane bu7b:
+  - In `frontend/src/i18n/index.ts`: Preserved both Speech Detail setting keys (`lab.settings.speechDetail*`) from lane bu7b and Corner Heartbeat setting keys (`lab.settings.cornerHeartbeat*`) from main across English (`en`), Hindi (`hi`), and Gujarati (`gu`).
+  - In `frontend/src/screens/Explore.tsx`: Resolved 5 conflict blocks, merging `speechPacingState` resets and bar resting dwell tracking (`isStillness = true`) from lane bu7b with `lineDwellRef` anchor coordinates and promoted pointer coordinates from main.
+- Verified TypeScript syntax, verified no duplicate imports exist, and confirmed 0 conflict markers remain.
+- Files touched: frontend/src/i18n/index.ts, frontend/src/screens/Explore.tsx, docs/reports/agy-bu7b-resolve-report.md, docs/BUILD_LOG.md
+
+## 2026-11-16 — Antigravity — Conflict resolution in lane bu8b
+- Resolved git merge conflict markers left from merging `agy/bu7b` into lane bu8b:
+  - In `frontend/src/flow/explore.ts`: Preserved Page Edge Cue Tracker types and functions (`PageEdgeSide`, `PageEdgeState`, `PageEdgeResult`, `PAGE_EDGE_REARM_PX`, `checkPageEdge`, `seedPageEdgeState`, `initialPageEdgeState`) alongside Corner Heartbeat and Speech Pacing types and logic (`HeartbeatConfig`, `HeartbeatState`, `heartbeatStep`, `paceSpeech`, bar resting dwell tracking, etc.) in `MovePipelineResult` and `processPointerMove`.
+  - In `frontend/src/screens/Explore.tsx`: Preserved both `pageEdgeState` and `speechPacingState` / `heartbeatState` refs and imports; merged `pacedAxisCrossings`, `edgeAnnouncements`, and `extraAnnouncements` into `mergeAnnouncements`; synchronized `processPointerMove` calls and state resets across pointer down, move, lift, and promotion paths.
+- Verified TypeScript syntax, verified no duplicate imports exist, and confirmed 0 conflict markers remain.
+- Files touched: frontend/src/flow/explore.ts, frontend/src/screens/Explore.tsx, docs/reports/agy-bu8b-resolve-report.md, docs/BUILD_LOG.md
+
+## 2026-11-16 — Antigravity — Conflict resolution in lane bu12
+- Resolved git merge conflict markers left from merging `agy/bu8b` into lane bu12:
+  - In `frontend/src/components/LabSettings.tsx`: Preserved both Stay on line switch and Corner heartbeat switch along with their respective storage getters and setters.
+  - In `frontend/src/drivers/storage.ts`: Preserved keys and getters/setters/resetters for both `STORAGE_KEY_STICKY_LINE` and `STORAGE_KEY_CORNER_HEARTBEAT`.
+  - In `frontend/src/flow/explore.ts`: Preserved sticky line tracking and exports (`followTarget`, `STICKY_HOLD_MS`, `STICKY_RADIUS_PX`, `initialStickyHoldState`, `updateStickyHoldState`, `resetStickyHoldOnLift`, `getHeldMs`) alongside Corner Heartbeat and Page Edge cue logic in `processPointerMove` and `MovePipelineResult`.
+  - In `frontend/src/screens/Explore.tsx`: Preserved both `stickyLineSettingRef` and `cornerHeartbeatSettingRef`; synchronized `processPointerMove` calls across keep-alive timer, pointerdown, pointermove, and pointer lift promotion paths; preserved dual state resets across all lift/cancel/blur/guide/ask boundaries.
+  - In `frontend/tests/labSettings.test.tsx`: Preserved test suites for both Stay on line toggle (Lane bu12) and Corner heartbeat toggle (Lane hb2) across English, Hindi, and Gujarati.
+- Verified TypeScript syntax, confirmed no duplicate imports exist, and confirmed 0 conflict markers remain across the repository.
+- Files touched: frontend/src/components/LabSettings.tsx, frontend/src/drivers/storage.ts, frontend/src/flow/explore.ts, frontend/src/screens/Explore.tsx, frontend/tests/labSettings.test.tsx, docs/reports/agy-bu12-resolve-report.md, docs/BUILD_LOG.md

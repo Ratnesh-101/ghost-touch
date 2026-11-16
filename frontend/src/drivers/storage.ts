@@ -39,6 +39,7 @@ export function safeRemove(key: string): void {
 
 export const STORAGE_KEY_DIRECTIONS = 'gt_directions_enabled';
 export const STORAGE_KEY_FINDING_SOUND = 'gt_finding_sound_enabled';
+export const STORAGE_KEY_STICKY_LINE = 'gt_sticky_line_enabled';
 export const STORAGE_KEY_CORNER_HEARTBEAT = 'gt_corner_heartbeat_enabled';
 
 export type SettingsListener = (key?: string) => void;
@@ -51,7 +52,7 @@ export function subscribeSettings(listener: SettingsListener): () => void {
   };
 }
 
-function notifySettingsChanged(key?: string): void {
+export function notifySettingsChanged(key?: string): void {
   for (const listener of settingsListeners) {
     try {
       listener(key);
@@ -103,6 +104,28 @@ export function _resetFindingSoundSettingForTesting(): void {
   inMemoryFindingSoundSetting = null;
   safeRemove(STORAGE_KEY_FINDING_SOUND);
   notifySettingsChanged(STORAGE_KEY_FINDING_SOUND);
+}
+
+let inMemoryStickyLineSetting: boolean | null = null;
+
+export function getStoredStickyLineSetting(): boolean {
+  const stored = safeGet(STORAGE_KEY_STICKY_LINE);
+  if (stored !== null) {
+    return stored === 'true';
+  }
+  return inMemoryStickyLineSetting ?? false;
+}
+
+export function setStoredStickyLineSetting(enabled: boolean): void {
+  safeSet(STORAGE_KEY_STICKY_LINE, enabled ? 'true' : 'false');
+  inMemoryStickyLineSetting = enabled;
+  notifySettingsChanged(STORAGE_KEY_STICKY_LINE);
+}
+
+export function _resetStickyLineSettingForTesting(): void {
+  inMemoryStickyLineSetting = null;
+  safeRemove(STORAGE_KEY_STICKY_LINE);
+  notifySettingsChanged(STORAGE_KEY_STICKY_LINE);
 }
 
 let inMemoryCornerHeartbeatSetting: boolean | null = null;

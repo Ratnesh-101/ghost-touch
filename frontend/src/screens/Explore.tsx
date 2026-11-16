@@ -23,6 +23,7 @@ import {
 } from '../core/geometry';
 import type { DiagramScene } from '../core/scene';
 import type { Target } from '../core/hitTest';
+import type { Effect } from '../core/hapticEngine';
 import { FallbackHapticDriver, runEffects, runProximityEffects, type Drivers } from '../drivers';
 import type { PulseKind } from '../drivers/haptics';
 import { leaveExploreEntry, onBack as subscribeBack, pushExploreEntry } from '../drivers/navigation';
@@ -35,6 +36,7 @@ import { resolveTarget } from '../guide';
 import { executeExploreCommand, parseExploreCommand, whereAmI } from '../flow/commands';
 import {
   CENTRE_TICK_MS,
+  checkBarRest,
   checkCentreTick,
   checkTwoFingerLongPress,
   checkTwoFingerSwipeDown,
@@ -49,28 +51,40 @@ import {
   getStoredDirectionsSetting,
   getStoredFindingSoundSetting,
   getStoredGraphScanSetting,
+  getStoredStickyLineSetting,
+  getHeldMs,
+  getStoredSpeechDetailSetting,
   initialAxisState,
   initialCentreTickState,
   initialHeartbeatState,
+  initialPageEdgeState,
   initialProximityState,
+  initialSpeechPacingState,
   initialState,
   initialWhereAmIDwellState,
   KEEP_ALIVE_INTERVAL_MS,
   LINE_DWELL_MS,
   lineName,
   mergeAnnouncements,
+  paceSpeech,
   processPointerMove,
   proximityStep,
   rearmCentreTick,
+  resetStickyHoldOnLift,
+  resetBarRest,
   resetWhereAmIDwellOnLift,
   scanTone,
   seedAxisState,
   shouldKeepAlive,
+  speechText,
   step,
+  STICKY_RADIUS_PX,
   subscribeSettings,
   TWO_FINGER_LONG_PRESS_MS,
   TWO_FINGER_MAX_MOVE_PX,
+  updateStickyHoldState,
   updateWhereAmIDwellOnMove,
+  updateBarMove,
   VERTEX_VISIT_WINDOW_MS,
   WHERE_AM_I_REST_MAX_MOVE_PX,
   WHERE_AM_I_SPEECH_QUIET_MS,
@@ -80,8 +94,13 @@ import {
   type HeartbeatState,
   type HoldKeepAliveOptions,
   type HoldKeepAliveTimer,
+  type PageEdgeState,
   type PointerHistory,
   type ProximityState,
+  type StickyHoldState,
+  type SpeechDetail,
+  type SpeechPacingState,
+  type SpeechSource,
   type WhereAmIDwellState,
 } from '../flow/explore';
 import { canvasAriaLabel, exploreAnnouncement, sceneName } from '../flow/navigation';
@@ -267,6 +286,8 @@ export function Explore({
   const proximityState = useRef<ProximityState>(initialProximityState());
   const centreTickState = useRef<CentreTickState>(initialCentreTickState());
   const axisState = useRef<AxisTrackerState>(initialAxisState());
+  const pageEdgeState = useRef<PageEdgeState>(initialPageEdgeState());
+  const speechPacingState = useRef<SpeechPacingState>(initialSpeechPacingState());
   const activePointers = useRef<Map<number, PointerHistory>>(new Map());
   const primaryPointerId = useRef<number | null>(null);
   const leaving = useRef(false);
@@ -279,6 +300,7 @@ export function Explore({
   const lastSpokenRef = useRef<string>(announced);
   const cornerIndexRef = useRef<number>(-1);
   const prevTargetRef = useRef<Target>({ kind: 'none' });
+  const stickyHoldRef = useRef<StickyHoldState>(resetStickyHoldOnLift());
   const lastVertexVisitRef = useRef<Map<string, number>>(new Map());
   const lineDwellRef = useRef<{
     lineId: string | null;
@@ -295,14 +317,18 @@ export function Explore({
   const directionsSettingRef = useRef<boolean>(getStoredDirectionsSetting());
   const findingSoundSettingRef = useRef<boolean>(getStoredFindingSoundSetting());
   const graphScanSettingRef = useRef<boolean>(getStoredGraphScanSetting());
+  const stickyLineSettingRef = useRef<boolean>(getStoredStickyLineSetting());
   const cornerHeartbeatSettingRef = useRef<boolean>(getStoredCornerHeartbeatSetting());
+  const speechDetailSettingRef = useRef<SpeechDetail>(getStoredSpeechDetailSetting());
 
   useEffect(() => {
     return subscribeSettings(() => {
       directionsSettingRef.current = getStoredDirectionsSetting();
       findingSoundSettingRef.current = getStoredFindingSoundSetting();
       graphScanSettingRef.current = getStoredGraphScanSetting();
+      stickyLineSettingRef.current = getStoredStickyLineSetting();
       cornerHeartbeatSettingRef.current = getStoredCornerHeartbeatSetting();
+      speechDetailSettingRef.current = getStoredSpeechDetailSetting();
     });
   }, []);
 
@@ -551,6 +577,8 @@ export function Explore({
       drivers.audio.setTone(null);
       playingScanToneRef.current = false;
       engineState.current = initialState();
+      prevTargetRef.current = { kind: 'none' };
+      stickyHoldRef.current = resetStickyHoldOnLift();
       heartbeatState.current = initialHeartbeatState();
       guideController.current.start(resolved);
       setIsGuiding(true);
@@ -583,9 +611,12 @@ export function Explore({
     clearLongPressTimer();
     activePointers.current.clear();
     primaryPointerId.current = null;
+    pageEdgeState.current = initialPageEdgeState();
     whereAmIDwellState.current = resetWhereAmIDwellOnLift();
+    speechPacingState.current = initialSpeechPacingState(speechDetailSettingRef.current);
     lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
     prevTargetRef.current = { kind: 'none' };
+    stickyHoldRef.current = resetStickyHoldOnLift();
     heartbeatState.current = initialHeartbeatState();
     leaveExploreEntry();
     onBack();
@@ -602,6 +633,8 @@ export function Explore({
     // GT-02: Stop tone and haptics and mark askActive while voice listening is open
     askActive.current = true;
     sendProximityLift();
+    prevTargetRef.current = { kind: 'none' };
+    stickyHoldRef.current = resetStickyHoldOnLift();
     try {
       drivers.audio.setTone(null);
       playingScanToneRef.current = false;
@@ -701,6 +734,8 @@ export function Explore({
           drivers.haptics.stop();
           drivers.audio.setTone(null);
           engineState.current = initialState();
+          prevTargetRef.current = { kind: 'none' };
+          stickyHoldRef.current = resetStickyHoldOnLift();
           heartbeatState.current = initialHeartbeatState();
           guideController.current?.start(result.guideTarget);
           setIsGuiding(true);
@@ -829,6 +864,8 @@ export function Explore({
       return;
     }
     setIsBusy(true);
+    prevTargetRef.current = { kind: 'none' };
+    stickyHoldRef.current = resetStickyHoldOnLift();
     const q = questionText;
     const lang = LANG_BCP47[getLang()] ?? 'en-IN';
     let outcome: AskOutcome | null = null;
@@ -1162,6 +1199,8 @@ export function Explore({
       clearLongPressTimer();
       activePointers.current.clear();
       primaryPointerId.current = null;
+      prevTargetRef.current = { kind: 'none' };
+      stickyHoldRef.current = resetStickyHoldOnLift();
       heartbeatState.current = initialHeartbeatState();
       onBackRef.current();
     });
@@ -1180,9 +1219,12 @@ export function Explore({
         clearLongPressTimer();
         activePointers.current.clear();
         primaryPointerId.current = null;
+        pageEdgeState.current = initialPageEdgeState();
         whereAmIDwellState.current = resetWhereAmIDwellOnLift();
+        speechPacingState.current = resetBarRest(speechPacingState.current);
         lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
         prevTargetRef.current = { kind: 'none' };
+        stickyHoldRef.current = resetStickyHoldOnLift();
         heartbeatState.current = initialHeartbeatState();
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
         engineState.current = state;
@@ -1203,9 +1245,11 @@ export function Explore({
       clearLongPressTimer();
       activePointers.current.clear();
       primaryPointerId.current = null;
+      pageEdgeState.current = initialPageEdgeState();
       whereAmIDwellState.current = resetWhereAmIDwellOnLift();
       lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
       prevTargetRef.current = { kind: 'none' };
+      stickyHoldRef.current = resetStickyHoldOnLift();
       heartbeatState.current = initialHeartbeatState();
       const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
       engineState.current = state;
@@ -1260,6 +1304,8 @@ export function Explore({
         rafId.current = null;
       }
       // Lift on unmount
+      prevTargetRef.current = { kind: 'none' };
+      stickyHoldRef.current = resetStickyHoldOnLift();
       heartbeatState.current = initialHeartbeatState();
       const { effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
       runEffects(effects, drivers);
@@ -1280,29 +1326,112 @@ export function Explore({
     lang: string,
     extraAnnouncements: readonly string[] = [],
     afterAnnouncements: readonly string[] = [],
+    isStillness = false,
   ): void => {
     engineState.current = moveResult.nextEngineState;
     heartbeatState.current = moveResult.heartbeatState;
     centreTickState.current = moveResult.centreCheck.nextState;
     axisState.current = moveResult.nextAxisState;
+    if (moveResult.pageEdge) {
+      pageEdgeState.current = moveResult.pageEdge.nextState;
+      if (moveResult.pageEdge.spoken) {
+        try {
+          drivers.audio.playEarcon?.('back');
+        } catch {
+          // ignore
+        }
+      }
+    }
 
     if (moveResult.centreCheck.tick) {
       drivers.haptics.vibrate(CENTRE_TICK_MS);
     }
+
+    const detail = speechDetailSettingRef.current;
+    const now = performance.now();
+
+    // Track pointer movement on bar or reset if moving away
+    if (!isStillness) {
+      if (moveResult.target.kind === 'bar') {
+        speechPacingState.current = updateBarMove(
+          speechPacingState.current,
+          now,
+          moveResult.target.id,
+        );
+      } else {
+        speechPacingState.current = resetBarRest(speechPacingState.current);
+      }
+    }
+
+    // Pace axis crossings (Lane A7)
+    const pacedAxisCrossings: string[] = [];
+    for (const axisText of moveResult.axisCrossings) {
+      const paced = paceSpeech(speechPacingState.current, {
+        t: now,
+        text: axisText,
+        source: 'axis',
+        detail,
+      });
+      speechPacingState.current = paced.state;
+      if (paced.speakNow !== null) {
+        pacedAxisCrossings.push(paced.speakNow);
+      }
+    }
+
+    // Pace engine speech effects (corners, bars, etc.)
+    const pacedEffects: Effect[] = [];
+    for (const effect of moveResult.effects) {
+      if (effect.kind !== 'speak' && effect.kind !== 'speakKey') {
+        pacedEffects.push(effect);
+        continue;
+      }
+      const words = speechText(effect);
+      if (!words) continue;
+
+      const source: SpeechSource =
+        moveResult.target.kind === 'vertex'
+          ? 'corner'
+          : moveResult.target.kind === 'bar'
+          ? 'bar'
+          : 'other';
+
+      const paced = paceSpeech(speechPacingState.current, {
+        t: now,
+        text: words,
+        source,
+        detail,
+        barId: moveResult.target.kind === 'bar' ? moveResult.target.id : null,
+      });
+      speechPacingState.current = paced.state;
+      if (paced.speakNow !== null) {
+        pacedEffects.push({ kind: 'speak', text: paced.speakNow });
+      }
+    }
+
+    // Corners in short mode speak label only (suppress compass directions)
+    const pacedAfterAnnouncements =
+      detail === 'short' && moveResult.target.kind === 'vertex'
+        ? []
+        : afterAnnouncements;
+
     // R3-01 / R3-03: Unified move pipeline calls mergeAnnouncements (previously in pointerdown, move, promotion)
     // PointerDown: mergeAnnouncements([centreMsg, ...axisCrossings], effects) (R3-01)
     // PointerMove: mergeAnnouncements(moveResult.axisCrossings, moveResult.effects)
     // Promotion: mergeAnnouncements(moveResult.axisCrossings, moveResult.effects)
+    const edgeAnnouncements = moveResult.pageEdge?.spoken ? [moveResult.pageEdge.spoken] : [];
     const moveEffects = mergeAnnouncements(
-      [...extraAnnouncements, ...moveResult.axisCrossings],
-      moveResult.effects,
-      afterAnnouncements,
+      [...extraAnnouncements, ...pacedAxisCrossings, ...edgeAnnouncements],
+      pacedEffects,
+      pacedAfterAnnouncements,
     );
     // R3-02: update lastSpokenRef unconditionally from the merged speak effect
     const joined = moveEffects.find((e) => e.kind === 'speak');
     if (joined?.kind === 'speak') {
       lastSpokenRef.current = joined.text;
       lastSpeechStartRef.current = performance.now();
+      if (moveResult.pageEdge?.spoken) {
+        setStatusMessage(joined.text);
+      }
     }
     proximityState.current = moveResult.proximityState;
     runEffects(moveEffects, drivers, lang);
@@ -1426,6 +1555,7 @@ export function Explore({
       onTick: (coords, now) => {
         const view = viewportRef.current;
         const lang = LANG_BCP47[getLang()] ?? 'en-IN';
+        const heldMs = getHeldMs(stickyHoldRef.current, prevTargetRef.current, now);
         const moveResult = processPointerMove(
           sceneRef.current,
           coords,
@@ -1440,12 +1570,40 @@ export function Explore({
           DEFAULT_PROXIMITY,
           heartbeatState.current,
           cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
+          pageEdgeState.current,
+          {
+            enabled: stickyLineSettingRef.current,
+            prevTarget: prevTargetRef.current,
+            heldMs,
+            stickyRadiusPx: STICKY_RADIUS_PX,
+          },
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, coords, now, lang);
-        applyMoveResult(moveResult, lang, [], compassAnnouncements);
+        applyMoveResult(moveResult, lang, [], compassAnnouncements, true);
+        stickyHoldRef.current = updateStickyHoldState(
+          stickyHoldRef.current,
+          moveResult.target,
+          now,
+        );
         prevTargetRef.current = moveResult.target;
         scheduleDraw(view, coords);
+
+        if (moveResult.target.kind === 'bar') {
+          const restResult = checkBarRest(speechPacingState.current, now, moveResult.target.id);
+          speechPacingState.current = restResult.state;
+          if (
+            restResult.speakNow !== null &&
+            !leaving.current &&
+            !askActive.current &&
+            !guideController.current?.isGuiding()
+          ) {
+            drivers.speech.speak(restResult.speakNow, lang);
+            lastSpeechStartRef.current = now;
+            lastSpokenRef.current = restResult.speakNow;
+            setStatusMessage(restResult.speakNow);
+          }
+        }
 
         const dwellResult = checkWhereAmIDwell(whereAmIDwellState.current, {
           targetKind: moveResult.target.kind,
@@ -1480,7 +1638,9 @@ export function Explore({
     directionsSettingRef.current = getStoredDirectionsSetting();
     findingSoundSettingRef.current = getStoredFindingSoundSetting();
     graphScanSettingRef.current = getStoredGraphScanSetting();
+    stickyLineSettingRef.current = getStoredStickyLineSetting();
     cornerHeartbeatSettingRef.current = getStoredCornerHeartbeatSetting();
+    speechDetailSettingRef.current = getStoredSpeechDetailSetting();
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
@@ -1536,12 +1696,15 @@ export function Explore({
     heartbeatState.current = initialHeartbeatState();
     // Re-arm centre tick state on every new hold (finding 2)
     centreTickState.current = rearmCentreTick(centreTickState.current);
+    prevTargetRef.current = { kind: 'none' };
+    stickyHoldRef.current = resetStickyHoldOnLift();
 
     // Reset axis tracking on every pointerdown and seed side without speaking (finding 7)
     const norm = toNorm(coords, view);
     lastFingerNormRef.current = norm;
     whereAmIDwellState.current = updateWhereAmIDwellOnMove(whereAmIDwellState.current, coords, now);
     axisState.current = seedAxisState(norm, scene.axes);
+    pageEdgeState.current = initialPageEdgeState();
 
     // Check centre reference tick
     const cx = view.canvasWidth / 2;
@@ -1556,6 +1719,13 @@ export function Explore({
     }
 
     // EX-02: Gate pointerdown while Ask listening is open (no tone, vibration or speech)
+    const heldMs = getHeldMs(stickyHoldRef.current, prevTargetRef.current, now);
+    const stickyOpts = {
+      enabled: stickyLineSettingRef.current,
+      prevTarget: prevTargetRef.current,
+      heldMs,
+      stickyRadiusPx: STICKY_RADIUS_PX,
+    };
     if (askActive.current) {
       keepAliveTimer.current?.stop();
       const moveResult = processPointerMove(
@@ -1572,12 +1742,20 @@ export function Explore({
         DEFAULT_PROXIMITY,
         heartbeatState.current,
         cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
+        pageEdgeState.current,
+        stickyOpts,
       );
       engineState.current = moveResult.nextEngineState;
       centreTickState.current = moveResult.centreCheck.nextState;
       axisState.current = moveResult.nextAxisState;
       proximityState.current = moveResult.proximityState;
       heartbeatState.current = moveResult.heartbeatState;
+      pageEdgeState.current = moveResult.pageEdge.nextState;
+      stickyHoldRef.current = updateStickyHoldState(
+        stickyHoldRef.current,
+        moveResult.target,
+        now,
+      );
       prevTargetRef.current = moveResult.target;
       scheduleDraw(view, coords);
       return;
@@ -1612,10 +1790,17 @@ export function Explore({
       DEFAULT_PROXIMITY,
       heartbeatState.current,
       cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
+      pageEdgeState.current,
+      stickyOpts,
     );
     const compassAnnouncements = checkVertexCompass(moveResult.target, now);
     checkLineDwell(moveResult.target, coords, now, lang);
     applyMoveResult(moveResult, lang, centreAnnouncements, compassAnnouncements);
+    stickyHoldRef.current = updateStickyHoldState(
+      stickyHoldRef.current,
+      moveResult.target,
+      now,
+    );
     prevTargetRef.current = moveResult.target;
     scheduleDraw(view, coords);
     keepAliveTimer.current?.start(coords, now);
@@ -1664,6 +1849,14 @@ export function Explore({
       return;
     }
 
+    const heldMs = getHeldMs(stickyHoldRef.current, prevTargetRef.current, now);
+    const stickyOpts = {
+      enabled: stickyLineSettingRef.current,
+      prevTarget: prevTargetRef.current,
+      heldMs,
+      stickyRadiusPx: STICKY_RADIUS_PX,
+    };
+
     // GT-02: When Ask starts, skip runEffects and axis speech until listening ends
     if (askActive.current) {
       keepAliveTimer.current?.stop();
@@ -1681,12 +1874,20 @@ export function Explore({
         DEFAULT_PROXIMITY,
         heartbeatState.current,
         cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
+        pageEdgeState.current,
+        stickyOpts,
       );
       engineState.current = moveResult.nextEngineState;
       centreTickState.current = moveResult.centreCheck.nextState;
       axisState.current = moveResult.nextAxisState;
       proximityState.current = moveResult.proximityState;
       heartbeatState.current = moveResult.heartbeatState;
+      pageEdgeState.current = moveResult.pageEdge.nextState;
+      stickyHoldRef.current = updateStickyHoldState(
+        stickyHoldRef.current,
+        moveResult.target,
+        now,
+      );
       prevTargetRef.current = moveResult.target;
       scheduleDraw(view, coords);
       return;
@@ -1711,10 +1912,17 @@ export function Explore({
       DEFAULT_PROXIMITY,
       heartbeatState.current,
       cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
+      pageEdgeState.current,
+      stickyOpts,
     );
     const compassAnnouncements = checkVertexCompass(moveResult.target, now);
     checkLineDwell(moveResult.target, coords, now, lang);
     applyMoveResult(moveResult, lang, [], compassAnnouncements);
+    stickyHoldRef.current = updateStickyHoldState(
+      stickyHoldRef.current,
+      moveResult.target,
+      now,
+    );
     prevTargetRef.current = moveResult.target;
     scheduleDraw(view, coords);
     keepAliveTimer.current?.update(coords, now);
@@ -1782,7 +1990,9 @@ export function Explore({
         directionsSettingRef.current = getStoredDirectionsSetting();
         findingSoundSettingRef.current = getStoredFindingSoundSetting();
         graphScanSettingRef.current = getStoredGraphScanSetting();
+        stickyLineSettingRef.current = getStoredStickyLineSetting();
         cornerHeartbeatSettingRef.current = getStoredCornerHeartbeatSetting();
+        speechDetailSettingRef.current = getStoredSpeechDetailSetting();
         const view = viewportRef.current;
         const lang = LANG_BCP47[getLang()] ?? 'en-IN';
 
@@ -1793,10 +2003,14 @@ export function Explore({
         sendProximityLift(now);
 
         engineState.current = initialState();
+        prevTargetRef.current = { kind: 'none' };
+        stickyHoldRef.current = resetStickyHoldOnLift();
+        pageEdgeState.current = initialPageEdgeState();
         heartbeatState.current = initialHeartbeatState();
         const norm = toNorm(promotedCoords, view);
         axisState.current = seedAxisState(norm, scene.axes);
 
+        const heldMs = getHeldMs(stickyHoldRef.current, prevTargetRef.current, now);
         const moveResult = processPointerMove(
           scene,
           promotedCoords,
@@ -1811,10 +2025,23 @@ export function Explore({
           DEFAULT_PROXIMITY,
           heartbeatState.current,
           cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
+          pageEdgeState.current,
+          {
+            enabled: stickyLineSettingRef.current,
+            prevTarget: prevTargetRef.current,
+            heldMs,
+            stickyRadiusPx: STICKY_RADIUS_PX,
+          },
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, promotedCoords, now, lang);
+        // Promotion of surviving pointer
         applyMoveResult(moveResult, lang, [], compassAnnouncements);
+        stickyHoldRef.current = updateStickyHoldState(
+          stickyHoldRef.current,
+          moveResult.target,
+          now,
+        );
         prevTargetRef.current = moveResult.target;
         scheduleDraw(view, promotedCoords);
         if (!guideController.current?.isGuiding() && !askActive.current) {
@@ -1823,9 +2050,12 @@ export function Explore({
       } else {
         // All fingers lifted: silence effects
         primaryPointerId.current = null;
+        pageEdgeState.current = initialPageEdgeState();
         whereAmIDwellState.current = resetWhereAmIDwellOnLift();
+        speechPacingState.current = resetBarRest(speechPacingState.current);
         lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
         prevTargetRef.current = { kind: 'none' };
+        stickyHoldRef.current = resetStickyHoldOnLift();
         heartbeatState.current = initialHeartbeatState();
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
         engineState.current = state;
