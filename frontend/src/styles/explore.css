@@ -215,6 +215,8 @@
   margin: 0;
   font-size: var(--gt-text-sm, 0.875rem);
   line-height: 1.45;
+  /* Requirement 25.4: same three-line minimum as global.css (task 66). */
+  min-height: calc(3 * 1.45em);
   color: var(--gt-text, #eafff5);
   font-weight: 500;
   display: -webkit-box;

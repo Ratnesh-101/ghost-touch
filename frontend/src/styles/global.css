@@ -1023,6 +1023,9 @@ body {
   margin: 0;
   font-size: var(--gt-text-sm);
   line-height: 1.4;
+  /* Requirement 25.4: the text element itself keeps three lines of height, so a one-line message
+     ("Edge, bottom") occupies the same box as a three-line overview. */
+  min-height: calc(3 * 1.4em);
   color: var(--gt-text);
   font-weight: 500;
   display: -webkit-box;

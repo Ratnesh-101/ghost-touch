@@ -550,3 +550,15 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 65.3 Mutation-check each guard in `Explore.tsx` by a temporary edit, reverted; record every mutant and whether the suite killed it here and in BUILD_LOG. Killed: finding sound (switch, Ask), graph scan (switch, Ask), compass (Directions), line name (Directions, Ask), heartbeat switch, where-am-I Directions (both sites together). Survived as equivalent (redundant or unreachable guards): Guide guard in finding-sound, graph-scan and line-name blocks; where-am-I Directions at one site only; where-am-I Ask and Guide flags on the tick path. Finding: finger promotion while Ask listens speaks the corner exits and plays the corner pattern (Requirement 28.7); pinned as `it.fails`, fix is for an agy lane in `Explore.tsx` `handlePointerUp`
   - [x] 65.4 Gate (`tsc --noEmit`, `vitest run --maxWorkers=6`); BUILD_LOG entry (tool = Kiro); path-scoped commit `kiro: T65 Explore wiring guard tests`
   - _Requirements: 28.7-28.9, 29.6, 29.8, 30.2-30.4, 34.7_
+
+
+## Playwright regressions on main (task 66; spec before code)
+> Source: `npx playwright test` fails 8 of 22 on main (67d3c88) on both phone projects. Requirement 25 text is kept; no tuned haptic value, `core/` file or `hapticEngine.ts` changes. Throwaway worktree under %TEMP% for the bisect, removed afterwards.
+
+- [x] 66. Restore Requirement 25 in Explore and settle the actions-layout threshold
+  - [x] 66.1 Spec (this entry): group A `explore.canvas-stable.spec.ts` "Status line height changed" (baseline 58.8 px, current 19.6 px) on both phones; group B `explore.actions-layout.spec.ts` canvas 237 px against a 40 % guess. Requirement 25.4 says the status area occupies a fixed height whatever its text; it holds for the card but not for the status line element the e2e measures
+  - [x] 66.2 Reproduce and bisect `3a6fc78..HEAD` in a throwaway worktree; record the commit that moved the status line (result: the page-edge cue of lane bu8b, first buildable in the stacked 67d3c88; 7cb3e37 does not build; T65 and bu7b 9a523b4 pass)
+  - [x] 66.3 Fix A at the cause (Explore.tsx / StatusText / CSS); regression assertion naming the cause; Requirement 25.4 gets a clarifying sentence only if the cause is not already covered
+  - [x] 66.4 Measure group B canvas height at 3a6fc78 and now on both phones; if a new row shrank it, fix the layout keeping every button 48 x 48; if the 40 % was a guess, set the threshold from the baseline minus a small margin and say so
+  - [x] 66.5 Gate: `npx playwright test`, `tsc --noEmit`, `vitest run --maxWorkers=6`, all green twice; BUILD_LOG entry (tool = Kiro); path-scoped commit `kiro: T66 ...`
+  - _Requirements: 25.1-25.7_

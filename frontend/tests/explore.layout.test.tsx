@@ -274,6 +274,15 @@ describe('P87 Explore layout rule is declared (Requirement 25.4 to 25.7)', () =>
       expect(text['overflow']).toBe('hidden');
     });
 
+    it(name + ': the status text element keeps three lines of height whatever its text (task 66)', () => {
+      // The page-edge cue ("Edge, bottom") replaced a three-line overview with one line, and the
+      // text element shrank from 58.8 to 19.6 px on the e2e. The card was fixed; the element was not.
+      const text = merged(css, '.gt-explore__status');
+      const lh = Number(text['line-height']);
+      expect(lh).toBeGreaterThan(1);
+      expect(text['min-height']).toBe('calc(3 * ' + lh + 'em)');
+    });
+
     it(name + ': the canvas is out of flow and blocks touch scrolling', () => {
       const d = merged(css, '.gt-explore__canvas');
       expect(d['position']).toBe('absolute');
