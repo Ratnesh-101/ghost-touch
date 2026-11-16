@@ -427,3 +427,32 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 54.3 Tests: shared `xWithin(pts, t)` helper clamps to the curve's x range, used by P106 and P108; pinned example with the counterexample; both fail with the old formula and pass with the helper
   - [x] 54.4 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro)
   - _Requirements: 5.6_
+
+## Corner speech, line names and where-am-I (Requirements 28 to 32; spec written before any code change)
+> Spec text only in task 55. Do not edit `screens/`, `flow/`, `core/`, `tech.md` or any tuned value in this task. The code is an Antigravity lane in `Explore.tsx` and `flow/`. Source: `docs/reviews/kiro-review-bu3-bu5.md`, `docs/reports/fable-blind-user-plan.md`.
+
+- [x] 55. Spec for review findings M1, M2, M4 and plan lanes A7, A8
+  - [x] 55.1 Requirement 28 (corner speech incl. touch-down, review M1), Requirement 29 (line name only on rest, M2, L3), Requirement 30 (where-am-I dwell behind Directions, M4, L2, L7, L8)
+  - [x] 55.2 Requirements 31 (A7 speech pacing) and 32 (A8 page edge cue and TalkBack labels), requirements only; neither was in the spec
+  - [x] 55.3 design.md section and properties P109-P113, marked specified and not built
+  - [x] 55.4 OD-2 (click cue "Finding sound" default-on while PROPOSED and phone-untested) and OD-3 (Directions default and the README demo steps) in `docs/reviews/kiro-owner-decisions.md`; no default changed; `tech.md` not edited
+  - [x] 55.5 Path-scoped commit `kiro: T55 spec ...`; nothing pushed
+  - _Requirements: 28.*, 29.*, 30.*, 31.*, 32.*_
+
+- [ ] 56. Properties and Explore-wiring oracle for Requirements 28 to 30 (Kiro writes the properties; an agy lane writes the code)
+  - [ ] 56.1 Agy lane: `cornerCompass` on touch-down, `lineDwell` with rest and speech-quiet guards, `whereAmIDwell` behind Directions, one speech-start record, fixed switch label, unused `commands.where*` keys removed or listed (review M1, M2, M4, L3, L7, L8)
+  - [ ] 56.2 P109-P113 in `frontend/tests/*.prop.test.ts` (200+ runs), mutation-checked, written against the pure functions the lane exports
+  - [ ] 56.3 The real-Explore test of design.md "Tests the lane writes (M3)", with each guard removed in turn to show it fails
+  - [ ] 56.4 Requirements 31 and 32 get design sections and tasks when their lanes (A7, A8) are scheduled
+  - _Requirements: 28.*, 29.*, 30.*_
+
+## Adopt the tests of outside PR 36 (task 57; tests only)
+> PR 36 by drv653 adds corner/edge transition and viewport tests to `frontend/tests/haptic.corner.regression.test.ts`. Tests only: `hapticEngine.ts`, `core/` and every tuned value are untouched. The PR head is read with `git show pr36-head:...`; nothing is merged or checked out.
+
+- [x] 57. Adopt PR 36's tests and fix the review findings
+  - [x] 57.1 Merge the PR's added tests into the T50 version of the file (the PR's first 4 describe blocks equal main's)
+  - [x] 57.2 Viewport test now runs `step()` through `processPointerMove` with a trace per viewport and asserts the effects (corner [50, 90, 50] once, line vibrate(80) outside the quiet window), not only target kinds
+  - [x] 57.3 BC to C to CA steps through the quiet window (t=1200 no buzz, 1549 none, 1550 buzz); vertex re-entry inside the window (Requirement 4.9 / P96) and after it
+  - [x] 57.4 Each new test mutation-checked against a temporary mutant of `hapticEngine.ts`, reverted; `git diff` on `frontend/src` clean afterwards
+  - [x] 57.5 Gate (`tsc --noEmit`, `vitest run`); path-scoped commit
+  - _Requirements: 4.1, 4.3, 4.4, 4.5, 4.9_

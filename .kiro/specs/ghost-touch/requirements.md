@@ -383,3 +383,77 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 7. THE cue SHALL be audio only. THE machine SHALL emit only effects of kind `click` and SHALL NEVER emit a vibration effect: a second vibration pattern would blur into the line buzz and the corner pattern (product principle 3) and the single motor cannot vary its strength.
 8. THE machine SHALL be pure: no DOM, React, `window`, `navigator`, audio or speech; no import from `frontend/src/guide/`. It SHALL keep its own constants (`DEFAULT_PROXIMITY`) and SHALL NOT change what the engine feels or says (Requirements 4 to 6, 13).
 9. Proposed values, all pending owner approval and a phone test (`tech.md`, separate row): near-line radius 48 CSS px; line radius 14 CSS px (the tuned value of Requirement 4, copied, not changed); far interval 400 ms; near interval 90 ms; pitch 500 to 1200 Hz; gain 0.3 (far) to 0.6 (near). Whether the click is distinguishable from the theremin and the Guide tone, on a speaker and on one earbud, is for the phone test.
+
+### Requirement 28: A corner says where its edges go (speech half of Requirement 26)
+> Written by Kiro on 2026-11-16 BEFORE any code change (task 55), from `docs/reviews/kiro-review-bu3-bu5.md` finding M1 and `docs/reports/fable-blind-user-plan.md` (sections 2.3, 4 I1; lane A3). It specifies the speech that lane bu3 wired from the helpers of Requirement 26. Nothing here changes the engine, `hitTest`, a haptic effect or a tuned value. "Directions" is the Settings switch that already exists; this requirement does not change its default (owner decision OD-3).
+
+**User Story:** As a blind student who reaches a corner, I want to hear which way each edge leaves it, however I got there, so that I can choose a direction instead of guessing in silence.
+
+#### Acceptance Criteria
+1. WHEN the engine announces a vertex (the corner pattern and the label of Requirement 4.3) THEN, IF Directions is on, the system SHALL speak the label followed by the exits of Requirement 26.3, one short clause per exit ("Down-right to B."), as ONE utterance with any axis crossing of the same step (Requirement 17.2).
+2. THE announcement SHALL be made WHATEVER caused the entry: a pointer move, a keep-alive tick, or a new touch that lands inside the vertex radius. A touch-down on a corner SHALL speak the label and the exits exactly as a move onto it does. (Review M1: touch-down on a corner spoke only the label, and a later move could not add the exits because the corner was no longer a new entry.)
+3. WHEN the finger arrived from a segment THEN the exit along that segment SHALL be left out. WHEN there is no arrival segment (a new touch, or an arrival from empty space) THEN every exit SHALL be listed.
+4. WHEN a vertex has more than 4 exits THEN the system SHALL say the number of edges instead of listing them. A compass clause SHALL be at most 12 words.
+5. WHEN the same vertex was announced less than 10 s ago THEN the system SHALL speak the label only.
+6. WHEN the engine does not announce the vertex (a re-entry suppressed by Requirement 4.9) THEN the system SHALL NOT speak the exits either.
+7. WHILE Ask is listening or Guide is guiding, THE system SHALL NOT speak the exits.
+8. WHEN Directions is off THEN the system SHALL speak the label only, as before Requirement 26 existed.
+9. THE vibrate and tone effects for any trace SHALL be identical with Directions on and off. A test SHALL show this through the real Explore screen, not through a helper that ignores the setting (review M3).
+10. Every string SHALL exist in `en`, `hi` and `gu` and go through `t()` / `tf()`. No string SHALL contain "verified", "correct", "checked" or "approved" (or a translation).
+
+### Requirement 29: A line is named only when the finger rests on it
+> Written by Kiro on 2026-11-16 BEFORE any code change (task 55), from review finding M2 and plan improvement I7 (lane A3). The numbers below are proposed, pending owner approval and a phone test; none is a haptic value and none changes `tech.md` in this task.
+
+**User Story:** As a blind student who stops on a line to think, I want to hear which line it is and where it leads, and I do not want that sentence on every side I trace past.
+
+#### Definitions
+- **Rest:** the finger stays within the rest radius (proposed 6 CSS px, the same value the where-am-I dwell uses) of the point where the current rest began. Moving farther restarts the rest at the new point.
+- **Speech quiet window:** the time after the last speech the app started (proposed 1500 ms, the same value the where-am-I dwell uses). It is not the 450 ms corner quiet window, which it contains.
+
+#### Acceptance Criteria
+1. WHEN the finger has been on the same line (segment, axis, polyline or bar edge) continuously for 800 ms AND has rested for those 800 ms AND no speech started within the speech quiet window THEN, IF Directions is on, the system SHALL speak the name of the line once.
+2. WHEN the finger keeps moving along a line, however slowly, so that it never rests for 800 ms THEN the system SHALL NOT speak the line name. An ordinary trace along a side SHALL NOT trigger it.
+3. WHEN speech started less than the speech quiet window ago (a corner label and its exits, an axis word, a bar label) THEN the line name SHALL NOT be spoken and SHALL NOT cancel that speech. It MAY be spoken later in the same visit, once the finger rests again outside the window.
+4. THE line name SHALL be spoken at most once per visit to that line. Leaving the line re-arms it.
+5. THE name of a segment SHALL be its name and the way to travel to each end: "Side AB. Up-left to A, down-right to B." (Requirement 26.4). An axis SHALL be named with its direction ("x-axis, left to right"). A polyline or a bar edge SHALL be named by its label only.
+6. WHILE Ask is listening or Guide is guiding, THE system SHALL NOT speak the line name. WHEN Directions is off THE system SHALL NOT speak it.
+7. THE decision (rest, 800 ms, speech quiet window, once per visit) SHALL be a pure function in `flow/`, so it can be property-tested. Explore SHALL only call it and speak what it returns.
+8. THE vibrate and tone effects SHALL be identical with the dwell on and off (as 28.9).
+
+### Requirement 30: Where am I without voice, behind Directions
+> Written by Kiro on 2026-11-16 BEFORE any code change (task 55), from review findings M4 and L2 and plan improvement I5 (lane A5). Lane bu5 built the dwell without a switch.
+
+**User Story:** As a blind student who has lost the diagram, I want to hear where I am when I hold still or press a button, and I want to be able to turn the automatic version off.
+
+#### Acceptance Criteria
+1. WHEN the finger rests (Requirement 29 definition) for 1200 ms on a position where `hitTest` returns no target THEN, IF Directions is on, the system SHALL speak where the finger is: the coarse position, then the nearest element, a distance word (touching, close, far) and the side it is on. It SHALL speak this once per rest. The rest re-arms after the finger moves 20 CSS px or lifts.
+2. THE automatic dwell SHALL NOT run WHEN Directions is off. The switch SHALL cover corners, line names and this dwell, and its visible and spoken label SHALL say so. Its label SHALL be fixed and the state SHALL be carried by `aria-checked` only, so a screen reader does not read the state twice (review L7).
+3. THE "Where am I" button and the voice command are explicit requests. THEY SHALL work whether Directions is on or off.
+4. THE dwell SHALL NOT fire within the speech quiet window of Requirement 29, WHILE Ask is listening, or WHILE Guide is guiding. "Speech started" SHALL include every utterance the app starts (move speech, line names, Ask answers, Guide arrival, overview, earcon speech), not only some of them (review L3).
+5. WHEN the finger is inside a bar THE answer SHALL name that bar, from the `hitTest` result, before `nearestElement` is used (review L2). `nearestElement` SHALL be used only when `hitTest` reports no target (design.md, Requirement 26 "Not built here").
+6. THE decision SHALL be a pure function in `flow/` with a property test, and a test through the real Explore screen SHALL show that the switch, Ask and Guide guards are the ones Explore passes (review M3).
+7. All strings in `en`, `hi` and `gu`. Strings left unused by this change (`commands.whereNearVertex`, `commands.whereNearLine`, `commands.whereEmpty`) SHALL be removed or listed with a reason (review L8).
+
+### Requirement 31: Speech pacing and detail (lane A7; requirement only)
+> Recorded by Kiro on 2026-11-16 from `docs/reports/fable-blind-user-plan.md` (sections 2.7, 2.8, improvement I11, lane A7). No design section and no task yet: they follow when the lane is scheduled. Not built. The numbers are the plan's proposals, pending owner approval and a phone test.
+
+**User Story:** As a blind student who moves quickly, I want a label I started to hear to finish, so that a bar or a corner name is not cut off by the next word.
+
+#### Acceptance Criteria
+1. THE system SHALL offer a "Speech detail" setting with two values, full and short. THE default SHALL be full, and in full mode nothing SHALL be dropped or reordered except as 2 requires.
+2. WHEN an axis word ("x-axis", "y-axis") arrives within 600 ms after a corner or bar announcement THEN it SHALL be dropped, not allowed to cut that announcement. THE same axis word SHALL NOT be repeated within 2000 ms. This extends Requirement 17.2 (no announcement is lost within one step); it applies across steps.
+3. IN short mode, a corner SHALL be spoken by its label only. A bar that follows another bar by less than 700 ms SHALL be spoken by its label only, and the value SHALL be spoken after the finger has rested on that bar for 500 ms. Requirement 6.1 (label and value) is unchanged in full mode and after the rest in short mode. Requirement 6.4 (rounding) is unchanged.
+4. THE pacing decision SHALL be a pure function in `flow/` with property tests (no label cut by an axis word; axis word at most twice in 3.3 s of wobble on an axis).
+5. THE setting's strings SHALL exist in `en`, `hi` and `gu`.
+
+### Requirement 32: Page edge cue and richer TalkBack labels (lane A8; requirement only)
+> Recorded by Kiro on 2026-11-16 from `docs/reports/fable-blind-user-plan.md` (sections 2.1, 2.6, improvements I10 and I12, lane A8). No design section and no task yet. Not built. The TalkBack labels need Requirement 26 (done).
+
+**User Story:** As a blind student, I want to know when my finger leaves the page, and as a TalkBack user I want the feature buttons to say where each corner and side is.
+
+#### Acceptance Criteria
+1. WHEN the finger moves outside the unit square, that is, when a normalized x or y is below 0 or above 1 (this includes the letterbox bands) THEN the system SHALL play one short earcon and speak "Edge" with the side (top, bottom, left or right), once per exit, joined with any other announcement of the step as one utterance. WHEN a touch lands outside THEN it SHALL say it once. It SHALL re-arm only after the finger is back inside by at least 20 CSS px. THE cue SHALL use no vibration.
+2. THE edge cue SHALL have an off switch (every audio cue needs one, plan section 3). Whether it is on by default is not decided here.
+3. THE TalkBack feature buttons SHALL read a corner as "Corner A, top left, joined to B and C" and a side as "Side AB, from top left to bottom right". Bars, curves and axes keep their present labels. The cap on the number of feature buttons (60) is unchanged.
+4. THE edge tracker SHALL be a pure function in `flow/` with a property test (once per exit on each of the four sides, not again until re-armed). A position on the boundary (0 or 1) counts as inside and SHALL NOT trigger it.
+5. All strings in `en`, `hi` and `gu`; none contains "verified", "correct", "checked" or "approved".

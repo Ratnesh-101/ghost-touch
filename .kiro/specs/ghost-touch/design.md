@@ -651,3 +651,43 @@ ull; NaN, infinite, out-of-range and missing data never throw. 250 runs. | 5.6 |
 | P108 | **Hint and pitch (Kiro, task 52):** with several candidates the result is the one nearest the hint (first wins a tie), with no hint the first in scene order, and pitchForY of any result is in [200, 1000]. 250 runs. | 5.6, 5.2 |
 
 **Note on P106 and P108 (Kiro, task 54):** a property that samples an x "somewhere on the curve" must clamp it into [first x, last x]. `first + t * (last - first)` can round one ulp past `last` for t near 1 (seed -1034279350, last x = 0.35624768281849445 gave 0.3562476828184945), and `curveYAtX` rightly answers `null` there (5.6). The product rule is unchanged.
+
+## Corner speech, line names and where-am-I (Requirements 28 to 30, task 55)
+Written by Kiro before any code change, from `docs/reviews/kiro-review-bu3-bu5.md` (M1, M2, M3, M4, L2, L3, L7, L8). It describes what lanes bu3 to bu5 should end up doing, not what `Explore.tsx` does today. The code changes are for an Antigravity lane in `screens/Explore.tsx` and `flow/`; Kiro writes the properties against the pure functions that lane exports. Requirements 31 (speech pacing) and 32 (page edge cue, TalkBack labels) are recorded as requirements only; they get a design section when their lanes are scheduled.
+
+### One rule for all three
+Every speech source in Explore (move speech, corner exits, line names, where-am-I, Ask answers, Guide arrival, overview, earcon speech) records the time it started in one place. The guards of Requirements 29.3 and 30.4 read that single value, so no utterance can be missed (review L3). The speech driver's own "speaking" state may replace the timestamp if it has one.
+
+### Corner speech (28)
+- Pure, in `flow/explore.ts`: `cornerCompass(scene, vertexId, arrivedLineId | null, visitedRecently) → string`. Words after the label come from `vertexExits` (Requirement 26.3). Skip the exit whose `segmentId` equals `arrivedLineId`; more than 4 exits gives the count; `visitedRecently` gives the empty string.
+- Wiring: the same call is made from the pointer-down path, the move path and the keep-alive tick, and its text is passed to `applyMoveResult` as one extra announcement (M1). The pointer-down path has `arrivedLineId = null`. The call is made only when the engine emitted the label for that step, so a re-entry suppressed by Requirement 4.9 stays silent.
+- Guards: Directions on, Ask not listening, Guide not guiding. These are read where Explore calls the function, not inside it.
+
+### Line name (29)
+- Pure, in `flow/`: `lineDwell(state, input) → { state, speak: boolean }`. Input: time, the line id under the finger (or none), the finger position, the time speech last started, and the guard flags. State: the line id, the time the line was entered, the anchor of the current rest and its start time, and whether this visit was already named.
+- The anchor moves to the current position whenever the finger is farther than the rest radius from it, and that restarts the rest timer. The line name is due when the line id is unchanged, the rest has lasted 800 ms, `now − lastSpeechStart ≥ 1500 ms`, the guards allow it, and the visit was not named. A due name sets the named flag. Leaving the line, or a lift, resets the state.
+- The text comes from `lineName(scene, lineId)` (Requirement 29.5), built on `lineEnds` for segments.
+- Proposed numbers, none is a haptic value: rest radius 6 CSS px, dwell 800 ms, speech quiet window 1500 ms. They are shared with the where-am-I dwell constants and will be exported from one place.
+
+### Where am I (30)
+- Pure, in `flow/commands.ts`: `whereAmIDwell(state, input) → { state, speak: boolean }` with the 1200 ms rest and the 20 CSS px re-arm. The sentence comes from `whereAmI(scene, view, cursorNorm, hitTarget)`: a bar or vertex from the `hitTest` result first (L2), `nearestElement` only for `none`.
+- The Directions switch gates `lineDwell`, `cornerCompass` and `whereAmIDwell`. It does not gate the button or the voice command (30.3). The switch has one fixed label that names all three behaviours; state is `aria-checked` only (L7).
+
+### Tests the lane writes (M3)
+At least one jsdom or Playwright test mounts the real `Explore` with fake drivers and shows:
+1. no `playClick` and no corner, line or where-am-I speech while Ask is listening or Guide is guiding;
+2. no compass and no line name or dwell with Directions off, while the button still answers;
+3. a pointer-down on a vertex speaks the label and every exit (28.2);
+4. the vibrate and tone calls of a fixed trace are identical with Directions on and off.
+Deleting each guard in `Explore.tsx` must turn one of these red. The existing tests that copy a guard into the test body (`nearLineClick.test.ts`, `cornerCompass.test.ts` "haptic invariance") do not count.
+
+| # | Property (specified, not built; task 56) | Validates |
+|---|---|---|
+| P109 | **Corner text is complete and omits only the arrival edge (Kiro, task 56):** for random scenes, `cornerCompass` with no arrival edge names every exit of `vertexExits`, with an arrival edge names every exit except that segment, gives a count for more than 4 exits, gives `''` when `visitedRecently`, and no clause is longer than 12 words. | 28.1, 28.3, 28.4, 28.5 |
+| P110 | **A rest is needed for a line name (Kiro, task 56):** for any sequence of positions and times, `lineDwell` never says a name while the finger has moved more than the rest radius from the anchor within the last 800 ms. A trace along a side at any speed above the rest radius per 800 ms never names it. | 29.1, 29.2 |
+| P111 | **A name never cuts speech and comes once per visit (Kiro, task 56):** `lineDwell` never says a name when speech started less than 1500 ms ago or a guard is set; for one continuous visit it says it at most once; leaving the line or a lift re-arms it. | 29.3, 29.4, 29.6 |
+| P112 | **Where-am-I dwell timing (Kiro, task 56):** `whereAmIDwell` speaks only after 1200 ms of rest on a `none` target, once per rest, re-arms after 20 CSS px or a lift, and never speaks inside the speech quiet window or with a guard set. | 30.1, 30.4 |
+| P113 | **The Directions switch gates the automatic cues only (Kiro, task 56):** with Directions off, the three pure functions never ask for speech; with it on and every guard clear, the same traces do. The explicit button command is not an input to them. | 28.8, 29.6, 30.2, 30.3 |
+
+## Owner decisions raised in task 55
+The click cue and Directions defaults (review M4) are not decided in this spec. They are recorded as OD-2 and OD-3 in `docs/reviews/kiro-owner-decisions.md`, each with what the code does today. No default changes in task 55.
