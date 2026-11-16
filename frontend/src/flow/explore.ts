@@ -119,6 +119,10 @@ export {
   DEFAULT_PROXIMITY,
   initialProximityState,
   proximityStep,
+  checkPageEdge,
+  initialPageEdgeState,
+  seedPageEdgeState,
+  PAGE_EDGE_REARM_PX,
 };
 export type {
   EngineState,
@@ -129,6 +133,9 @@ export type {
   ProximityEffect,
   ProximityState,
   NearestElement,
+  PageEdgeSide,
+  PageEdgeState,
+  PageEdgeResult,
 };
 
 /**
@@ -456,6 +463,7 @@ export interface MovePipelineResult {
   nearest: NearestElement | null;
   proximityState: ProximityState;
   proximityEffects: ProximityEffect[];
+  pageEdge: PageEdgeResult;
 }
 
 /**
@@ -473,6 +481,7 @@ export function processPointerMove(
   cfg: HapticConfig = DEFAULT_HAPTICS,
   proximityState: ProximityState = initialProximityState(),
   proximityCfg: ProximityConfig = DEFAULT_PROXIMITY,
+  pageEdgeState: PageEdgeState = initialPageEdgeState(),
 ): MovePipelineResult {
   const target = hitTest(scene, finger, view, radii);
   const norm = toNorm(finger, view);
@@ -516,6 +525,8 @@ export function processPointerMove(
     proximityCfg,
   );
 
+  const pageEdge = checkPageEdge(norm, pageEdgeState, view.scale);
+
   return {
     target,
     xNorm: norm.x,
@@ -528,6 +539,7 @@ export function processPointerMove(
     nearest,
     proximityState: nextProximityState,
     proximityEffects,
+    pageEdge,
   };
 }
 
@@ -903,5 +915,120 @@ export function checkWhereAmIDwell(
 export function resetWhereAmIDwellOnLift(): WhereAmIDwellState {
   return initialWhereAmIDwellState();
 }
+
+// ---------------------------------------------------------------------------
+// Page Edge Cue Tracker (Lane bu8b)
+// ---------------------------------------------------------------------------
+
+export type PageEdgeSide = 'top' | 'bottom' | 'left' | 'right';
+
+export interface PageEdgeState {
+  armed: boolean;
+  lastSide: PageEdgeSide | null;
+}
+
+export function initialPageEdgeState(): PageEdgeState {
+  return {
+    armed: true,
+    lastSide: null,
+  };
+}
+
+export interface PageEdgeResult {
+  spoken: string | null;
+  nextState: PageEdgeState;
+}
+
+export const PAGE_EDGE_REARM_PX = 20;
+
+/**
+ * Pure page edge tracker (Lane bu8b):
+ * - Fires when the finger goes outside [0, 1] on either axis and names the side
+ *   ("Edge, top", "Edge, bottom", "Edge, left", "Edge, right" through i18n).
+ * - Re-arms only after the finger is back inside by at least 20 px worth of
+ *   normalized distance (viewport scale passed in).
+ * - Landing outside speaks once (seeded on pointerdown with initialPageEdgeState()).
+ */
+export function checkPageEdge(
+  normPos: { x: number; y: number },
+  state: PageEdgeState = initialPageEdgeState(),
+  viewScale: number = 300,
+): PageEdgeResult {
+  if (!Number.isFinite(normPos.x) || !Number.isFinite(normPos.y)) {
+    return { spoken: null, nextState: state };
+  }
+
+  const scale = Number.isFinite(viewScale) && viewScale > 0 ? viewScale : 300;
+  const margin = PAGE_EDGE_REARM_PX / scale;
+
+  const isOutside =
+    normPos.x < 0 || normPos.x > 1 || normPos.y < 0 || normPos.y > 1;
+
+  if (isOutside) {
+    if (state.armed) {
+      const dLeft = normPos.x < 0 ? -normPos.x : 0;
+      const dRight = normPos.x > 1 ? normPos.x - 1 : 0;
+      const dTop = normPos.y < 0 ? -normPos.y : 0;
+      const dBottom = normPos.y > 1 ? normPos.y - 1 : 0;
+
+      const maxDist = Math.max(dTop, dBottom, dLeft, dRight);
+      let side: PageEdgeSide;
+      if (maxDist === dTop) side = 'top';
+      else if (maxDist === dBottom) side = 'bottom';
+      else if (maxDist === dLeft) side = 'left';
+      else side = 'right';
+
+      return {
+        spoken: t(`edge.${side}`),
+        nextState: {
+          armed: false,
+          lastSide: side,
+        },
+      };
+    }
+
+    return {
+      spoken: null,
+      nextState: state,
+    };
+  }
+
+  // Inside [0, 1]: check if re-armed by moving >= 20 px inside on all axes
+  if (!state.armed) {
+    const isBackInside =
+      normPos.x >= margin - 1e-9 &&
+      normPos.x <= 1 - margin + 1e-9 &&
+      normPos.y >= margin - 1e-9 &&
+      normPos.y <= 1 - margin + 1e-9;
+
+    if (isBackInside) {
+      return {
+        spoken: null,
+        nextState: {
+          armed: true,
+          lastSide: null,
+        },
+      };
+    }
+  }
+
+  return {
+    spoken: null,
+    nextState: state,
+  };
+}
+
+/**
+ * Seeds page edge tracker on pointerdown.
+ * If landing outside [0, 1], speaks once and disarms.
+ * If landing inside, returns spoken: null and armed: true.
+ */
+export function seedPageEdgeState(
+  normPos: { x: number; y: number },
+  viewScale: number = 300,
+): PageEdgeResult {
+  return checkPageEdge(normPos, initialPageEdgeState(), viewScale);
+}
+
 
 

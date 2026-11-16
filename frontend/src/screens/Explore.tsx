@@ -36,6 +36,7 @@ import { executeExploreCommand, parseExploreCommand, whereAmI } from '../flow/co
 import {
   CENTRE_TICK_MS,
   checkCentreTick,
+  checkPageEdge,
   checkTwoFingerLongPress,
   checkTwoFingerSwipeDown,
   checkWhereAmIDwell,
@@ -48,6 +49,7 @@ import {
   getStoredGraphScanSetting,
   initialAxisState,
   initialCentreTickState,
+  initialPageEdgeState,
   initialProximityState,
   initialState,
   initialWhereAmIDwellState,
@@ -75,6 +77,7 @@ import {
   type EngineState,
   type HoldKeepAliveOptions,
   type HoldKeepAliveTimer,
+  type PageEdgeState,
   type PointerHistory,
   type ProximityState,
   type WhereAmIDwellState,
@@ -261,6 +264,7 @@ export function Explore({
   const proximityState = useRef<ProximityState>(initialProximityState());
   const centreTickState = useRef<CentreTickState>(initialCentreTickState());
   const axisState = useRef<AxisTrackerState>(initialAxisState());
+  const pageEdgeState = useRef<PageEdgeState>(initialPageEdgeState());
   const activePointers = useRef<Map<number, PointerHistory>>(new Map());
   const primaryPointerId = useRef<number | null>(null);
   const leaving = useRef(false);
@@ -571,6 +575,7 @@ export function Explore({
     clearLongPressTimer();
     activePointers.current.clear();
     primaryPointerId.current = null;
+    pageEdgeState.current = initialPageEdgeState();
     whereAmIDwellState.current = resetWhereAmIDwellOnLift();
     lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
     prevTargetRef.current = { kind: 'none' };
@@ -1161,6 +1166,7 @@ export function Explore({
         clearLongPressTimer();
         activePointers.current.clear();
         primaryPointerId.current = null;
+        pageEdgeState.current = initialPageEdgeState();
         whereAmIDwellState.current = resetWhereAmIDwellOnLift();
         lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
         prevTargetRef.current = { kind: 'none' };
@@ -1182,6 +1188,7 @@ export function Explore({
       clearLongPressTimer();
       activePointers.current.clear();
       primaryPointerId.current = null;
+      pageEdgeState.current = initialPageEdgeState();
       whereAmIDwellState.current = resetWhereAmIDwellOnLift();
       lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
       prevTargetRef.current = { kind: 'none' };
@@ -1261,6 +1268,16 @@ export function Explore({
     engineState.current = moveResult.nextEngineState;
     centreTickState.current = moveResult.centreCheck.nextState;
     axisState.current = moveResult.nextAxisState;
+    if (moveResult.pageEdge) {
+      pageEdgeState.current = moveResult.pageEdge.nextState;
+      if (moveResult.pageEdge.spoken) {
+        try {
+          drivers.audio.playEarcon?.('back');
+        } catch {
+          // ignore
+        }
+      }
+    }
 
     if (moveResult.centreCheck.tick) {
       drivers.haptics.vibrate(CENTRE_TICK_MS);
@@ -1269,8 +1286,9 @@ export function Explore({
     // PointerDown: mergeAnnouncements([centreMsg, ...axisCrossings], effects) (R3-01)
     // PointerMove: mergeAnnouncements(moveResult.axisCrossings, moveResult.effects)
     // Promotion: mergeAnnouncements(moveResult.axisCrossings, moveResult.effects)
+    const edgeAnnouncements = moveResult.pageEdge?.spoken ? [moveResult.pageEdge.spoken] : [];
     const moveEffects = mergeAnnouncements(
-      [...extraAnnouncements, ...moveResult.axisCrossings],
+      [...extraAnnouncements, ...moveResult.axisCrossings, ...edgeAnnouncements],
       moveResult.effects,
       afterAnnouncements,
     );
@@ -1279,6 +1297,9 @@ export function Explore({
     if (joined?.kind === 'speak') {
       lastSpokenRef.current = joined.text;
       lastSpeechStartRef.current = performance.now();
+      if (moveResult.pageEdge?.spoken) {
+        setStatusMessage(joined.text);
+      }
     }
     proximityState.current = moveResult.proximityState;
     runEffects(moveEffects, drivers, lang);
@@ -1413,6 +1434,8 @@ export function Explore({
           DEFAULT_RADII,
           DEFAULT_HAPTICS,
           proximityState.current,
+          DEFAULT_PROXIMITY,
+          pageEdgeState.current,
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, coords, now, lang);
@@ -1513,6 +1536,7 @@ export function Explore({
     lastFingerNormRef.current = norm;
     whereAmIDwellState.current = updateWhereAmIDwellOnMove(whereAmIDwellState.current, coords, now);
     axisState.current = seedAxisState(norm, scene.axes);
+    pageEdgeState.current = initialPageEdgeState();
 
     // Check centre reference tick
     const cx = view.canvasWidth / 2;
@@ -1576,6 +1600,8 @@ export function Explore({
       DEFAULT_RADII,
       DEFAULT_HAPTICS,
       proximityState.current,
+      DEFAULT_PROXIMITY,
+      pageEdgeState.current,
     );
     const compassAnnouncements = checkVertexCompass(moveResult.target, now);
     checkLineDwell(moveResult.target, coords, now, lang);
@@ -1668,6 +1694,8 @@ export function Explore({
       DEFAULT_RADII,
       DEFAULT_HAPTICS,
       proximityState.current,
+      DEFAULT_PROXIMITY,
+      pageEdgeState.current,
     );
     const compassAnnouncements = checkVertexCompass(moveResult.target, now);
     checkLineDwell(moveResult.target, coords, now, lang);
@@ -1749,6 +1777,7 @@ export function Explore({
         sendProximityLift(now);
 
         engineState.current = initialState();
+        pageEdgeState.current = initialPageEdgeState();
         const norm = toNorm(promotedCoords, view);
         axisState.current = seedAxisState(norm, scene.axes);
 
@@ -1763,6 +1792,8 @@ export function Explore({
           DEFAULT_RADII,
           DEFAULT_HAPTICS,
           proximityState.current,
+          DEFAULT_PROXIMITY,
+          pageEdgeState.current,
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, promotedCoords, now, lang);
@@ -1775,6 +1806,7 @@ export function Explore({
       } else {
         // All fingers lifted: silence effects
         primaryPointerId.current = null;
+        pageEdgeState.current = initialPageEdgeState();
         whereAmIDwellState.current = resetWhereAmIDwellOnLift();
         lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
         prevTargetRef.current = { kind: 'none' };

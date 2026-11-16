@@ -480,6 +480,12 @@ const en: Record<string, string> = {
   'whereAmI.dir.down-right': 'below to your right',
   'whereAmI.detailWithDir': '{name}, {dist}, {dir}',
   'whereAmI.detail': '{name}, {dist}',
+
+  // Page edge cues (Lane bu8b)
+  'edge.top': 'Edge, top',
+  'edge.bottom': 'Edge, bottom',
+  'edge.left': 'Edge, left',
+  'edge.right': 'Edge, right',
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -928,6 +934,12 @@ const hi: Record<string, string> = {
   'whereAmI.dir.down-right': 'नीचे-दाएँ',
   'whereAmI.detailWithDir': '{name}, {dist}, {dir}',
   'whereAmI.detail': '{name}, {dist}',
+
+  // Page edge cues (Lane bu8b)
+  'edge.top': 'किनारा, ऊपर',
+  'edge.bottom': 'किनारा, नीचे',
+  'edge.left': 'किनारा, बाएँ',
+  'edge.right': 'किनारा, दाएँ',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -1377,6 +1389,12 @@ const gu: Record<string, string> = {
   'whereAmI.dir.down-right': 'નીચે-જમણે',
   'whereAmI.detailWithDir': '{name}, {dist}, {dir}',
   'whereAmI.detail': '{name}, {dist}',
+
+  // Page edge cues (Lane bu8b)
+  'edge.top': 'કિનારો, ઉપર',
+  'edge.bottom': 'કિનારો, નીચે',
+  'edge.left': 'કિનારો, ડાબે',
+  'edge.right': 'કિનારો, જમણે',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };
