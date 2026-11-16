@@ -36,6 +36,15 @@ class SecurityHeadersMiddleware:
                 raw_headers: list[tuple[bytes, bytes]] = list(message.get("headers", []))
                 header_names = {h[0].lower() for h in raw_headers}
 
+                # Rejected preflight OPTIONS requests must never return Access-Control-Allow-Origin
+                if scope.get("method") == "OPTIONS" and message.get("status", 200) >= 400:
+                    raw_headers = [
+                        (name, val)
+                        for name, val in raw_headers
+                        if name.lower() != b"access-control-allow-origin"
+                    ]
+                    header_names.discard(b"access-control-allow-origin")
+
                 if b"x-content-type-options" not in header_names:
                     raw_headers.append((b"x-content-type-options", b"nosniff"))
                 # API responses are data, never pages: no scripts, no framing (A6-04).

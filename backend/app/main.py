@@ -357,8 +357,8 @@ async def _run_improve_pass_locked(
             logger.info("Background improve pass succeeded; updated cache for %s", cache_key)
         else:
             logger.info(
-                "Background improve pass returned invalid scene; discarded (%s)",
-                val_result.errors,
+                "Background improve pass returned invalid scene; discarded (%d)",
+                len(val_result.errors),
             )
     except Exception as exc:
         logger.warning("Background improve pass failed: %s", exc)
@@ -418,6 +418,29 @@ def is_production() -> bool:
     return os.environ.get("ENVIRONMENT", "").strip().lower() == "production"
 
 
+def filter_production_origins(origins: list[str]) -> list[str]:
+    """When in production, drop '*' and any origin not starting with 'https://'.
+
+    Logs one error naming how many were dropped (not their values).
+    """
+    if not is_production():
+        return list(origins)
+    filtered: list[str] = []
+    dropped = 0
+    for origin in origins:
+        if origin == "*" or not origin.startswith("https://"):
+            dropped += 1
+        else:
+            filtered.append(origin)
+    if dropped > 0:
+        logger.error(
+            "Dropped %d disallowed origin(s) in production environment "
+            "(origins must start with https:// and cannot be '*')",
+            dropped,
+        )
+    return filtered
+
+
 router = APIRouter()
 
 
@@ -426,7 +449,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Validate settings and initialize provider chain at startup."""
     validate_env_settings()
     allowed = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173")
-    origins = parse_allowed_origins(allowed)
+    origins = filter_production_origins(parse_allowed_origins(allowed))
     logger.info("allowed CORS origins: %s", origins)
     get_provider_chain()
     try:
@@ -453,7 +476,7 @@ def create_app() -> FastAPI:
     )
 
     allowed = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173")
-    origins = parse_allowed_origins(allowed)
+    origins = filter_production_origins(parse_allowed_origins(allowed))
 
     app_instance.add_middleware(
         RequestGuardMiddleware,
@@ -468,8 +491,8 @@ def create_app() -> FastAPI:
     app_instance.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Content-Type"],
         expose_headers=["X-Vision-Provider", "X-Scene-Cache"],
     )
 
@@ -717,12 +740,10 @@ async def process_scene(
             # Rule 5: Pass raw mode scenes through validator
             val_result = validator(raw_scene.model_dump())
             if val_result.scene is None:
-                errors_msg = "; ".join(val_result.errors) if val_result.errors else "invalid scene"
                 raise HTTPException(
                     status_code=422,
                     detail=(
-                        f"Extracted outline could not be validated: {errors_msg}. "
-                        "Please upload a clearer photo."
+                        "Extracted outline could not be validated. Please upload a clearer photo."
                     ),
                 )
 

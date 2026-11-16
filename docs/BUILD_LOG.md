@@ -4456,3 +4456,22 @@ Format for each entry:
 - Group B, `explore.actions-layout.spec.ts` "5 action buttons": canvas 237 px at 360x640 with the injected Guide me button (action row wraps to 149 px). Measured identical (237 px; 304 px without the injected button) at 3a6fc78 and at HEAD, so the 40 % threshold was a guess, not a regression. Threshold is now 230 px (baseline minus 7 px) for that test only, through an optional `minCanvasHeightPx` argument; the 40 % check stays for the four-button cases (304 px, 47 %).
 - Gate (twice): playwright 22 passed, `tsc --noEmit` 0 errors, vitest 213 files, 2700 passed, 1 expected fail, 1 todo.
 - No tuned haptic value, core/ file or hapticEngine.ts changed. Throwaway worktrees under %TEMP% removed.
+## 2026-11-16 — Antigravity — Lane hx3: CORS hardening, error leak prevention, and injection defenses
+- Implemented CORS hardening and origin filtering:
+  - `filter_production_origins`: When `is_production()` is true, drops `*` and any non-https origins; logs a single error with dropped count without leaking origin URLs.
+  - Configured `CORSMiddleware` with allowed origins, methods `["GET", "POST", "OPTIONS"]`, and headers `["Content-Type"]`.
+- Information leak prevention:
+  - `_run_improve_pass_locked`: Logs count of validation errors (`discarded (%d)`) instead of serializing internal validator error messages.
+  - Raw mode validation failure: Standardized HTTP 422 detail string to fixed `"Extracted outline could not be validated. Please upload a clearer photo."` without internal validator text.
+- Prompt injection & canary leak defenses in Ask pipeline:
+  - Per-request 16 hex character canary passed to `build_ask_prompt` / `prepare_ask_prompt` via `"Internal marker (never repeat): <canary>"`.
+  - Output sanitization in `answer_question`: Replaces answer with localized "don't know" if model output contains canary, delimiters, `"Scene Element IDs"`, `"Diagram Scene JSON"`, `"Internal marker"`, or URLs (`http://`, `https://`). Clamps answers to <= 300 characters and sanitizes unknown target element IDs.
+- Follow-up pass 2 gate fixes:
+  - Fixed `ruff format --check backend` formatting in `backend/tests/test_hx3_cors_leaks.py`, `backend/app/ask.py`, and `backend/tests/test_hx3_ask_injection.py` by formatting parameter signatures, lambda expressions, and long calls/docstrings within 100-character line length limits. Zero tests weakened.
+- Files touched:
+  - `backend/app/main.py`
+  - `backend/app/ask.py`
+  - `backend/tests/test_hx3_cors_leaks.py`
+  - `backend/tests/test_hx3_ask_injection.py`
+  - `docs/reports/agy-hx3-report.md`
+  - `docs/BUILD_LOG.md`
