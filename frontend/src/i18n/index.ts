@@ -40,6 +40,7 @@ export function setStoredLang(lang: Lang): void {
 const en: Record<string, string> = {
   'app.name': 'Ghost Touch',
   'app.tagline': "Feel diagrams you can't see.",
+  'app.updatedReloading': 'App updated. Reloading…',
   'start.intro': 'Ghost Touch. Tap anywhere to begin.',
   'start.tapToBegin': 'Tap anywhere to begin',
   'start.begin': 'Begin',
@@ -511,6 +512,7 @@ const en: Record<string, string> = {
 const hi: Record<string, string> = {
   'app.name': 'घोस्ट टच',
   'app.tagline': 'वे चित्र महसूस करें जो आप देख नहीं सकते।',
+  'app.updatedReloading': 'ऐप अपडेट हो गया है। पुनः लोड हो रहा है…',
   'start.intro': 'घोस्ट टच। शुरू करने के लिए कहीं भी टैप करें।',
   'start.tapToBegin': 'शुरू करने के लिए कहीं भी टैप करें',
   'start.begin': 'शुरू करें',
@@ -984,6 +986,7 @@ const hi: Record<string, string> = {
 const gu: Record<string, string> = {
   'app.name': 'ગોસ્ટ ટચ',
   'app.tagline': 'જે આકૃતિઓ તમે જોઈ શકતા નથી તેને સ્પર્શથી અનુભવો.',
+  'app.updatedReloading': 'એપ અપડેટ થઈ ગઈ છે. ફરી લોડ થઈ રહ્યું છે…',
   'start.intro': 'ગોસ્ટ ટચ. શરૂ કરવા માટે ગમે ત્યાં ટેપ કરો.',
   'start.tapToBegin': 'શરૂ કરવા માટે ગમે ત્યાં ટેપ કરો',
   'start.begin': 'શરૂ કરો',

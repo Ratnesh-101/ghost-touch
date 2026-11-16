@@ -51,6 +51,7 @@ import { joinAnnouncements } from './flow/explore';
 import { type VerifyMode } from './verify/verify';
 import { createPhotoUrlTracker, type PhotoUrlTracker } from './flow/capture';
 import { isTeacherActive } from './flow/teach';
+import { getDefaultUpdateWatcher, type UpdateWatcher } from './drivers/swUpdate';
 import { getLang, LANG_BCP47, subscribeLang, t } from './i18n';
 import { Capture } from './screens/Capture';
 import { Correct } from './screens/Correct';
@@ -256,7 +257,12 @@ type View =
       resolution: Extract<ShareRouteResolution, { kind: 'explore' }>;
     };
 
-export function App(): JSX.Element {
+export interface AppProps {
+  watcher?: UpdateWatcher;
+}
+
+export function App({ watcher }: AppProps = {}): JSX.Element {
+  const activeWatcher = watcher ?? getDefaultUpdateWatcher();
   const hash = useSyncExternalStore(subscribeHash, readHash, readHash);
   const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
   const [drivers] = useState<Drivers>(() => createBrowserDrivers());
@@ -295,6 +301,8 @@ export function App(): JSX.Element {
     teachDirty.current = dirty;
   }, []);
   const correctDirty = useRef(false);
+  const pendingUpdateRef = useRef(false);
+  const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingStorageError = useRef<string | null>(null);
   const lastSavedDiagramId = useRef<string | null>(null);
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
@@ -334,6 +342,46 @@ export function App(): JSX.Element {
     }
     void warmBackend();
   }, []);
+
+  useEffect(() => {
+    const isSafeScreen = (screen: string): boolean => screen === 'start' || screen === 'capture';
+
+    if (isSafeScreen(view.screen)) {
+      if (pendingUpdateRef.current && !reloadTimerRef.current) {
+        pendingUpdateRef.current = false;
+        drivers.speech.speak(t('app.updatedReloading'), LANG_BCP47[getLang()]);
+        reloadTimerRef.current = setTimeout(() => {
+          reloadTimerRef.current = null;
+          activeWatcher.reloadOnce('sw-update');
+        }, 2500);
+      }
+    } else {
+      if (reloadTimerRef.current !== null) {
+        clearTimeout(reloadTimerRef.current);
+        reloadTimerRef.current = null;
+        pendingUpdateRef.current = true;
+      }
+    }
+
+    const unsubscribe = activeWatcher.onUpdate(() => {
+      const currentScreen = viewRef.current.screen;
+      if (isSafeScreen(currentScreen)) {
+        if (!reloadTimerRef.current) {
+          drivers.speech.speak(t('app.updatedReloading'), LANG_BCP47[getLang()]);
+          reloadTimerRef.current = setTimeout(() => {
+            reloadTimerRef.current = null;
+            activeWatcher.reloadOnce('sw-update');
+          }, 2500);
+        }
+      } else {
+        pendingUpdateRef.current = true;
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [view.screen, activeWatcher, drivers]);
 
   useEffect(() => {
     if (hash === lastProcessedHash.current) {

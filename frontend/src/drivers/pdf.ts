@@ -10,7 +10,7 @@
 import { JPEG_QUALITY, MAX_IMAGE_SIDE } from './camera';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-export type PdfErrorReason = 'password' | 'invalid' | 'empty' | 'timeout';
+export type PdfErrorReason = 'password' | 'invalid' | 'empty' | 'timeout' | 'stale';
 
 export class PdfError extends Error {
   readonly reason: PdfErrorReason;
@@ -25,8 +25,18 @@ export type PdfLib = typeof import('pdfjs-dist');
 
 let workerConfigured = false;
 
-export async function defaultPdfLoader(): Promise<PdfLib> {
-  const pdfjs = await import('pdfjs-dist');
+export async function defaultPdfLoader(
+  importLib: () => Promise<PdfLib> = () => import('pdfjs-dist'),
+): Promise<PdfLib> {
+  let pdfjs: PdfLib;
+  try {
+    pdfjs = await importLib();
+  } catch (err: unknown) {
+    if (err instanceof PdfError) {
+      throw err;
+    }
+    throw new PdfError('stale', 'PDF chunk import failed (stale deployment)');
+  }
   if (!workerConfigured) {
     pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
     workerConfigured = true;
@@ -48,7 +58,19 @@ export async function renderFirstPage(
   let pdfjs: PdfLib;
   try {
     pdfjs = await loadPdfJs();
-  } catch {
+  } catch (err: unknown) {
+    if (err instanceof PdfError) {
+      throw err;
+    }
+    const msg = err instanceof Error ? err.message.toLowerCase() : '';
+    if (
+      msg.includes('import') ||
+      msg.includes('dynamically') ||
+      msg.includes('chunk') ||
+      msg.includes('stale')
+    ) {
+      throw new PdfError('stale');
+    }
     throw new PdfError('invalid');
   }
 

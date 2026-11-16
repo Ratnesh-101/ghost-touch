@@ -22,6 +22,7 @@ import {
   renderFirstPage,
   type PdfErrorReason,
 } from '../drivers/pdf';
+import { reloadOnce } from '../drivers/swUpdate';
 import type { AudioDriver } from '../drivers';
 import { t } from '../i18n';
 
@@ -42,7 +43,21 @@ const PDF_ERROR_KEYS: Record<PdfErrorReason, string> = {
   invalid: 'capture.errorPdfInvalid',
   empty: 'capture.errorPdfEmpty',
   timeout: 'capture.errorPdfTimeout',
+  stale: 'app.updatedReloading',
 };
+
+export function scheduleStaleReload(
+  reload: (reason?: string) => void = reloadOnce,
+  delayMs = 2500,
+): ReturnType<typeof setTimeout> {
+  return setTimeout(() => {
+    try {
+      reload('stale');
+    } catch {
+      // ignore
+    }
+  }, delayMs);
+}
 
 export function pdfErrorMessage(reason: PdfErrorReason): string {
   return t(PDF_ERROR_KEYS[reason]);
@@ -99,6 +114,8 @@ export interface CaptureDeps {
   signal: AbortSignal;
   /** Defaults to 'file' (10 MB limit). */
   source?: FileSource;
+  reloadOnce?: (reason?: string) => boolean | void;
+  setTimeoutFn?: typeof setTimeout;
 }
 
 export type CaptureOutcome =
@@ -145,6 +162,24 @@ export async function processImageFile(
   } catch (err: unknown) {
     if (deps.signal.aborted) return { kind: 'cancelled' };
     deps.say(captureErrorMessage(err));
+    if (err instanceof PdfError && err.reason === 'stale') {
+      const reload = deps.reloadOnce ?? reloadOnce;
+      const setTimer = deps.setTimeoutFn ?? setTimeout;
+      const timer = setTimer(() => {
+        if (!deps.signal.aborted) {
+          try {
+            reload('stale');
+          } catch {
+            // ignore reload error
+          }
+        }
+      }, 2500);
+      try {
+        deps.signal.addEventListener('abort', () => clearTimeout(timer), { once: true });
+      } catch {
+        // ignore
+      }
+    }
     return { kind: 'failed' };
   } finally {
     stopTone();
