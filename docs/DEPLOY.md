@@ -137,6 +137,32 @@ To allow the Vercel frontend to make cross-origin requests to the Render backend
 
 ---
 
+### After every deploy
+
+Run the automated smoke test script to verify both the deployed frontend and backend in a single command:
+
+```bash
+node scripts/smoke-deployed.mjs <frontend-url> <api-url>
+```
+
+Example:
+```bash
+node scripts/smoke-deployed.mjs https://ghost-touch-iota.vercel.app https://ghost-touch-api.onrender.com
+```
+
+The script runs 9 automated checks (exiting code 0 on pass, code 1 on fail):
+1. **Frontend Headers**: `GET /` is HTTP 200 with `Content-Security-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, and `Permissions-Policy`.
+2. **CSP Origin Allowed**: CSP `connect-src` contains the origin of `<api-url>`.
+3. **Backend Health & Cold Start**: `GET <api>/api/v1/health` returns `{"ok":true}` within 70 seconds (handling Render free-tier cold starts) and sends `x-content-type-options: nosniff`.
+4. **CORS Preflight (Allowed)**: `OPTIONS <api>/api/v1/ask` with `Origin: <frontend-url>` returns that origin in `access-control-allow-origin`.
+5. **CORS Preflight (Blocked)**: `OPTIONS <api>/api/v1/ask` with `Origin: https://example.invalid` does not return that origin.
+6. **Interactive Docs Off**: `GET <api>/docs` returns HTTP 404 in production.
+7. **MIME Validation**: `POST <api>/api/v1/scene` with a 10-byte text file as `image` returns HTTP 415 (never sends a real image or burns AI quota).
+8. **Offline Sample**: `GET /samples/triangle.json` parses as JSON with `kind: "geometry"`.
+9. **Service Worker**: `GET /sw.js` is HTTP 200 with `no-cache`.
+
+---
+
 #### 6. Step 5: Smoke Tests & Verification
 
 Verify the end-to-end deployment using the following command-line and mobile checks.

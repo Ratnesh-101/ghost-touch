@@ -38,10 +38,11 @@ describe('Content-Security-Policy (A6-04)', () => {
     expect(header('Content-Security-Policy')).toBeTruthy();
   });
 
-  it('forbids framing, plugins and foreign base URLs', () => {
+  it('forbids framing, plugins and foreign base URLs and upgrades insecure requests', () => {
     expect(csp['frame-ancestors']).toEqual(["'none'"]);
     expect(csp['object-src']).toEqual(["'none'"]);
     expect(csp['base-uri']).toEqual(["'self'"]);
+    expect(csp).toHaveProperty('upgrade-insecure-requests');
   });
 
   it('keeps scripts strict: own origin only, no inline, no eval, no wildcard', () => {
@@ -82,9 +83,24 @@ describe('Transport and permissions headers (A6-06)', () => {
     const policy = header('Permissions-Policy') ?? '';
     expect(policy).toContain('camera=(self)');
     expect(policy).toContain('microphone=(self)');
-    for (const feature of ['geolocation', 'payment', 'usb']) {
+    for (const feature of [
+      'geolocation',
+      'payment',
+      'usb',
+      'serial',
+      'bluetooth',
+      'interest-cohort',
+      'accelerometer',
+      'gyroscope',
+      'magnetometer',
+      'display-capture',
+    ]) {
       expect(policy).toContain(`${feature}=()`);
     }
+  });
+
+  it('sets Cross-Origin-Opener-Policy to same-origin', () => {
+    expect(header('Cross-Origin-Opener-Policy')).toBe('same-origin');
   });
 
   it('keeps the framing and sniffing headers it already had', () => {
