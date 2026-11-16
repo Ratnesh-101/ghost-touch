@@ -1685,3 +1685,79 @@ body {
    ========================================================================== */
 /* The presentational rules for Seam, Rivets, LabCard, and Spark
    are loaded via ./lab.css and encapsulated in frontend/src/components/lab/ */
+
+/* ==========================================================================
+   CRASH SCREEN & ERROR BOUNDARY (Lane hx1)
+   Last line of defence for a blind user when the app crashes.
+   ========================================================================== */
+
+.gt-crash-screen {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--gt-bg, #0b0e0c);
+  color: var(--gt-text, #eafff5);
+  z-index: 999999;
+  padding: max(var(--gt-space-lg, 1.5rem), var(--gt-safe-top, env(safe-area-inset-top, 0px)));
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.gt-crash-message {
+  margin: 0 0 var(--gt-space-xl, 2rem) 0;
+  font-size: var(--gt-text-lg, 1.25rem);
+  line-height: var(--gt-line-height-normal, 1.5);
+  text-align: center;
+  max-width: 32rem;
+  color: var(--gt-text, #eafff5);
+}
+
+.gt-crash-button {
+  min-width: var(--gt-target, 48px);
+  min-height: var(--gt-target, 48px);
+  width: 100%;
+  max-width: 28rem;
+  padding: 16px 32px;
+  border-radius: var(--gt-radius-md, 8px);
+  border: 2px solid var(--gt-border-copper, #c87d4a);
+  background: var(--gt-green, #39ff88);
+  color: var(--gt-text-dark, #05140b);
+  font-family: var(--gt-font-sans, inherit);
+  font-size: var(--gt-text-lg, 1.25rem);
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 16px var(--gt-green-glow, rgba(57, 255, 136, 0.4));
+  text-decoration: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--gt-transition-fast, 150ms ease),
+    border-color var(--gt-transition-fast, 150ms ease),
+    box-shadow var(--gt-transition-fast, 150ms ease),
+    transform var(--gt-transition-fast, 150ms ease);
+}
+
+.gt-crash-button:hover {
+  background: var(--gt-green-bright, #4dff95);
+  border-color: var(--gt-copper-bright, #e59866);
+  box-shadow: 0 0 20px var(--gt-green-glow, rgba(57, 255, 136, 0.6));
+}
+
+.gt-crash-button:active {
+  background: var(--gt-green-dim, #28b860);
+  transform: scale(0.985);
+}
+
+.gt-crash-button:focus-visible {
+  outline: 3px solid var(--gt-cyan, #00f0ff);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--gt-bg, #0b0e0c), 0 0 16px var(--gt-cyan-glow-strong, rgba(0, 240, 255, 0.8));
+}

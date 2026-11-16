@@ -500,6 +500,10 @@ const en: Record<string, string> = {
   'whereAmI.dir.down-right': 'below to your right',
   'whereAmI.detailWithDir': '{name}, {dist}, {dir}',
   'whereAmI.detail': '{name}, {dist}',
+
+  // Crash screen & error boundary (Lane hx1)
+  'crash.message': 'Something went wrong. Double tap the screen to start again.',
+  'crash.restart': 'Restart',
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -968,6 +972,10 @@ const hi: Record<string, string> = {
   'whereAmI.dir.down-right': 'नीचे-दाएँ',
   'whereAmI.detailWithDir': '{name}, {dist}, {dir}',
   'whereAmI.detail': '{name}, {dist}',
+
+  // Crash screen & error boundary (Lane hx1)
+  'crash.message': 'कुछ गलत हो गया। फिर से शुरू करने के लिए स्क्रीन पर डबल-टैप करें।',
+  'crash.restart': 'पुनः शुरू करें',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -1437,6 +1445,10 @@ const gu: Record<string, string> = {
   'whereAmI.dir.down-right': 'નીચે-જમણે',
   'whereAmI.detailWithDir': '{name}, {dist}, {dir}',
   'whereAmI.detail': '{name}, {dist}',
+
+  // Crash screen & error boundary (Lane hx1)
+  'crash.message': 'કંઈક ખોટું થયું. ફરી શરૂ કરવા માટે સ્ક્રીન પર ડબલ-ટેપ કરો.',
+  'crash.restart': 'ફરી શરૂ કરો',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };
