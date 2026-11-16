@@ -7,6 +7,7 @@ import {
   type Input,
 } from '../src/core/hapticEngine';
 import type { Target } from '../src/core/hitTest';
+import { runs } from './support/runs';
 
 // ---------------------------------------------------------------------------
 // Generators
@@ -101,7 +102,7 @@ describe('P3 — Corner pulse never merged', () => {
         }
         return true;
       }),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 });
@@ -153,7 +154,7 @@ describe('P4 — No repeated corner', () => {
         }
         return cornerCount === 1;
       }),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 
@@ -186,7 +187,7 @@ describe('P4 — No repeated corner', () => {
         }
         return only.kind === 'speakKey' && only.textKey === 'vertex.unlabelled' && only.params.id === id;
       }),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 });
@@ -249,7 +250,7 @@ describe('P5 — Continuous line buzz', () => {
         }
         return true;
       }),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 
@@ -312,7 +313,7 @@ describe('P5 — Continuous line buzz', () => {
         }
         return true;
       }),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 });
@@ -349,7 +350,7 @@ describe('P6 — Lift silences everything', () => {
           effects.some((e) => e.kind === 'tone' && e.hz === null)
         );
       }),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 });

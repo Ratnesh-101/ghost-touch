@@ -22,15 +22,26 @@ import {
   type ProximityState,
 } from '../core/proximity';
 import {
+  DEFAULT_HEARTBEAT,
+  heartbeatStep,
+  initialHeartbeatState,
+  type HeartbeatConfig,
+  type HeartbeatState,
+} from '../core/heartbeat';
+import {
+  _resetCornerHeartbeatSettingForTesting,
   _resetDirectionsSettingForTesting,
   _resetFindingSoundSettingForTesting,
+  getStoredCornerHeartbeatSetting,
   getStoredDirectionsSetting,
   getStoredFindingSoundSetting,
   safeGet,
   safeRemove,
   safeSet,
+  setStoredCornerHeartbeatSetting,
   setStoredDirectionsSetting,
   setStoredFindingSoundSetting,
+  STORAGE_KEY_CORNER_HEARTBEAT,
   STORAGE_KEY_DIRECTIONS,
   STORAGE_KEY_FINDING_SOUND,
   subscribeSettings,
@@ -66,6 +77,30 @@ export function setStoredGraphScanSetting(enabled: boolean): void {
 export function _resetGraphScanSettingForTesting(): void {
   inMemoryGraphScanSetting = null;
   safeRemove(STORAGE_KEY_GRAPH_SCAN);
+}
+
+export type SpeechDetail = 'full' | 'short';
+
+export const STORAGE_KEY_SPEECH_DETAIL = 'gt_speech_detail';
+
+let inMemorySpeechDetailSetting: SpeechDetail | null = null;
+
+export function getStoredSpeechDetailSetting(): SpeechDetail {
+  const stored = safeGet(STORAGE_KEY_SPEECH_DETAIL);
+  if (stored === 'full' || stored === 'short') {
+    return stored;
+  }
+  return inMemorySpeechDetailSetting ?? 'full';
+}
+
+export function setStoredSpeechDetailSetting(detail: SpeechDetail): void {
+  safeSet(STORAGE_KEY_SPEECH_DETAIL, detail);
+  inMemorySpeechDetailSetting = detail;
+}
+
+export function _resetSpeechDetailSettingForTesting(): void {
+  inMemorySpeechDetailSetting = null;
+  safeRemove(STORAGE_KEY_SPEECH_DETAIL);
 }
 
 /**
@@ -115,6 +150,13 @@ export {
   setStoredFindingSoundSetting,
   _resetFindingSoundSettingForTesting,
   STORAGE_KEY_FINDING_SOUND,
+  getStoredCornerHeartbeatSetting,
+  setStoredCornerHeartbeatSetting,
+  _resetCornerHeartbeatSettingForTesting,
+  STORAGE_KEY_CORNER_HEARTBEAT,
+  DEFAULT_HEARTBEAT,
+  initialHeartbeatState,
+  heartbeatStep,
   subscribeSettings,
   DEFAULT_PROXIMITY,
   initialProximityState,
@@ -136,6 +178,8 @@ export type {
   PageEdgeSide,
   PageEdgeState,
   PageEdgeResult,
+  HeartbeatConfig,
+  HeartbeatState,
 };
 
 /**
@@ -464,6 +508,7 @@ export interface MovePipelineResult {
   proximityState: ProximityState;
   proximityEffects: ProximityEffect[];
   pageEdge: PageEdgeResult;
+  heartbeatState: HeartbeatState;
 }
 
 /**
@@ -482,6 +527,8 @@ export function processPointerMove(
   proximityState: ProximityState = initialProximityState(),
   proximityCfg: ProximityConfig = DEFAULT_PROXIMITY,
   pageEdgeState: PageEdgeState = initialPageEdgeState(),
+  heartbeatState: HeartbeatState = initialHeartbeatState(),
+  heartbeatCfg: HeartbeatConfig | null = null,
 ): MovePipelineResult {
   const target = hitTest(scene, finger, view, radii);
   const norm = toNorm(finger, view);
@@ -526,12 +573,23 @@ export function processPointerMove(
   );
 
   const pageEdge = checkPageEdge(norm, pageEdgeState, view.scale);
+  let finalEffects = effects;
+  let nextHeartbeatState = heartbeatState;
+  if (heartbeatCfg !== null) {
+    const hb = heartbeatStep(
+      heartbeatState,
+      { kind: 'move', t, target, engineEffects: effects },
+      heartbeatCfg,
+    );
+    finalEffects = hb.effects;
+    nextHeartbeatState = hb.state;
+  }
 
   return {
     target,
     xNorm: norm.x,
     yNorm: norm.y,
-    effects,
+    effects: finalEffects,
     nextEngineState,
     centreCheck,
     axisCrossings,
@@ -540,6 +598,7 @@ export function processPointerMove(
     proximityState: nextProximityState,
     proximityEffects,
     pageEdge,
+    heartbeatState: nextHeartbeatState,
   };
 }
 
@@ -1030,5 +1089,286 @@ export function seedPageEdgeState(
   return checkPageEdge(normPos, initialPageEdgeState(), viewScale);
 }
 
+// ---------------------------------------------------------------------------
+// Speech Pacing (Lane A7)
+// ---------------------------------------------------------------------------
+
+export const AXIS_QUIET_AFTER_CORNER_OR_BAR_MS = 600;
+export const SAME_AXIS_REPEAT_INTERVAL_MS = 2000;
+export const BAR_SHORT_FOLLOW_INTERVAL_MS = 700;
+export const BAR_REST_FULL_SPEECH_MS = 500;
+
+export type SpeechSource = 'corner' | 'bar' | 'axis' | 'other';
+
+export interface SpeechPacingInput {
+  t: number;
+  text: string;
+  source: SpeechSource;
+  detail?: SpeechDetail;
+  barId?: string | null;
+}
+
+export interface PendingBarRest {
+  barId?: string | null;
+  fullText: string;
+  label: string;
+  enterTime: number;
+  lastMoveTime: number;
+  spoken: boolean;
+}
+
+export interface SpeechPacingState {
+  detail: SpeechDetail;
+  lastCornerOrBarTime: number;
+  lastAxisWords: Record<string, number>;
+  lastBarTime: number;
+  lastBarId?: string | null;
+  pendingBarRest: PendingBarRest | null;
+}
+
+export interface SpeechPacingResult {
+  state: SpeechPacingState;
+  speakNow: string | null;
+}
+
+export function initialSpeechPacingState(
+  detail: SpeechDetail = getStoredSpeechDetailSetting(),
+): SpeechPacingState {
+  return {
+    detail,
+    lastCornerOrBarTime: -Infinity,
+    lastAxisWords: {},
+    lastBarTime: -Infinity,
+    lastBarId: null,
+    pendingBarRest: null,
+  };
+}
+
+export function extractBarLabel(text: string): string {
+  const trimmed = text.trim();
+  const commaIdx = trimmed.indexOf(',');
+  if (commaIdx !== -1) {
+    return trimmed.slice(0, commaIdx).trim();
+  }
+  return trimmed;
+}
+
+export function extractCornerLabel(text: string): string {
+  const trimmed = text.trim();
+  const match = trimmed.match(/^([^.!?।॥]+)/);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+  return trimmed;
+}
+
+/**
+ * Pure speech pacing function (Lane A7).
+ *
+ * Rules:
+ * - an 'axis' text within 600 ms after a 'corner' or 'bar' text is dropped;
+ * - the same axis word is not repeated within 2000 ms;
+ * - in short mode a 'bar' text that follows another bar within 700 ms is reduced to its label,
+ *   and the full "label, value" is spoken after the finger has rested on that bar for 500 ms;
+ * - corners in short mode speak the label only;
+ * - in full mode, do not drop or reorder anything except the axis rules above.
+ */
+export function paceSpeech(
+  state: SpeechPacingState,
+  input: SpeechPacingInput,
+): SpeechPacingResult {
+  const detail = input.detail ?? state.detail ?? 'full';
+  const { t, text, source } = input;
+  const currentAxisWords = { ...(state.lastAxisWords || {}) };
+
+  // Rule 1: 'axis' text handling
+  if (source === 'axis') {
+    // An 'axis' text within 600 ms after a 'corner' or 'bar' text is dropped
+    if (
+      state.lastCornerOrBarTime !== undefined &&
+      t - state.lastCornerOrBarTime < AXIS_QUIET_AFTER_CORNER_OR_BAR_MS
+    ) {
+      return {
+        state: { ...state, detail },
+        speakNow: null,
+      };
+    }
+
+    // The same axis word is not repeated within 2000 ms
+    const normWord = text.trim().toLowerCase();
+    const lastWordTime = currentAxisWords[normWord];
+    if (lastWordTime !== undefined && t - lastWordTime < SAME_AXIS_REPEAT_INTERVAL_MS) {
+      return {
+        state: { ...state, detail },
+        speakNow: null,
+      };
+    }
+
+    currentAxisWords[normWord] = t;
+    return {
+      state: {
+        ...state,
+        detail,
+        lastAxisWords: currentAxisWords,
+      },
+      speakNow: text,
+    };
+  }
+
+  // Rule 2: 'corner' text handling
+  if (source === 'corner') {
+    const nextState: SpeechPacingState = {
+      ...state,
+      detail,
+      lastCornerOrBarTime: t,
+      pendingBarRest: null,
+    };
+
+    if (detail === 'short') {
+      const label = extractCornerLabel(text);
+      return {
+        state: nextState,
+        speakNow: label,
+      };
+    }
+
+    return {
+      state: nextState,
+      speakNow: text,
+    };
+  }
+
+  // Rule 3: 'bar' text handling
+  if (source === 'bar') {
+    // If querying rest dwell on the current bar
+    if (
+      (!text || text === state.pendingBarRest?.fullText || text === state.pendingBarRest?.label) &&
+      state.pendingBarRest &&
+      !state.pendingBarRest.spoken &&
+      t - state.pendingBarRest.lastMoveTime >= BAR_REST_FULL_SPEECH_MS
+    ) {
+      return {
+        state: {
+          ...state,
+          detail,
+          pendingBarRest: {
+            ...state.pendingBarRest,
+            spoken: true,
+          },
+        },
+        speakNow: state.pendingBarRest.fullText,
+      };
+    }
+
+    const nextState: SpeechPacingState = {
+      ...state,
+      detail,
+      lastCornerOrBarTime: t,
+      lastBarTime: t,
+      lastBarId: input.barId ?? state.lastBarId,
+    };
+
+    if (detail === 'short') {
+      const followsAnotherBar =
+        state.lastBarTime !== undefined &&
+        state.lastBarTime > -Infinity &&
+        t - state.lastBarTime < BAR_SHORT_FOLLOW_INTERVAL_MS;
+
+      if (followsAnotherBar) {
+        const label = extractBarLabel(text);
+        nextState.pendingBarRest = {
+          barId: input.barId ?? null,
+          fullText: text,
+          label,
+          enterTime: t,
+          lastMoveTime: t,
+          spoken: false,
+        };
+        return {
+          state: nextState,
+          speakNow: label,
+        };
+      } else {
+        nextState.pendingBarRest = null;
+        return {
+          state: nextState,
+          speakNow: text,
+        };
+      }
+    }
+
+    // Full mode: full "label, value"
+    nextState.pendingBarRest = null;
+    return {
+      state: nextState,
+      speakNow: text,
+    };
+  }
+
+  // Rule 4: 'other' source
+  return {
+    state: {
+      ...state,
+      detail,
+    },
+    speakNow: text,
+  };
+}
+
+export function updateBarMove(
+  state: SpeechPacingState,
+  t: number,
+  barId?: string | null,
+): SpeechPacingState {
+  if (!state.pendingBarRest) return state;
+  if (barId && state.pendingBarRest.barId && state.pendingBarRest.barId !== barId) {
+    return {
+      ...state,
+      pendingBarRest: null,
+    };
+  }
+  return {
+    ...state,
+    pendingBarRest: {
+      ...state.pendingBarRest,
+      lastMoveTime: t,
+    },
+  };
+}
+
+export const noteBarMove = updateBarMove;
+
+export function checkBarRest(
+  state: SpeechPacingState,
+  t: number,
+  currentBarId?: string | null,
+): { state: SpeechPacingState; speakNow: string | null } {
+  if (
+    state.pendingBarRest &&
+    !state.pendingBarRest.spoken &&
+    t - state.pendingBarRest.lastMoveTime >= BAR_REST_FULL_SPEECH_MS &&
+    (!currentBarId || !state.pendingBarRest.barId || state.pendingBarRest.barId === currentBarId)
+  ) {
+    return {
+      state: {
+        ...state,
+        pendingBarRest: {
+          ...state.pendingBarRest,
+          spoken: true,
+        },
+      },
+      speakNow: state.pendingBarRest.fullText,
+    };
+  }
+  return { state, speakNow: null };
+}
+
+export function resetBarRest(state: SpeechPacingState): SpeechPacingState {
+  if (!state.pendingBarRest) return state;
+  return {
+    ...state,
+    pendingBarRest: null,
+  };
+}
 
 

@@ -112,6 +112,21 @@ describe('LabSettings dialog semantics (renderToStaticMarkup)', () => {
     expect(html).toContain('1.25×');
   });
 
+  it('embeds speech detail controls with full and short options', () => {
+    const drivers = createMockDrivers();
+    const html = renderToStaticMarkup(
+      createElement(LabSettings, {
+        open: true,
+        onClose: vi.fn(),
+        drivers,
+      }),
+    );
+
+    expect(html).toContain(t('lab.settings.speechDetail'));
+    expect(html).toContain(t('lab.settings.speechDetailFull'));
+    expect(html).toContain(t('lab.settings.speechDetailShort'));
+  });
+
   it('renders backdrop overlay with aria-hidden="true"', () => {
     const drivers = createMockDrivers();
     const html = renderToStaticMarkup(
@@ -141,6 +156,7 @@ describe('LabSettings dialog semantics (renderToStaticMarkup)', () => {
     expect(html).toContain('सेटिंग्स बंद करें');
     expect(html).toContain('भाषा');
     expect(html).toContain('बोलने की गति');
+    expect(html).toContain('वाणी विवरण');
   });
 
   it('renders in Gujarati with localized headings and labels', () => {
@@ -158,6 +174,7 @@ describe('LabSettings dialog semantics (renderToStaticMarkup)', () => {
     expect(html).toContain('સેટિંગ્સ બંધ કરો');
     expect(html).toContain('ભાષા');
     expect(html).toContain('વાણી ગતિ');
+    expect(html).toContain('વાણી વિગત');
   });
 });
 
@@ -352,6 +369,60 @@ describe('LabSettings guide toggle (L5)', () => {
     const guideSection = html.slice(html.indexOf('lab-settings-section-guide'));
     expect(guideSection).toContain('role="switch"');
     expect(guideSection).toContain('aria-checked=');
+  });
+});
+
+describe('LabSettings corner heartbeat toggle (Lane hb2)', () => {
+  it('renders Corner heartbeat section with switch button with fixed label (default off)', () => {
+    const drivers = createMockDrivers();
+    const html = renderToStaticMarkup(
+      createElement(LabSettings, {
+        open: true,
+        onClose: vi.fn(),
+        drivers,
+      }),
+    );
+
+    expect(html).toContain('lab-settings-section-corner-heartbeat');
+    expect(html).toContain(t('lab.settings.cornerHeartbeat'));
+    expect(html).toContain(t('lab.settings.cornerHeartbeatHint'));
+    const hbSection = html.slice(html.indexOf('lab-settings-section-corner-heartbeat'));
+    expect(hbSection).toContain('role="switch"');
+    expect(hbSection).toContain('aria-checked="false"');
+    // Fixed label, state in aria-checked only
+    expect(hbSection).toContain(`>${t('lab.settings.cornerHeartbeat')}<`);
+    // Min 48x48 px target size
+    expect(hbSection).toMatch(/min-width:\s*48px/);
+    expect(hbSection).toMatch(/min-height:\s*48px/);
+  });
+
+  it('renders Corner heartbeat section in Hindi and Gujarati', () => {
+    const prevLang = getLang();
+    const drivers = createMockDrivers();
+
+    setLang('hi');
+    const htmlHi = renderToStaticMarkup(
+      createElement(LabSettings, {
+        open: true,
+        onClose: vi.fn(),
+        drivers,
+      }),
+    );
+    expect(htmlHi).toContain('कोना धड़कन');
+    expect(htmlHi).toContain('कोने पर रुकने पर दोहराया जाने वाला कंपन।');
+
+    setLang('gu');
+    const htmlGu = renderToStaticMarkup(
+      createElement(LabSettings, {
+        open: true,
+        onClose: vi.fn(),
+        drivers,
+      }),
+    );
+    expect(htmlGu).toContain('ખૂણાના ધબકારા');
+    expect(htmlGu).toContain('ખૂણા પર રોકાવા પર પુનરાવર્તિત વાઇબ્રેશન.');
+
+    setLang(prevLang);
   });
 });
 

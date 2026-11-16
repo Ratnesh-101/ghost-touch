@@ -11,7 +11,7 @@ describe('MemoryDiagramStore', () => {
     createdAt: 1000,
     title: 'Sample 1',
     thumbnailDataUrl: 'data:image/jpeg;base64,1',
-    scene: { kind: 'geometry' },
+    scene: { kind: 'geometry', points: [], segments: [], polylines: [], bars: [] },
     pinned: false,
   };
 
@@ -20,7 +20,7 @@ describe('MemoryDiagramStore', () => {
     createdAt: 2000,
     title: 'Sample 2',
     thumbnailDataUrl: 'data:image/jpeg;base64,2',
-    scene: { kind: 'function_graph' },
+    scene: { kind: 'function_graph', points: [], segments: [], polylines: [], bars: [] },
     pinned: true,
   };
 
@@ -96,7 +96,7 @@ describe('IDBDiagramStore — unavailable and error paths', () => {
     createdAt: 1000,
     title: 'Test',
     thumbnailDataUrl: '',
-    scene: { kind: 'geometry' },
+    scene: { kind: 'geometry', points: [], segments: [], polylines: [], bars: [] },
     pinned: false,
   };
 
@@ -174,7 +174,7 @@ describe('IDBDiagramStore — with minimal fake indexedDB', () => {
     createdAt: 1000,
     title: 'Diag 1',
     thumbnailDataUrl: 'data:img1',
-    scene: { kind: 'geometry' },
+    scene: { kind: 'geometry', points: [], segments: [], polylines: [], bars: [] },
     pinned: false,
   };
 
@@ -183,7 +183,7 @@ describe('IDBDiagramStore — with minimal fake indexedDB', () => {
     createdAt: 2000,
     title: 'Diag 2',
     thumbnailDataUrl: 'data:img2',
-    scene: { kind: 'bar_chart' },
+    scene: { kind: 'bar_chart', points: [], segments: [], polylines: [], bars: [] },
     pinned: true,
   };
 
@@ -385,7 +385,7 @@ describe('IDBDiagramStore — realistic IndexedDB failure paths (TQ-06)', () => 
     createdAt: 1000,
     title: 'Original 1',
     thumbnailDataUrl: 'data:img1',
-    scene: { kind: 'geometry' },
+    scene: { kind: 'geometry', points: [], segments: [], polylines: [], bars: [] },
     pinned: false,
   };
 
@@ -394,7 +394,7 @@ describe('IDBDiagramStore — realistic IndexedDB failure paths (TQ-06)', () => 
     createdAt: 2000,
     title: 'Original 2',
     thumbnailDataUrl: 'data:img2',
-    scene: { kind: 'bar_chart' },
+    scene: { kind: 'bar_chart', points: [], segments: [], polylines: [], bars: [] },
     pinned: true,
   };
 
@@ -403,7 +403,7 @@ describe('IDBDiagramStore — realistic IndexedDB failure paths (TQ-06)', () => 
     createdAt: 3000,
     title: 'Incoming 3',
     thumbnailDataUrl: 'data:img3',
-    scene: { kind: 'function_graph' },
+    scene: { kind: 'function_graph', points: [], segments: [], polylines: [], bars: [] },
     pinned: false,
   };
 

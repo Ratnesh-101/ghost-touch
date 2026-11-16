@@ -1,6 +1,7 @@
 import { describe, it } from 'vitest';
 import fc from 'fast-check';
 import { makeViewport, toScreen, toNorm } from '../src/core/geometry';
+import { runs } from './support/runs';
 
 const EPS = 1e-9;
 
@@ -32,7 +33,7 @@ describe('P8 — Coordinate round-trip', () => {
           Math.abs(roundTrip.y - p.y) <= EPS
         );
       }),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 });

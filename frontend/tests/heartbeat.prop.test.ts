@@ -26,8 +26,9 @@ import {
 } from '../src/core/heartbeat';
 import { DEFAULT_RADII, hitTest, type Target } from '../src/core/hitTest';
 import type { DiagramScene } from '../src/core/scene';
+import { runs } from './support/runs';
 
-const RUNS = 250;
+const RUNS = runs(250);
 
 // ---------------------------------------------------------------------------
 // Harness: real engine + heartbeat, threaded through a trace

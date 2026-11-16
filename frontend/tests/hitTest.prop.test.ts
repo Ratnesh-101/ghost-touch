@@ -3,6 +3,7 @@ import fc from 'fast-check';
 import { hitTest, DEFAULT_RADII } from '../src/core/hitTest';
 import { makeViewport, toScreen, type ScreenPoint } from '../src/core/geometry';
 import type { DiagramScene, Point, Segment } from '../src/core/scene';
+import { runs } from './support/runs';
 
 describe('P1 — Every point is reachable', () => {
   /**
@@ -124,7 +125,7 @@ describe('P1 — Every point is reachable', () => {
           }
         },
       ),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 });
@@ -212,7 +213,7 @@ describe('P2 — Vertex beats line', () => {
         // Within vertex radius of P: must be a vertex, never a line.
         return result.kind === 'vertex';
       }),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 });
