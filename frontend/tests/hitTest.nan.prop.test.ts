@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { makeViewport, toScreen } from '../src/core/geometry';
 import { hitTest } from '../src/core/hitTest';
 import type { DiagramScene } from '../src/core/scene';
+import { runs } from './support/runs';
 
 const view = makeViewport(400, 400);
 const radii = { vertex: 22, line: 14 };
@@ -22,7 +23,7 @@ describe('hitTest ignores non-finite geometry', () => {
         const scene: DiagramScene = { kind: 'geometry', points: [{ id: 'bad', x, y, label: 'Bad' }] };
         expect(hitTest(scene, { x: fx, y: fy }, view, radii)).toEqual({ kind: 'none' });
       }),
-      { numRuns: 250 },
+      { numRuns: runs(250) },
     );
   });
 
@@ -41,7 +42,7 @@ describe('hitTest ignores non-finite geometry', () => {
         expect(hit.kind).toBe('vertex');
         if (hit.kind === 'vertex') expect(hit.id).toBe('good');
       }),
-      { numRuns: 250 },
+      { numRuns: runs(250) },
     );
   });
 
@@ -54,7 +55,7 @@ describe('hitTest ignores non-finite geometry', () => {
         };
         expect(hitTest(scene, { x: fx, y: fy }, view, radii)).toEqual({ kind: 'none' });
       }),
-      { numRuns: 250 },
+      { numRuns: runs(250) },
     );
   });
 });

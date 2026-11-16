@@ -16,6 +16,7 @@ import { makeViewport, toScreen, type ScreenPoint, type Viewport } from '../src/
 import { hitTest, type Radii } from '../src/core/hitTest';
 import type { Bar, DiagramScene, Point, Polyline, Segment } from '../src/core/scene';
 import { hitTestOracle } from './helpers/hitTestOracle';
+import { runs } from './support/runs';
 
 // ---------------------------------------------------------------------------
 // Generators
@@ -152,7 +153,7 @@ describe('P52 — optimised hitTest equals the previous implementation (PERF-01)
           expect(hitTest(scene, finger, view, radii)).toEqual(hitTestOracle(scene, finger, view, radii));
         }
       }),
-      { numRuns: 300 },
+      { numRuns: runs(300) },
     );
   });
 
@@ -163,7 +164,7 @@ describe('P52 — optimised hitTest equals the previous implementation (PERF-01)
           expect(hitTest(scene, finger, view, radii)).toEqual(hitTestOracle(scene, finger, view, radii));
         }
       }),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 
@@ -177,7 +178,7 @@ describe('P52 — optimised hitTest equals the previous implementation (PERF-01)
           expect(hitTest(scene, finger, view)).toEqual(hitTestOracle(scene, finger, view));
         },
       ),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 });
@@ -201,7 +202,7 @@ describe('P53 — a bar whose value is not finite is never announced (R3-07)', (
         const hit = hitTest(scene, finger, view, { vertex: 22, line: 0 });
         expect(hit.kind).not.toBe('bar');
       }),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 
@@ -220,7 +221,7 @@ describe('P53 — a bar whose value is not finite is never announced (R3-07)', (
         const hit = hitTest(scene, toScreen({ x: 0.5, y: 0.5 }, view), view, { vertex: 22, line: 0 });
         expect(hit).toEqual({ kind: 'bar', id: 'one', label: 'One', value: v1, maxValue: Math.max(v1, v2) });
       }),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 
@@ -244,7 +245,7 @@ describe('P53 — a bar whose value is not finite is never announced (R3-07)', (
           }
         },
       ),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 });

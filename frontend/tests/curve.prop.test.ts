@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { curveYAtX } from '../src/core/curve';
 import { pitchForY } from '../src/core/pitch';
 import type { DiagramScene, Polyline } from '../src/core/scene';
+import { runs } from './support/runs';
 
 const y01 = fc.double({ min: -0.5, max: 1.5, noNaN: true });
 
@@ -50,7 +51,7 @@ describe('P106 - height is exact and in range (Requirement 5.6)', () => {
         expect(r!.yNorm).toBeGreaterThanOrEqual(lo);
         expect(r!.yNorm).toBeLessThanOrEqual(hi);
       }),
-      { numRuns: 250 },
+      { numRuns: runs(250) },
     );
   });
 
@@ -67,7 +68,7 @@ describe('P107 - no answer outside the curve, and never throws (Requirement 5.6)
         const x = left ? pts[0]![0] - d : pts[pts.length - 1]![0] + d;
         expect(curveYAtX(graph([line('f', pts)]), x)).toBeNull();
       }),
-      { numRuns: 250 },
+      { numRuns: runs(250) },
     );
   });
 
@@ -80,7 +81,7 @@ describe('P107 - no answer outside the curve, and never throws (Requirement 5.6)
         expect(curveYAtX(graph([line('a', []), line('b', [pts[0]!])]), pts[0]![0])).toBeNull();
         expect(curveYAtX(graph([]), 0.5)).toBeNull();
       }),
-      { numRuns: 250 },
+      { numRuns: runs(250) },
     );
   });
 
@@ -101,7 +102,7 @@ describe('P107 - no answer outside the curve, and never throws (Requirement 5.6)
           }
         },
       ),
-      { numRuns: 250 },
+      { numRuns: runs(250) },
     );
   });
 });
@@ -120,7 +121,7 @@ describe('P108 - hint, order and pitch (Requirements 5.6, 5.2)', () => {
         expect(curveYAtX(scene, 0.5)).toEqual({ polylineId: 'c0', yNorm: ys[0] });
         expect(curveYAtX(scene, 0.5, Number.NaN)).toEqual({ polylineId: 'c0', yNorm: ys[0] });
       }),
-      { numRuns: 250 },
+      { numRuns: runs(250) },
     );
   });
 
@@ -133,7 +134,7 @@ describe('P108 - hint, order and pitch (Requirements 5.6, 5.2)', () => {
         const expected = Math.abs(a - hint) <= Math.abs(b - hint) ? a : b;
         expect(r.yNorm).toBe(expected);
       }),
-      { numRuns: 250 },
+      { numRuns: runs(250) },
     );
   });
 
@@ -145,7 +146,7 @@ describe('P108 - hint, order and pitch (Requirements 5.6, 5.2)', () => {
         expect(hz).toBeGreaterThanOrEqual(200);
         expect(hz).toBeLessThanOrEqual(1000);
       }),
-      { numRuns: 250 },
+      { numRuns: runs(250) },
     );
   });
 

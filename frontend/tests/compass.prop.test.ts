@@ -17,11 +17,12 @@ import {
 import { distToSegmentXY, makeViewport, type ScreenPoint, type Viewport } from '../src/core/geometry';
 import { DEFAULT_RADII, hitTest } from '../src/core/hitTest';
 import type { DiagramScene } from '../src/core/scene';
+import { runs } from './support/runs';
 
 /** A scene whose element arrays are all present (the generated type makes them optional). */
 type FullScene = DiagramScene & Required<Pick<DiagramScene, 'points' | 'segments' | 'polylines' | 'bars'>>;
 
-const RUNS = { numRuns: 250 };
+const RUNS = { numRuns: runs(250) };
 
 const OPPOSITE: Record<Compass8, Compass8> = {
   up: 'down',
@@ -138,7 +139,7 @@ describe('P89 direction is antisymmetric and means what it says', () => {
         fc.pre(expected !== 'boundary');
         expect(directionOf({ x: 0, y: 0 }, { x: dx, y: dy })).toBe(expected);
       }),
-      { numRuns: 1000 },
+      { numRuns: runs(1000) },
     );
   });
 
@@ -707,7 +708,7 @@ describe('P95 total on bad input', () => {
           }
         },
       ),
-      { numRuns: 500 },
+      { numRuns: runs(500) },
     );
   });
 
