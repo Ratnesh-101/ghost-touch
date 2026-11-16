@@ -67,6 +67,11 @@ services:
         value: "2"
       - key: SCENE_QUEUE_WAIT_SECONDS
         value: "6.0"
+      # Global daily paid AI model call budget and per-client cap (both are owner decisions)
+      - key: PAID_CALLS_PER_DAY
+        value: "2000"
+      - key: PAID_CALLS_PER_CLIENT_PER_DAY
+        value: "500"
       - key: ENVIRONMENT
         value: production
       # Replace this with the deployed Vercel frontend URL (no trailing slash)

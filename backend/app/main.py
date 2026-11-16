@@ -45,7 +45,7 @@ from app.limits import (
     request_client_key,
 )
 from app.middleware import SecurityHeadersMiddleware
-from app.paid_budget import is_budget_exhausted
+from app.paid_budget import is_budget_exhausted, set_budget_client
 from app.raw_mode import RawModeError, build_raw_scene
 from app.scene_cache import image_key, scene_cache
 from app.schema import DiagramScene
@@ -578,6 +578,7 @@ async def process_scene(
 
     # C4, R3-1, M4-01: Enforce per-client in-flight cap before waiting for global slot
     client_key_val = request_client_key(request)
+    set_budget_client(client_key_val)
     scene_in_flight = get_scene_in_flight_limiter()
     if not scene_in_flight.acquire(client_key_val):
         raise HTTPException(
@@ -911,6 +912,7 @@ async def ask_question_route(
     """
     # C4, R3-1, M4-01: Per-client in-flight cap (429 over cap)
     client_key_val = request_client_key(raw_request)
+    set_budget_client(client_key_val)
     ask_limiter = get_ask_in_flight_limiter()
     if not ask_limiter.acquire(client_key_val):
         raise HTTPException(

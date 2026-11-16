@@ -34,6 +34,21 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 Backend deploys to Render via the root `render.yaml` Blueprint.
 See `docs/DEPLOY.md` for step-by-step deployment instructions.
 
+## Paid API Budget & Circuit Breaker
+The backend tracks daily paid model consumption in memory keyed by UTC date to prevent
+runaway spend and quota exhaustion:
+
+- `PAID_CALLS_PER_DAY`: Global daily limit on paid model calls across all clients
+  (default: `2000`, set in `render.yaml`).
+  **Kill switch**: Setting `PAID_CALLS_PER_DAY=0` immediately disables all paid AI calls
+  across the system without requiring redeployment, forcing the application to fall back
+  gracefully to OpenCV Raw Mode and deterministic facts lookup.
+- `PAID_CALLS_PER_CLIENT_PER_DAY`: Per-client daily cap on paid model calls
+  (default: `500`, set in `render.yaml`; unset, invalid, or `0` disables the per-client cap).
+  Prevents a single client from monopolizing the day's AI budget.
+
+Both limits are owner decisions configured in `render.yaml`.
+
 ## Test
 ```bash
 pytest
