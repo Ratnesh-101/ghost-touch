@@ -10,9 +10,10 @@ import { describe, expect, it } from 'vitest';
 import { distToSegmentXY, makeViewport, type ScreenPoint, type Viewport } from '../src/core/geometry';
 import { DEFAULT_RADII, hitTest, type Radii, type Target } from '../src/core/hitTest';
 import type { DiagramScene } from '../src/core/scene';
+import { runs } from './support/runs';
 import { followTarget, STICKY_HOLD_MS, STICKY_RADIUS_PX } from '../src/core/sticky';
 
-const RUNS = 250;
+const RUNS = runs(250);
 
 type LineTarget = Extract<Target, { kind: 'line' }>;
 type Piece = [number, number, number, number];
@@ -226,20 +227,63 @@ describe('P115 - a vertex always wins (Requirement 33.4)', () => {
 });
 
 describe('P116 - a line that hitTest reports wins (Requirement 33.4)', () => {
-  it('whenever hitTest reports a line, that line is returned whatever the held line', () => {
-    let lines = 0;
+  it('whenever hitTest reports a line, that line is returned whatever the held line (random breadth)', () => {
     fc.assert(
       fc.property(caseArb, heldOk, fc.double({ min: 0.5, max: 40, noNaN: true }), (c, heldMs, extra) => {
         const held = heldOf(c);
         const finger = aim(pieces(c.scene, c.view, held), c.view, c.u);
         const base = hitTest(c.scene, finger, c.view, c.radii);
         if (base.kind !== 'line') return;
-        lines++;
         expect(followTarget(held, heldMs, c.scene, finger, c.view, c.radii, c.radii.line + extra)).toEqual(base);
       }),
       { numRuns: RUNS },
     );
-    expect(lines).toBeGreaterThan(20);
+  });
+
+  it('deterministic: fingers on and within 10 px of a line always get that line, whatever is held', () => {
+    const scene: DiagramScene = {
+      version: 1,
+      kind: 'geometry',
+      points: [
+        { id: 'A', x: 0.1, y: 0.5 },
+        { id: 'B', x: 0.9, y: 0.5 },
+        { id: 'C', x: 0.1, y: 0.8 },
+        { id: 'D', x: 0.9, y: 0.8 },
+      ],
+      segments: [
+        { id: 'AB', a: 'A', b: 'B' },
+        { id: 'CD', a: 'C', b: 'D' },
+      ],
+      polylines: [],
+      bars: [],
+    };
+    const view = makeViewport(400, 400); // AB at y = 200, CD at y = 320
+    const heldLines: Target[] = [
+      { kind: 'line', id: 'AB', elementKind: 'segment' },
+      { kind: 'line', id: 'CD', elementKind: 'segment' },
+      { kind: 'line', id: 'gone', elementKind: 'polyline' },
+    ];
+    let checked = 0;
+    for (const held of heldLines) {
+      for (const heldMs of [0, 199, 200, 500, 5000]) {
+        for (const extra of [0.5, 5, 10, 40]) {
+          for (const [y, id] of [
+            [200, 'AB'],
+            [207, 'AB'],
+            [193, 'AB'],
+            [320, 'CD'],
+            [329, 'CD'],
+          ] as const) {
+            const finger = { x: 200, y };
+            const base = hitTest(scene, finger, view, DEFAULT_RADII);
+            expect(base).toEqual({ kind: 'line', id, elementKind: 'segment' });
+            expect(followTarget(held, heldMs, scene, finger, view, DEFAULT_RADII, DEFAULT_RADII.line + extra)).toEqual(base);
+            checked++;
+          }
+        }
+      }
+    }
+    expect(checked).toBe(3 * 5 * 4 * 5);
   });
 
   it('example: a held line 22 px away loses to a different line 10 px away', () => {
@@ -269,40 +313,156 @@ describe('P116 - a line that hitTest reports wins (Requirement 33.4)', () => {
   });
 });
 
+/**
+ * The per-case check behind P117, run by the random property for breadth and by the
+ * deterministic band-covering cases below. It returns which band the finger fell in so the
+ * caller can count coverage. The assertions are identical in both callers, so a mutant that
+ * breaks sticking is caught whether the finger was placed at random or on purpose.
+ */
+type Band = 'stuck' | 'released' | 'other';
+function checkCase(
+  held: LineTarget,
+  heldMs: number,
+  scene: DiagramScene,
+  view: Viewport,
+  radii: Radii,
+  s: number,
+  finger: ScreenPoint,
+): Band {
+  const pcs = pieces(scene, view, held);
+  const base = hitTest(scene, finger, view, radii);
+  const out = followTarget(held, heldMs, scene, finger, view, radii, s);
+  const d = minDist(finger, pcs);
+  let band: Band = 'other';
+  if (base.kind === 'vertex' || base.kind === 'line') {
+    expect(out).toEqual(base);
+  } else if (d <= s - 1e-6) {
+    expect(out).toEqual(stripped(held));
+    band = 'stuck';
+  } else if (d > s + 1e-6) {
+    expect(out).toEqual(base);
+    band = 'released';
+  }
+  // Whenever the answer differs from hitTest, the held line really is within reach.
+  if (JSON.stringify(out) !== JSON.stringify(base)) {
+    expect(base.kind === 'none' || base.kind === 'bar').toBe(true);
+    expect(d).toBeLessThanOrEqual(s + 1e-6);
+  }
+  return band;
+}
+
 describe('P117 - it sticks exactly out to the sticky radius (Requirement 33.3)', () => {
-  it('matches a brute-force distance to the held element (segment, polyline, axis, bar edge)', () => {
-    const seen = { stuck: 0, released: 0 };
+  // One isolated scene per element kind, far from every other drawable, so hitTest reports
+  // `none` for a finger beside the held line and the brute-force distance is the held line's.
+  // Horizontal element at screen y = 200 on a 400x400 canvas; the finger is offset vertically
+  // by a known number of pixels, so the band is chosen by arithmetic, not by luck.
+  const view = makeViewport(400, 400);
+  const radii = DEFAULT_RADII; // line 14, vertex 22
+  const s = STICKY_RADIUS_PX; // 24
+  type KindScene = { kind: (typeof ELEMENT_KINDS)[number]; scene: DiagramScene; held: LineTarget };
+  const isolated: KindScene[] = [
+    {
+      kind: 'segment',
+      scene: {
+        version: 1,
+        kind: 'geometry',
+        points: [
+          { id: 'A', x: 0.1, y: 0.5 },
+          { id: 'B', x: 0.9, y: 0.5 },
+        ],
+        segments: [{ id: 'AB', a: 'A', b: 'B' }],
+        polylines: [],
+        bars: [],
+      },
+      held: { kind: 'line', id: 'AB', elementKind: 'segment' },
+    },
+    {
+      kind: 'polyline',
+      scene: {
+        version: 1,
+        kind: 'function_graph',
+        points: [],
+        segments: [],
+        polylines: [
+          {
+            id: 'PL',
+            points: [
+              [0.1, 0.5],
+              [0.9, 0.5],
+            ],
+            label: null,
+          },
+        ],
+        bars: [],
+      },
+      held: { kind: 'line', id: 'PL', elementKind: 'polyline' },
+    },
+    {
+      kind: 'axis',
+      scene: {
+        version: 1,
+        kind: 'function_graph',
+        points: [],
+        segments: [],
+        polylines: [],
+        bars: [],
+        axes: { x_axis_y: 0.5, y_axis_x: null },
+      },
+      held: { kind: 'line', id: 'x-axis', elementKind: 'axis' },
+    },
+    {
+      kind: 'bar-edge',
+      // The bar's base edge sits at y = 200; its top edge is far above (y = 0.1).
+      scene: {
+        version: 1,
+        kind: 'bar_chart',
+        points: [],
+        segments: [],
+        polylines: [],
+        bars: [{ id: 'BAR', label: 'B', value: 1, x0: 0.1, x1: 0.9, y_top: 0.1, y_base: 0.5 }],
+      },
+      held: { kind: 'line', id: 'BAR', elementKind: 'bar-edge' },
+    },
+  ];
+
+  it('deterministic bands: each element kind sticks at 20 px and releases at 30 px', () => {
+    for (const { scene, held } of isolated) {
+      // On the line at (200, 200): hitTest reports the line, so followTarget returns it.
+      // 20 px off (and far from the bar top at y=40): hitTest none, within s=24 -> stuck.
+      // 30 px off: hitTest none, beyond s=24 -> released.
+      expect(checkCase(held, 500, scene, view, radii, s, { x: 200, y: 220 })).toBe('stuck');
+      expect(checkCase(held, 500, scene, view, radii, s, { x: 200, y: 230 })).toBe('released');
+    }
+  });
+
+  it('deterministic coverage: every element kind has stuck and released cases (counts fixed by construction)', () => {
+    // Coverage is asserted on fixed offsets only (task 62), never on a counter over random draws.
     const perKind = new Set<string>();
+    let stuck = 0;
+    let released = 0;
+    for (const { kind, scene, held } of isolated) {
+      for (let off = 15; off <= 23; off++) {
+        if (checkCase(held, 500, scene, view, radii, s, { x: 200, y: 200 + off }) === 'stuck') stuck++;
+      }
+      for (let off = 25; off <= 40; off++) {
+        if (checkCase(held, 500, scene, view, radii, s, { x: 200, y: 200 + off }) === 'released') released++;
+      }
+      perKind.add(kind);
+    }
+    expect(stuck).toBe(9 * isolated.length);
+    expect(released).toBe(16 * isolated.length);
+    expect([...perKind].sort()).toEqual(['axis', 'bar-edge', 'polyline', 'segment']);
+  });
+
+  it('matches a brute-force distance to the held element (random breadth, per-case assertions only)', () => {
     fc.assert(
       fc.property(caseArb, heldOk, fc.double({ min: 0.5, max: 40, noNaN: true }), (c, heldMs, extra) => {
         const held = heldOf(c);
-        const pcs = pieces(c.scene, c.view, held);
-        const finger = aim(pcs, c.view, c.u);
-        const s = c.radii.line + extra;
-        const base = hitTest(c.scene, finger, c.view, c.radii);
-        const out = followTarget(held, heldMs, c.scene, finger, c.view, c.radii, s);
-        const d = minDist(finger, pcs);
-        if (base.kind === 'vertex' || base.kind === 'line') {
-          expect(out).toEqual(base);
-        } else if (d <= s - 1e-6) {
-          expect(out).toEqual(stripped(held));
-          seen.stuck++;
-          perKind.add(held.elementKind);
-        } else if (d > s + 1e-6) {
-          expect(out).toEqual(base);
-          seen.released++;
-        }
-        // Whenever the answer differs from hitTest, the held line really is within reach.
-        if (JSON.stringify(out) !== JSON.stringify(base)) {
-          expect(base.kind === 'none' || base.kind === 'bar').toBe(true);
-          expect(d).toBeLessThanOrEqual(s + 1e-6);
-        }
+        const finger = aim(pieces(c.scene, c.view, held), c.view, c.u);
+        checkCase(held, heldMs, c.scene, c.view, c.radii, c.radii.line + extra, finger);
       }),
-      { numRuns: 400 },
+      { numRuns: runs(400) },
     );
-    expect(seen.stuck).toBeGreaterThan(20);
-    expect(seen.released).toBeGreaterThan(20);
-    expect([...perKind].sort()).toEqual(['axis', 'bar-edge', 'polyline', 'segment']);
   });
 
   it('example: 22 px from a segment sticks, 26 px does not (sticky radius 24)', () => {
@@ -418,7 +578,7 @@ describe('P119 - total, and only two answers (Requirement 33.6)', () => {
           expect(base.kind === 'none' || base.kind === 'bar').toBe(true);
         },
       ),
-      { numRuns: 500 },
+      { numRuns: runs(500) },
     );
   });
 

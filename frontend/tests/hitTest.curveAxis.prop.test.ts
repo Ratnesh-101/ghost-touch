@@ -14,6 +14,7 @@ import { makeViewport, toScreen, type ScreenPoint, type Viewport } from '../src/
 import { hitTest, type Radii } from '../src/core/hitTest';
 import type { DiagramScene } from '../src/core/scene';
 import { hitTestOracle } from './helpers/hitTestOracle';
+import { runs } from './support/runs';
 
 const unit = fc.double({ min: 0, max: 1, noNaN: true });
 const radiiArb: fc.Arbitrary<Radii> = fc.oneof(
@@ -97,23 +98,72 @@ function polylineInRadius(scene: DiagramScene, finger: ScreenPoint, view: Viewpo
   return hitTestOracle(only, finger, view, radii).kind === 'line';
 }
 
+/** The per-case assertion of P104, shared by the random property and the deterministic grid. Returns true when it applied. */
+function checkCurveBeatsAxis(scene: DiagramScene, finger: ScreenPoint, view: Viewport, radii: Radii): boolean {
+  if (!polylineInRadius(scene, finger, view, radii)) return false;
+  const noAxes: DiagramScene = { ...scene, axes: { x_axis_y: null, y_axis_x: null } };
+  const got = hitTest(scene, finger, view, radii);
+  expect(got.kind === 'line' && got.elementKind === 'axis').toBe(false);
+  expect(got).toEqual(hitTestOracle(noAxes, finger, view, radii));
+  return true;
+}
+
+/** The per-case assertion of P105. Returns true when it applied. */
+function checkUnchangedOutsideCurve(scene: DiagramScene, finger: ScreenPoint, view: Viewport, radii: Radii): boolean {
+  if (polylineInRadius(scene, finger, view, radii)) return false;
+  expect(hitTest(scene, finger, view, radii)).toEqual(hitTestOracle(scene, finger, view, radii));
+  return true;
+}
+
+/**
+ * Fixed scene for the deterministic grids (task 62): a curve that runs along and across both
+ * axes, a segment, and a bar. Coverage is counted on this grid, never on random draws.
+ */
+const gridScene: DiagramScene = {
+  version: 1,
+  kind: 'function_graph',
+  points: [
+    { id: 'p0', x: 0.1, y: 0.2, label: null },
+    { id: 'p1', x: 0.3, y: 0.2, label: null },
+  ],
+  segments: [{ id: 's0', a: 'p0', b: 'p1', label: null }],
+  polylines: [
+    {
+      id: 'pl0',
+      label: null,
+      points: [
+        [0.05, 0.52],
+        [0.5, 0.5],
+        [0.95, 0.48],
+        [0.5, 0.9],
+      ],
+    },
+  ],
+  bars: [{ id: 'b0', label: 'B0', value: 2, x0: 0.6, x1: 0.8, y_top: 0.7, y_base: 0.95 }],
+  axes: { x_axis_y: 0.5, y_axis_x: 0.5 },
+};
+const gridView = makeViewport(400, 400);
+const gridRadii: Radii = { vertex: 22, line: 14 };
+const gridFingers: ScreenPoint[] = [];
+for (let gx = 0; gx <= 400; gx += 20) {
+  for (let gy = 0; gy <= 400; gy += 20) gridFingers.push({ x: gx, y: gy });
+}
+
 describe('P104 - a curve beats an axis (Requirement 5.5)', () => {
-  it('with a polyline within the radius the answer is never an axis and equals the old answer without axes (300 runs)', () => {
+  it('deterministic grid: the curve-near-axis case is reached and always answered as the old code without axes', () => {
     let aimed = 0;
+    for (const f of gridFingers) if (checkCurveBeatsAxis(gridScene, f, gridView, gridRadii)) aimed++;
+    // Counted on fixed fingers over a fixed scene, so this is a property of the fixture, not of a draw.
+    expect(aimed).toBeGreaterThan(40);
+  });
+
+  it('with a polyline within the radius the answer is never an axis and equals the old answer without axes (300 runs)', () => {
     fc.assert(
       fc.property(genArb, viewArb, radiiArb, (g, view, radii) => {
-        const noAxes: DiagramScene = { ...g.scene, axes: { x_axis_y: null, y_axis_x: null } };
-        for (const finger of fingers(g.scene, view, radii, g.rnd)) {
-          if (!polylineInRadius(g.scene, finger, view, radii)) continue;
-          aimed++;
-          const got = hitTest(g.scene, finger, view, radii);
-          expect(got.kind === 'line' && got.elementKind === 'axis').toBe(false);
-          expect(got).toEqual(hitTestOracle(noAxes, finger, view, radii));
-        }
+        for (const finger of fingers(g.scene, view, radii, g.rnd)) checkCurveBeatsAxis(g.scene, finger, view, radii);
       }),
-      { numRuns: 300 },
+      { numRuns: runs(300) },
     );
-    expect(aimed).toBeGreaterThan(200); // the generator really reaches the case
   });
 
   it('an axis still wins when the curve is out of reach, and a plain axis scene is unchanged', () => {
@@ -132,20 +182,22 @@ describe('P104 - a curve beats an axis (Requirement 5.5)', () => {
 });
 
 describe('P105 - everything else is as before (Requirement 5.5)', () => {
-  it('with no polyline within the radius, or no polylines, the answer equals the frozen old one (300 runs)', () => {
+  it('deterministic grid: the no-curve-nearby case is reached and answered exactly as before', () => {
     let checked = 0;
+    for (const f of gridFingers) if (checkUnchangedOutsideCurve(gridScene, f, gridView, gridRadii)) checked++;
+    const noCurves: DiagramScene = { ...gridScene, polylines: [] };
+    for (const f of gridFingers) if (checkUnchangedOutsideCurve(noCurves, f, gridView, gridRadii)) checked++;
+    expect(checked).toBeGreaterThan(500);
+  });
+
+  it('with no polyline within the radius, or no polylines, the answer equals the frozen old one (300 runs)', () => {
     fc.assert(
       fc.property(genArb, viewArb, radiiArb, fc.boolean(), (g, view, radii, dropCurves) => {
         const scene: DiagramScene = dropCurves ? { ...g.scene, polylines: [] } : g.scene;
-        for (const finger of fingers(g.scene, view, radii, g.rnd)) {
-          if (polylineInRadius(scene, finger, view, radii)) continue;
-          checked++;
-          expect(hitTest(scene, finger, view, radii)).toEqual(hitTestOracle(scene, finger, view, radii));
-        }
+        for (const finger of fingers(g.scene, view, radii, g.rnd)) checkUnchangedOutsideCurve(scene, finger, view, radii);
       }),
-      { numRuns: 300 },
+      { numRuns: runs(300) },
     );
-    expect(checked).toBeGreaterThan(500);
   });
 
   it('a segment or bar edge nearer than the curve still wins over it', () => {

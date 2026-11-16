@@ -302,6 +302,8 @@ describe('serialise and deserialise', () => {
         { id: 'p2', x: 0.5, y: 0.8, label: 'B' },
       ],
       segments: [{ id: 's1', a: 'p1', b: 'p2' }],
+      polylines: [],
+      bars: [],
     },
     pinned: true,
   };

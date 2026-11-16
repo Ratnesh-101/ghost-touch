@@ -33,16 +33,21 @@ import {
   setStoredGuideSetting,
 } from '../config/features';
 import {
+  getStoredCornerHeartbeatSetting,
   getStoredDirectionsSetting,
   getStoredStickyLineSetting,
+  setStoredCornerHeartbeatSetting,
   setStoredDirectionsSetting,
   setStoredStickyLineSetting,
 } from '../drivers/storage';
 import {
   getStoredFindingSoundSetting,
   getStoredGraphScanSetting,
+  getStoredSpeechDetailSetting,
   setStoredFindingSoundSetting,
   setStoredGraphScanSetting,
+  setStoredSpeechDetailSetting,
+  type SpeechDetail,
 } from '../flow/explore';
 import { TEACH_HASH } from '../drivers/hashRoute';
 import {
@@ -90,7 +95,9 @@ export function LabSettings({
   const [findingSoundEnabled, setFindingSoundEnabled] = useState(() => getStoredFindingSoundSetting());
   const [stickyLineEnabled, setStickyLineEnabled] = useState(() => getStoredStickyLineSetting());
   const [graphScanEnabled, setGraphScanEnabled] = useState(() => getStoredGraphScanSetting());
+  const [cornerHeartbeatEnabled, setCornerHeartbeatEnabled] = useState(() => getStoredCornerHeartbeatSetting());
   const [teacherEnabled, setTeacherEnabled] = useState(() => getStoredTeacherSetting());
+  const [speechDetail, setSpeechDetail] = useState<SpeechDetail>(() => getStoredSpeechDetailSetting());
 
   const doSpeak = (text: string): void => {
     if (speak) {
@@ -98,6 +105,16 @@ export function LabSettings({
     } else if (drivers?.speech?.speak) {
       drivers.speech.speak(text);
     }
+  };
+
+  const handleSelectSpeechDetail = (detail: SpeechDetail): void => {
+    setSpeechDetail(detail);
+    setStoredSpeechDetailSetting(detail);
+    const spoken =
+      detail === 'short'
+        ? t('lab.settings.speechDetailSetShort')
+        : t('lab.settings.speechDetailSetFull');
+    doSpeak(spoken);
   };
 
   const handleToggleDirections = (): void => {
@@ -129,6 +146,14 @@ export function LabSettings({
     setGraphScanEnabled(next);
     setStoredGraphScanSetting(next);
     const spoken = next ? t('lab.settings.graphScanOn') : t('lab.settings.graphScanOff');
+    doSpeak(spoken);
+  };
+
+  const handleToggleCornerHeartbeat = (): void => {
+    const next = !cornerHeartbeatEnabled;
+    setCornerHeartbeatEnabled(next);
+    setStoredCornerHeartbeatSetting(next);
+    const spoken = next ? t('lab.settings.cornerHeartbeatOn') : t('lab.settings.cornerHeartbeatOff');
     doSpeak(spoken);
   };
 
@@ -171,7 +196,9 @@ export function LabSettings({
       setFindingSoundEnabled(getStoredFindingSoundSetting());
       setStickyLineEnabled(getStoredStickyLineSetting());
       setGraphScanEnabled(getStoredGraphScanSetting());
+      setCornerHeartbeatEnabled(getStoredCornerHeartbeatSetting());
       setTeacherEnabled(getStoredTeacherSetting());
+      setSpeechDetail(getStoredSpeechDetailSetting());
       hasSpokenClose.current = false;
       if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
         previouslyFocusedElement.current = document.activeElement;
@@ -291,6 +318,68 @@ export function LabSettings({
               {t('lab.settings.rate')}
             </h3>
             <RateSelector drivers={drivers} />
+          </section>
+
+          <section
+            className="gt-lab-settings__section"
+            aria-labelledby="lab-settings-section-speech-detail"
+          >
+            <h3
+              id="lab-settings-section-speech-detail"
+              className="gt-lab-settings__section-title"
+            >
+              {t('lab.settings.speechDetail')}
+            </h3>
+            <p
+              className="gt-lab-settings__hint"
+              style={{
+                margin: '0 0 var(--gt-space-sm, 8px) 0',
+                fontSize: '0.9rem',
+                color: 'var(--gt-bone, #ded6c4)',
+              }}
+            >
+              {t('lab.settings.speechDetailHint')}
+            </p>
+            <div
+              className="gt-rate-selector"
+              role="group"
+              aria-label={t('lab.settings.speechDetail')}
+            >
+              <AccessibleButton
+                type="button"
+                className={`gt-control gt-rate-selector__btn ${
+                  speechDetail === 'full' ? 'gt-rate-selector__btn--active' : ''
+                }`}
+                aria-pressed={speechDetail === 'full'}
+                aria-label={t('lab.settings.speechDetailFull')}
+                onClick={() => handleSelectSpeechDetail('full')}
+                style={{
+                  minWidth: '48px',
+                  minHeight: '48px',
+                }}
+              >
+                <span className="gt-rate-selector__label">
+                  {t('lab.settings.speechDetailFull')}
+                </span>
+              </AccessibleButton>
+              <AccessibleButton
+                type="button"
+                className={`gt-control gt-rate-selector__btn ${
+                  speechDetail === 'short' ? 'gt-rate-selector__btn--active' : ''
+                }`}
+                aria-pressed={speechDetail === 'short'}
+                aria-label={t('lab.settings.speechDetailShort')}
+                onClick={() => handleSelectSpeechDetail('short')}
+                style={{
+                  minWidth: '48px',
+                  minHeight: '48px',
+                }}
+              >
+                <span className="gt-rate-selector__label">
+                  {t('lab.settings.speechDetailShort')}
+                </span>
+              </AccessibleButton>
+            </div>
           </section>
 
           <section
@@ -436,6 +525,42 @@ export function LabSettings({
               {graphScanEnabled
                 ? t('lab.settings.graphScanOn')
                 : t('lab.settings.graphScanOff')}
+            </AccessibleButton>
+          </section>
+
+          <section
+            className="gt-lab-settings__section"
+            aria-labelledby="lab-settings-section-corner-heartbeat"
+          >
+            <h3 id="lab-settings-section-corner-heartbeat" className="gt-lab-settings__section-title">
+              {t('lab.settings.cornerHeartbeat')}
+            </h3>
+            <p
+              className="gt-lab-settings__hint"
+              style={{
+                margin: '0 0 var(--gt-space-sm, 8px) 0',
+                fontSize: '0.9rem',
+                color: 'var(--gt-bone, #ded6c4)',
+              }}
+            >
+              {t('lab.settings.cornerHeartbeatHint')}
+            </p>
+            <AccessibleButton
+              type="button"
+              role="switch"
+              aria-checked={cornerHeartbeatEnabled}
+              className={`gt-control gt-btn ${
+                cornerHeartbeatEnabled ? 'gt-btn--primary' : 'gt-btn--secondary'
+              }`}
+              onClick={handleToggleCornerHeartbeat}
+              style={{
+                minWidth: '48px',
+                minHeight: '48px',
+                padding: '12px 20px',
+                width: '100%',
+              }}
+            >
+              {t('lab.settings.cornerHeartbeat')}
             </AccessibleButton>
           </section>
 

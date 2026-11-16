@@ -490,3 +490,53 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [ ] 59b.3 Real-Explore test: with the switch off the vibrate, tone and speak calls of a fixed trace are identical to today; deleting the switch guard turns it red
   - [ ] 59b.4 Phone test of the pattern and period on the Nord CE6 and one budget phone; only then may `tech.md` lose the "PROPOSED" mark
   - _Requirements: 34.*_
+
+
+## One structural guard at every scene ingress (Requirement 35; spec written before the code)
+> Core half only. Do not edit `hitTest.ts`, `hapticEngine.ts`, `screens/`, `flow/`, `api/`, `App.tsx` or any tuned value. Numbered 61 because `kiro: T60` (flaky P117) is already in BUILD_LOG.
+
+- [x] 61. `core/sceneGuard.ts` and its use in `deserialise`
+  - [x] 61.1 Requirement 35, design section and properties P128-P131 written before any code
+  - [x] 61.2 `frontend/src/core/sceneGuard.ts`: `SCENE_GUARD_LIMITS`, `isRenderableScene`; pure, named exports, no `any`
+  - [x] 61.3 `core/savedDiagrams.ts` `deserialise` returns `undefined` when the guard rejects the scene; fix any existing test whose generated scene was not renderable only if the test, not the guard, is wrong
+  - [x] 61.4 Properties P128-P131 in `frontend/tests/sceneGuard.prop.test.ts` (300 runs), limits-equal-backend test, mutation-checked; if P130 finds a throw in `core/`, stop, log it in BUILD_LOG and open a separate task
+  - [x] 61.5 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro); path-scoped commit
+  - [ ] 61b. Later lane (not Kiro, not started): call the guard where a network response and a bundled sample are loaded
+  - _Requirements: 35.*_
+
+
+## Remove luck from the frontend property suite (task 62; tests only)
+> Test files only. Do not edit `frontend/src/` (so not `core/`), `DEFAULT_HAPTICS`, `DEFAULT_RADII` or any other tuned value. Rule (P117 pattern from task 60): a coverage or statistics check must not depend on the random draw. Coverage comes from deterministic, fixed-input cases that run every time; random cases (`fc.assert`) are for breadth and carry only per-case assertions. A counter over random draws compared with `toBeGreaterThan` is a luck gate. A product failure is reported with its seed, never hidden.
+
+- [x] 62. Deterministic coverage, one run-count knob, and a five-run flake census
+  - [x] 62.1 Spec (this entry). Search `frontend/tests/*.prop.test.ts` for counters compared with `toBeGreaterThan`, `fc.pre` filters that reject most cases, and wall-clock budgets; list each in BUILD_LOG with the action taken
+  - [x] 62.2 Each luck gate: add deterministic seeded cases that reach the covered state by construction and assert coverage on those; keep the random property for breadth with per-case assertions only
+  - [x] 62.3 `frontend/tests/support/runs.ts` exports `runs(n) = n * (Number(process.env.FC_RUNS_MULT) || 1)` (rounded up to an integer, at least 1); used for `numRuns` in the hitTest, geometry, hapticEngine, sticky, heartbeat, curve and compass property files. Default behaviour (no env var) is unchanged
+  - [x] 62.4 Run the full suite five times; list every test that failed at least once with its seed in BUILD_LOG, classified as generator bug, test-environment load or product bug. Fix generator bugs; report the other two without touching `core/`
+  - [x] 62.5 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro); path-scoped commit
+
+
+## Can a share link be a decompression bomb? (task 63; test and measurement only, fix proposed and not built)
+> `decodeShare` checks `raw.length <= LIMITS.maxHashChars` (12000), then LZString decompresses the whole string, and only then is `maxDecompressedChars` (200000) checked. Test only: `frontend/tests/share.decodeBound.test.ts`. No file under `frontend/src/` changed.
+
+- [x] 63. Measure the worst input that fits `maxHashChars`
+  - [x] 63.1 Result (repeated "a", "[" and `{"a":`; 1, 5 and 20 MB inputs): 1 MB compresses to 2322 chars (5807 for the `{"a":` pattern), 5 MB to 5803, 20 MB to more than 12000 (not usable). Bisection: 18.12 MB of "a" compresses to exactly 12000 chars and decompresses to 18,999,680 chars in about 10 ms. `decodeShare` threw `too-large` or `bad-format` in under 5 ms for every kept input, so the 250 ms bound holds with a wide margin.
+  - [x] 63.2 Finding: the 2 MB expansion bound does NOT hold. A 12000-char link expands to about 19 million chars (about 38 MB of UTF-16, roughly 95 times the 200000 cap) before the cap rejects it. It is rejected correctly and fast, so this is a transient memory spike on the student's phone, not a hang or a crash on the measured machine. A budget phone was not measured.
+  - [x] 63.3 The test pins today's ceiling (20 million chars), asserts the finding, and carries an `it.todo` for the 2 MB target. No existing share test was changed.
+  - [ ] 63.4 Fix, smallest first (needs an owner decision, no code written):
+    - (a) Lower `LIMITS.maxHashChars`. The sqrt-like growth means about 3300 chars is the ceiling for 2 MB. That would also refuse legitimate large scenes (300 points compress to well over 3300 chars), so it is not recommended.
+    - (b) Compressed-length heuristic: the compressed form has no cheap distinct-symbol count, so a ratio check before decompressing is not reliable. Not recommended.
+    - (c) Recommended: decompress through lz-string's internal `_decompress` with a `getNextValue` wrapper is not possible to cap, so instead vendor a small bounded decoder (stop after `maxDecompressedChars + 1` output chars) in `share/`, and keep LZString for encoding. Needs approval for the new module and a property test that it equals `LZString.decompressFromEncodedURIComponent` whenever the output is within the cap.
+  - _Requirements: 16.4 spirit (bounded resource use); share contract SEC-01_
+
+
+
+## Chaos property for the pure touch pipeline (Requirement 36; spec written before the test; tests only)
+> Test file only. Do not edit `frontend/src/` (so not `core/`), `DEFAULT_HAPTICS`, `DEFAULT_RADII` or any tuned value. A failing seed is pinned as a regression example and reported, never hidden.
+
+- [x] 64. Chaos property P132-P136 in `frontend/tests/touch.chaos.prop.test.ts`
+  - [x] 64.1 Requirement 36, design section and properties P132-P136 written before any code
+  - [x] 64.2 Harness (pointer model, sticky and heartbeat wrappers), scene and event generators including degenerate inputs
+  - [x] 64.3 Properties at 200-300 runs through `runs()`; mutation-check at least three mutants of the harness-visible rules, reverted
+  - [x] 64.4 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro); path-scoped commit
+  - _Requirements: 36.*_

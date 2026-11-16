@@ -225,6 +225,20 @@ const en: Record<string, string> = {
   'debug.btnBeep': 'Beep',
   'debug.btnSpeak': 'Speak sample',
   'debug.btnListen': 'Listen',
+  'debug.hbTitle': 'Heartbeat candidates',
+  'debug.hbH1': 'H1: [50, 90, 50] (900 ms)',
+  'debug.hbH2': 'H2: [40, 60, 40] (800 ms)',
+  'debug.hbH3': 'H3: [30, 70, 60] (900 ms)',
+  'debug.hbH4': 'H4: [60, 80, 40] (1000 ms)',
+  'debug.hbH5': 'H5: [40, 120, 80] (1000 ms)',
+  'debug.hbH6': 'H6: [70, 110, 70] (1100 ms)',
+  'debug.btnOnce': 'Once',
+  'debug.btnRepeat': 'Repeat',
+  'debug.hbPeriod': 'Period (ms)',
+  'debug.btnLine2s': 'Line buzz 2 s',
+  'debug.btnLineThenCorner': 'Line, then corner',
+  'debug.restingPad': 'Resting pad',
+  'debug.restingPadHint': 'Hold finger down to feel corner heartbeat',
 
   // Frankenstein Lab theme (Lane lab-i18n)
   'lab.start.wake': 'Wake the creature',
@@ -448,6 +462,20 @@ const en: Record<string, string> = {
   'lab.settings.graphScanOn': 'Graph scan enabled.',
   'lab.settings.graphScanOff': 'Graph scan disabled.',
 
+  // Speech detail setting (Lane A7)
+  'lab.settings.speechDetail': 'Speech detail',
+  'lab.settings.speechDetailHint': 'Choose full announcements or short labels during fast sweeps.',
+  'lab.settings.speechDetailFull': 'Full',
+  'lab.settings.speechDetailShort': 'Short',
+  'lab.settings.speechDetailSetFull': 'Speech detail set to full.',
+  'lab.settings.speechDetailSetShort': 'Speech detail set to short.',
+
+  // Corner heartbeat setting (Lane hb2)
+  'lab.settings.cornerHeartbeat': 'Corner heartbeat',
+  'lab.settings.cornerHeartbeatHint': 'Repeating heartbeat vibration while resting on a corner.',
+  'lab.settings.cornerHeartbeatOn': 'Corner heartbeat enabled.',
+  'lab.settings.cornerHeartbeatOff': 'Corner heartbeat disabled.',
+
   // Corner compass & line names (Lane A3)
   'compass.dir.up': 'up',
   'compass.dir.down': 'down',
@@ -486,6 +514,12 @@ const en: Record<string, string> = {
   'whereAmI.dir.down-right': 'below to your right',
   'whereAmI.detailWithDir': '{name}, {dist}, {dir}',
   'whereAmI.detail': '{name}, {dist}',
+
+  // Page edge cues (Lane bu8b)
+  'edge.top': 'Edge, top',
+  'edge.bottom': 'Edge, bottom',
+  'edge.left': 'Edge, left',
+  'edge.right': 'Edge, right',
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -676,6 +710,20 @@ const hi: Record<string, string> = {
   'debug.btnBeep': 'बीप',
   'debug.btnSpeak': 'नमूना बोलें',
   'debug.btnListen': 'सुनें',
+  'debug.hbTitle': 'हार्टबीट उम्मीदवार',
+  'debug.hbH1': 'H1: [50, 90, 50] (900 ms)',
+  'debug.hbH2': 'H2: [40, 60, 40] (800 ms)',
+  'debug.hbH3': 'H3: [30, 70, 60] (900 ms)',
+  'debug.hbH4': 'H4: [60, 80, 40] (1000 ms)',
+  'debug.hbH5': 'H5: [40, 120, 80] (1000 ms)',
+  'debug.hbH6': 'H6: [70, 110, 70] (1100 ms)',
+  'debug.btnOnce': 'एक बार',
+  'debug.btnRepeat': 'दोहराएं',
+  'debug.hbPeriod': 'अवधि (मिलीसेकंड)',
+  'debug.btnLine2s': 'रेखा बज़ 2 सेकंड',
+  'debug.btnLineThenCorner': 'रेखा, फिर कोना',
+  'debug.restingPad': 'विश्राम पैड',
+  'debug.restingPadHint': 'कोने की हार्टबीट महसूस करने के लिए उंगली दबाए रखें',
 
   // Frankenstein Lab theme (Lane lab-i18n)
   'lab.start.wake': 'जीव को जगाएं',
@@ -902,6 +950,20 @@ const hi: Record<string, string> = {
   'lab.settings.graphScanOn': 'ग्राफ़ स्कैन सक्षम किया गया।',
   'lab.settings.graphScanOff': 'ग्राफ़ स्कैन अक्षम किया गया।',
 
+  // Speech detail setting (Lane A7)
+  'lab.settings.speechDetail': 'वाणी विवरण',
+  'lab.settings.speechDetailHint': 'तीव्र स्वीप के दौरान पूर्ण घोषणाएं या संक्षिप्त लेबल चुनें।',
+  'lab.settings.speechDetailFull': 'पूर्ण',
+  'lab.settings.speechDetailShort': 'संक्षिप्त',
+  'lab.settings.speechDetailSetFull': 'वाणी विवरण पूर्ण पर सेट किया गया।',
+  'lab.settings.speechDetailSetShort': 'वाणी विवरण संक्षिप्त पर सेट किया गया।',
+
+  // Corner heartbeat setting (Lane hb2)
+  'lab.settings.cornerHeartbeat': 'कोना धड़कन',
+  'lab.settings.cornerHeartbeatHint': 'कोने पर रुकने पर दोहराया जाने वाला कंपन।',
+  'lab.settings.cornerHeartbeatOn': 'कोना धड़कन सक्षम की गई।',
+  'lab.settings.cornerHeartbeatOff': 'कोना धड़कन अक्षम की गई।',
+
   // Corner compass & line names (Lane A3)
   'compass.dir.up': 'ऊपर',
   'compass.dir.down': 'नीचे',
@@ -940,6 +1002,12 @@ const hi: Record<string, string> = {
   'whereAmI.dir.down-right': 'नीचे-दाएँ',
   'whereAmI.detailWithDir': '{name}, {dist}, {dir}',
   'whereAmI.detail': '{name}, {dist}',
+
+  // Page edge cues (Lane bu8b)
+  'edge.top': 'किनारा, ऊपर',
+  'edge.bottom': 'किनारा, नीचे',
+  'edge.left': 'किनारा, बाएँ',
+  'edge.right': 'किनारा, दाएँ',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -1130,6 +1198,20 @@ const gu: Record<string, string> = {
   'debug.btnBeep': 'બીપ',
   'debug.btnSpeak': 'નમૂનો બોલો',
   'debug.btnListen': 'સાંભળો',
+  'debug.hbTitle': 'હાર્ટબિટ ઉમેદવારો',
+  'debug.hbH1': 'H1: [50, 90, 50] (900 ms)',
+  'debug.hbH2': 'H2: [40, 60, 40] (800 ms)',
+  'debug.hbH3': 'H3: [30, 70, 60] (900 ms)',
+  'debug.hbH4': 'H4: [60, 80, 40] (1000 ms)',
+  'debug.hbH5': 'H5: [40, 120, 80] (1000 ms)',
+  'debug.hbH6': 'H6: [70, 110, 70] (1100 ms)',
+  'debug.btnOnce': 'એક વાર',
+  'debug.btnRepeat': 'પુનરાવર્તન',
+  'debug.hbPeriod': 'સમયગાળો (મિલિસેકન્ડ)',
+  'debug.btnLine2s': 'લાઇન બઝ 2 સેકન્ડ',
+  'debug.btnLineThenCorner': 'લાઇન, પછી ખૂણો',
+  'debug.restingPad': 'રેસ્ટિંગ પેડ',
+  'debug.restingPadHint': 'ખૂણાની હાર્ટબિટ અનુભવવા માટે આંગળી દબાવી રાખો',
 
   // Frankenstein Lab theme (Lane lab-i18n)
   'lab.start.wake': 'પ્રાણીને જગાડો',
@@ -1357,6 +1439,20 @@ const gu: Record<string, string> = {
   'lab.settings.graphScanOn': 'આલેખ સ્કેન સક્ષમ કરી.',
   'lab.settings.graphScanOff': 'આલેખ સ્કેન અક્ષમ કરી.',
 
+  // Speech detail setting (Lane A7)
+  'lab.settings.speechDetail': 'વાણી વિગત',
+  'lab.settings.speechDetailHint': 'ઝડપી સ્વીપ દરમિયાન સંપૂર્ણ ઘોષણાઓ અથવા ટૂંકા લેબલ પસંદ કરો.',
+  'lab.settings.speechDetailFull': 'સંપૂર્ણ',
+  'lab.settings.speechDetailShort': 'ટૂંકું',
+  'lab.settings.speechDetailSetFull': 'વાણી વિગત સંપૂર્ણ પર સેટ થઈ.',
+  'lab.settings.speechDetailSetShort': 'વાણી વિગત ટૂંકા પર સેટ થઈ.',
+
+  // Corner heartbeat setting (Lane hb2)
+  'lab.settings.cornerHeartbeat': 'ખૂણાના ધબકારા',
+  'lab.settings.cornerHeartbeatHint': 'ખૂણા પર રોકાવા પર પુનરાવર્તિત વાઇબ્રેશન.',
+  'lab.settings.cornerHeartbeatOn': 'ખૂણાના ધબકારા સક્ષમ કર્યા.',
+  'lab.settings.cornerHeartbeatOff': 'ખૂણાના ધબકારા અક્ષમ કર્યા.',
+
   // Corner compass & line names (Lane A3)
   'compass.dir.up': 'ઉપર',
   'compass.dir.down': 'નીચે',
@@ -1395,6 +1491,12 @@ const gu: Record<string, string> = {
   'whereAmI.dir.down-right': 'નીચે-જમણે',
   'whereAmI.detailWithDir': '{name}, {dist}, {dir}',
   'whereAmI.detail': '{name}, {dist}',
+
+  // Page edge cues (Lane bu8b)
+  'edge.top': 'કિનારો, ઉપર',
+  'edge.bottom': 'કિનારો, નીચે',
+  'edge.left': 'કિનારો, ડાબે',
+  'edge.right': 'કિનારો, જમણે',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };

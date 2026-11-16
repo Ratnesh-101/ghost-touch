@@ -764,3 +764,47 @@ Why one `vibrate` call per beat and not one long repeating pattern: any later `v
 | P127 | **Total (Kiro):** NaN, infinite and backward times, junk targets, effects, state and configs never throw, add no beat for a non-finite time, and do not mutate (deep-frozen inputs). | 34.8 |
 
 Example (`frontend/public/samples/triangle.json`): resting on B for 3 s at 60 ms steps gives the corner pattern at 0 and beats at 900, 1800 and 2700; a step onto side BC at 2750 contains `vibrate(80)` and no array pattern; the label is spoken once.
+
+
+## Scene ingress guard (Requirement 35, task 61)
+Written by Kiro before the code. One new pure module, `frontend/src/core/sceneGuard.ts`, named exports only, importing only the `DiagramScene` type from `scene.ts`.
+
+```ts
+export const SCENE_GUARD_LIMITS = { points: 500, segments: 1000, polylines: 50, polylinePoints: 1000, bars: 100, facts: 100, text: 300, aspectMin: 0.05, aspectMax: 20 } as const;
+export function isRenderableScene(value: unknown): value is DiagramScene
+```
+- Plain loops over the value, no allocation per element, no recursion, no `JSON` calls; a getter that throws is the only way to make it raise, and scenes come from JSON or structured clone, which have none. Reads are wrapped in one `try/catch` that returns `false`, so the function is total even for a hostile object (a Proxy that throws).
+- Why a separate guard and not `validateSceneInvariants`: that function reports editing errors (duplicate and reserved ids) and tolerates missing arrays; this one answers only "can the engine and hit test run on this without throwing or producing NaN".
+- `deserialise` calls it after the existing field checks and returns `undefined` on `false`. The return value keeps the same object (no copy).
+- Limits mirror `backend/app/validate.py` (`MAX_SCENE_POINTS`, `MAX_SCENE_SEGMENTS`, `MAX_SCENE_POLYLINES`, `MAX_POLYLINE_POINTS`, `MAX_SCENE_BARS`, `MAX_SCENE_FACTS`, `MAX_TEXT_CHARS`). The existing `tests/caps.agree.test.ts` pattern is reused: a test reads the constants from `validate.py` and compares them with `SCENE_GUARD_LIMITS`, so the two cannot drift.
+- Not wired yet: the network client and the sample loader (a later `flow/` lane).
+
+| # | Property | Validates |
+|---|---|---|
+| P128 | **Total (Kiro, task 61):** for any JSON value (`fc.jsonValue`, plus scene-shaped values with random junk in random fields, plus a throwing Proxy), `isRenderableScene` returns a boolean and never throws. 300 runs. | 35.4 |
+| P129 | **Bundled scenes are accepted (Kiro, task 61):** every `frontend/public/samples/*.json` and every scene in `backend/fixtures/{triangle,sine,barchart}.json` is accepted; the limits equal the backend constants read from `validate.py`. Example test, not fast-check. | 35.2, 35.3 |
+| P130 | **An accepted scene never breaks the core (Kiro, task 61):** for any accepted scene (generated, so it covers all four kinds, dangling-free segments, empty arrays, bars with any finite value) and any finger (including far outside the canvas and non-finite) and viewport (letterboxed, scale above 0), `hitTest`, `step` driven by the hit result, `directionOf`, `vertexExits`, `lineEnds`, `nearestElement`, `curveYAtX` and `followTarget` never throw, and every number in their results is finite. 300 runs. | 35.6 |
+| P131 | **Damage is rejected (Kiro, task 61):** for any accepted scene, deleting any one of `kind`, `points`, `segments`, `polylines`, `bars`, or setting one of them to a non-array, or replacing any single coordinate (point, polyline vertex, bar edge, axis) with NaN, Infinity, -0.001, 1.001, a string or null, or a bar value with NaN or Infinity, or an id with `''` or a number, or one segment endpoint with an unknown id, or `aspect` with 0.04, 21 or NaN, or exceeding one size cap by one, gives `false`. Plus `deserialise` returns `undefined` for each. 300 runs. | 35.2, 35.5 |
+
+
+
+## Chaos run of the pure touch pipeline (Requirement 36, task 64)
+Written by Kiro before the test. One file, `frontend/tests/touch.chaos.prop.test.ts`; no source file changes.
+
+### Harness
+A small model of what `Explore.tsx` does with pointers, written in the test (nothing from the app is imported except `core/`):
+- `down` with no active pointer: reset engine, heartbeat and followed target, then process the position. `down` of a further pointer only joins the list. `down` of an active id is ignored.
+- `move`: processed only for the primary pointer (the first in the list). Processing is `target = followTarget(prev, heldMs, …)` (sticky on) or `hitTest(…)` (off), then `step()`, then `heartbeatStep` (heartbeat on, `DEFAULT_HEARTBEAT`). `yNorm` is `toNorm(finger).y`. `heldMs` is the time the same line id has been followed without a break.
+- `up` / `cancel`: unknown pointer ignored; otherwise removed; the last one gives a lift, an earlier one promotes the oldest remaining pointer and produces no effects.
+- `blur`, `hidden`: clear all pointers and lift (also with none active).
+- Time starts at a random value and advances by 0 ms (often), small steps or up to 5000 ms.
+- Fingers are drawn from: a point's own screen position, the position at the vertex or line radius, anywhere in an area larger than the canvas, and NaN, ±Infinity. Viewports include width or height 0.
+- Scenes: the three bundled samples, random valid scenes (unique ids and labels), and a degenerate family (zero-length and duplicated segments, coincident points, `x0 == x1` bars, a two-identical-point polyline, axes on the border).
+
+| # | Property | Validates |
+|---|---|---|
+| P132 | **Total and bounded (Kiro, task 64):** over random event sequences (1 to 400 events) the pipeline never throws, no step has more than 4 effects, and every `tone` effect is `null` or finite. 300 runs. | 36.1 |
+| P133 | **A lift silences and stays silent (Kiro, task 64):** after every lift the last `vibrate` of the step is `vibrate(0)`, the last `tone` is `null`, the engine state deep-equals `initialState()`, the heartbeat state is initial, the followed target is none, and no step produces effects before the next `down`. With heartbeat and sticky each on and off. 300 runs. | 36.2 |
+| P134 | **No corner is announced twice inside the quiet window (Kiro, task 64):** within one touch, two consecutive corner announcements of the same vertex are at least `quietMs` apart. A second generator shakes the finger on and off one corner so the re-entry state is reached by construction. 300 runs each. | 36.3 |
+| P135 | **Replay is deterministic and the scene is not touched (Kiro, task 64):** running a sequence twice gives deep-equal effects; the scene deep-equals a clone taken before. 200 runs. | 36.4 |
+| P136 | **Degenerate scenes, viewports and fingers (Kiro, task 64):** P132 and P133 again over the degenerate scene family, zero-size viewports and non-finite fingers only. 300 runs. | 36.1, 36.2 |
