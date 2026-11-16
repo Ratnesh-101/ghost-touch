@@ -18,6 +18,7 @@ import {
   setStoredGraphScanSetting,
   _resetGraphScanSettingForTesting,
 } from '../src/flow/explore';
+import { LabSettings } from '../src/components/LabSettings';
 import { getLang, setLang, t, tables } from '../src/i18n';
 import sineJson from '../public/samples/sine.json';
 import triangleJson from '../public/samples/triangle.json';

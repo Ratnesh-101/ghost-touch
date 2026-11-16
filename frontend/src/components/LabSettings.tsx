@@ -313,7 +313,7 @@ export function LabSettings({
                 width: '100%',
               }}
             >
-              {directionsEnabled ? t('lab.settings.directionsOn') : t('lab.settings.directionsOff')}
+              {t('lab.settings.directions')}
             </AccessibleButton>
           </section>
 
@@ -349,9 +349,7 @@ export function LabSettings({
                 width: '100%',
               }}
             >
-              {findingSoundEnabled
-                ? t('lab.settings.findingSoundOn')
-                : t('lab.settings.findingSoundOff')}
+              {t('lab.settings.findingSound')}
             </AccessibleButton>
           </section>
 

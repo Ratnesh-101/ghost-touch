@@ -101,7 +101,7 @@ describe('R3-01: Centre announcement cancelled on pointer-down', () => {
     // In old code: drivers.speech.speak(msg, lang) was called for centreResult.speakCentre
     expect(exploreSource).not.toMatch(/if\s*\(centreResult\.speakCentre\)\s*\{\s*const msg = t\('explore\.centre'\);\s*drivers\.speech\.speak/);
     expect(exploreSource).toContain('centreResult.speakCentre ? [t(\'explore.centre\')] : []');
-    expect(exploreSource).toContain('applyMoveResult(moveResult, lang, centreAnnouncements)');
+    expect(exploreSource).toContain('applyMoveResult(moveResult, lang, centreAnnouncements, compassAnnouncements)');
   });
 });
 

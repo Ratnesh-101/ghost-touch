@@ -385,7 +385,7 @@ describe('direct canvas touch still works', () => {
       );
     });
     expect(vibrate).toHaveBeenCalledWith(DEFAULT_HAPTICS.cornerPattern);
-    expect(speak).toHaveBeenCalledWith('A', expect.any(String));
+    expect(speak).toHaveBeenCalledWith(expect.stringMatching(/^A[. ]/), expect.any(String));
   });
 
   it('overlay is position: absolute and adds no element to normal flow of canvas container', () => {

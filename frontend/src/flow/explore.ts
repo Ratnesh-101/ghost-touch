@@ -22,12 +22,18 @@ import {
   type ProximityState,
 } from '../core/proximity';
 import {
+  _resetDirectionsSettingForTesting,
+  _resetFindingSoundSettingForTesting,
   getStoredDirectionsSetting,
+  getStoredFindingSoundSetting,
   safeGet,
   safeRemove,
   safeSet,
   setStoredDirectionsSetting,
+  setStoredFindingSoundSetting,
   STORAGE_KEY_DIRECTIONS,
+  STORAGE_KEY_FINDING_SOUND,
+  subscribeSettings,
 } from '../drivers/storage';
 import {
   step,
@@ -39,28 +45,6 @@ import {
 } from '../core/hapticEngine';
 import { pitchForY } from '../core/pitch';
 import { t, tf } from '../i18n';
-
-export const STORAGE_KEY_FINDING_SOUND = 'gt_finding_sound_enabled';
-
-let inMemoryFindingSoundSetting: boolean | null = null;
-
-export function getStoredFindingSoundSetting(): boolean {
-  const stored = safeGet(STORAGE_KEY_FINDING_SOUND);
-  if (stored !== null) {
-    return stored === 'true';
-  }
-  return inMemoryFindingSoundSetting ?? true;
-}
-
-export function setStoredFindingSoundSetting(enabled: boolean): void {
-  safeSet(STORAGE_KEY_FINDING_SOUND, enabled ? 'true' : 'false');
-  inMemoryFindingSoundSetting = enabled;
-}
-
-export function _resetFindingSoundSettingForTesting(): void {
-  inMemoryFindingSoundSetting = null;
-  safeRemove(STORAGE_KEY_FINDING_SOUND);
-}
 
 export const STORAGE_KEY_GRAPH_SCAN = 'gt_graph_scan_enabled';
 
@@ -125,7 +109,13 @@ export {
   pitchForY,
   getStoredDirectionsSetting,
   setStoredDirectionsSetting,
+  _resetDirectionsSettingForTesting,
   STORAGE_KEY_DIRECTIONS,
+  getStoredFindingSoundSetting,
+  setStoredFindingSoundSetting,
+  _resetFindingSoundSettingForTesting,
+  STORAGE_KEY_FINDING_SOUND,
+  subscribeSettings,
   DEFAULT_PROXIMITY,
   initialProximityState,
   proximityStep,
@@ -763,6 +753,7 @@ export interface WhereAmIDwellCheckInput {
   lastSpeechStartTime: number;
   isAskActive: boolean;
   isGuiding: boolean;
+  isDirectionsEnabled?: boolean;
 }
 
 export interface WhereAmIDwellResult {
@@ -825,12 +816,20 @@ export function updateWhereAmIDwellOnMove(
 /**
  * Checks if the finger has rested (moved < 6 px) for 1200 ms on a 'none' target.
  * Guards against speech that started < 1500 ms ago, Ask listening, and Guide active.
+ * Sitting behind Directions switch (M4): if Directions is off, dwell does not speak.
  */
 export function checkWhereAmIDwell(
   state: WhereAmIDwellState,
   input: WhereAmIDwellCheckInput,
 ): WhereAmIDwellResult {
   const { targetKind, coords, now, lastSpeechStartTime, isAskActive, isGuiding } = input;
+
+  if (input.isDirectionsEnabled === false) {
+    return {
+      shouldSpeak: false,
+      nextState: state,
+    };
+  }
 
   if (targetKind !== 'none') {
     return {
@@ -877,7 +876,7 @@ export function checkWhereAmIDwell(
     };
   }
 
-  const startTime = state.restStartTime > 0 ? state.restStartTime : now;
+  const startTime = state.restAnchor !== null ? state.restStartTime : now;
   if (now - startTime < WHERE_AM_I_DWELL_MS) {
     return {
       shouldSpeak: false,

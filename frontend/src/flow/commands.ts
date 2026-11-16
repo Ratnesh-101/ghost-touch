@@ -22,7 +22,8 @@ import {
   matchSemanticPhrase,
   type SemanticName,
 } from '../guide';
-import { directionOf, nearestElement } from '../core/compass';
+import { directionOf, nearestElement, type NearestElement } from '../core/compass';
+import { DEFAULT_RADII, hitTest } from '../core/hitTest';
 import { joinAnnouncements } from './explore';
 import { buildOverview } from './overview';
 import { t, tf } from '../i18n';
@@ -424,41 +425,54 @@ export function whereAmI(
   const currentPos: NormPoint = cursorNorm ?? { x: 0.5, y: 0.5 };
   const coarsePos = getCoarsePosition(currentPos);
   const finger: ScreenPoint = toScreen(currentPos, view);
-  let nearest = nearestElement(scene, finger, view);
+  const barHit = hitTest(scene, finger, view, DEFAULT_RADII);
+  let nearest: NearestElement | null = null;
 
-  // Architecture rule (tech.md, Requirement 4.6): Vertex hits take priority over line hits within vertex radius (22 CSS px).
-  // nearestElement measures pure geometric distance without hit-testing priority, so a finger
-  // touching a corner that has incident segments might have dist 0 to the segment but dist > 0
-  // to the vertex. If any vertex is within vertex hit radius (22 CSS px), it takes precedence.
-  if (scene.points && scene.points.length > 0 && nearest && nearest.elementKind !== 'vertex') {
-    let bestVertex: Point | null = null;
-    let bestVertexDist = Infinity;
-    let bestVertexDx = 0;
-    let bestVertexDy = 0;
-    const ox = view.offsetX;
-    const oy = view.offsetY;
-    const sc = view.scale;
-    for (const p of scene.points) {
-      const vx = ox + p.x * sc;
-      const vy = oy + p.y * sc;
-      const dx = vx - finger.x;
-      const dy = vy - finger.y;
-      const d = Math.hypot(dx, dy);
-      if (d < bestVertexDist) {
-        bestVertexDist = d;
-        bestVertex = p;
-        bestVertexDx = dx;
-        bestVertexDy = dy;
+  if (barHit.kind === 'bar') {
+    nearest = {
+      id: barHit.id,
+      elementKind: 'bar-edge',
+      distPx: 0,
+      dxPx: 0,
+      dyPx: 0,
+    };
+  } else {
+    nearest = nearestElement(scene, finger, view);
+
+    // Architecture rule (tech.md, Requirement 4.6): Vertex hits take priority over line hits within vertex radius (DEFAULT_RADII.vertex).
+    // nearestElement measures pure geometric distance without hit-testing priority, so a finger
+    // touching a corner that has incident segments might have dist 0 to the segment but dist > 0
+    // to the vertex. If any vertex is within vertex hit radius (DEFAULT_RADII.vertex), it takes precedence.
+    if (scene.points && scene.points.length > 0 && nearest && nearest.elementKind !== 'vertex') {
+      let bestVertex: Point | null = null;
+      let bestVertexDist = Infinity;
+      let bestVertexDx = 0;
+      let bestVertexDy = 0;
+      const ox = view.offsetX;
+      const oy = view.offsetY;
+      const sc = view.scale;
+      for (const p of scene.points) {
+        const vx = ox + p.x * sc;
+        const vy = oy + p.y * sc;
+        const dx = vx - finger.x;
+        const dy = vy - finger.y;
+        const d = Math.hypot(dx, dy);
+        if (d < bestVertexDist) {
+          bestVertexDist = d;
+          bestVertex = p;
+          bestVertexDx = dx;
+          bestVertexDy = dy;
+        }
       }
-    }
-    if (bestVertex && bestVertexDist <= 22) {
-      nearest = {
-        id: bestVertex.id,
-        elementKind: 'vertex',
-        distPx: bestVertexDist,
-        dxPx: bestVertexDx,
-        dyPx: bestVertexDy,
-      };
+      if (bestVertex && bestVertexDist <= DEFAULT_RADII.vertex) {
+        nearest = {
+          id: bestVertex.id,
+          elementKind: 'vertex',
+          distPx: bestVertexDist,
+          dxPx: bestVertexDx,
+          dyPx: bestVertexDy,
+        };
+      }
     }
   }
 
@@ -497,7 +511,7 @@ export function whereAmI(
   }
 
   let distWord: string;
-  if (nearest.distPx <= 14) {
+  if (nearest.distPx <= DEFAULT_RADII.line) {
     distWord = t('whereAmI.touching');
   } else if (nearest.distPx <= 60) {
     distWord = t('whereAmI.close');

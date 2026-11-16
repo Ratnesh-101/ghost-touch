@@ -38,6 +38,27 @@ export function safeRemove(key: string): void {
 }
 
 export const STORAGE_KEY_DIRECTIONS = 'gt_directions_enabled';
+export const STORAGE_KEY_FINDING_SOUND = 'gt_finding_sound_enabled';
+
+export type SettingsListener = (key?: string) => void;
+const settingsListeners = new Set<SettingsListener>();
+
+export function subscribeSettings(listener: SettingsListener): () => void {
+  settingsListeners.add(listener);
+  return () => {
+    settingsListeners.delete(listener);
+  };
+}
+
+function notifySettingsChanged(key?: string): void {
+  for (const listener of settingsListeners) {
+    try {
+      listener(key);
+    } catch {
+      // safe no-op
+    }
+  }
+}
 
 let inMemoryDirectionsSetting: boolean | null = null;
 
@@ -52,9 +73,33 @@ export function getStoredDirectionsSetting(): boolean {
 export function setStoredDirectionsSetting(enabled: boolean): void {
   safeSet(STORAGE_KEY_DIRECTIONS, enabled ? 'true' : 'false');
   inMemoryDirectionsSetting = enabled;
+  notifySettingsChanged(STORAGE_KEY_DIRECTIONS);
 }
 
 export function _resetDirectionsSettingForTesting(): void {
   inMemoryDirectionsSetting = null;
   safeRemove(STORAGE_KEY_DIRECTIONS);
+  notifySettingsChanged(STORAGE_KEY_DIRECTIONS);
+}
+
+let inMemoryFindingSoundSetting: boolean | null = null;
+
+export function getStoredFindingSoundSetting(): boolean {
+  const stored = safeGet(STORAGE_KEY_FINDING_SOUND);
+  if (stored !== null) {
+    return stored === 'true';
+  }
+  return inMemoryFindingSoundSetting ?? true;
+}
+
+export function setStoredFindingSoundSetting(enabled: boolean): void {
+  safeSet(STORAGE_KEY_FINDING_SOUND, enabled ? 'true' : 'false');
+  inMemoryFindingSoundSetting = enabled;
+  notifySettingsChanged(STORAGE_KEY_FINDING_SOUND);
+}
+
+export function _resetFindingSoundSettingForTesting(): void {
+  inMemoryFindingSoundSetting = null;
+  safeRemove(STORAGE_KEY_FINDING_SOUND);
+  notifySettingsChanged(STORAGE_KEY_FINDING_SOUND);
 }

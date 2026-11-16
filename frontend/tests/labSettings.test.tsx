@@ -227,7 +227,7 @@ describe('LabSettings focus management and keyboard handling', () => {
 });
 
 describe('LabSettings directions toggle (Lane A3)', () => {
-  it('renders Directions section with switch button (default on)', () => {
+  it('renders Directions section with switch button with fixed label (default on)', () => {
     const drivers = createMockDrivers();
     const html = renderToStaticMarkup(
       createElement(LabSettings, {
@@ -241,7 +241,9 @@ describe('LabSettings directions toggle (Lane A3)', () => {
     expect(html).toContain(t('lab.settings.directionsHint'));
     expect(html).toContain('role="switch"');
     expect(html).toContain('aria-checked="true"');
-    expect(html).toContain('Directions enabled.');
+    // L7: switch label fixed ("Directions"), not dynamic "Directions enabled."
+    const directionsSection = html.slice(html.indexOf('lab-settings-section-directions'));
+    expect(directionsSection).toContain(`>${t('lab.settings.directions')}<`);
   });
 
   it('renders Directions section in Hindi and Gujarati', () => {
@@ -275,7 +277,7 @@ describe('LabSettings directions toggle (Lane A3)', () => {
 });
 
 describe('LabSettings finding sound toggle (Lane A4)', () => {
-  it('renders Finding sound section with switch button (default on)', () => {
+  it('renders Finding sound section with switch button with fixed label (default on)', () => {
     const drivers = createMockDrivers();
     const html = renderToStaticMarkup(
       createElement(LabSettings, {
@@ -289,7 +291,9 @@ describe('LabSettings finding sound toggle (Lane A4)', () => {
     expect(html).toContain(t('lab.settings.findingSoundHint'));
     expect(html).toContain('role="switch"');
     expect(html).toContain('aria-checked="true"');
-    expect(html).toContain('Finding sound enabled.');
+    // L7: switch label fixed ("Finding sound"), not dynamic "Finding sound enabled."
+    const findingSoundSection = html.slice(html.indexOf('lab-settings-section-finding-sound'));
+    expect(findingSoundSection).toContain(`>${t('lab.settings.findingSound')}<`);
   });
 
   it('renders Finding sound section in Hindi and Gujarati', () => {
@@ -319,6 +323,35 @@ describe('LabSettings finding sound toggle (Lane A4)', () => {
     expect(htmlGu).toContain('ક્લિકનો અવાજ તમારી આંગળીને રેખાઓ પર પાછી લાવે છે.');
 
     setLang(prevLang);
+  });
+});
+
+describe('LabSettings guide toggle (L5)', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_FEATURE_GUIDE', '1');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('renders Guide section with switch button reflecting guide setting (narrowed assertion)', () => {
+    const drivers = createMockDrivers();
+    const html = renderToStaticMarkup(
+      createElement(LabSettings, {
+        open: true,
+        onClose: vi.fn(),
+        drivers,
+      }),
+    );
+
+    expect(html).toContain('lab-settings-section-guide');
+    expect(html).toContain(t('lab.settings.guide'));
+    expect(html).toContain(t('lab.settings.guideHint'));
+    // L5: assertion narrowed specifically to the Guide switch within its section
+    const guideSection = html.slice(html.indexOf('lab-settings-section-guide'));
+    expect(guideSection).toContain('role="switch"');
+    expect(guideSection).toContain('aria-checked=');
   });
 });
 

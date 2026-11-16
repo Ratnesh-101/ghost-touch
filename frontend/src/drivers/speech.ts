@@ -84,6 +84,8 @@ export interface SpeechDriver {
   hasVoiceFor?(lang: string): boolean;
   /** Reset missing voice notice warning for a language */
   resetVoiceNotice?(lang?: string): void;
+  /** Check whether speech synthesis is actively speaking */
+  isSpeaking?(): boolean;
   /** Teardown lifecycle listeners and cancel speech if any */
   dispose?(): void;
 }
@@ -99,6 +101,7 @@ export interface SynthesisLike {
   cancel(): void;
   speak(utterance: never): void;
   getVoices?(): SpeechVoiceLike[];
+  readonly speaking?: boolean;
 }
 export interface RecognitionResultEventLike {
   results: ArrayLike<ArrayLike<{ transcript: string }>>;
@@ -257,6 +260,10 @@ export class WebSpeechDriver implements SpeechDriver {
 
   getLastSpoken(): string {
     return this.lastSpokenText;
+  }
+
+  isSpeaking(): boolean {
+    return Boolean(this.host.synth?.speaking);
   }
 
   hasVoiceFor(lang: string): boolean {
