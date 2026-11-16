@@ -724,3 +724,43 @@ followTarget(prevTarget: Target, heldMs: number, scene, finger: ScreenPoint, vie
 | P117 | **It sticks exactly out to the sticky radius (Kiro, task 58):** against a brute-force minimum distance built independently from `distToSegmentXY` over the held element's pieces, with an eligible held line and `hitTest` reporting `none` or a bar: the result is the held line when the minimum is at most the sticky radius minus 1e-6, is `hitTest`'s answer when it is more than the radius plus 1e-6, and whenever the result differs from `hitTest` the minimum is within the radius. Held kinds: segment, polyline, axis, bar edge. | 33.3 |
 | P118 | **Off means identical (Kiro, task 58):** with a sticky radius equal to, or below, the line radius, NaN, or infinite, `followTarget` deep-equals `hitTest` for any previous target and `heldMs`. | 33.5 |
 | P119 | **Total and only two answers (Kiro, task 58):** with NaN, infinite, out-of-range and missing data, dangling and duplicate ids, `__proto__` ids, junk previous targets (unknown kind and id) and NaN or zero viewports, `followTarget` never throws, and its answer is either deep-equal to `hitTest`'s or exactly the held line of the previous target. It never mutates its inputs. | 33.6 |
+
+## Resting on a corner has a heartbeat (Requirement 34, task 59)
+Written by Kiro before the code. Optional, off by default, phone-untested. One new pure module, `frontend/src/core/heartbeat.ts`, named exports only. It imports the `Target` and `Effect` types and nothing else. Same opt-in shape as `proximity.ts` and `sticky.ts`: `hapticEngine.ts` is not edited, so P3 to P6 and P96 cannot be affected. The module wraps the engine's output for one step.
+
+### Interface
+```ts
+interface HeartbeatConfig { pattern: number[]; periodMs: number; quietMs: number }
+const DEFAULT_HEARTBEAT: HeartbeatConfig = { pattern: [50, 90, 50], periodMs: 900, quietMs: 450 }  // proposed; quietMs copied from the tuned value
+interface HeartbeatState { vertexId: string | null; nextBeatAt: number; lastBeatAt: number }
+initialHeartbeatState(): HeartbeatState                      // vertexId null, nextBeatAt Infinity, lastBeatAt -Infinity
+type HeartbeatInput =
+  | { kind: 'move'; t: number; target: Target; engineEffects: readonly Effect[] }
+  | { kind: 'lift'; t: number; engineEffects: readonly Effect[] }
+heartbeatStep(state, input, cfg?: HeartbeatConfig | null): { state: HeartbeatState; effects: Effect[] }
+```
+
+### Rules
+1. Invalid or missing `cfg` (Requirement 34.6): the engine's effects (a copy), initial state.
+2. Lift: the engine's effects, initial state.
+3. A time that is not finite: the engine's effects, state unchanged.
+4. Vertex target and the engine emitted a `vibrate` (entry): remember the id, `nextBeatAt = t + periodMs`, `lastBeatAt = -Infinity`. Add nothing.
+5. Vertex target, an id different from the remembered one, no engine `vibrate` (Requirement 4.9 re-entry): the same bookkeeping as 4. Add nothing.
+6. Vertex target, same id, no engine `vibrate`, `t >= nextBeatAt`: append `vibrate(copy of pattern)`; `lastBeatAt = t`; `nextBeatAt` advances by one period, or becomes `t + periodMs` if that is not after `t`.
+7. Any other target: if a vertex is remembered, `t < lastBeatAt + sum(pattern)` and the engine emitted no `vibrate`, put `vibrate(0)` first. Forget the vertex. (`lastBeatAt` is reset on every entry, so a corner pulse of a new vertex is never cut by the beat of the old one.)
+8. The engine's effects keep their order; at most one effect is added; no `speak` or `tone` is ever added. Inputs are never mutated; junk input never throws.
+
+Why one `vibrate` call per beat and not one long repeating pattern: any later `vibrate` call silently ends the rest of a long pattern, nothing cancels it when the finger leaves a vertex for empty space, browsers may truncate long patterns, and the fallback driver would turn it into one long solid buzz. One call per beat fails safe: if every later step is lost, the motor stops by itself after 190 ms.
+
+| # | Property (task 59) | Validates |
+|---|---|---|
+| P120 | **Off is identity (Kiro):** with `cfg` null, undefined or invalid (empty pattern, zero, negative or non-finite entries, non-finite period or quiet window, period below quiet window plus pattern), for any trace driven through the real `step()` the returned effects deep-equal the engine's and the state stays initial. 200+ runs. | 34.6, 34.7 |
+| P121 | **Beats only on a resting vertex (Kiro):** an added array `vibrate` appears only on a step whose target is a vertex with the same id as the step before and where the engine emitted no `vibrate`. Random valid configs and the default. | 34.1, 34.5 |
+| P122 | **Rate and quiet window (Kiro):** with non-decreasing times, the first beat of a visit is at least one period after its entry, every later beat is at least one period after the previous beat's scheduled time, a beat never falls before the engine's `quietUntil`, and beats never change anything the engine reports (compared against a run without the heartbeat). | 34.1, 34.3 |
+| P123 | **Liveness (Kiro):** a finger resting on one vertex with steps at most 60 ms apart never goes longer than `periodMs + 60` without a beat (counting from the entry). | 34.1 |
+| P124 | **Stops at once (Kiro):** on the first non-vertex step after a beat, with `t` before the beat's end, the effects contain the engine's own `vibrate`, or begin with `vibrate(0)`; after the beat's end nothing is added; no beat follows until a vertex entry. A lift returns exactly the engine's effects. | 34.4 |
+| P125 | **Never over the line buzz (Kiro):** on a line step no array pattern is added, and the engine's line buzz is the last `vibrate` of the list. | 34.4 |
+| P126 | **Additive only (Kiro):** removing the (at most one) added effect gives exactly the engine's effects in order; the added effect is a `vibrate`, never `speak`, `speakKey` or `tone`; the added pattern equals the configured one and is a copy. | 34.2, 34.8 |
+| P127 | **Total (Kiro):** NaN, infinite and backward times, junk targets, effects, state and configs never throw, add no beat for a non-finite time, and do not mutate (deep-frozen inputs). | 34.8 |
+
+Example (`frontend/public/samples/triangle.json`): resting on B for 3 s at 60 ms steps gives the corner pattern at 0 and beats at 900, 1800 and 2700; a step onto side BC at 2750 contains `vibrate(80)` and no array pattern; the label is spoken once.

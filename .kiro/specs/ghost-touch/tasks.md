@@ -473,3 +473,20 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [ ] 58b.3 Real-Explore test: with the switch off the vibrate and tone calls of a fixed trace are identical to today; deleting the switch guard turns it red
   - [ ] 58b.4 Phone test of 24 px and 200 ms on the Nord CE6 and one budget phone; only then may `tech.md` lose the "PROPOSED" mark
   - _Requirements: 33.*_
+
+## Resting on a corner has a heartbeat (Requirement 34; spec written before the code; optional, off by default)
+> Core half only. Do not edit `hapticEngine.ts`, `hitTest.ts`, `DEFAULT_HAPTICS`, `DEFAULT_RADII`, `screens/`, `flow/`, `drivers/` or any existing `tech.md` row. Source: `docs/reports/fable-heartbeat-plan.md`. The beat pattern (the tuned corner pattern, reused) and the 900 ms period are proposed, pending owner approval and a phone test.
+
+- [x] 59. Corner heartbeat helper in `core/heartbeat.ts`
+  - [x] 59.1 Requirement 34, amended Requirement 4.4, design section, properties P120-P127 and a "PROPOSED" row in `tech.md` written before any code
+  - [x] 59.2 `frontend/src/core/heartbeat.ts`: `HeartbeatConfig`, `DEFAULT_HEARTBEAT`, `HeartbeatState`, `initialHeartbeatState`, `HeartbeatInput`, `heartbeatStep`; pure, named exports, no `any`
+  - [x] 59.3 Properties P120-P127 in `frontend/tests/heartbeat.prop.test.ts` (fast-check, 200+ runs each, driving the real `step()`), plus the triangle example; mutation-checked with at least five mutants, reverted
+  - [x] 59.4 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro); path-scoped commit
+  - _Requirements: 4.4, 34.*_
+
+- [ ] 59b. Corner heartbeat wiring (agy lane hb2, not Kiro; do not start before the owner has felt the beat on a phone and turned the feature on)
+  - [ ] 59b.1 Settings switch "Corner heartbeat", OFF by default, one fixed label, state in `aria-checked` only; strings in `en`, `hi`, `gu`
+  - [ ] 59b.2 `flow/explore.ts` and `Explore.tsx`: keep the heartbeat state, pass the engine's effects through `heartbeatStep` only when the switch is on; reset on lift, new touch, pointer promotion and scene change; with the switch off call nothing new
+  - [ ] 59b.3 Real-Explore test: with the switch off the vibrate, tone and speak calls of a fixed trace are identical to today; deleting the switch guard turns it red
+  - [ ] 59b.4 Phone test of the pattern and period on the Nord CE6 and one budget phone; only then may `tech.md` lose the "PROPOSED" mark
+  - _Requirements: 34.*_
