@@ -9,6 +9,7 @@
  */
 
 import { hitTest, type Radii, type Target } from '../core/hitTest';
+import { followTarget, STICKY_HOLD_MS, STICKY_RADIUS_PX } from '../core/sticky';
 import { toNorm, type ScreenPoint, type Viewport } from '../core/geometry';
 import type { DiagramScene } from '../core/scene';
 import { curveYAtX } from '../core/curve';
@@ -24,15 +25,19 @@ import {
 import {
   _resetDirectionsSettingForTesting,
   _resetFindingSoundSettingForTesting,
+  _resetStickyLineSettingForTesting,
   getStoredDirectionsSetting,
   getStoredFindingSoundSetting,
+  getStoredStickyLineSetting,
   safeGet,
   safeRemove,
   safeSet,
   setStoredDirectionsSetting,
   setStoredFindingSoundSetting,
+  setStoredStickyLineSetting,
   STORAGE_KEY_DIRECTIONS,
   STORAGE_KEY_FINDING_SOUND,
+  STORAGE_KEY_STICKY_LINE,
   subscribeSettings,
 } from '../drivers/storage';
 import {
@@ -115,6 +120,13 @@ export {
   setStoredFindingSoundSetting,
   _resetFindingSoundSettingForTesting,
   STORAGE_KEY_FINDING_SOUND,
+  getStoredStickyLineSetting,
+  setStoredStickyLineSetting,
+  _resetStickyLineSettingForTesting,
+  STORAGE_KEY_STICKY_LINE,
+  followTarget,
+  STICKY_HOLD_MS,
+  STICKY_RADIUS_PX,
   subscribeSettings,
   DEFAULT_PROXIMITY,
   initialProximityState,
@@ -444,6 +456,80 @@ export function checkTwoFingerLongPress(
   return dt1 >= minDurationMs && dt2 >= minDurationMs;
 }
 
+export interface ProcessPointerMoveStickyOptions {
+  enabled: boolean;
+  prevTarget: Target;
+  heldMs: number;
+  stickyRadiusPx?: number;
+}
+
+export interface StickyHoldState {
+  lineTarget: Extract<Target, { kind: 'line' }> | null;
+  enterTime: number;
+}
+
+export function initialStickyHoldState(): StickyHoldState {
+  return {
+    lineTarget: null,
+    enterTime: 0,
+  };
+}
+
+export function resetStickyHoldOnLift(): StickyHoldState {
+  return initialStickyHoldState();
+}
+
+/**
+ * Computes how long (in ms) the current line target has been held without a break.
+ * Returns 0 if prevTarget is not a line or does not match the active line target.
+ */
+export function getHeldMs(
+  state: StickyHoldState,
+  prevTarget: Target,
+  now: number,
+): number {
+  if (
+    prevTarget.kind === 'line' &&
+    state.lineTarget !== null &&
+    state.lineTarget.id === prevTarget.id &&
+    state.lineTarget.elementKind === prevTarget.elementKind
+  ) {
+    return Math.max(0, now - state.enterTime);
+  }
+  return 0;
+}
+
+/**
+ * Updates sticky hold state with the newly resolved target:
+ * - If target is a line and matches the current held line: preserves enterTime.
+ * - If target is a new line: records enterTime = now.
+ * - If target is not a line (none, vertex, bar): resets sticky hold state.
+ */
+export function updateStickyHoldState(
+  state: StickyHoldState,
+  newTarget: Target,
+  now: number,
+): StickyHoldState {
+  if (newTarget.kind === 'line') {
+    if (
+      state.lineTarget !== null &&
+      state.lineTarget.id === newTarget.id &&
+      state.lineTarget.elementKind === newTarget.elementKind
+    ) {
+      return state;
+    }
+    return {
+      lineTarget: {
+        kind: 'line',
+        id: newTarget.id,
+        elementKind: newTarget.elementKind,
+      },
+      enterTime: now,
+    };
+  }
+  return initialStickyHoldState();
+}
+
 export interface MovePipelineResult {
   target: Target;
   xNorm: number;
@@ -473,8 +559,19 @@ export function processPointerMove(
   cfg: HapticConfig = DEFAULT_HAPTICS,
   proximityState: ProximityState = initialProximityState(),
   proximityCfg: ProximityConfig = DEFAULT_PROXIMITY,
+  sticky?: ProcessPointerMoveStickyOptions,
 ): MovePipelineResult {
-  const target = hitTest(scene, finger, view, radii);
+  const target = sticky?.enabled
+    ? followTarget(
+        sticky.prevTarget,
+        sticky.heldMs,
+        scene,
+        finger,
+        view,
+        radii,
+        sticky.stickyRadiusPx ?? STICKY_RADIUS_PX,
+      )
+    : hitTest(scene, finger, view, radii);
   const norm = toNorm(finger, view);
 
   const { state: nextEngineState, effects } = step(

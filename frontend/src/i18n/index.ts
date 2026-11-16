@@ -436,6 +436,12 @@ const en: Record<string, string> = {
   'lab.settings.findingSoundOn': 'Finding sound enabled.',
   'lab.settings.findingSoundOff': 'Finding sound disabled.',
 
+  // Stay on line setting (Lane bu12 / Task T58b)
+  'lab.settings.stickyLine': 'Stay on line',
+  'lab.settings.stickyLineHint': 'Keep following a line even if your finger drifts slightly.',
+  'lab.settings.stickyLineOn': 'Stay on line enabled.',
+  'lab.settings.stickyLineOff': 'Stay on line disabled.',
+
   // Graph scan setting (Lane A6)
   'lab.settings.graphScan': 'Graph scan',
   'lab.settings.graphScanHint': 'Hear curve pitch anywhere on the graph.',
@@ -883,6 +889,12 @@ const hi: Record<string, string> = {
   'lab.settings.findingSoundHint': 'क्लिक की आवाज़ आपकी उंगली को रेखाओं तक वापस ले जाती है।',
   'lab.settings.findingSoundOn': 'खोज ध्वनि सक्षम की गई।',
   'lab.settings.findingSoundOff': 'खोज ध्वनि अक्षम की गई।',
+
+  // Stay on line setting (Lane bu12 / Task T58b)
+  'lab.settings.stickyLine': 'रेखा पर बने रहें',
+  'lab.settings.stickyLineHint': 'उंगली थोड़ा भटकने पर भी रेखा का अनुसरण जारी रखें।',
+  'lab.settings.stickyLineOn': 'रेखा पर बने रहें सक्षम किया गया।',
+  'lab.settings.stickyLineOff': 'रेखा पर बने रहें अक्षम किया गया।',
 
   // Graph scan setting (Lane A6)
   'lab.settings.graphScan': 'ग्राफ़ स्कैन',
@@ -1332,6 +1344,12 @@ const gu: Record<string, string> = {
   'lab.settings.findingSoundHint': 'ક્લિકનો અવાજ તમારી આંગળીને રેખાઓ પર પાછી લાવે છે.',
   'lab.settings.findingSoundOn': 'શોધ ધ્વનિ સક્ષમ કરી.',
   'lab.settings.findingSoundOff': 'શોધ ધ્વનિ અક્ષમ કરી.',
+
+  // Stay on line setting (Lane bu12 / Task T58b)
+  'lab.settings.stickyLine': 'રેખા પર રહો',
+  'lab.settings.stickyLineHint': 'આંગળી થોડી ખસી જાય તો પણ રેખા અનુસરવાનું ચાલુ રાખો.',
+  'lab.settings.stickyLineOn': 'રેખા પર રહો સક્ષમ કરી.',
+  'lab.settings.stickyLineOff': 'રેખા પર રહો અક્ષમ કરી.',
 
   // Graph scan setting (Lane A6)
   'lab.settings.graphScan': 'આલેખ સ્કેન',

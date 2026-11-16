@@ -355,3 +355,57 @@ describe('LabSettings guide toggle (L5)', () => {
   });
 });
 
+describe('LabSettings stay on line toggle (Lane bu12)', () => {
+  it('renders Stay on line section with switch button with fixed label (default off)', () => {
+    const drivers = createMockDrivers();
+    const html = renderToStaticMarkup(
+      createElement(LabSettings, {
+        open: true,
+        onClose: vi.fn(),
+        drivers,
+      }),
+    );
+
+    expect(html).toContain('lab-settings-section-sticky-line');
+    expect(html).toContain(t('lab.settings.stickyLine'));
+    expect(html).toContain(t('lab.settings.stickyLineHint'));
+    const stickySection = html.slice(html.indexOf('lab-settings-section-sticky-line'));
+    expect(stickySection).toContain('role="switch"');
+    expect(stickySection).toContain('aria-checked="false"');
+    expect(stickySection).toContain(`>${t('lab.settings.stickyLine')}<`);
+  });
+
+  it('renders Stay on line section in Hindi and Gujarati with fixed labels', () => {
+    const prevLang = getLang();
+    const drivers = createMockDrivers();
+
+    setLang('hi');
+    const htmlHi = renderToStaticMarkup(
+      createElement(LabSettings, {
+        open: true,
+        onClose: vi.fn(),
+        drivers,
+      }),
+    );
+    expect(htmlHi).toContain('रेखा पर बने रहें');
+    expect(htmlHi).toContain('उंगली थोड़ा भटकने पर भी रेखा का अनुसरण जारी रखें।');
+    const stickySectionHi = htmlHi.slice(htmlHi.indexOf('lab-settings-section-sticky-line'));
+    expect(stickySectionHi).toContain('>रेखा पर बने रहें<');
+
+    setLang('gu');
+    const htmlGu = renderToStaticMarkup(
+      createElement(LabSettings, {
+        open: true,
+        onClose: vi.fn(),
+        drivers,
+      }),
+    );
+    expect(htmlGu).toContain('રેખા પર રહો');
+    expect(htmlGu).toContain('આંગળી થોડી ખસી જાય તો પણ રેખા અનુસરવાનું ચાલુ રાખો.');
+    const stickySectionGu = htmlGu.slice(htmlGu.indexOf('lab-settings-section-sticky-line'));
+    expect(stickySectionGu).toContain('>રેખા પર રહો<');
+
+    setLang(prevLang);
+  });
+});
+

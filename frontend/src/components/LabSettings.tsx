@@ -34,7 +34,9 @@ import {
 } from '../config/features';
 import {
   getStoredDirectionsSetting,
+  getStoredStickyLineSetting,
   setStoredDirectionsSetting,
+  setStoredStickyLineSetting,
 } from '../drivers/storage';
 import {
   getStoredFindingSoundSetting,
@@ -86,6 +88,7 @@ export function LabSettings({
   const [guideEnabled, setGuideEnabled] = useState(() => getStoredGuideSetting());
   const [directionsEnabled, setDirectionsEnabled] = useState(() => getStoredDirectionsSetting());
   const [findingSoundEnabled, setFindingSoundEnabled] = useState(() => getStoredFindingSoundSetting());
+  const [stickyLineEnabled, setStickyLineEnabled] = useState(() => getStoredStickyLineSetting());
   const [graphScanEnabled, setGraphScanEnabled] = useState(() => getStoredGraphScanSetting());
   const [teacherEnabled, setTeacherEnabled] = useState(() => getStoredTeacherSetting());
 
@@ -110,6 +113,14 @@ export function LabSettings({
     setFindingSoundEnabled(next);
     setStoredFindingSoundSetting(next);
     const spoken = next ? t('lab.settings.findingSoundOn') : t('lab.settings.findingSoundOff');
+    doSpeak(spoken);
+  };
+
+  const handleToggleStickyLine = (): void => {
+    const next = !stickyLineEnabled;
+    setStickyLineEnabled(next);
+    setStoredStickyLineSetting(next);
+    const spoken = next ? t('lab.settings.stickyLineOn') : t('lab.settings.stickyLineOff');
     doSpeak(spoken);
   };
 
@@ -158,6 +169,7 @@ export function LabSettings({
       setGuideEnabled(getStoredGuideSetting());
       setDirectionsEnabled(getStoredDirectionsSetting());
       setFindingSoundEnabled(getStoredFindingSoundSetting());
+      setStickyLineEnabled(getStoredStickyLineSetting());
       setGraphScanEnabled(getStoredGraphScanSetting());
       setTeacherEnabled(getStoredTeacherSetting());
       hasSpokenClose.current = false;
@@ -350,6 +362,42 @@ export function LabSettings({
               }}
             >
               {t('lab.settings.findingSound')}
+            </AccessibleButton>
+          </section>
+
+          <section
+            className="gt-lab-settings__section"
+            aria-labelledby="lab-settings-section-sticky-line"
+          >
+            <h3 id="lab-settings-section-sticky-line" className="gt-lab-settings__section-title">
+              {t('lab.settings.stickyLine')}
+            </h3>
+            <p
+              className="gt-lab-settings__hint"
+              style={{
+                margin: '0 0 var(--gt-space-sm, 8px) 0',
+                fontSize: '0.9rem',
+                color: 'var(--gt-bone, #ded6c4)',
+              }}
+            >
+              {t('lab.settings.stickyLineHint')}
+            </p>
+            <AccessibleButton
+              type="button"
+              role="switch"
+              aria-checked={stickyLineEnabled}
+              className={`gt-control gt-btn ${
+                stickyLineEnabled ? 'gt-btn--primary' : 'gt-btn--secondary'
+              }`}
+              onClick={handleToggleStickyLine}
+              style={{
+                minWidth: '48px',
+                minHeight: '48px',
+                padding: '12px 20px',
+                width: '100%',
+              }}
+            >
+              {t('lab.settings.stickyLine')}
             </AccessibleButton>
           </section>
 

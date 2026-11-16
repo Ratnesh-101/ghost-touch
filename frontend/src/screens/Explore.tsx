@@ -42,10 +42,13 @@ import {
   cornerCompass,
   createHoldKeepAliveTimer,
   DEFAULT_HAPTICS,
+  DEFAULT_PROXIMITY,
   DEFAULT_RADII,
   getStoredDirectionsSetting,
   getStoredFindingSoundSetting,
   getStoredGraphScanSetting,
+  getStoredStickyLineSetting,
+  getHeldMs,
   initialAxisState,
   initialCentreTickState,
   initialProximityState,
@@ -58,14 +61,17 @@ import {
   processPointerMove,
   proximityStep,
   rearmCentreTick,
+  resetStickyHoldOnLift,
   resetWhereAmIDwellOnLift,
   scanTone,
   seedAxisState,
   shouldKeepAlive,
   step,
+  STICKY_RADIUS_PX,
   subscribeSettings,
   TWO_FINGER_LONG_PRESS_MS,
   TWO_FINGER_MAX_MOVE_PX,
+  updateStickyHoldState,
   updateWhereAmIDwellOnMove,
   VERTEX_VISIT_WINDOW_MS,
   WHERE_AM_I_REST_MAX_MOVE_PX,
@@ -77,6 +83,7 @@ import {
   type HoldKeepAliveTimer,
   type PointerHistory,
   type ProximityState,
+  type StickyHoldState,
   type WhereAmIDwellState,
 } from '../flow/explore';
 import { canvasAriaLabel, exploreAnnouncement, sceneName } from '../flow/navigation';
@@ -273,6 +280,7 @@ export function Explore({
   const lastSpokenRef = useRef<string>(announced);
   const cornerIndexRef = useRef<number>(-1);
   const prevTargetRef = useRef<Target>({ kind: 'none' });
+  const stickyHoldRef = useRef<StickyHoldState>(resetStickyHoldOnLift());
   const lastVertexVisitRef = useRef<Map<string, number>>(new Map());
   const lineDwellRef = useRef<{
     lineId: string | null;
@@ -289,12 +297,14 @@ export function Explore({
   const directionsSettingRef = useRef<boolean>(getStoredDirectionsSetting());
   const findingSoundSettingRef = useRef<boolean>(getStoredFindingSoundSetting());
   const graphScanSettingRef = useRef<boolean>(getStoredGraphScanSetting());
+  const stickyLineSettingRef = useRef<boolean>(getStoredStickyLineSetting());
 
   useEffect(() => {
     return subscribeSettings(() => {
       directionsSettingRef.current = getStoredDirectionsSetting();
       findingSoundSettingRef.current = getStoredFindingSoundSetting();
       graphScanSettingRef.current = getStoredGraphScanSetting();
+      stickyLineSettingRef.current = getStoredStickyLineSetting();
     });
   }, []);
 
@@ -540,6 +550,8 @@ export function Explore({
       drivers.audio.setTone(null);
       playingScanToneRef.current = false;
       engineState.current = initialState();
+      prevTargetRef.current = { kind: 'none' };
+      stickyHoldRef.current = resetStickyHoldOnLift();
       guideController.current.start(resolved);
       setIsGuiding(true);
       const msg = t('guide.start').replace('{label}', resolved.label);
@@ -574,6 +586,7 @@ export function Explore({
     whereAmIDwellState.current = resetWhereAmIDwellOnLift();
     lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
     prevTargetRef.current = { kind: 'none' };
+    stickyHoldRef.current = resetStickyHoldOnLift();
     leaveExploreEntry();
     onBack();
   };
@@ -589,6 +602,8 @@ export function Explore({
     // GT-02: Stop tone and haptics and mark askActive while voice listening is open
     askActive.current = true;
     sendProximityLift();
+    prevTargetRef.current = { kind: 'none' };
+    stickyHoldRef.current = resetStickyHoldOnLift();
     try {
       drivers.audio.setTone(null);
       playingScanToneRef.current = false;
@@ -685,6 +700,8 @@ export function Explore({
           sendProximityLift();
           drivers.audio.setTone(null);
           engineState.current = initialState();
+          prevTargetRef.current = { kind: 'none' };
+          stickyHoldRef.current = resetStickyHoldOnLift();
           guideController.current?.start(result.guideTarget);
           setIsGuiding(true);
         }
@@ -812,6 +829,8 @@ export function Explore({
       return;
     }
     setIsBusy(true);
+    prevTargetRef.current = { kind: 'none' };
+    stickyHoldRef.current = resetStickyHoldOnLift();
     const q = questionText;
     const lang = LANG_BCP47[getLang()] ?? 'en-IN';
     let outcome: AskOutcome | null = null;
@@ -1145,6 +1164,8 @@ export function Explore({
       clearLongPressTimer();
       activePointers.current.clear();
       primaryPointerId.current = null;
+      prevTargetRef.current = { kind: 'none' };
+      stickyHoldRef.current = resetStickyHoldOnLift();
       onBackRef.current();
     });
 
@@ -1164,6 +1185,7 @@ export function Explore({
         whereAmIDwellState.current = resetWhereAmIDwellOnLift();
         lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
         prevTargetRef.current = { kind: 'none' };
+        stickyHoldRef.current = resetStickyHoldOnLift();
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
         engineState.current = state;
         runEffects(effects, drivers);
@@ -1185,6 +1207,7 @@ export function Explore({
       whereAmIDwellState.current = resetWhereAmIDwellOnLift();
       lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
       prevTargetRef.current = { kind: 'none' };
+      stickyHoldRef.current = resetStickyHoldOnLift();
       const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
       engineState.current = state;
       runEffects(effects, drivers);
@@ -1238,6 +1261,8 @@ export function Explore({
         rafId.current = null;
       }
       // Lift on unmount
+      prevTargetRef.current = { kind: 'none' };
+      stickyHoldRef.current = resetStickyHoldOnLift();
       const { effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
       runEffects(effects, drivers);
       sendProximityLift(performance.now());
@@ -1402,6 +1427,7 @@ export function Explore({
       onTick: (coords, now) => {
         const view = viewportRef.current;
         const lang = LANG_BCP47[getLang()] ?? 'en-IN';
+        const heldMs = getHeldMs(stickyHoldRef.current, prevTargetRef.current, now);
         const moveResult = processPointerMove(
           sceneRef.current,
           coords,
@@ -1413,10 +1439,22 @@ export function Explore({
           DEFAULT_RADII,
           DEFAULT_HAPTICS,
           proximityState.current,
+          DEFAULT_PROXIMITY,
+          {
+            enabled: stickyLineSettingRef.current,
+            prevTarget: prevTargetRef.current,
+            heldMs,
+            stickyRadiusPx: STICKY_RADIUS_PX,
+          },
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, coords, now, lang);
         applyMoveResult(moveResult, lang, [], compassAnnouncements);
+        stickyHoldRef.current = updateStickyHoldState(
+          stickyHoldRef.current,
+          moveResult.target,
+          now,
+        );
         prevTargetRef.current = moveResult.target;
         scheduleDraw(view, coords);
 
@@ -1453,6 +1491,7 @@ export function Explore({
     directionsSettingRef.current = getStoredDirectionsSetting();
     findingSoundSettingRef.current = getStoredFindingSoundSetting();
     graphScanSettingRef.current = getStoredGraphScanSetting();
+    stickyLineSettingRef.current = getStoredStickyLineSetting();
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
@@ -1507,6 +1546,8 @@ export function Explore({
     engineState.current = initialState();
     // Re-arm centre tick state on every new hold (finding 2)
     centreTickState.current = rearmCentreTick(centreTickState.current);
+    prevTargetRef.current = { kind: 'none' };
+    stickyHoldRef.current = resetStickyHoldOnLift();
 
     // Reset axis tracking on every pointerdown and seed side without speaking (finding 7)
     const norm = toNorm(coords, view);
@@ -1527,6 +1568,13 @@ export function Explore({
     }
 
     // EX-02: Gate pointerdown while Ask listening is open (no tone, vibration or speech)
+    const heldMs = getHeldMs(stickyHoldRef.current, prevTargetRef.current, now);
+    const stickyOpts = {
+      enabled: stickyLineSettingRef.current,
+      prevTarget: prevTargetRef.current,
+      heldMs,
+      stickyRadiusPx: STICKY_RADIUS_PX,
+    };
     if (askActive.current) {
       keepAliveTimer.current?.stop();
       const moveResult = processPointerMove(
@@ -1540,11 +1588,18 @@ export function Explore({
         DEFAULT_RADII,
         DEFAULT_HAPTICS,
         proximityState.current,
+        DEFAULT_PROXIMITY,
+        stickyOpts,
       );
       engineState.current = moveResult.nextEngineState;
       centreTickState.current = moveResult.centreCheck.nextState;
       axisState.current = moveResult.nextAxisState;
       proximityState.current = moveResult.proximityState;
+      stickyHoldRef.current = updateStickyHoldState(
+        stickyHoldRef.current,
+        moveResult.target,
+        now,
+      );
       prevTargetRef.current = moveResult.target;
       scheduleDraw(view, coords);
       return;
@@ -1576,10 +1631,17 @@ export function Explore({
       DEFAULT_RADII,
       DEFAULT_HAPTICS,
       proximityState.current,
+      DEFAULT_PROXIMITY,
+      stickyOpts,
     );
     const compassAnnouncements = checkVertexCompass(moveResult.target, now);
     checkLineDwell(moveResult.target, coords, now, lang);
     applyMoveResult(moveResult, lang, centreAnnouncements, compassAnnouncements);
+    stickyHoldRef.current = updateStickyHoldState(
+      stickyHoldRef.current,
+      moveResult.target,
+      now,
+    );
     prevTargetRef.current = moveResult.target;
     scheduleDraw(view, coords);
     keepAliveTimer.current?.start(coords, now);
@@ -1628,6 +1690,14 @@ export function Explore({
       return;
     }
 
+    const heldMs = getHeldMs(stickyHoldRef.current, prevTargetRef.current, now);
+    const stickyOpts = {
+      enabled: stickyLineSettingRef.current,
+      prevTarget: prevTargetRef.current,
+      heldMs,
+      stickyRadiusPx: STICKY_RADIUS_PX,
+    };
+
     // GT-02: When Ask starts, skip runEffects and axis speech until listening ends
     if (askActive.current) {
       keepAliveTimer.current?.stop();
@@ -1642,11 +1712,18 @@ export function Explore({
         DEFAULT_RADII,
         DEFAULT_HAPTICS,
         proximityState.current,
+        DEFAULT_PROXIMITY,
+        stickyOpts,
       );
       engineState.current = moveResult.nextEngineState;
       centreTickState.current = moveResult.centreCheck.nextState;
       axisState.current = moveResult.nextAxisState;
       proximityState.current = moveResult.proximityState;
+      stickyHoldRef.current = updateStickyHoldState(
+        stickyHoldRef.current,
+        moveResult.target,
+        now,
+      );
       prevTargetRef.current = moveResult.target;
       scheduleDraw(view, coords);
       return;
@@ -1668,10 +1745,17 @@ export function Explore({
       DEFAULT_RADII,
       DEFAULT_HAPTICS,
       proximityState.current,
+      DEFAULT_PROXIMITY,
+      stickyOpts,
     );
     const compassAnnouncements = checkVertexCompass(moveResult.target, now);
     checkLineDwell(moveResult.target, coords, now, lang);
     applyMoveResult(moveResult, lang, [], compassAnnouncements);
+    stickyHoldRef.current = updateStickyHoldState(
+      stickyHoldRef.current,
+      moveResult.target,
+      now,
+    );
     prevTargetRef.current = moveResult.target;
     scheduleDraw(view, coords);
     keepAliveTimer.current?.update(coords, now);
@@ -1739,6 +1823,7 @@ export function Explore({
         directionsSettingRef.current = getStoredDirectionsSetting();
         findingSoundSettingRef.current = getStoredFindingSoundSetting();
         graphScanSettingRef.current = getStoredGraphScanSetting();
+        stickyLineSettingRef.current = getStoredStickyLineSetting();
         const view = viewportRef.current;
         const lang = LANG_BCP47[getLang()] ?? 'en-IN';
 
@@ -1749,9 +1834,12 @@ export function Explore({
         sendProximityLift(now);
 
         engineState.current = initialState();
+        prevTargetRef.current = { kind: 'none' };
+        stickyHoldRef.current = resetStickyHoldOnLift();
         const norm = toNorm(promotedCoords, view);
         axisState.current = seedAxisState(norm, scene.axes);
 
+        const heldMs = getHeldMs(stickyHoldRef.current, prevTargetRef.current, now);
         const moveResult = processPointerMove(
           scene,
           promotedCoords,
@@ -1763,10 +1851,22 @@ export function Explore({
           DEFAULT_RADII,
           DEFAULT_HAPTICS,
           proximityState.current,
+          DEFAULT_PROXIMITY,
+          {
+            enabled: stickyLineSettingRef.current,
+            prevTarget: prevTargetRef.current,
+            heldMs,
+            stickyRadiusPx: STICKY_RADIUS_PX,
+          },
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, promotedCoords, now, lang);
         applyMoveResult(moveResult, lang, [], compassAnnouncements);
+        stickyHoldRef.current = updateStickyHoldState(
+          stickyHoldRef.current,
+          moveResult.target,
+          now,
+        );
         prevTargetRef.current = moveResult.target;
         scheduleDraw(view, promotedCoords);
         if (!guideController.current?.isGuiding() && !askActive.current) {
@@ -1778,6 +1878,7 @@ export function Explore({
         whereAmIDwellState.current = resetWhereAmIDwellOnLift();
         lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
         prevTargetRef.current = { kind: 'none' };
+        stickyHoldRef.current = resetStickyHoldOnLift();
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
         engineState.current = state;
         runEffects(effects, drivers);
