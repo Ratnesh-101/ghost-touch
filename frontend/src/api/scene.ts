@@ -7,6 +7,7 @@
  * types; no second copy is defined here.
  */
 import type { DiagramScene } from '../core/scene';
+import { isRenderableScene } from '../core/sceneGuard';
 import { t } from '../i18n';
 
 export type SceneMode = 'ai' | 'raw';
@@ -120,10 +121,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function asScene(value: unknown): DiagramScene | undefined {
-  return isRecord(value) && typeof value['kind'] === 'string'
-    ? (value as unknown as DiagramScene)
-    : undefined;
+export function asScene(value: unknown): DiagramScene | undefined {
+  return isRenderableScene(value) ? value : undefined;
 }
 
 /** Shape check only; the backend has already validated against the schema. */

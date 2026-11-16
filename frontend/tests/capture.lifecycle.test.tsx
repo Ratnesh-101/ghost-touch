@@ -17,6 +17,8 @@ const testScene: DiagramScene = {
     { id: 'p2', x: 0.9, y: 0.9, label: 'B' },
   ],
   segments: [{ id: 's1', a: 'p1', b: 'p2' }],
+  polylines: [],
+  bars: [],
 };
 
 describe('capture lifecycle, object URLs, double-tap & cancel (Findings 4, 9, 16)', () => {

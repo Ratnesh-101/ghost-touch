@@ -511,7 +511,14 @@ describe('B4-06 & B4-07: Render cold start timeout, retry and error mapping', ()
   it('retries on HTTP 502 Bad Gateway and speaks localized waking-up notice', async () => {
     const onRetryMock = vi.fn();
     const mockSuccessResponse = {
-      scene: { kind: 'geometry', title: 'Triangle' },
+      scene: {
+        kind: 'geometry',
+        title: 'Triangle',
+        points: [],
+        segments: [],
+        polylines: [],
+        bars: [],
+      },
       mode: 'ai',
     };
 

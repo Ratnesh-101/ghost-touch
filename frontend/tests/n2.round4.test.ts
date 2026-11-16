@@ -50,6 +50,8 @@ const sampleTriangle: DiagramScene = {
     { id: 'AB', a: 'A', b: 'B', label: 'AB' },
     { id: 'BC', a: 'B', b: 'C', label: 'BC' },
   ],
+  polylines: [],
+  bars: [],
   facts: [
     'angle C = 90 degrees',
     'AC = 4 cm',

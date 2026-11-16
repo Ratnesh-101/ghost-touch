@@ -4407,3 +4407,22 @@ Format for each entry:
 - Mutants (Explore.tsx edited temporarily, restored from a copy; `git diff frontend/src` empty afterwards). KILLED: finding-sound switch ignored (3 tests), finding sound ignores Ask, graph-scan switch ignored, graph scan ignores Ask (via promotion), compass ignores Directions (3), line name ignores Directions, line name ignores Ask, heartbeat switch ignored, where-am-I Directions guards removed together (tick path and move path). SURVIVED, equivalent: Guide guard in the finding-sound, graph-scan and line-name blocks (every guiding path returns before `applyMoveResult` or `checkLineDwell` is reached, so the guard is defence in depth); where-am-I Directions guard removed at only one of its two sites (the other still blocks; both removed is killed); where-am-I Ask and Guide flags (the keep-alive `shouldRun` already stops the tick). The guiding tests still show no cue while guiding, they just cannot isolate those inner guards.
 - Gate: `tsc --noEmit` 0 errors; `vitest run --maxWorkers=6` 207 files, 2629 passed, 1 expected fail (the finding), 1 todo.
 - Files: frontend/tests/explore.wiring.guards.test.tsx, .kiro/specs/ghost-touch/tasks.md, docs/BUILD_LOG.md
+
+## 2026-11-16 — Antigravity — Lane hx6: Scene Ingress Guard Wiring (Task 61b, Requirement 35)
+- Connected Kiro's scene ingress guard (`frontend/src/core/sceneGuard.ts`) at the network ingress boundary in `frontend/src/api/scene.ts`:
+  - `asScene` validates `value` with `isRenderableScene(value)`, returning `DiagramScene` when valid and `undefined` otherwise.
+  - Exported `asScene`.
+  - Preserved existing `SceneRequestError('bad-response')` throwing in `parseSceneResponse` and `loadSample` on undefined scene.
+  - Added comprehensive test suite `frontend/tests/hx6.sceneIngress.test.ts` verifying rejection of missing arrays, NaN coordinates, dangling segments, limit enforcement (500 points accepted, 501 points rejected), disk sample loading, and `asScene` contracts.
+- What broke / surprising findings:
+  - Pass 1 gate reported 10 failures across `api.scene.test.ts`, `capture.lifecycle.test.tsx`, `k6.pwa-offline.test.ts`, and `n2.round4.test.ts`. All 10 stemmed from legacy unit test mock responses using incomplete scenes (e.g. `{ kind: 'geometry', title: 'Triangle' }`) that lacked required arrays (`points`, `segments`, `polylines`, `bars`). Under Requirement 35.2 / 35.5, missing arrays are strictly corrupt and not defaulted to empty (matching Kiro's Task 61 finding in `savedDiagrams.test.ts` and `drivers.diagramStore.test.ts`).
+  - Pass 2 resolved all 10 failures by providing valid array fields on mock scene fixtures across the 4 test files without weakening any assertion.
+- Files touched:
+  - `frontend/src/api/scene.ts`
+  - `frontend/tests/hx6.sceneIngress.test.ts`
+  - `frontend/tests/api.scene.test.ts`
+  - `frontend/tests/capture.lifecycle.test.tsx`
+  - `frontend/tests/k6.pwa-offline.test.ts`
+  - `frontend/tests/n2.round4.test.ts`
+  - `docs/reports/agy-hx6-report.md`
+  - `docs/BUILD_LOG.md`

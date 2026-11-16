@@ -11,7 +11,17 @@ import {
   requestScene,
 } from '../src/api/scene';
 
-const okBody = { scene: { kind: 'geometry', title: 'Triangle' }, mode: 'ai' };
+const okBody = {
+  scene: {
+    kind: 'geometry',
+    title: 'Triangle',
+    points: [],
+    segments: [],
+    polylines: [],
+    bars: [],
+  },
+  mode: 'ai',
+};
 
 function jsonResponse(
   body: unknown,
@@ -388,9 +398,16 @@ describe('parseSceneResponse', () => {
 
 describe('loadSample', () => {
   it('reads only the bundled file and returns the scene (no backend call)', async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValue(jsonResponse({ kind: 'geometry', title: 'Triangle' }));
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse({
+        kind: 'geometry',
+        title: 'Triangle',
+        points: [],
+        segments: [],
+        polylines: [],
+        bars: [],
+      }),
+    );
     const scene = await loadSample('triangle', fetchImpl);
     expect(scene.kind).toBe('geometry');
     expect(fetchImpl).toHaveBeenCalledTimes(1);
