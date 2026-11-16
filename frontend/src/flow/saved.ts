@@ -10,6 +10,7 @@ import {
   type SavedDiagram,
 } from '../core/savedDiagrams';
 import type { DiagramStore } from '../drivers/diagramStore';
+import { requestPersistentStorage } from '../drivers/persist';
 import { t } from '../i18n';
 import { joinAnnouncements } from './explore';
 
@@ -121,6 +122,7 @@ export async function saveDiagramWithEviction(
     if (!res.ok) {
       return { ok: false, error: res.error };
     }
+    void requestPersistentStorage();
     return { ok: true, evictedId: primaryEvictedId };
   }
 
@@ -163,5 +165,6 @@ export async function saveDiagramWithEviction(
     }
   }
 
+  void requestPersistentStorage();
   return { ok: true, evictedId: primaryEvictedId };
 }

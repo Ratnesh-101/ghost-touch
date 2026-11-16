@@ -79,22 +79,46 @@ export class CameraError extends Error {
   }
 }
 
-interface DecodedImage {
+export interface DecodedImage {
   source: CanvasImageSource;
   width: number;
   height: number;
   release(): void;
 }
 
-async function decodeWithBitmap(file: Blob): Promise<DecodedImage> {
-  // 'from-image' applies the EXIF rotation, so portrait phone photos stand upright.
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-  return {
-    source: bitmap,
-    width: bitmap.width,
-    height: bitmap.height,
-    release: () => bitmap.close(),
-  };
+export async function decodeWithBitmap(file: Blob): Promise<DecodedImage> {
+  try {
+    let bitmap = await createImageBitmap(file, {
+      imageOrientation: 'from-image',
+      resizeWidth: MAX_IMAGE_SIDE,
+      resizeQuality: 'medium',
+    });
+    if (bitmap.height > MAX_IMAGE_SIDE) {
+      bitmap.close();
+      bitmap = await createImageBitmap(file, {
+        imageOrientation: 'from-image',
+        resizeHeight: MAX_IMAGE_SIDE,
+        resizeQuality: 'medium',
+      });
+    }
+    return {
+      source: bitmap,
+      width: bitmap.width,
+      height: bitmap.height,
+      release: () => bitmap.close(),
+    };
+  } catch {
+    // If the resize call rejects, fall back to today's call (unresized).
+    const fallbackBitmap = await createImageBitmap(file, {
+      imageOrientation: 'from-image',
+    });
+    return {
+      source: fallbackBitmap,
+      width: fallbackBitmap.width,
+      height: fallbackBitmap.height,
+      release: () => fallbackBitmap.close(),
+    };
+  }
 }
 
 function decodeWithImageElement(file: Blob): Promise<DecodedImage> {
@@ -116,7 +140,7 @@ function decodeWithImageElement(file: Blob): Promise<DecodedImage> {
   });
 }
 
-async function decode(file: Blob): Promise<DecodedImage> {
+export async function decode(file: Blob): Promise<DecodedImage> {
   if (typeof createImageBitmap === 'function') {
     try {
       return await decodeWithBitmap(file);
