@@ -691,3 +691,36 @@ Deleting each guard in `Explore.tsx` must turn one of these red. The existing te
 
 ## Owner decisions raised in task 55
 The click cue and Directions defaults (review M4) are not decided in this spec. They are recorded as OD-2 and OD-3 in `docs/reviews/kiro-owner-decisions.md`, each with what the code does today. No default changes in task 55.
+
+
+## Sticky line following (Requirement 33, task 58)
+Written by Kiro before the code. Optional, off by default, phone-untested. One new pure module, `frontend/src/core/sticky.ts`, named exports only. It imports `hitTest` and its types, `geometry` types and `scene` types, and nothing else. `hitTest.ts` and `DEFAULT_RADII` are untouched.
+
+### Interface
+```ts
+const STICKY_HOLD_MS = 200            // proposed
+const STICKY_RADIUS_PX = 24           // proposed
+followTarget(prevTarget: Target, heldMs: number, scene, finger: ScreenPoint, view: Viewport,
+             radii: Radii, stickyRadiusPx: number): Target
+```
+
+### Rules
+1. `base = hitTest(scene, finger, view, radii)`. A `vertex` or `line` base is returned as it is. This is what keeps acquisition at the normal 14 px, lets a vertex win (P2) and lets any different line that `hitTest` reports take over with its usual nearest-wins and curve-beats-axis rules.
+2. Otherwise (`none` or `bar`) the held line may fill the gap. It needs `prevTarget.kind === 'line'`, finite `heldMs >= STICKY_HOLD_MS`, and finite `stickyRadiusPx > radii.line`.
+3. Is the finger within `stickyRadiusPx` of the held line? The helper asks `hitTest` itself, on a reduced scene that holds only the elements of the held kind and id (segments with that id and the points, polylines with that id, the one axis, the bars with that id, nothing else) with radii `{ vertex: -1, line: stickyRadiusPx }`. A vertex radius of -1 can never be hit, so only a line answer is possible. The answer counts when it is a `line` with the held id and element kind. The distance arithmetic is therefore exactly hitTest's, and no second distance routine can drift from it.
+4. A positive answer gives a new object `{ kind: 'line', id, elementKind }` taken from `prevTarget`. Anything else gives `base`.
+5. Total: the reduced scene is built with `Array.isArray` guards; a junk previous target matches nothing and gives `base`.
+
+### Consequences, stated plainly
+- A different line that is nearer than the held one but farther than 14 px does not take over until it is within 14 px or the held line is out of reach. Taking over always follows the normal acquisition rule. This is deliberate: it keeps "acquisition needs the line radius" true for every line, and it is a hysteresis between close parallel lines, not a merge. Lines closer than about 24 px to a held line can be hard to leave; this is the cost the plan names and the reason the helper is off by default.
+- Inside a bar, a held line within the sticky radius beats the bar interior, because a line outranks a bar interior in `hitTest`.
+- The engine gets the followed target. Its line rule then buzzes for a finger up to 24 px from the line; for a curve the tone is the finger's own height (`yNorm`), as before. Not changed here.
+
+| # | Property | Validates |
+|---|---|---|
+| P114 | **Acquisition is unchanged (Kiro, task 58):** for random scenes, viewports and fingers aimed at the radius band, with a previous target that is `none`, a vertex or a bar (any `heldMs`, including Infinity), or a line with `heldMs` below 200, NaN or infinite, `followTarget` deep-equals `hitTest`. A lift (`none`) never sticks. 250+ runs. | 33.1, 33.2, 33.7 |
+| P115 | **A vertex always wins (Kiro, task 58):** a finger within the vertex radius of a point gets that vertex (the one `hitTest` names) and never a line, whatever the previous target, `heldMs` and sticky radius (P2 holds). | 33.4 |
+| P116 | **A line that `hitTest` reports wins (Kiro, task 58):** when `hitTest` reports a line, `followTarget` returns that line, whatever the held line. Includes the example of a held line 22 px away and a different line 10 px away: the different one is returned. | 33.4 |
+| P117 | **It sticks exactly out to the sticky radius (Kiro, task 58):** against a brute-force minimum distance built independently from `distToSegmentXY` over the held element's pieces, with an eligible held line and `hitTest` reporting `none` or a bar: the result is the held line when the minimum is at most the sticky radius minus 1e-6, is `hitTest`'s answer when it is more than the radius plus 1e-6, and whenever the result differs from `hitTest` the minimum is within the radius. Held kinds: segment, polyline, axis, bar edge. | 33.3 |
+| P118 | **Off means identical (Kiro, task 58):** with a sticky radius equal to, or below, the line radius, NaN, or infinite, `followTarget` deep-equals `hitTest` for any previous target and `heldMs`. | 33.5 |
+| P119 | **Total and only two answers (Kiro, task 58):** with NaN, infinite, out-of-range and missing data, dangling and duplicate ids, `__proto__` ids, junk previous targets (unknown kind and id) and NaN or zero viewports, `followTarget` never throws, and its answer is either deep-equal to `hitTest`'s or exactly the held line of the previous target. It never mutates its inputs. | 33.6 |

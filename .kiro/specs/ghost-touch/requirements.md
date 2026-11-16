@@ -457,3 +457,23 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 3. THE TalkBack feature buttons SHALL read a corner as "Corner A, top left, joined to B and C" and a side as "Side AB, from top left to bottom right". Bars, curves and axes keep their present labels. The cap on the number of feature buttons (60) is unchanged.
 4. THE edge tracker SHALL be a pure function in `flow/` with a property test (once per exit on each of the four sides, not again until re-armed). A position on the boundary (0 or 1) counts as inside and SHALL NOT trigger it.
 5. All strings in `en`, `hi` and `gu`; none contains "verified", "correct", "checked" or "approved".
+
+
+### Requirement 33: Sticky line following (optional, off by default, phone-untested; core half)
+> Written by Kiro on 2026-11-16 BEFORE the code (task 58), from `docs/reports/fable-blind-user-plan.md` (improvement I14, Kiro task K5). **Owner approval (recorded in `docs/BUILD_LOG.md`):** on 2026-11-16 the owner delegated the K5 decision to the orchestrator ("for K5 do what you think is best"). The decision is to build it as a pure OPT-IN helper that is OFF by default, with every existing value untouched. This requirement covers the pure helper in `frontend/src/core/sticky.ts` only. The Settings switch and the Explore wiring are a later Antigravity lane (T58b). `hitTest.ts`, `DEFAULT_RADII` (vertex 22 px, line 14 px), `hapticEngine.ts` and every tuned haptic value are NOT changed. **Both numbers below are proposed, pending owner approval, and untested on a phone.**
+
+**User Story:** As a blind student who is following a line, I want the line to keep buzzing when my finger drifts a little to the side, so that I do not lose it at the first small wobble.
+
+#### Definitions
+- **Held line:** the `line` target the caller reports as the previous target (`prevTarget`), together with `heldMs`, the time in ms that this same line has been the target without a break.
+- **Sticky radius** `stickyRadiusPx`: proposed 24 CSS px. **Hold time:** proposed 200 ms (`STICKY_HOLD_MS`).
+
+#### Acceptance Criteria
+1. THE helper `followTarget` SHALL return exactly the target `hitTest` returns for the same scene, finger, viewport and radii, EXCEPT in the single case of criterion 3.
+2. ACQUISITION SHALL NOT change. A line becomes the target only when `hitTest` reports it, that is within the normal line radius. WHEN `prevTarget` is not a line (`none`, `vertex`, `bar`, which includes the state after a lift), OR `heldMs` is below the hold time, NaN or infinite, THEN the result SHALL equal `hitTest`.
+3. WHEN `prevTarget` is a line, `heldMs` is finite and at least the hold time, `stickyRadiusPx` is finite and larger than `radii.line`, `hitTest` reports `none` or a `bar`, AND the finger is within `stickyRadiusPx` of the held line (the closest point of any piece of that element, measured as `hitTest` measures), THEN the result SHALL be the held line: `{ kind: 'line', id, elementKind }` of `prevTarget`.
+4. A vertex SHALL always win: WHEN `hitTest` reports a vertex the result SHALL be that vertex, whatever the previous target (Requirement 4.6 holds). WHEN `hitTest` reports a line, even a different one, the result SHALL be that line. A different line therefore takes over by the normal rules of Requirement 5.5 and nearest-wins, and always inside the normal line radius, so stickiness never extends the reach of a line that was not already held.
+5. WHEN `stickyRadiusPx` is not larger than `radii.line`, or is NaN or infinite, THEN the result SHALL equal `hitTest` exactly (the feature is off). The default of the caller SHALL be off (no previous target is passed, or the radius is left at the line radius).
+6. THE helper SHALL be pure and total: no DOM, React, browser API, audio, speech or timer; no import except `hitTest`, `geometry` and `scene`; it SHALL NEVER throw, whatever the scene (NaN, infinite or out-of-range coordinates, dangling or duplicate ids, missing arrays), the previous target (an unknown id or element kind), the finger, the viewport or the numbers. It SHALL only ever answer with what `hitTest` answers or with the held line.
+7. THE helper SHALL keep no state. The caller measures `heldMs` and feeds the target it followed back in as `prevTarget`; a lift is `{ kind: 'none' }`.
+8. THE helper SHALL NOT change `hitTest`, `DEFAULT_RADII`, `hapticEngine.ts` or any tuned value, and SHALL NOT be called by the app until lane T58b adds the switch (default off) and the wiring.

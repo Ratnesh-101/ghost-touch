@@ -456,3 +456,20 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 57.4 Each new test mutation-checked against a temporary mutant of `hapticEngine.ts`, reverted; `git diff` on `frontend/src` clean afterwards
   - [x] 57.5 Gate (`tsc --noEmit`, `vitest run`); path-scoped commit
   - _Requirements: 4.1, 4.3, 4.4, 4.5, 4.9_
+
+## Sticky line following (Requirement 33; spec written before the code; optional, off by default)
+> Core half only. Do not edit `hitTest.ts`, `hapticEngine.ts`, `compass.ts`, `proximity.ts`, `screens/`, `flow/`, `DEFAULT_RADII` or the tuned haptic values. Owner approval: 2026-11-16, the owner delegated K5 to the orchestrator ("for K5 do what you think is best"); decision: a pure opt-in helper, OFF by default, nothing existing changed. The sticky radius (24 px) and hold time (200 ms) are proposed, pending owner approval and a phone test.
+
+- [x] 58. Sticky line helper in `core/sticky.ts`
+  - [x] 58.1 Requirement 33, design section, properties P114-P119 and a "PROPOSED" row in `tech.md` written before any code
+  - [x] 58.2 `frontend/src/core/sticky.ts`: `STICKY_HOLD_MS`, `STICKY_RADIUS_PX`, `followTarget`; pure, named exports, no `any`
+  - [x] 58.3 Properties P114-P119 in `frontend/tests/sticky.prop.test.ts` (fast-check, 250+ runs each); mutation-checked with at least four mutants, reverted
+  - [x] 58.4 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro) with the approval text; path-scoped commit
+  - _Requirements: 33.*_
+
+- [ ] 58b. Sticky line wiring (agy lane, not Kiro; do not start before the owner turns the feature on)
+  - [ ] 58b.1 Settings switch "Sticky lines", OFF by default, one fixed label, state in `aria-checked` only; strings in `en`, `hi`, `gu`
+  - [ ] 58b.2 `Explore.tsx`: keep the followed target and the time it has been a line target (reset on lift, on any non-line target and on a new touch); pass it to `followTarget` before the engine step; with the switch off, call `hitTest` exactly as today
+  - [ ] 58b.3 Real-Explore test: with the switch off the vibrate and tone calls of a fixed trace are identical to today; deleting the switch guard turns it red
+  - [ ] 58b.4 Phone test of 24 px and 200 ms on the Nord CE6 and one budget phone; only then may `tech.md` lose the "PROPOSED" mark
+  - _Requirements: 33.*_
