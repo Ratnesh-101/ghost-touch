@@ -23,6 +23,7 @@ import {
 } from '../core/geometry';
 import type { DiagramScene } from '../core/scene';
 import type { Target } from '../core/hitTest';
+import type { Effect } from '../core/hapticEngine';
 import { FallbackHapticDriver, runEffects, runProximityEffects, type Drivers } from '../drivers';
 import type { PulseKind } from '../drivers/haptics';
 import { leaveExploreEntry, onBack as subscribeBack, pushExploreEntry } from '../drivers/navigation';
@@ -35,6 +36,7 @@ import { resolveTarget } from '../guide';
 import { executeExploreCommand, parseExploreCommand, whereAmI } from '../flow/commands';
 import {
   CENTRE_TICK_MS,
+  checkBarRest,
   checkCentreTick,
   checkTwoFingerLongPress,
   checkTwoFingerSwipeDown,
@@ -46,26 +48,32 @@ import {
   getStoredDirectionsSetting,
   getStoredFindingSoundSetting,
   getStoredGraphScanSetting,
+  getStoredSpeechDetailSetting,
   initialAxisState,
   initialCentreTickState,
   initialProximityState,
+  initialSpeechPacingState,
   initialState,
   initialWhereAmIDwellState,
   KEEP_ALIVE_INTERVAL_MS,
   LINE_DWELL_MS,
   lineName,
   mergeAnnouncements,
+  paceSpeech,
   processPointerMove,
   proximityStep,
   rearmCentreTick,
+  resetBarRest,
   resetWhereAmIDwellOnLift,
   scanTone,
   seedAxisState,
   shouldKeepAlive,
+  speechText,
   step,
   TWO_FINGER_LONG_PRESS_MS,
   TWO_FINGER_MAX_MOVE_PX,
   updateWhereAmIDwellOnMove,
+  updateBarMove,
   VERTEX_VISIT_WINDOW_MS,
   type AxisTrackerState,
   type CentreTickState,
@@ -74,6 +82,8 @@ import {
   type HoldKeepAliveTimer,
   type PointerHistory,
   type ProximityState,
+  type SpeechPacingState,
+  type SpeechSource,
   type WhereAmIDwellState,
 } from '../flow/explore';
 import { canvasAriaLabel, exploreAnnouncement, sceneName } from '../flow/navigation';
@@ -258,6 +268,7 @@ export function Explore({
   const proximityState = useRef<ProximityState>(initialProximityState());
   const centreTickState = useRef<CentreTickState>(initialCentreTickState());
   const axisState = useRef<AxisTrackerState>(initialAxisState());
+  const speechPacingState = useRef<SpeechPacingState>(initialSpeechPacingState());
   const activePointers = useRef<Map<number, PointerHistory>>(new Map());
   const primaryPointerId = useRef<number | null>(null);
   const leaving = useRef(false);
@@ -529,6 +540,7 @@ export function Explore({
     activePointers.current.clear();
     primaryPointerId.current = null;
     whereAmIDwellState.current = resetWhereAmIDwellOnLift();
+    speechPacingState.current = initialSpeechPacingState(getStoredSpeechDetailSetting());
     lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
     prevTargetRef.current = { kind: 'none' };
     leaveExploreEntry();
@@ -1102,6 +1114,7 @@ export function Explore({
         activePointers.current.clear();
         primaryPointerId.current = null;
         whereAmIDwellState.current = resetWhereAmIDwellOnLift();
+        speechPacingState.current = resetBarRest(speechPacingState.current);
         lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
         prevTargetRef.current = { kind: 'none' };
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
@@ -1197,6 +1210,7 @@ export function Explore({
     lang: string,
     extraAnnouncements: readonly string[] = [],
     afterAnnouncements: readonly string[] = [],
+    isStillness = false,
   ): void => {
     engineState.current = moveResult.nextEngineState;
     centreTickState.current = moveResult.centreCheck.nextState;
@@ -1205,14 +1219,82 @@ export function Explore({
     if (moveResult.centreCheck.tick) {
       drivers.haptics.vibrate(CENTRE_TICK_MS);
     }
+
+    const detail = getStoredSpeechDetailSetting();
+    const now = performance.now();
+
+    // Track pointer movement on bar or reset if moving away
+    if (!isStillness) {
+      if (moveResult.target.kind === 'bar') {
+        speechPacingState.current = updateBarMove(
+          speechPacingState.current,
+          now,
+          moveResult.target.id,
+        );
+      } else {
+        speechPacingState.current = resetBarRest(speechPacingState.current);
+      }
+    }
+
+    // Pace axis crossings (Lane A7)
+    const pacedAxisCrossings: string[] = [];
+    for (const axisText of moveResult.axisCrossings) {
+      const paced = paceSpeech(speechPacingState.current, {
+        t: now,
+        text: axisText,
+        source: 'axis',
+        detail,
+      });
+      speechPacingState.current = paced.state;
+      if (paced.speakNow !== null) {
+        pacedAxisCrossings.push(paced.speakNow);
+      }
+    }
+
+    // Pace engine speech effects (corners, bars, etc.)
+    const pacedEffects: Effect[] = [];
+    for (const effect of moveResult.effects) {
+      if (effect.kind !== 'speak' && effect.kind !== 'speakKey') {
+        pacedEffects.push(effect);
+        continue;
+      }
+      const words = speechText(effect);
+      if (!words) continue;
+
+      const source: SpeechSource =
+        moveResult.target.kind === 'vertex'
+          ? 'corner'
+          : moveResult.target.kind === 'bar'
+          ? 'bar'
+          : 'other';
+
+      const paced = paceSpeech(speechPacingState.current, {
+        t: now,
+        text: words,
+        source,
+        detail,
+        barId: moveResult.target.kind === 'bar' ? moveResult.target.id : null,
+      });
+      speechPacingState.current = paced.state;
+      if (paced.speakNow !== null) {
+        pacedEffects.push({ kind: 'speak', text: paced.speakNow });
+      }
+    }
+
+    // Corners in short mode speak label only (suppress compass directions)
+    const pacedAfterAnnouncements =
+      detail === 'short' && moveResult.target.kind === 'vertex'
+        ? []
+        : afterAnnouncements;
+
     // R3-01 / R3-03: Unified move pipeline calls mergeAnnouncements (previously in pointerdown, move, promotion)
     // PointerDown: mergeAnnouncements([centreMsg, ...axisCrossings], effects) (R3-01)
     // PointerMove: mergeAnnouncements(moveResult.axisCrossings, moveResult.effects)
     // Promotion: mergeAnnouncements(moveResult.axisCrossings, moveResult.effects)
     const moveEffects = mergeAnnouncements(
-      [...extraAnnouncements, ...moveResult.axisCrossings],
-      moveResult.effects,
-      afterAnnouncements,
+      [...extraAnnouncements, ...pacedAxisCrossings],
+      pacedEffects,
+      pacedAfterAnnouncements,
     );
     // R3-02: update lastSpokenRef unconditionally from the merged speak effect
     const joined = moveEffects.find((e) => e.kind === 'speak');
@@ -1341,9 +1423,25 @@ export function Explore({
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, now, lang);
-        applyMoveResult(moveResult, lang, [], compassAnnouncements);
+        applyMoveResult(moveResult, lang, [], compassAnnouncements, true);
         prevTargetRef.current = moveResult.target;
         scheduleDraw(view, coords);
+
+        if (moveResult.target.kind === 'bar') {
+          const restResult = checkBarRest(speechPacingState.current, now, moveResult.target.id);
+          speechPacingState.current = restResult.state;
+          if (
+            restResult.speakNow !== null &&
+            !leaving.current &&
+            !askActive.current &&
+            !guideController.current?.isGuiding()
+          ) {
+            drivers.speech.speak(restResult.speakNow, lang);
+            lastSpeechStartRef.current = now;
+            lastSpokenRef.current = restResult.speakNow;
+            setStatusMessage(restResult.speakNow);
+          }
+        }
 
         const dwellResult = checkWhereAmIDwell(whereAmIDwellState.current, {
           targetKind: moveResult.target.kind,
@@ -1672,6 +1770,7 @@ export function Explore({
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, now, lang);
+        // Promotion of surviving pointer
         applyMoveResult(moveResult, lang, [], compassAnnouncements);
         prevTargetRef.current = moveResult.target;
         scheduleDraw(view, promotedCoords);
@@ -1682,6 +1781,7 @@ export function Explore({
         // All fingers lifted: silence effects
         primaryPointerId.current = null;
         whereAmIDwellState.current = resetWhereAmIDwellOnLift();
+        speechPacingState.current = resetBarRest(speechPacingState.current);
         lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
         prevTargetRef.current = { kind: 'none' };
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });

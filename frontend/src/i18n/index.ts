@@ -444,6 +444,14 @@ const en: Record<string, string> = {
   'lab.settings.graphScanOn': 'Graph scan enabled.',
   'lab.settings.graphScanOff': 'Graph scan disabled.',
 
+  // Speech detail setting (Lane A7)
+  'lab.settings.speechDetail': 'Speech detail',
+  'lab.settings.speechDetailHint': 'Choose full announcements or short labels during fast sweeps.',
+  'lab.settings.speechDetailFull': 'Full',
+  'lab.settings.speechDetailShort': 'Short',
+  'lab.settings.speechDetailSetFull': 'Speech detail set to full.',
+  'lab.settings.speechDetailSetShort': 'Speech detail set to short.',
+
   // Corner compass & line names (Lane A3)
   'compass.dir.up': 'up',
   'compass.dir.down': 'down',
@@ -893,6 +901,14 @@ const hi: Record<string, string> = {
   'lab.settings.graphScanHint': 'ग्राफ़ पर कहीं भी वक्र की ध्वनि सुनें।',
   'lab.settings.graphScanOn': 'ग्राफ़ स्कैन सक्षम किया गया।',
   'lab.settings.graphScanOff': 'ग्राफ़ स्कैन अक्षम किया गया।',
+
+  // Speech detail setting (Lane A7)
+  'lab.settings.speechDetail': 'वाणी विवरण',
+  'lab.settings.speechDetailHint': 'तीव्र स्वीप के दौरान पूर्ण घोषणाएं या संक्षिप्त लेबल चुनें।',
+  'lab.settings.speechDetailFull': 'पूर्ण',
+  'lab.settings.speechDetailShort': 'संक्षिप्त',
+  'lab.settings.speechDetailSetFull': 'वाणी विवरण पूर्ण पर सेट किया गया।',
+  'lab.settings.speechDetailSetShort': 'वाणी विवरण संक्षिप्त पर सेट किया गया।',
 
   // Corner compass & line names (Lane A3)
   'compass.dir.up': 'ऊपर',
@@ -1344,6 +1360,14 @@ const gu: Record<string, string> = {
   'lab.settings.graphScanHint': 'આલેખ પર ગમે ત્યાં વક્રનો સૂર સાંભળો.',
   'lab.settings.graphScanOn': 'આલેખ સ્કેન સક્ષમ કરી.',
   'lab.settings.graphScanOff': 'આલેખ સ્કેન અક્ષમ કરી.',
+
+  // Speech detail setting (Lane A7)
+  'lab.settings.speechDetail': 'વાણી વિગત',
+  'lab.settings.speechDetailHint': 'ઝડપી સ્વીપ દરમિયાન સંપૂર્ણ ઘોષણાઓ અથવા ટૂંકા લેબલ પસંદ કરો.',
+  'lab.settings.speechDetailFull': 'સંપૂર્ણ',
+  'lab.settings.speechDetailShort': 'ટૂંકું',
+  'lab.settings.speechDetailSetFull': 'વાણી વિગત સંપૂર્ણ પર સેટ થઈ.',
+  'lab.settings.speechDetailSetShort': 'વાણી વિગત ટૂંકા પર સેટ થઈ.',
 
   // Corner compass & line names (Lane A3)
   'compass.dir.up': 'ઉપર',

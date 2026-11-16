@@ -112,6 +112,21 @@ describe('LabSettings dialog semantics (renderToStaticMarkup)', () => {
     expect(html).toContain('1.25×');
   });
 
+  it('embeds speech detail controls with full and short options', () => {
+    const drivers = createMockDrivers();
+    const html = renderToStaticMarkup(
+      createElement(LabSettings, {
+        open: true,
+        onClose: vi.fn(),
+        drivers,
+      }),
+    );
+
+    expect(html).toContain(t('lab.settings.speechDetail'));
+    expect(html).toContain(t('lab.settings.speechDetailFull'));
+    expect(html).toContain(t('lab.settings.speechDetailShort'));
+  });
+
   it('renders backdrop overlay with aria-hidden="true"', () => {
     const drivers = createMockDrivers();
     const html = renderToStaticMarkup(
@@ -141,6 +156,7 @@ describe('LabSettings dialog semantics (renderToStaticMarkup)', () => {
     expect(html).toContain('सेटिंग्स बंद करें');
     expect(html).toContain('भाषा');
     expect(html).toContain('बोलने की गति');
+    expect(html).toContain('वाणी विवरण');
   });
 
   it('renders in Gujarati with localized headings and labels', () => {
@@ -158,6 +174,7 @@ describe('LabSettings dialog semantics (renderToStaticMarkup)', () => {
     expect(html).toContain('સેટિંગ્સ બંધ કરો');
     expect(html).toContain('ભાષા');
     expect(html).toContain('વાણી ગતિ');
+    expect(html).toContain('વાણી વિગત');
   });
 });
 
