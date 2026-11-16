@@ -7,9 +7,11 @@
  * feature-by-feature when direct touch gestures are swallowed by Android.
  */
 
+import { vertexExits } from '../core/compass';
 import type { Target } from '../core/hitTest';
 import type { DiagramScene } from '../core/scene';
 import { t, tf } from '../i18n';
+import { getCoarsePosition } from './commands';
 
 /** Maximum focusable features emitted for a single scene to prevent huge trees. */
 export const MAX_A11Y_FEATURES = 60;
@@ -64,10 +66,34 @@ export function buildA11yFeatures(
   const pointFeatures: A11yFeature[] = [];
   for (const p of points) {
     const name = nameOf(p.id);
+    const pos = getCoarsePosition(p);
+    const exits = vertexExits(scene, p.id);
+    const exitNames: string[] = [];
+    for (const exit of exits) {
+      const toName = exit.toLabel || nameOf(exit.toId);
+      if (!exitNames.includes(toName)) {
+        exitNames.push(toName);
+      }
+    }
+    const joinedNames = exitNames.join(', ');
+    const label = joinedNames
+      ? tf('a11y.corner', {
+          name,
+          pos,
+          coarsePosition: pos,
+          names: joinedNames,
+          joined: joinedNames,
+        })
+      : tf('a11y.cornerStandalone', {
+          name,
+          pos,
+          coarsePosition: pos,
+        });
+
     pointFeatures.push({
       key: `point-${p.id}`,
       kind: 'point',
-      label: tf('a11y.corner', { name }),
+      label,
       target: { kind: 'vertex', id: p.id, label: p.label ?? undefined },
       yNorm: p.y,
       ...boxOf([p.x], [p.y]),
@@ -80,10 +106,19 @@ export function buildA11yFeatures(
     const b = byId.get(s.b);
     if (!a || !b) continue;
     const name = s.label && s.label.trim() !== '' ? s.label : `${nameOf(s.a)}${nameOf(s.b)}`;
+    const posA = getCoarsePosition(a);
+    const posB = getCoarsePosition(b);
+    const label = tf('a11y.side', {
+      name,
+      from: posA,
+      to: posB,
+      a: posA,
+      b: posB,
+    });
     segmentFeatures.push({
       key: `segment-${s.id}`,
       kind: 'segment',
-      label: tf('a11y.side', { name }),
+      label,
       target: { kind: 'line', id: s.id, elementKind: 'segment' },
       yNorm: (a.y + b.y) / 2,
       ...boxOf([a.x, b.x], [a.y, b.y]),
