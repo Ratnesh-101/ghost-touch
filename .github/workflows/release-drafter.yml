@@ -12,13 +12,16 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   update-release-draft:
     name: Update Draft Release
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Draft Release
         uses: release-drafter/release-drafter@v7

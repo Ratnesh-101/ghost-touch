@@ -12,7 +12,7 @@ on:
       hypothesis_profile:
         description: 'Hypothesis profile name (if configured in pytest)'
         required: false
-        default: ''
+        default: 'soak'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,13 +21,20 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  ITERS: ${{ github.event.inputs.iterations || '10' }}
+  HYPOTHESIS_PROFILE: ${{ github.event.inputs.hypothesis_profile || 'soak' }}
+
 jobs:
   frontend-pbt-soak:
     name: Frontend PBT Soak (Node LTS)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: frontend
+    env:
+      FC_RUNS_MULT: '10'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -44,8 +51,16 @@ jobs:
 
       - name: Run property test suite repeatedly
         run: |
-          ITERS="${{ github.event.inputs.iterations || '10' }}"
-          echo "Starting frontend soak test with $ITERS iterations..."
+          export FC_RUNS_MULT=10
+          case "$ITERS" in
+            '' | *[!0-9]*)
+              echo "Error: ITERS must contain digits only, got '$ITERS'" >&2
+              exit 1
+              ;;
+            *)
+              ;;
+          esac
+          echo "Starting frontend soak test with $ITERS iterations (FC_RUNS_MULT=$FC_RUNS_MULT)..."
           for i in $(seq 1 "$ITERS"); do
             echo "--- Frontend Soak Iteration $i / $ITERS ---"
             npm test
@@ -54,6 +69,7 @@ jobs:
   backend-pbt-soak:
     name: Backend PBT Soak (Python 3.11)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: backend
@@ -74,11 +90,17 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Run backend tests with Hypothesis soak
-        env:
-          HYPOTHESIS_PROFILE: ${{ github.event.inputs.hypothesis_profile || env.HYPOTHESIS_PROFILE }}
         run: |
-          ITERS="${{ github.event.inputs.iterations || '5' }}"
-          echo "Starting backend soak test with $ITERS iterations..."
+          case "$ITERS" in
+            '' | *[!0-9]*)
+              echo "Error: ITERS must contain digits only, got '$ITERS'" >&2
+              exit 1
+              ;;
+            *)
+              ;;
+          esac
+          HYPOTHESIS_PROFILE="${HYPOTHESIS_PROFILE:-soak}"
+          echo "Starting backend soak test with $ITERS iterations using profile '$HYPOTHESIS_PROFILE'..."
           for i in $(seq 1 "$ITERS"); do
             echo "--- Backend Soak Iteration $i / $ITERS ---"
             if [ -n "$HYPOTHESIS_PROFILE" ]; then
