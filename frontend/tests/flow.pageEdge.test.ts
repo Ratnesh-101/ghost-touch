@@ -3,6 +3,7 @@ import { makeViewport } from '../src/core/geometry';
 import type { DiagramScene } from '../src/core/scene';
 import {
   checkPageEdge,
+  initialHeartbeatState,
   initialPageEdgeState,
   initialState,
   initialCentreTickState,
@@ -11,10 +12,8 @@ import {
   PAGE_EDGE_REARM_PX,
   processPointerMove,
   seedPageEdgeState,
-  type PageEdgeResult,
-  type PageEdgeState,
 } from '../src/flow/explore';
-import { getLang, setLang, t, tables, type Lang } from '../src/i18n';
+import { getLang, setLang, type Lang } from '../src/i18n';
 import { MemoryDiagramStore, runEffects, type Drivers } from '../src/drivers';
 
 function createMockDrivers(): Drivers {
@@ -297,6 +296,8 @@ describe('Page edge cue in move pipeline (processPointerMove)', () => {
       undefined,
       undefined,
       undefined,
+      initialHeartbeatState(),
+      null,
       s0,
     );
     expect(moveInside.pageEdge.spoken).toBeNull();
@@ -315,6 +316,8 @@ describe('Page edge cue in move pipeline (processPointerMove)', () => {
       undefined,
       undefined,
       undefined,
+      initialHeartbeatState(),
+      null,
       moveInside.pageEdge.nextState,
     );
     expect(moveOutside.pageEdge.spoken).toBe('Edge, right');

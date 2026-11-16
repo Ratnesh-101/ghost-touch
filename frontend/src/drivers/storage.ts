@@ -52,7 +52,7 @@ export function subscribeSettings(listener: SettingsListener): () => void {
   };
 }
 
-function notifySettingsChanged(key?: string): void {
+export function notifySettingsChanged(key?: string): void {
   for (const listener of settingsListeners) {
     try {
       listener(key);

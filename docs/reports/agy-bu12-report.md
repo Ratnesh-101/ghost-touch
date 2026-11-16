@@ -118,4 +118,54 @@ Added comprehensive tests in `frontend/tests/stickyWiring.test.ts` and `frontend
 - `frontend/src/screens/Explore.tsx`
 - `frontend/tests/labSettings.test.tsx`
 - `frontend/tests/stickyWiring.test.ts`
+- `frontend/tests/flow.pageEdge.test.ts`
 - `docs/reports/agy-bu12-report.md`
+
+---
+
+## Pass 3: Stacked Lanes Signature Alignment & Storage Read Cache Follow-up
+
+### 1. Problem Diagnosed
+When stacked lanes bu7b (Speech Pacing & Detail), bu8b (Page Edge Cues), and bu12 (Sticky Line Following) were merged on top of main, trailing optional parameters were added to `processPointerMove` in differing orders:
+- Main's baseline contract ended: `..., radii, cfg, proximityState, proximityCfg, heartbeatState, heartbeatCfg`.
+- bu8b passed `pageEdgeState` before `heartbeatState`.
+- bu12 passed `sticky` before `pageEdgeState` and `heartbeatState`.
+A temporary compatibility shim attempting runtime shape detection failed typechecking (`tsc: "Type 'PageEdgeState' / 'HeartbeatState' is missing the following properties from type 'ProcessPointerMoveStickyOptions'"`), breaking callers in `heartbeat.test.ts`, `flow.pageEdge.test.ts`, and `stickyWiring.test.ts`.
+Additionally, `frontend/tests/explore.bu9.test.tsx` failed ("L4: settings read once per hold and on change, not on every move", `expected 28 to be 18`) because `applyMoveResult` called `getStoredSpeechDetailSetting()` on every pointer move, causing 10 un-cached `localStorage.getItem` reads across 10 pointer moves.
+
+### 2. Changes Implemented
+1. **Canonical `processPointerMove` Signature:**
+   Restored main's original positions and appended newer parameters at the end:
+   ```typescript
+   export function processPointerMove(
+     scene: DiagramScene,
+     finger: ScreenPoint,
+     view: Viewport,
+     t: number,
+     engineState: EngineState,
+     centreTickState: CentreTickState,
+     axisState: AxisTrackerState,
+     radii: Radii = DEFAULT_RADII,
+     cfg: HapticConfig = DEFAULT_HAPTICS,
+     proximityState: ProximityState = initialProximityState(),
+     proximityCfg: ProximityConfig = DEFAULT_PROXIMITY,
+     heartbeatState: HeartbeatState = initialHeartbeatState(),
+     heartbeatCfg: HeartbeatConfig | null = null,
+     pageEdgeState: PageEdgeState = initialPageEdgeState(),
+     sticky?: ProcessPointerMoveStickyOptions,
+   ): MovePipelineResult
+   ```
+   Removed the compatibility shim from the function body and referenced parameters directly.
+
+2. **Caller Synchronization across Frontend & Tests:**
+   - `frontend/src/screens/Explore.tsx`: Updated all 6 call sites (`keepAliveTimer.onTick`, `handlePointerDown` askActive and normal, `handlePointerMove` askActive and normal, `handlePointerLift` promotion) to pass `..., heartbeatState.current, cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null, pageEdgeState.current, stickyOpts`.
+   - `frontend/tests/flow.pageEdge.test.ts`: Updated both pipeline move calls to pass `initialHeartbeatState(), null, pageEdgeState`.
+   - `frontend/tests/stickyWiring.test.ts`: Updated all 11 sticky move calls to pass `initialHeartbeatState(), null, initialPageEdgeState(), stickyOpts`.
+   - `frontend/tests/heartbeat.test.ts`: Unchanged; existing 13-argument calls line up with `heartbeatState` at position 12 and `heartbeatCfg` at position 13, taking defaults for `pageEdgeState` and `sticky`.
+
+3. **Per-Move Storage Read Cache Fix:**
+   - Added `speechDetailSettingRef = useRef<SpeechDetail>(getStoredSpeechDetailSetting())` to `Explore.tsx`.
+   - Populated the ref on component mount, inside `subscribeSettings`, on pointerdown in `handlePointerDown`, and on pointer promotion in `handlePointerLift`.
+   - Updated `applyMoveResult` to read `speechDetailSettingRef.current` instead of calling `getStoredSpeechDetailSetting()`, completely eliminating `localStorage.getItem` calls on pointermove.
+   - Exported `notifySettingsChanged` from `frontend/src/drivers/storage.ts` and notified on `setStoredSpeechDetailSetting`, `_resetSpeechDetailSettingForTesting`, `setStoredGraphScanSetting`, and `_resetGraphScanSettingForTesting`.
+

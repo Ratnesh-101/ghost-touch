@@ -38,7 +38,6 @@ import {
   CENTRE_TICK_MS,
   checkBarRest,
   checkCentreTick,
-  checkPageEdge,
   checkTwoFingerLongPress,
   checkTwoFingerSwipeDown,
   checkWhereAmIDwell,
@@ -99,6 +98,7 @@ import {
   type PointerHistory,
   type ProximityState,
   type StickyHoldState,
+  type SpeechDetail,
   type SpeechPacingState,
   type SpeechSource,
   type WhereAmIDwellState,
@@ -319,6 +319,7 @@ export function Explore({
   const graphScanSettingRef = useRef<boolean>(getStoredGraphScanSetting());
   const stickyLineSettingRef = useRef<boolean>(getStoredStickyLineSetting());
   const cornerHeartbeatSettingRef = useRef<boolean>(getStoredCornerHeartbeatSetting());
+  const speechDetailSettingRef = useRef<SpeechDetail>(getStoredSpeechDetailSetting());
 
   useEffect(() => {
     return subscribeSettings(() => {
@@ -327,6 +328,7 @@ export function Explore({
       graphScanSettingRef.current = getStoredGraphScanSetting();
       stickyLineSettingRef.current = getStoredStickyLineSetting();
       cornerHeartbeatSettingRef.current = getStoredCornerHeartbeatSetting();
+      speechDetailSettingRef.current = getStoredSpeechDetailSetting();
     });
   }, []);
 
@@ -611,7 +613,7 @@ export function Explore({
     primaryPointerId.current = null;
     pageEdgeState.current = initialPageEdgeState();
     whereAmIDwellState.current = resetWhereAmIDwellOnLift();
-    speechPacingState.current = initialSpeechPacingState(getStoredSpeechDetailSetting());
+    speechPacingState.current = initialSpeechPacingState(speechDetailSettingRef.current);
     lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
     prevTargetRef.current = { kind: 'none' };
     stickyHoldRef.current = resetStickyHoldOnLift();
@@ -1345,7 +1347,7 @@ export function Explore({
       drivers.haptics.vibrate(CENTRE_TICK_MS);
     }
 
-    const detail = getStoredSpeechDetailSetting();
+    const detail = speechDetailSettingRef.current;
     const now = performance.now();
 
     // Track pointer movement on bar or reset if moving away
@@ -1566,15 +1568,15 @@ export function Explore({
           DEFAULT_HAPTICS,
           proximityState.current,
           DEFAULT_PROXIMITY,
+          heartbeatState.current,
+          cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
+          pageEdgeState.current,
           {
             enabled: stickyLineSettingRef.current,
             prevTarget: prevTargetRef.current,
             heldMs,
             stickyRadiusPx: STICKY_RADIUS_PX,
           },
-          pageEdgeState.current,
-          heartbeatState.current,
-          cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, coords, now, lang);
@@ -1638,6 +1640,7 @@ export function Explore({
     graphScanSettingRef.current = getStoredGraphScanSetting();
     stickyLineSettingRef.current = getStoredStickyLineSetting();
     cornerHeartbeatSettingRef.current = getStoredCornerHeartbeatSetting();
+    speechDetailSettingRef.current = getStoredSpeechDetailSetting();
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
@@ -1737,10 +1740,10 @@ export function Explore({
         DEFAULT_HAPTICS,
         proximityState.current,
         DEFAULT_PROXIMITY,
-        stickyOpts,
-        pageEdgeState.current,
         heartbeatState.current,
         cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
+        pageEdgeState.current,
+        stickyOpts,
       );
       engineState.current = moveResult.nextEngineState;
       centreTickState.current = moveResult.centreCheck.nextState;
@@ -1785,10 +1788,10 @@ export function Explore({
       DEFAULT_HAPTICS,
       proximityState.current,
       DEFAULT_PROXIMITY,
-      stickyOpts,
-      pageEdgeState.current,
       heartbeatState.current,
       cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
+      pageEdgeState.current,
+      stickyOpts,
     );
     const compassAnnouncements = checkVertexCompass(moveResult.target, now);
     checkLineDwell(moveResult.target, coords, now, lang);
@@ -1869,10 +1872,10 @@ export function Explore({
         DEFAULT_HAPTICS,
         proximityState.current,
         DEFAULT_PROXIMITY,
-        stickyOpts,
-        pageEdgeState.current,
         heartbeatState.current,
         cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
+        pageEdgeState.current,
+        stickyOpts,
       );
       engineState.current = moveResult.nextEngineState;
       centreTickState.current = moveResult.centreCheck.nextState;
@@ -1907,10 +1910,10 @@ export function Explore({
       DEFAULT_HAPTICS,
       proximityState.current,
       DEFAULT_PROXIMITY,
-      stickyOpts,
-      pageEdgeState.current,
       heartbeatState.current,
       cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
+      pageEdgeState.current,
+      stickyOpts,
     );
     const compassAnnouncements = checkVertexCompass(moveResult.target, now);
     checkLineDwell(moveResult.target, coords, now, lang);
@@ -1989,6 +1992,7 @@ export function Explore({
         graphScanSettingRef.current = getStoredGraphScanSetting();
         stickyLineSettingRef.current = getStoredStickyLineSetting();
         cornerHeartbeatSettingRef.current = getStoredCornerHeartbeatSetting();
+        speechDetailSettingRef.current = getStoredSpeechDetailSetting();
         const view = viewportRef.current;
         const lang = LANG_BCP47[getLang()] ?? 'en-IN';
 
@@ -2019,15 +2023,15 @@ export function Explore({
           DEFAULT_HAPTICS,
           proximityState.current,
           DEFAULT_PROXIMITY,
+          heartbeatState.current,
+          cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
+          pageEdgeState.current,
           {
             enabled: stickyLineSettingRef.current,
             prevTarget: prevTargetRef.current,
             heldMs,
             stickyRadiusPx: STICKY_RADIUS_PX,
           },
-          pageEdgeState.current,
-          heartbeatState.current,
-          cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, promotedCoords, now, lang);

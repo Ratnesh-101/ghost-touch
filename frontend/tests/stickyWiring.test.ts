@@ -20,6 +20,8 @@ import {
   DEFAULT_RADII,
   initialAxisState,
   initialCentreTickState,
+  initialHeartbeatState,
+  initialPageEdgeState,
   initialProximityState,
   initialState,
   initialStickyHoldState,
@@ -161,6 +163,9 @@ describe('Stay on line wiring (Lane bu12 / Task T58b)', () => {
           DEFAULT_HAPTICS,
           proxB,
           DEFAULT_PROXIMITY,
+          initialHeartbeatState(),
+          null,
+          initialPageEdgeState(),
           stickyOpts,
         );
         engB = r.nextEngineState;
@@ -209,6 +214,9 @@ describe('Stay on line wiring (Lane bu12 / Task T58b)', () => {
         DEFAULT_HAPTICS,
         prox,
         DEFAULT_PROXIMITY,
+        initialHeartbeatState(),
+        null,
+        initialPageEdgeState(),
         {
           enabled: true,
           prevTarget,
@@ -246,6 +254,9 @@ describe('Stay on line wiring (Lane bu12 / Task T58b)', () => {
         DEFAULT_HAPTICS,
         prox,
         DEFAULT_PROXIMITY,
+        initialHeartbeatState(),
+        null,
+        initialPageEdgeState(),
         {
           enabled: true,
           prevTarget,
@@ -278,6 +289,9 @@ describe('Stay on line wiring (Lane bu12 / Task T58b)', () => {
         DEFAULT_HAPTICS,
         r2.proximityState,
         DEFAULT_PROXIMITY,
+        initialHeartbeatState(),
+        null,
+        initialPageEdgeState(),
         {
           enabled: true,
           prevTarget: r2.target,
@@ -311,6 +325,9 @@ describe('Stay on line wiring (Lane bu12 / Task T58b)', () => {
         DEFAULT_HAPTICS,
         initialProximityState(),
         DEFAULT_PROXIMITY,
+        initialHeartbeatState(),
+        null,
+        initialPageEdgeState(),
         {
           enabled: true,
           prevTarget,
@@ -342,6 +359,9 @@ describe('Stay on line wiring (Lane bu12 / Task T58b)', () => {
         DEFAULT_HAPTICS,
         initialProximityState(),
         DEFAULT_PROXIMITY,
+        initialHeartbeatState(),
+        null,
+        initialPageEdgeState(),
         {
           enabled: true,
           prevTarget,
@@ -392,6 +412,9 @@ describe('Stay on line wiring (Lane bu12 / Task T58b)', () => {
         DEFAULT_HAPTICS,
         initialProximityState(),
         DEFAULT_PROXIMITY,
+        initialHeartbeatState(),
+        null,
+        initialPageEdgeState(),
         {
           enabled: true,
           prevTarget,
@@ -438,6 +461,9 @@ describe('Stay on line wiring (Lane bu12 / Task T58b)', () => {
         DEFAULT_HAPTICS,
         initialProximityState(),
         DEFAULT_PROXIMITY,
+        initialHeartbeatState(),
+        null,
+        initialPageEdgeState(),
         {
           enabled: true,
           prevTarget,
@@ -520,6 +546,9 @@ describe('Stay on line wiring (Lane bu12 / Task T58b)', () => {
         DEFAULT_HAPTICS,
         prox,
         DEFAULT_PROXIMITY,
+        initialHeartbeatState(),
+        null,
+        initialPageEdgeState(),
         {
           enabled: true,
           prevTarget,
@@ -557,6 +586,9 @@ describe('Stay on line wiring (Lane bu12 / Task T58b)', () => {
         DEFAULT_HAPTICS,
         prox,
         DEFAULT_PROXIMITY,
+        initialHeartbeatState(),
+        null,
+        initialPageEdgeState(),
         {
           enabled: true,
           prevTarget,
@@ -586,6 +618,9 @@ describe('Stay on line wiring (Lane bu12 / Task T58b)', () => {
         DEFAULT_HAPTICS,
         rKeepAlive.proximityState,
         DEFAULT_PROXIMITY,
+        initialHeartbeatState(),
+        null,
+        initialPageEdgeState(),
         {
           enabled: true,
           prevTarget: rKeepAlive.target,

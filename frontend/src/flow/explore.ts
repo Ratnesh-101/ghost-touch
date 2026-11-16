@@ -38,6 +38,7 @@ import {
   getStoredDirectionsSetting,
   getStoredFindingSoundSetting,
   getStoredStickyLineSetting,
+  notifySettingsChanged,
   safeGet,
   safeRemove,
   safeSet,
@@ -77,11 +78,13 @@ export function getStoredGraphScanSetting(): boolean {
 export function setStoredGraphScanSetting(enabled: boolean): void {
   safeSet(STORAGE_KEY_GRAPH_SCAN, enabled ? 'true' : 'false');
   inMemoryGraphScanSetting = enabled;
+  notifySettingsChanged(STORAGE_KEY_GRAPH_SCAN);
 }
 
 export function _resetGraphScanSettingForTesting(): void {
   inMemoryGraphScanSetting = null;
   safeRemove(STORAGE_KEY_GRAPH_SCAN);
+  notifySettingsChanged(STORAGE_KEY_GRAPH_SCAN);
 }
 
 export type SpeechDetail = 'full' | 'short';
@@ -101,11 +104,13 @@ export function getStoredSpeechDetailSetting(): SpeechDetail {
 export function setStoredSpeechDetailSetting(detail: SpeechDetail): void {
   safeSet(STORAGE_KEY_SPEECH_DETAIL, detail);
   inMemorySpeechDetailSetting = detail;
+  notifySettingsChanged(STORAGE_KEY_SPEECH_DETAIL);
 }
 
 export function _resetSpeechDetailSettingForTesting(): void {
   inMemorySpeechDetailSetting = null;
   safeRemove(STORAGE_KEY_SPEECH_DETAIL);
+  notifySettingsChanged(STORAGE_KEY_SPEECH_DETAIL);
 }
 
 /**
@@ -173,10 +178,6 @@ export {
   DEFAULT_PROXIMITY,
   initialProximityState,
   proximityStep,
-  checkPageEdge,
-  initialPageEdgeState,
-  seedPageEdgeState,
-  PAGE_EDGE_REARM_PX,
 };
 export type {
   EngineState,
@@ -187,9 +188,6 @@ export type {
   ProximityEffect,
   ProximityState,
   NearestElement,
-  PageEdgeSide,
-  PageEdgeState,
-  PageEdgeResult,
   HeartbeatConfig,
   HeartbeatState,
 };
@@ -612,32 +610,20 @@ export function processPointerMove(
   cfg: HapticConfig = DEFAULT_HAPTICS,
   proximityState: ProximityState = initialProximityState(),
   proximityCfg: ProximityConfig = DEFAULT_PROXIMITY,
-  sticky?: ProcessPointerMoveStickyOptions,
-  pageEdgeState: PageEdgeState = initialPageEdgeState(),
   heartbeatState: HeartbeatState = initialHeartbeatState(),
   heartbeatCfg: HeartbeatConfig | null = null,
+  pageEdgeState: PageEdgeState = initialPageEdgeState(),
+  sticky?: ProcessPointerMoveStickyOptions,
 ): MovePipelineResult {
-  let resolvedSticky = sticky;
-  let resolvedPageEdgeState = pageEdgeState;
-  let resolvedHeartbeatState = heartbeatState;
-  let resolvedHeartbeatCfg = heartbeatCfg;
-
-  if (sticky && 'lastSide' in sticky && !('prevTarget' in sticky)) {
-    resolvedPageEdgeState = sticky as unknown as PageEdgeState;
-    resolvedHeartbeatState = (pageEdgeState as unknown as HeartbeatState) ?? initialHeartbeatState();
-    resolvedHeartbeatCfg = (heartbeatState as unknown as HeartbeatConfig | null) ?? null;
-    resolvedSticky = undefined;
-  }
-
-  const target = resolvedSticky?.enabled
+  const target = sticky?.enabled
     ? followTarget(
-        resolvedSticky.prevTarget,
-        resolvedSticky.heldMs,
+        sticky.prevTarget,
+        sticky.heldMs,
         scene,
         finger,
         view,
         radii,
-        resolvedSticky.stickyRadiusPx ?? STICKY_RADIUS_PX,
+        sticky.stickyRadiusPx ?? STICKY_RADIUS_PX,
       )
     : hitTest(scene, finger, view, radii);
   const norm = toNorm(finger, view);
@@ -681,14 +667,14 @@ export function processPointerMove(
     proximityCfg,
   );
 
-  const pageEdge = checkPageEdge(norm, resolvedPageEdgeState, view.scale);
+  const pageEdge = checkPageEdge(norm, pageEdgeState, view.scale);
   let finalEffects = effects;
-  let nextHeartbeatState = resolvedHeartbeatState;
-  if (resolvedHeartbeatCfg !== null) {
+  let nextHeartbeatState = heartbeatState;
+  if (heartbeatCfg !== null) {
     const hb = heartbeatStep(
-      resolvedHeartbeatState,
+      heartbeatState,
       { kind: 'move', t, target, engineEffects: effects },
-      resolvedHeartbeatCfg,
+      heartbeatCfg,
     );
     finalEffects = hb.effects;
     nextHeartbeatState = hb.state;

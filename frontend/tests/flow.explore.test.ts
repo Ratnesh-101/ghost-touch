@@ -17,7 +17,6 @@ import {
   initialState,
   KEEP_ALIVE_INTERVAL_MS,
   LINE_DWELL_MS,
-  PAGE_EDGE_REARM_PX,
   VERTEX_VISIT_WINDOW_MS,
   cornerCompass,
   lineName,
