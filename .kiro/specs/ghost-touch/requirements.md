@@ -52,7 +52,7 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 1. WHILE the finger is within the line hit radius of any segment or polyline THEN the system SHALL produce continuous line vibration.
 2. WHEN the finger leaves all lines THEN the system SHALL stop line vibration, unless a corner pulse is still playing.
 3. WHEN the finger enters the vertex hit radius of a point THEN the system SHALL play the corner pattern once and SHALL speak the point's label (for example "Point B").
-4. WHILE the finger stays on the same vertex THEN the system SHALL NOT repeat the corner pattern or the speech.
+4. WHILE the finger stays on the same vertex THEN the system SHALL NOT repeat the corner pattern or the speech. (Amended by Kiro, task 59: this holds exactly as written when the corner heartbeat of Requirement 34 is off, which is the default. When it is on, the speech and the tone still never repeat, and the pattern repeats only as Requirement 34 says. The engine itself, `step()`, is unchanged and still emits nothing on a same-vertex step.)
 5. WHEN a corner pattern starts THEN the system SHALL suppress line vibration for the quiet window, so a corner is never merged with a line buzz.
 6. IF a point lies within both the vertex radius and the line radius THEN the system SHALL treat it as a vertex.
 7. WHEN the finger lifts THEN the system SHALL stop all vibration and tones.
@@ -383,3 +383,161 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 7. THE cue SHALL be audio only. THE machine SHALL emit only effects of kind `click` and SHALL NEVER emit a vibration effect: a second vibration pattern would blur into the line buzz and the corner pattern (product principle 3) and the single motor cannot vary its strength.
 8. THE machine SHALL be pure: no DOM, React, `window`, `navigator`, audio or speech; no import from `frontend/src/guide/`. It SHALL keep its own constants (`DEFAULT_PROXIMITY`) and SHALL NOT change what the engine feels or says (Requirements 4 to 6, 13).
 9. Proposed values, all pending owner approval and a phone test (`tech.md`, separate row): near-line radius 48 CSS px; line radius 14 CSS px (the tuned value of Requirement 4, copied, not changed); far interval 400 ms; near interval 90 ms; pitch 500 to 1200 Hz; gain 0.3 (far) to 0.6 (near). Whether the click is distinguishable from the theremin and the Guide tone, on a speaker and on one earbud, is for the phone test.
+
+### Requirement 28: A corner says where its edges go (speech half of Requirement 26)
+> Written by Kiro on 2026-11-16 BEFORE any code change (task 55), from `docs/reviews/kiro-review-bu3-bu5.md` finding M1 and `docs/reports/fable-blind-user-plan.md` (sections 2.3, 4 I1; lane A3). It specifies the speech that lane bu3 wired from the helpers of Requirement 26. Nothing here changes the engine, `hitTest`, a haptic effect or a tuned value. "Directions" is the Settings switch that already exists; this requirement does not change its default (owner decision OD-3).
+
+**User Story:** As a blind student who reaches a corner, I want to hear which way each edge leaves it, however I got there, so that I can choose a direction instead of guessing in silence.
+
+#### Acceptance Criteria
+1. WHEN the engine announces a vertex (the corner pattern and the label of Requirement 4.3) THEN, IF Directions is on, the system SHALL speak the label followed by the exits of Requirement 26.3, one short clause per exit ("Down-right to B."), as ONE utterance with any axis crossing of the same step (Requirement 17.2).
+2. THE announcement SHALL be made WHATEVER caused the entry: a pointer move, a keep-alive tick, or a new touch that lands inside the vertex radius. A touch-down on a corner SHALL speak the label and the exits exactly as a move onto it does. (Review M1: touch-down on a corner spoke only the label, and a later move could not add the exits because the corner was no longer a new entry.)
+3. WHEN the finger arrived from a segment THEN the exit along that segment SHALL be left out. WHEN there is no arrival segment (a new touch, or an arrival from empty space) THEN every exit SHALL be listed.
+4. WHEN a vertex has more than 4 exits THEN the system SHALL say the number of edges instead of listing them. A compass clause SHALL be at most 12 words.
+5. WHEN the same vertex was announced less than 10 s ago THEN the system SHALL speak the label only.
+6. WHEN the engine does not announce the vertex (a re-entry suppressed by Requirement 4.9) THEN the system SHALL NOT speak the exits either.
+7. WHILE Ask is listening or Guide is guiding, THE system SHALL NOT speak the exits.
+8. WHEN Directions is off THEN the system SHALL speak the label only, as before Requirement 26 existed.
+9. THE vibrate and tone effects for any trace SHALL be identical with Directions on and off. A test SHALL show this through the real Explore screen, not through a helper that ignores the setting (review M3).
+10. Every string SHALL exist in `en`, `hi` and `gu` and go through `t()` / `tf()`. No string SHALL contain "verified", "correct", "checked" or "approved" (or a translation).
+
+### Requirement 29: A line is named only when the finger rests on it
+> Written by Kiro on 2026-11-16 BEFORE any code change (task 55), from review finding M2 and plan improvement I7 (lane A3). The numbers below are proposed, pending owner approval and a phone test; none is a haptic value and none changes `tech.md` in this task.
+
+**User Story:** As a blind student who stops on a line to think, I want to hear which line it is and where it leads, and I do not want that sentence on every side I trace past.
+
+#### Definitions
+- **Rest:** the finger stays within the rest radius (proposed 6 CSS px, the same value the where-am-I dwell uses) of the point where the current rest began. Moving farther restarts the rest at the new point.
+- **Speech quiet window:** the time after the last speech the app started (proposed 1500 ms, the same value the where-am-I dwell uses). It is not the 450 ms corner quiet window, which it contains.
+
+#### Acceptance Criteria
+1. WHEN the finger has been on the same line (segment, axis, polyline or bar edge) continuously for 800 ms AND has rested for those 800 ms AND no speech started within the speech quiet window THEN, IF Directions is on, the system SHALL speak the name of the line once.
+2. WHEN the finger keeps moving along a line, however slowly, so that it never rests for 800 ms THEN the system SHALL NOT speak the line name. An ordinary trace along a side SHALL NOT trigger it.
+3. WHEN speech started less than the speech quiet window ago (a corner label and its exits, an axis word, a bar label) THEN the line name SHALL NOT be spoken and SHALL NOT cancel that speech. It MAY be spoken later in the same visit, once the finger rests again outside the window.
+4. THE line name SHALL be spoken at most once per visit to that line. Leaving the line re-arms it.
+5. THE name of a segment SHALL be its name and the way to travel to each end: "Side AB. Up-left to A, down-right to B." (Requirement 26.4). An axis SHALL be named with its direction ("x-axis, left to right"). A polyline or a bar edge SHALL be named by its label only.
+6. WHILE Ask is listening or Guide is guiding, THE system SHALL NOT speak the line name. WHEN Directions is off THE system SHALL NOT speak it.
+7. THE decision (rest, 800 ms, speech quiet window, once per visit) SHALL be a pure function in `flow/`, so it can be property-tested. Explore SHALL only call it and speak what it returns.
+8. THE vibrate and tone effects SHALL be identical with the dwell on and off (as 28.9).
+
+### Requirement 30: Where am I without voice, behind Directions
+> Written by Kiro on 2026-11-16 BEFORE any code change (task 55), from review findings M4 and L2 and plan improvement I5 (lane A5). Lane bu5 built the dwell without a switch.
+
+**User Story:** As a blind student who has lost the diagram, I want to hear where I am when I hold still or press a button, and I want to be able to turn the automatic version off.
+
+#### Acceptance Criteria
+1. WHEN the finger rests (Requirement 29 definition) for 1200 ms on a position where `hitTest` returns no target THEN, IF Directions is on, the system SHALL speak where the finger is: the coarse position, then the nearest element, a distance word (touching, close, far) and the side it is on. It SHALL speak this once per rest. The rest re-arms after the finger moves 20 CSS px or lifts.
+2. THE automatic dwell SHALL NOT run WHEN Directions is off. The switch SHALL cover corners, line names and this dwell, and its visible and spoken label SHALL say so. Its label SHALL be fixed and the state SHALL be carried by `aria-checked` only, so a screen reader does not read the state twice (review L7).
+3. THE "Where am I" button and the voice command are explicit requests. THEY SHALL work whether Directions is on or off.
+4. THE dwell SHALL NOT fire within the speech quiet window of Requirement 29, WHILE Ask is listening, or WHILE Guide is guiding. "Speech started" SHALL include every utterance the app starts (move speech, line names, Ask answers, Guide arrival, overview, earcon speech), not only some of them (review L3).
+5. WHEN the finger is inside a bar THE answer SHALL name that bar, from the `hitTest` result, before `nearestElement` is used (review L2). `nearestElement` SHALL be used only when `hitTest` reports no target (design.md, Requirement 26 "Not built here").
+6. THE decision SHALL be a pure function in `flow/` with a property test, and a test through the real Explore screen SHALL show that the switch, Ask and Guide guards are the ones Explore passes (review M3).
+7. All strings in `en`, `hi` and `gu`. Strings left unused by this change (`commands.whereNearVertex`, `commands.whereNearLine`, `commands.whereEmpty`) SHALL be removed or listed with a reason (review L8).
+
+### Requirement 31: Speech pacing and detail (lane A7; requirement only)
+> Recorded by Kiro on 2026-11-16 from `docs/reports/fable-blind-user-plan.md` (sections 2.7, 2.8, improvement I11, lane A7). No design section and no task yet: they follow when the lane is scheduled. Not built. The numbers are the plan's proposals, pending owner approval and a phone test.
+
+**User Story:** As a blind student who moves quickly, I want a label I started to hear to finish, so that a bar or a corner name is not cut off by the next word.
+
+#### Acceptance Criteria
+1. THE system SHALL offer a "Speech detail" setting with two values, full and short. THE default SHALL be full, and in full mode nothing SHALL be dropped or reordered except as 2 requires.
+2. WHEN an axis word ("x-axis", "y-axis") arrives within 600 ms after a corner or bar announcement THEN it SHALL be dropped, not allowed to cut that announcement. THE same axis word SHALL NOT be repeated within 2000 ms. This extends Requirement 17.2 (no announcement is lost within one step); it applies across steps.
+3. IN short mode, a corner SHALL be spoken by its label only. A bar that follows another bar by less than 700 ms SHALL be spoken by its label only, and the value SHALL be spoken after the finger has rested on that bar for 500 ms. Requirement 6.1 (label and value) is unchanged in full mode and after the rest in short mode. Requirement 6.4 (rounding) is unchanged.
+4. THE pacing decision SHALL be a pure function in `flow/` with property tests (no label cut by an axis word; axis word at most twice in 3.3 s of wobble on an axis).
+5. THE setting's strings SHALL exist in `en`, `hi` and `gu`.
+
+### Requirement 32: Page edge cue and richer TalkBack labels (lane A8; requirement only)
+> Recorded by Kiro on 2026-11-16 from `docs/reports/fable-blind-user-plan.md` (sections 2.1, 2.6, improvements I10 and I12, lane A8). No design section and no task yet. Not built. The TalkBack labels need Requirement 26 (done).
+
+**User Story:** As a blind student, I want to know when my finger leaves the page, and as a TalkBack user I want the feature buttons to say where each corner and side is.
+
+#### Acceptance Criteria
+1. WHEN the finger moves outside the unit square, that is, when a normalized x or y is below 0 or above 1 (this includes the letterbox bands) THEN the system SHALL play one short earcon and speak "Edge" with the side (top, bottom, left or right), once per exit, joined with any other announcement of the step as one utterance. WHEN a touch lands outside THEN it SHALL say it once. It SHALL re-arm only after the finger is back inside by at least 20 CSS px. THE cue SHALL use no vibration.
+2. THE edge cue SHALL have an off switch (every audio cue needs one, plan section 3). Whether it is on by default is not decided here.
+3. THE TalkBack feature buttons SHALL read a corner as "Corner A, top left, joined to B and C" and a side as "Side AB, from top left to bottom right". Bars, curves and axes keep their present labels. The cap on the number of feature buttons (60) is unchanged.
+4. THE edge tracker SHALL be a pure function in `flow/` with a property test (once per exit on each of the four sides, not again until re-armed). A position on the boundary (0 or 1) counts as inside and SHALL NOT trigger it.
+5. All strings in `en`, `hi` and `gu`; none contains "verified", "correct", "checked" or "approved".
+
+
+### Requirement 33: Sticky line following (optional, off by default, phone-untested; core half)
+> Written by Kiro on 2026-11-16 BEFORE the code (task 58), from `docs/reports/fable-blind-user-plan.md` (improvement I14, Kiro task K5). **Owner approval (recorded in `docs/BUILD_LOG.md`):** on 2026-11-16 the owner delegated the K5 decision to the orchestrator ("for K5 do what you think is best"). The decision is to build it as a pure OPT-IN helper that is OFF by default, with every existing value untouched. This requirement covers the pure helper in `frontend/src/core/sticky.ts` only. The Settings switch and the Explore wiring are a later Antigravity lane (T58b). `hitTest.ts`, `DEFAULT_RADII` (vertex 22 px, line 14 px), `hapticEngine.ts` and every tuned haptic value are NOT changed. **Both numbers below are proposed, pending owner approval, and untested on a phone.**
+
+**User Story:** As a blind student who is following a line, I want the line to keep buzzing when my finger drifts a little to the side, so that I do not lose it at the first small wobble.
+
+#### Definitions
+- **Held line:** the `line` target the caller reports as the previous target (`prevTarget`), together with `heldMs`, the time in ms that this same line has been the target without a break.
+- **Sticky radius** `stickyRadiusPx`: proposed 24 CSS px. **Hold time:** proposed 200 ms (`STICKY_HOLD_MS`).
+
+#### Acceptance Criteria
+1. THE helper `followTarget` SHALL return exactly the target `hitTest` returns for the same scene, finger, viewport and radii, EXCEPT in the single case of criterion 3.
+2. ACQUISITION SHALL NOT change. A line becomes the target only when `hitTest` reports it, that is within the normal line radius. WHEN `prevTarget` is not a line (`none`, `vertex`, `bar`, which includes the state after a lift), OR `heldMs` is below the hold time, NaN or infinite, THEN the result SHALL equal `hitTest`.
+3. WHEN `prevTarget` is a line, `heldMs` is finite and at least the hold time, `stickyRadiusPx` is finite and larger than `radii.line`, `hitTest` reports `none` or a `bar`, AND the finger is within `stickyRadiusPx` of the held line (the closest point of any piece of that element, measured as `hitTest` measures), THEN the result SHALL be the held line: `{ kind: 'line', id, elementKind }` of `prevTarget`.
+4. A vertex SHALL always win: WHEN `hitTest` reports a vertex the result SHALL be that vertex, whatever the previous target (Requirement 4.6 holds). WHEN `hitTest` reports a line, even a different one, the result SHALL be that line. A different line therefore takes over by the normal rules of Requirement 5.5 and nearest-wins, and always inside the normal line radius, so stickiness never extends the reach of a line that was not already held.
+5. WHEN `stickyRadiusPx` is not larger than `radii.line`, or is NaN or infinite, THEN the result SHALL equal `hitTest` exactly (the feature is off). The default of the caller SHALL be off (no previous target is passed, or the radius is left at the line radius).
+6. THE helper SHALL be pure and total: no DOM, React, browser API, audio, speech or timer; no import except `hitTest`, `geometry` and `scene`; it SHALL NEVER throw, whatever the scene (NaN, infinite or out-of-range coordinates, dangling or duplicate ids, missing arrays), the previous target (an unknown id or element kind), the finger, the viewport or the numbers. It SHALL only ever answer with what `hitTest` answers or with the held line.
+7. THE helper SHALL keep no state. The caller measures `heldMs` and feeds the target it followed back in as `prevTarget`; a lift is `{ kind: 'none' }`.
+8. THE helper SHALL NOT change `hitTest`, `DEFAULT_RADII`, `hapticEngine.ts` or any tuned value, and SHALL NOT be called by the app until lane T58b adds the switch (default off) and the wiring.
+
+### Requirement 34: Resting on a corner has a heartbeat (optional, off by default, phone-untested; core half)
+> Written by Kiro on 2026-11-16 BEFORE the code (task 59), from `docs/reports/fable-heartbeat-plan.md` (sections b, c, e; Kiro task KH1). Owner request: "for the corners I want a heartbeat vibration, so that we get to know that we are at a vertex." The plan keeps the tuned entry pattern and adds a repetition while the finger rests. This requirement covers the pure helper in `frontend/src/core/heartbeat.ts` only. The Settings switch and the Explore wiring are a later Antigravity lane (59b, plan lane hb2). `hapticEngine.ts`, `hitTest.ts`, `DEFAULT_HAPTICS`, `DEFAULT_RADII` and every existing row of `tech.md` are NOT changed. **Every number below is proposed, pending owner approval, and untested on a phone.**
+
+**User Story:** As a blind student who rests a finger on a corner to listen, I want a slow double pulse that keeps repeating while I stay there, so that I know I am still on the corner without moving and without more speech.
+
+#### Definitions
+- **Beat:** one `vibrate(pattern)` effect added by the heartbeat. Proposed pattern `[50, 90, 50]` (the tuned corner pattern, reused, so one meaning has one feel). Its length is the sum of its entries (190 ms).
+- **Period** `periodMs`: proposed 900 ms, start to start.
+- **Entry:** a step whose target is a vertex and whose engine effects contain a `vibrate` (the corner pattern of Requirement 4.3).
+- **Resting:** a step whose target is the same vertex as the previous step and whose engine effects contain no `vibrate`.
+- **Quiet window:** the 450 ms after a corner pattern (Requirement 4.5); the helper's own `quietMs` is a copy of that tuned value, not a new one.
+
+#### Acceptance Criteria
+1. WHERE the heartbeat is on, WHILE the finger rests on the same vertex after its entry, THE system SHALL add one beat per period. The first beat SHALL come no earlier than one period after the entry (or after a suppressed re-entry, criterion 5). Later beats SHALL follow the schedule entry + 2 periods, entry + 3 periods, and so on. A step that arrives late SHALL give one beat, not a burst: IF the schedule has fallen a whole period behind, THEN the next beat is due one period after that late step.
+2. A beat SHALL NOT add speech and SHALL NOT add a tone. The label is spoken once, at the entry, as in Requirement 4.3. A beat SHALL be added only as a `vibrate` effect after the engine's own effects, and a step SHALL carry at most one added effect.
+3. A beat SHALL NOT fall inside the quiet window and SHALL NOT change it. The helper SHALL refuse a configuration whose period is shorter than the quiet window plus the beat length, so a beat can never start before the entry's quiet window has ended. The helper reads and writes no engine state, so it cannot see the engine's window: the guarantee holds only while the configured `quietMs` is at least the engine's `quietMs` (450). A smaller copy is accepted as valid but gives no such guarantee (found by P122's first run).
+4. WHEN the finger leaves the vertex (any target that is not a vertex) while a beat may still be playing (the step's time is before the last beat's time plus the beat length) THEN the beat SHALL stop in that same step: IF the engine's effects of that step contain a `vibrate` (the line buzz) THEN that call replaces the beat and nothing is added; OTHERWISE the helper SHALL put `vibrate(0)` first. A line buzz SHALL NEVER be preceded or followed by a beat in the same step. WHEN the finger lifts THEN the engine's `vibrate(0)` already stops everything; the helper returns exactly the engine's effects and forgets the vertex.
+5. WHEN the finger re-enters the vertex of the last corner inside its quiet window (Requirement 4.9, the engine emits no `vibrate`), THEN the helper SHALL start its schedule from that step (first beat one period later) and add nothing. A finger that jitters on the 22 px boundary therefore hears no beats until it settles.
+6. WHERE the configuration is `null`, `undefined` or invalid, THE helper SHALL return exactly the engine's effects and an initial state: the heartbeat is off. A configuration is invalid when its pattern is not a non-empty array of finite numbers greater than zero, or its period or quiet window is not a finite number (the quiet window must also be at least zero), or its period is shorter than the quiet window plus the sum of the pattern.
+7. THE default of the feature SHALL be off: the app calls the helper only when a stored Settings switch is on, and with the switch off the effects of every trace SHALL be identical to those without the helper (Requirement 4.4 as written).
+8. THE helper SHALL be pure and total: no DOM, React, `window`, `navigator`, timer, audio or speech; it SHALL NEVER throw, whatever the time (NaN, infinite or going backwards), target, effects, state or configuration, SHALL NEVER mutate its inputs, and SHALL return the configured pattern as a copy. It SHALL add no beat for a time that is not finite. It SHALL keep no timer: the caller's existing steps (pointer moves and the 60 ms keep-alive) drive the beats, so a beat can be up to one step late.
+9. THE helper SHALL NOT change `hapticEngine.ts`, `hitTest.ts`, `DEFAULT_HAPTICS`, `DEFAULT_RADII` or any tuned value, and SHALL NOT be called by the app until lane 59b adds the switch (default off) and the wiring.
+10. Proposed values, all pending owner approval and a phone test (`tech.md`, separate row): beat pattern `[50, 90, 50]`, period 900 ms, quiet window 450 ms (copied). Whether the two pulses are felt as two, whether the beat is told from the line buzz with eyes closed, and whether the 60 ms step jitter is felt are for the phone test. Known limit (Kiro): a step that is late by most of a period (only possible when the keep-alive is stalled, not at its 60 ms rhythm) can be followed by the next beat sooner than one period after it.
+
+
+### Requirement 35: One structural guard at every scene ingress (core half; task 61)
+> Written by Kiro on 2026-11-16 BEFORE the code. This requirement covers the pure guard `frontend/src/core/sceneGuard.ts` and its use in `core/savedDiagrams.ts` `deserialise`. Wiring the guard into the other two ingress points (the network client and the bundled-sample loader, both outside `core/`) is a later lane; until then only saved storage is guarded, and this requirement says so rather than claiming all three. `hitTest.ts`, `hapticEngine.ts` and every tuned value are NOT changed.
+
+**User Story:** As a blind student, I want a diagram that reaches Explore to be one the app can always feel, so that a damaged saved entry, a bad response or a bad file can never freeze or silence the screen I am touching.
+
+#### Acceptance Criteria
+1. EVERY scene that reaches Explore, whether from the network, a bundled sample or saved storage, SHALL have passed one structural guard, `isRenderableScene(value: unknown): value is DiagramScene`. (Now enforced for saved storage; the other two are the later lane.)
+2. THE guard SHALL accept a value only when ALL of these hold:
+   1. it is a non-null, non-array object whose `kind` is one of `geometry`, `function_graph`, `bar_chart`, `unknown`;
+   2. `points`, `segments`, `polylines` and `bars` are present and are arrays (a missing array is NOT read as empty; an empty array is fine). `facts`, when present, is an array of strings;
+   3. every id (of a point, segment, polyline or bar) is a non-empty string; every segment's `a` and `b` are ids of points in the same scene;
+   4. every coordinate is a finite number in [0, 1]: point `x` and `y`, every polyline vertex (a pair of two such numbers), bar `x0`, `x1`, `y_top`, `y_base`, and `axes.x_axis_y` and `axes.y_axis_x` when they are not null;
+   5. every bar `value` is a finite number;
+   6. `aspect`, when present, is a finite number in [0.05, 20];
+   7. `title`, when present, is a string or null; every `label`, when present, is a string or null, and every bar label is a string; `axes`, when present, is null or an object;
+   8. sizes: at most 500 points, 1000 segments, 50 polylines, 1000 vertices in any one polyline, 100 bars and 100 facts (the backend's `MAX_SCENE_*` in `backend/app/validate.py`), and every string (title, label, fact, bar label) at most 300 characters (`MAX_TEXT_CHARS`).
+3. THE guard SHALL NOT require anything the backend does not require beyond 2.2 (it does not demand unique ids, reserved-id checks or a drawable element; those stay with the validators and `validateSceneInvariants`). A scene the backend accepts and that has all four arrays SHALL be accepted.
+4. THE guard SHALL be total and pure: for any value, including cyclic-free JSON of any shape, it returns a boolean and never throws; no React, no browser API, no i18n, no import except scene types.
+5. `deserialise` SHALL return `undefined` for a saved entry whose scene the guard rejects, in addition to its existing checks. A saved entry written before this requirement with a missing array is therefore dropped as corrupt (decided by the owner's brief: a missing array is not acceptable).
+6. FOR ANY accepted scene, AND any finger position and viewport, `hitTest`, `step`, `directionOf`/`vertexExits`/`lineEnds`/`nearestElement`, `curveYAtX` and `followTarget` SHALL NOT throw and SHALL return only finite numbers. IF a counterexample is found in `core/`, THEN work SHALL stop, the counterexample SHALL be logged in `docs/BUILD_LOG.md`, and the fix SHALL be its own specified task.
+
+
+
+### Requirement 36: Vibration and tone are off after the last finger or a lost page, whatever the input (task 64)
+> Written by Kiro on 2026-11-16 BEFORE the test, for the pure touch pipeline: `hitTest` (or `followTarget` when sticky lines are on), `step()` and, when it is on, `heartbeatStep`. Test only: no file under `frontend/src/` changes and no tuned value changes. The Explore screen's own event handling (pointer capture, the keep-alive timer, visibility listeners) is not exercised here; the test models it as the five events below and says so.
+
+**User Story:** As a blind student, I want the phone to go quiet the moment I lift my finger or the page is hidden, however strange the touches before it were, so that a stuck buzz or tone never tells me something is under my finger when nothing is.
+
+#### Definitions
+- **Event:** pointer down, move, up or cancel of pointer 0, 1 or 2 at any screen position (outside the canvas, exactly on a corner, NaN or infinite included); `blur`; `hidden`. The first pointer down is the primary one; the oldest remaining pointer becomes primary when the primary one ends (Requirement 4.8).
+- **Lift:** the last pointer up or cancelled, or `blur`, or `hidden`. A `blur` or `hidden` clears every pointer.
+
+#### Acceptance Criteria
+1. FOR ANY sequence of 1 to 400 events with time steps from 0 ms to 5 s (equal timestamps included), over any bundled sample scene or any valid scene, including scenes with zero-length segments, coincident points, bars with `x0 == x1`, polylines of two identical points and a viewport with zero width or height, THE pipeline SHALL NOT throw, SHALL produce at most 4 effects per step, and every `tone` effect SHALL carry `null` or a finite frequency.
+2. AFTER a lift THE effect list of that step SHALL end with `vibrate(0)` as its last vibration effect and `tone(null)` as its last tone effect, THE engine state SHALL equal `initialState()`, the heartbeat state SHALL equal its initial state, the followed target SHALL be none, and NO further effect SHALL be produced until the next pointer down. This holds with the heartbeat and sticky lines on or off.
+3. WHILE one touch lasts, TWO consecutive corner announcements of the same vertex SHALL be at least `quietMs` apart (Requirement 4.9). Labels in the generated scenes are unique per vertex, so a repeat is the same vertex.
+4. THE same event sequence over the same scene SHALL give exactly the same effects, and the scene SHALL be unchanged afterwards.
+5. IF a sequence breaks 1 to 4 THEN its seed SHALL be kept as a pinned regression example in the test file and reported; the invariant SHALL NOT be weakened to get a green run.

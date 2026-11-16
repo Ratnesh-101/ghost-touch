@@ -11,7 +11,8 @@
 
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { App } from '../src/App';
 import type { DiagramScene } from '../src/core/scene';
 import { encodeShare, type SharePayload } from '../src/share';
 import { setLang } from '../src/i18n';
@@ -111,15 +112,6 @@ vi.mock('../src/drivers', async (importOriginal) => {
   };
 });
 
-let App!: typeof import('../src/App').App;
-let appModulePromise: Promise<typeof import('../src/App')> | null = null;
-function getAppModule(): Promise<typeof import('../src/App')> {
-  if (!appModulePromise) {
-    appModulePromise = import('../src/App');
-  }
-  return appModulePromise;
-}
-
 async function flushSaves(): Promise<void> {
   await act(async () => {
     await new Promise((r) => setTimeout(r, 30));
@@ -129,11 +121,6 @@ async function flushSaves(): Promise<void> {
 describe('FLOW-04: Reset on shared diagram open', () => {
   let container: HTMLDivElement | null = null;
   let root: Root | null = null;
-
-  beforeAll(async () => {
-    const appModule = await getAppModule();
-    App = appModule.App;
-  }, 60_000);
 
   beforeEach(() => {
     setLang('en');

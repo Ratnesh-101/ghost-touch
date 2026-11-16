@@ -44,13 +44,17 @@ import {
   cornerCompass,
   createHoldKeepAliveTimer,
   DEFAULT_HAPTICS,
+  DEFAULT_HEARTBEAT,
+  DEFAULT_PROXIMITY,
   DEFAULT_RADII,
+  getStoredCornerHeartbeatSetting,
   getStoredDirectionsSetting,
   getStoredFindingSoundSetting,
   getStoredGraphScanSetting,
   getStoredSpeechDetailSetting,
   initialAxisState,
   initialCentreTickState,
+  initialHeartbeatState,
   initialProximityState,
   initialSpeechPacingState,
   initialState,
@@ -70,14 +74,18 @@ import {
   shouldKeepAlive,
   speechText,
   step,
+  subscribeSettings,
   TWO_FINGER_LONG_PRESS_MS,
   TWO_FINGER_MAX_MOVE_PX,
   updateWhereAmIDwellOnMove,
   updateBarMove,
   VERTEX_VISIT_WINDOW_MS,
+  WHERE_AM_I_REST_MAX_MOVE_PX,
+  WHERE_AM_I_SPEECH_QUIET_MS,
   type AxisTrackerState,
   type CentreTickState,
   type EngineState,
+  type HeartbeatState,
   type HoldKeepAliveOptions,
   type HoldKeepAliveTimer,
   type PointerHistory,
@@ -265,6 +273,7 @@ export function Explore({
   const textInputRef = useRef<HTMLInputElement>(null);
 
   const engineState = useRef<EngineState>(initialState());
+  const heartbeatState = useRef<HeartbeatState>(initialHeartbeatState());
   const proximityState = useRef<ProximityState>(initialProximityState());
   const centreTickState = useRef<CentreTickState>(initialCentreTickState());
   const axisState = useRef<AxisTrackerState>(initialAxisState());
@@ -282,11 +291,31 @@ export function Explore({
   const cornerIndexRef = useRef<number>(-1);
   const prevTargetRef = useRef<Target>({ kind: 'none' });
   const lastVertexVisitRef = useRef<Map<string, number>>(new Map());
-  const lineDwellRef = useRef<{ lineId: string | null; enterTime: number; spoken: boolean }>({
+  const lineDwellRef = useRef<{
+    lineId: string | null;
+    enterTime: number;
+    anchor: ScreenPoint | null;
+    spoken: boolean;
+  }>({
     lineId: null,
     enterTime: 0,
+    anchor: null,
     spoken: false,
   });
+
+  const directionsSettingRef = useRef<boolean>(getStoredDirectionsSetting());
+  const findingSoundSettingRef = useRef<boolean>(getStoredFindingSoundSetting());
+  const graphScanSettingRef = useRef<boolean>(getStoredGraphScanSetting());
+  const cornerHeartbeatSettingRef = useRef<boolean>(getStoredCornerHeartbeatSetting());
+
+  useEffect(() => {
+    return subscribeSettings(() => {
+      directionsSettingRef.current = getStoredDirectionsSetting();
+      findingSoundSettingRef.current = getStoredFindingSoundSetting();
+      graphScanSettingRef.current = getStoredGraphScanSetting();
+      cornerHeartbeatSettingRef.current = getStoredCornerHeartbeatSetting();
+    });
+  }, []);
 
   const sceneRef = useRef(scene);
   sceneRef.current = scene;
@@ -299,9 +328,29 @@ export function Explore({
   const askActive = useRef(false);
   const keepAliveTimer = useRef<HoldKeepAliveTimer | null>(null);
   const whereAmIDwellState = useRef<WhereAmIDwellState>(initialWhereAmIDwellState());
-  const lastSpeechStartRef = useRef<number>(performance.now());
+  const lastSpeechStartRef = useRef<number>(-Infinity);
   const lastFingerNormRef = useRef<NormPoint | null>(null);
   const playingScanToneRef = useRef(false);
+
+  const isSpeechSpeaking = useCallback((): boolean => {
+    if (typeof drivers.speech.isSpeaking === 'function') {
+      try {
+        if (drivers.speech.isSpeaking()) return true;
+      } catch {
+        // ignore
+      }
+    } else if (
+      'speaking' in drivers.speech &&
+      Boolean((drivers.speech as { speaking?: boolean }).speaking)
+    ) {
+      return true;
+    }
+    return false;
+  }, [drivers.speech]);
+
+  const markSpeechStart = (now = performance.now()): void => {
+    lastSpeechStartRef.current = now;
+  };
 
   const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
   const [statusMessage, setStatusMessage] = useState(announced);
@@ -357,6 +406,7 @@ export function Explore({
         LANG_BCP47[getLang()] ?? 'en-IN',
         { queue: true },
       );
+      markSpeechStart();
     }
   }, []);
 
@@ -413,6 +463,8 @@ export function Explore({
       setOfferedTarget(null);
       drivers.audio.setTone(null);
       playingScanToneRef.current = false;
+      engineState.current = initialState();
+      heartbeatState.current = initialHeartbeatState();
       if (shouldPlayAlive(scene)) {
         markAlivePlayed(scene);
         setIsAlive(true);
@@ -506,9 +558,11 @@ export function Explore({
       sendProximityLift();
       setOfferedTarget(null);
       drivers.audio.unlock();
+      drivers.haptics.stop();
       drivers.audio.setTone(null);
       playingScanToneRef.current = false;
       engineState.current = initialState();
+      heartbeatState.current = initialHeartbeatState();
       guideController.current.start(resolved);
       setIsGuiding(true);
       const msg = t('guide.start').replace('{label}', resolved.label);
@@ -536,13 +590,15 @@ export function Explore({
     drivers.audio.setTone(null);
     playingScanToneRef.current = false;
     drivers.audio.playEarcon?.('back');
+    markSpeechStart();
     clearLongPressTimer();
     activePointers.current.clear();
     primaryPointerId.current = null;
     whereAmIDwellState.current = resetWhereAmIDwellOnLift();
     speechPacingState.current = initialSpeechPacingState(getStoredSpeechDetailSetting());
-    lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
+    lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
     prevTargetRef.current = { kind: 'none' };
+    heartbeatState.current = initialHeartbeatState();
     leaveExploreEntry();
     onBack();
   };
@@ -561,6 +617,8 @@ export function Explore({
     try {
       drivers.audio.setTone(null);
       playingScanToneRef.current = false;
+      engineState.current = initialState();
+      heartbeatState.current = initialHeartbeatState();
       drivers.haptics.stop();
     } catch {
       // ignore
@@ -574,6 +632,7 @@ export function Explore({
         setStatusMessage(msg);
         try {
           drivers.speech.speak(msg, lang);
+          markSpeechStart();
         } catch {
           // ignore
         }
@@ -590,6 +649,7 @@ export function Explore({
         } else {
           drivers.audio.beep(LISTENING_BEEP_HZ, LISTENING_BEEP_MS);
         }
+        markSpeechStart();
       } catch {
         // audio cues are best-effort
       }
@@ -604,6 +664,7 @@ export function Explore({
         if (leaving.current) return;
         try {
           drivers.audio.playEarcon?.('error');
+          markSpeechStart();
         } catch {
           // ignore
         }
@@ -611,6 +672,7 @@ export function Explore({
         setStatusMessage(msg);
         try {
           drivers.speech.speak(msg, lang);
+          markSpeechStart();
         } catch {
           // ignore
         }
@@ -648,8 +710,10 @@ export function Explore({
         } else if (result.guideTarget) {
           keepAliveTimer.current?.stop();
           sendProximityLift();
+          drivers.haptics.stop();
           drivers.audio.setTone(null);
           engineState.current = initialState();
+          heartbeatState.current = initialHeartbeatState();
           guideController.current?.start(result.guideTarget);
           setIsGuiding(true);
         }
@@ -667,6 +731,7 @@ export function Explore({
         if (result.earcon) {
           try {
             drivers.audio.playEarcon?.(result.earcon);
+            markSpeechStart();
           } catch {
             // ignore
           }
@@ -676,6 +741,7 @@ export function Explore({
         if (!result.stopGuide && !result.guideTarget) {
           try {
             drivers.speech.speak(result.speech, lang);
+            markSpeechStart();
           } catch {
             // ignore
           }
@@ -688,6 +754,7 @@ export function Explore({
       setStatusMessage(t('ask.thinking'));
       try {
         drivers.speech.speak(t('ask.thinking'), lang);
+        markSpeechStart();
       } catch {
         // ignore
       }
@@ -707,6 +774,7 @@ export function Explore({
           setStatusMessage(text);
           try {
             drivers.speech.speak(text, lang);
+            markSpeechStart();
           } catch {
             // ignore
           }
@@ -732,6 +800,7 @@ export function Explore({
       if (leaving.current) return;
       try {
         drivers.audio.playEarcon?.('error');
+        markSpeechStart();
       } catch {
         // ignore
       }
@@ -739,6 +808,7 @@ export function Explore({
       setStatusMessage(msg);
       try {
         drivers.speech.speak(msg, lang);
+        markSpeechStart();
       } catch {
         // ignore
       }
@@ -763,6 +833,7 @@ export function Explore({
       setStatusMessage(msg);
       try {
         drivers.speech.speak(msg, LANG_BCP47[getLang()]);
+        markSpeechStart();
       } catch {
         // ignore
       }
@@ -789,6 +860,7 @@ export function Explore({
           setStatusMessage(text);
           try {
             drivers.speech.speak(text, lang);
+            markSpeechStart();
           } catch {
             // ignore
           }
@@ -805,6 +877,7 @@ export function Explore({
       if (leaving.current) return;
       try {
         drivers.audio.playEarcon?.('error');
+        markSpeechStart();
       } catch {
         // ignore
       }
@@ -812,6 +885,7 @@ export function Explore({
       setStatusMessage(msg);
       try {
         drivers.speech.speak(msg, lang);
+        markSpeechStart();
       } catch {
         // ignore
       }
@@ -1063,12 +1137,14 @@ export function Explore({
         const msg = t('guide.arrived').replace('{label}', target.label);
         setStatusMessage(msg);
         lastSpokenRef.current = msg;
+        markSpeechStart();
       },
       onStopped: (_reason) => {
         setIsGuiding(false);
         const msg = t('guide.stopped');
         setStatusMessage(msg);
         lastSpokenRef.current = msg;
+        markSpeechStart();
       },
       onStateChange: (st) => {
         setIsGuiding(st.phase === 'guiding');
@@ -1094,9 +1170,11 @@ export function Explore({
       askActive.current = false;
       askManager.current.abort();
       drivers.audio.playEarcon?.('back');
+      markSpeechStart();
       clearLongPressTimer();
       activePointers.current.clear();
       primaryPointerId.current = null;
+      heartbeatState.current = initialHeartbeatState();
       onBackRef.current();
     });
 
@@ -1108,6 +1186,7 @@ export function Explore({
         if (guideController.current?.isGuiding()) {
           guideController.current.stop('user');
         }
+        drivers.haptics.stop();
         drivers.audio.setTone(null);
         drivers.audio.setGuideTone?.(null);
         clearLongPressTimer();
@@ -1115,8 +1194,9 @@ export function Explore({
         primaryPointerId.current = null;
         whereAmIDwellState.current = resetWhereAmIDwellOnLift();
         speechPacingState.current = resetBarRest(speechPacingState.current);
-        lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
+        lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
         prevTargetRef.current = { kind: 'none' };
+        heartbeatState.current = initialHeartbeatState();
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
         engineState.current = state;
         runEffects(effects, drivers);
@@ -1130,14 +1210,16 @@ export function Explore({
       if (guideController.current?.isGuiding()) {
         guideController.current.stop('user');
       }
+      drivers.haptics.stop();
       drivers.audio.setTone(null);
       drivers.audio.setGuideTone?.(null);
       clearLongPressTimer();
       activePointers.current.clear();
       primaryPointerId.current = null;
       whereAmIDwellState.current = resetWhereAmIDwellOnLift();
-      lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
+      lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
       prevTargetRef.current = { kind: 'none' };
+      heartbeatState.current = initialHeartbeatState();
       const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
       engineState.current = state;
       runEffects(effects, drivers);
@@ -1191,6 +1273,7 @@ export function Explore({
         rafId.current = null;
       }
       // Lift on unmount
+      heartbeatState.current = initialHeartbeatState();
       const { effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
       runEffects(effects, drivers);
       sendProximityLift(performance.now());
@@ -1213,6 +1296,7 @@ export function Explore({
     isStillness = false,
   ): void => {
     engineState.current = moveResult.nextEngineState;
+    heartbeatState.current = moveResult.heartbeatState;
     centreTickState.current = moveResult.centreCheck.nextState;
     axisState.current = moveResult.nextAxisState;
 
@@ -1306,7 +1390,7 @@ export function Explore({
     runEffects(moveEffects, drivers, lang);
 
     if (
-      getStoredFindingSoundSetting() &&
+      findingSoundSettingRef.current &&
       !askActive.current &&
       !guideController.current?.isGuiding()
     ) {
@@ -1315,7 +1399,7 @@ export function Explore({
 
     // Graph scan tone (Lane A6)
     if (
-      getStoredGraphScanSetting() &&
+      graphScanSettingRef.current &&
       !askActive.current &&
       !guideController.current?.isGuiding()
     ) {
@@ -1363,38 +1447,53 @@ export function Explore({
 
     lastVertexVisitRef.current.set(vertexId, now);
 
-    if (!getStoredDirectionsSetting()) return [];
+    if (!directionsSettingRef.current) return [];
 
     const text = cornerCompass(sceneRef.current, vertexId, arrivedLineId, visitedRecently);
     return text ? [text] : [];
   };
 
-  const checkLineDwell = (target: Target, now: number, lang: string): void => {
+  const checkLineDwell = (
+    target: Target,
+    coords: ScreenPoint,
+    now: number,
+    lang: string,
+  ): void => {
     if (target.kind === 'line') {
       const lineId = target.id;
       if (lineDwellRef.current.lineId !== lineId) {
-        lineDwellRef.current = { lineId, enterTime: now, spoken: false };
-      } else if (
-        !lineDwellRef.current.spoken &&
-        now - lineDwellRef.current.enterTime >= LINE_DWELL_MS
-      ) {
+        lineDwellRef.current = { lineId, enterTime: now, anchor: coords, spoken: false };
+      } else {
+        const anchor = lineDwellRef.current.anchor ?? coords;
+        const dist = Math.hypot(coords.x - anchor.x, coords.y - anchor.y);
+        if (dist >= WHERE_AM_I_REST_MAX_MOVE_PX) {
+          lineDwellRef.current = { lineId, enterTime: now, anchor: coords, spoken: false };
+          return;
+        }
         if (
-          getStoredDirectionsSetting() &&
-          !askActive.current &&
-          !guideController.current?.isGuiding()
+          !lineDwellRef.current.spoken &&
+          now - lineDwellRef.current.enterTime >= LINE_DWELL_MS
         ) {
-          lineDwellRef.current.spoken = true;
-          const text = lineName(sceneRef.current, lineId);
-          if (text) {
-            drivers.speech.speak(text, lang);
-            lastSpeechStartRef.current = now;
-            lastSpokenRef.current = text;
-            setStatusMessage(text);
+          if (
+            directionsSettingRef.current &&
+            !askActive.current &&
+            !guideController.current?.isGuiding() &&
+            !isSpeechSpeaking() &&
+            now - lastSpeechStartRef.current >= WHERE_AM_I_SPEECH_QUIET_MS
+          ) {
+            lineDwellRef.current.spoken = true;
+            const text = lineName(sceneRef.current, lineId);
+            if (text) {
+              drivers.speech.speak(text, lang);
+              markSpeechStart(now);
+              lastSpokenRef.current = text;
+              setStatusMessage(text);
+            }
           }
         }
       }
     } else {
-      lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
+      lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
     }
   };
 
@@ -1420,9 +1519,12 @@ export function Explore({
           DEFAULT_RADII,
           DEFAULT_HAPTICS,
           proximityState.current,
+          DEFAULT_PROXIMITY,
+          heartbeatState.current,
+          cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
-        checkLineDwell(moveResult.target, now, lang);
+        checkLineDwell(moveResult.target, coords, now, lang);
         applyMoveResult(moveResult, lang, [], compassAnnouncements, true);
         prevTargetRef.current = moveResult.target;
         scheduleDraw(view, coords);
@@ -1450,13 +1552,19 @@ export function Explore({
           lastSpeechStartTime: lastSpeechStartRef.current,
           isAskActive: askActive.current,
           isGuiding: Boolean(guideController.current?.isGuiding()),
+          isDirectionsEnabled: directionsSettingRef.current,
         });
         whereAmIDwellState.current = dwellResult.nextState;
-        if (dwellResult.shouldSpeak && !leaving.current) {
+        if (
+          dwellResult.shouldSpeak &&
+          directionsSettingRef.current &&
+          !leaving.current &&
+          !isSpeechSpeaking()
+        ) {
           const norm = toNorm(coords, view);
           const text = whereAmI(sceneRef.current, view, norm);
           drivers.speech.speak(text, lang);
-          lastSpeechStartRef.current = now;
+          markSpeechStart(now);
           lastSpokenRef.current = text;
           setStatusMessage(text);
         }
@@ -1467,6 +1575,10 @@ export function Explore({
   const handlePointerDown = (e: PointerEvent<HTMLCanvasElement>): void => {
     if (leaving.current) return;
     drivers.audio.unlock();
+    directionsSettingRef.current = getStoredDirectionsSetting();
+    findingSoundSettingRef.current = getStoredFindingSoundSetting();
+    graphScanSettingRef.current = getStoredGraphScanSetting();
+    cornerHeartbeatSettingRef.current = getStoredCornerHeartbeatSetting();
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
@@ -1519,6 +1631,7 @@ export function Explore({
 
     // Re-centre on each new hold (Requirement 13)
     engineState.current = initialState();
+    heartbeatState.current = initialHeartbeatState();
     // Re-arm centre tick state on every new hold (finding 2)
     centreTickState.current = rearmCentreTick(centreTickState.current);
 
@@ -1554,11 +1667,15 @@ export function Explore({
         DEFAULT_RADII,
         DEFAULT_HAPTICS,
         proximityState.current,
+        DEFAULT_PROXIMITY,
+        heartbeatState.current,
+        cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
       );
       engineState.current = moveResult.nextEngineState;
       centreTickState.current = moveResult.centreCheck.nextState;
       axisState.current = moveResult.nextAxisState;
       proximityState.current = moveResult.proximityState;
+      heartbeatState.current = moveResult.heartbeatState;
       prevTargetRef.current = moveResult.target;
       scheduleDraw(view, coords);
       return;
@@ -1590,9 +1707,13 @@ export function Explore({
       DEFAULT_RADII,
       DEFAULT_HAPTICS,
       proximityState.current,
+      DEFAULT_PROXIMITY,
+      heartbeatState.current,
+      cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
     );
-    checkLineDwell(moveResult.target, now, lang);
-    applyMoveResult(moveResult, lang, centreAnnouncements);
+    const compassAnnouncements = checkVertexCompass(moveResult.target, now);
+    checkLineDwell(moveResult.target, coords, now, lang);
+    applyMoveResult(moveResult, lang, centreAnnouncements, compassAnnouncements);
     prevTargetRef.current = moveResult.target;
     scheduleDraw(view, coords);
     keepAliveTimer.current?.start(coords, now);
@@ -1655,11 +1776,15 @@ export function Explore({
         DEFAULT_RADII,
         DEFAULT_HAPTICS,
         proximityState.current,
+        DEFAULT_PROXIMITY,
+        heartbeatState.current,
+        cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
       );
       engineState.current = moveResult.nextEngineState;
       centreTickState.current = moveResult.centreCheck.nextState;
       axisState.current = moveResult.nextAxisState;
       proximityState.current = moveResult.proximityState;
+      heartbeatState.current = moveResult.heartbeatState;
       prevTargetRef.current = moveResult.target;
       scheduleDraw(view, coords);
       return;
@@ -1681,9 +1806,12 @@ export function Explore({
       DEFAULT_RADII,
       DEFAULT_HAPTICS,
       proximityState.current,
+      DEFAULT_PROXIMITY,
+      heartbeatState.current,
+      cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
     );
     const compassAnnouncements = checkVertexCompass(moveResult.target, now);
-    checkLineDwell(moveResult.target, now, lang);
+    checkLineDwell(moveResult.target, coords, now, lang);
     applyMoveResult(moveResult, lang, [], compassAnnouncements);
     prevTargetRef.current = moveResult.target;
     scheduleDraw(view, coords);
@@ -1696,12 +1824,18 @@ export function Explore({
       lastSpeechStartTime: lastSpeechStartRef.current,
       isAskActive: askActive.current,
       isGuiding: Boolean(guideController.current?.isGuiding()),
+      isDirectionsEnabled: directionsSettingRef.current,
     });
     whereAmIDwellState.current = dwellResult.nextState;
-    if (dwellResult.shouldSpeak && !leaving.current) {
+    if (
+      dwellResult.shouldSpeak &&
+      directionsSettingRef.current &&
+      !leaving.current &&
+      !isSpeechSpeaking()
+    ) {
       const text = whereAmI(sceneRef.current, view, norm);
       drivers.speech.speak(text, lang);
-      lastSpeechStartRef.current = now;
+      markSpeechStart(now);
       lastSpokenRef.current = text;
       setStatusMessage(text);
     }
@@ -1743,6 +1877,10 @@ export function Explore({
       if (promotedPointerId !== null && promotedCoords !== null) {
         // Promote oldest surviving pointer to primary (Finding 14, Requirement 4.8)
         primaryPointerId.current = promotedPointerId;
+        directionsSettingRef.current = getStoredDirectionsSetting();
+        findingSoundSettingRef.current = getStoredFindingSoundSetting();
+        graphScanSettingRef.current = getStoredGraphScanSetting();
+        cornerHeartbeatSettingRef.current = getStoredCornerHeartbeatSetting();
         const view = viewportRef.current;
         const lang = LANG_BCP47[getLang()] ?? 'en-IN';
 
@@ -1753,6 +1891,7 @@ export function Explore({
         sendProximityLift(now);
 
         engineState.current = initialState();
+        heartbeatState.current = initialHeartbeatState();
         const norm = toNorm(promotedCoords, view);
         axisState.current = seedAxisState(norm, scene.axes);
 
@@ -1767,9 +1906,12 @@ export function Explore({
           DEFAULT_RADII,
           DEFAULT_HAPTICS,
           proximityState.current,
+          DEFAULT_PROXIMITY,
+          heartbeatState.current,
+          cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
-        checkLineDwell(moveResult.target, now, lang);
+        checkLineDwell(moveResult.target, promotedCoords, now, lang);
         // Promotion of surviving pointer
         applyMoveResult(moveResult, lang, [], compassAnnouncements);
         prevTargetRef.current = moveResult.target;
@@ -1782,8 +1924,9 @@ export function Explore({
         primaryPointerId.current = null;
         whereAmIDwellState.current = resetWhereAmIDwellOnLift();
         speechPacingState.current = resetBarRest(speechPacingState.current);
-        lineDwellRef.current = { lineId: null, enterTime: 0, spoken: false };
+        lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
         prevTargetRef.current = { kind: 'none' };
+        heartbeatState.current = initialHeartbeatState();
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
         engineState.current = state;
         runEffects(effects, drivers);
@@ -1822,7 +1965,10 @@ export function Explore({
     });
     a11yEngine.current = state;
     const speak = effects.find((e) => e.kind === 'speak');
-    if (speak?.kind === 'speak') lastSpokenRef.current = speak.text;
+    if (speak?.kind === 'speak') {
+      lastSpokenRef.current = speak.text;
+      markSpeechStart();
+    }
     runEffects(effects, drivers, lang);
   };
 
@@ -1836,7 +1982,7 @@ export function Explore({
     const lang = LANG_BCP47[getLang()] ?? 'en-IN';
     setStatusMessage(feature.label);
     lastSpokenRef.current = feature.label;
-    lastSpeechStartRef.current = performance.now();
+    markSpeechStart();
     try {
       drivers.speech.speak(feature.label, lang);
     } catch {
@@ -1852,7 +1998,7 @@ export function Explore({
     const text = whereAmI(sceneRef.current, view, norm);
     const lang = LANG_BCP47[getLang()] ?? 'en-IN';
     drivers.speech.speak(text, lang);
-    lastSpeechStartRef.current = performance.now();
+    markSpeechStart();
     lastSpokenRef.current = text;
     setStatusMessage(text);
   };

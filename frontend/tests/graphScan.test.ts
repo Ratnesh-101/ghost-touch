@@ -1,4 +1,7 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { LabSettings } from '../src/components/LabSettings';
 import type { DiagramScene } from '../src/core/scene';
 import type { Target } from '../src/core/hitTest';
 import { makeViewport } from '../src/core/geometry';
@@ -376,11 +379,7 @@ describe('Lane A6 — LabSettings Graph scan toggle markup and interaction', () 
     _resetGraphScanSettingForTesting();
   });
 
-  it('renders Graph scan switch with accessible name and default on in LabSettings', async () => {
-    const { createElement } = await import('react');
-    const { renderToStaticMarkup } = await import('react-dom/server');
-    const { LabSettings } = await import('../src/components/LabSettings');
-
+  it('renders Graph scan switch with accessible name and default on in LabSettings', () => {
     const html = renderToStaticMarkup(
       createElement(LabSettings, {
         open: true,

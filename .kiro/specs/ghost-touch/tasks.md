@@ -427,3 +427,116 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 54.3 Tests: shared `xWithin(pts, t)` helper clamps to the curve's x range, used by P106 and P108; pinned example with the counterexample; both fail with the old formula and pass with the helper
   - [x] 54.4 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro)
   - _Requirements: 5.6_
+
+## Corner speech, line names and where-am-I (Requirements 28 to 32; spec written before any code change)
+> Spec text only in task 55. Do not edit `screens/`, `flow/`, `core/`, `tech.md` or any tuned value in this task. The code is an Antigravity lane in `Explore.tsx` and `flow/`. Source: `docs/reviews/kiro-review-bu3-bu5.md`, `docs/reports/fable-blind-user-plan.md`.
+
+- [x] 55. Spec for review findings M1, M2, M4 and plan lanes A7, A8
+  - [x] 55.1 Requirement 28 (corner speech incl. touch-down, review M1), Requirement 29 (line name only on rest, M2, L3), Requirement 30 (where-am-I dwell behind Directions, M4, L2, L7, L8)
+  - [x] 55.2 Requirements 31 (A7 speech pacing) and 32 (A8 page edge cue and TalkBack labels), requirements only; neither was in the spec
+  - [x] 55.3 design.md section and properties P109-P113, marked specified and not built
+  - [x] 55.4 OD-2 (click cue "Finding sound" default-on while PROPOSED and phone-untested) and OD-3 (Directions default and the README demo steps) in `docs/reviews/kiro-owner-decisions.md`; no default changed; `tech.md` not edited
+  - [x] 55.5 Path-scoped commit `kiro: T55 spec ...`; nothing pushed
+  - _Requirements: 28.*, 29.*, 30.*, 31.*, 32.*_
+
+- [ ] 56. Properties and Explore-wiring oracle for Requirements 28 to 30 (Kiro writes the properties; an agy lane writes the code)
+  - [ ] 56.1 Agy lane: `cornerCompass` on touch-down, `lineDwell` with rest and speech-quiet guards, `whereAmIDwell` behind Directions, one speech-start record, fixed switch label, unused `commands.where*` keys removed or listed (review M1, M2, M4, L3, L7, L8)
+  - [ ] 56.2 P109-P113 in `frontend/tests/*.prop.test.ts` (200+ runs), mutation-checked, written against the pure functions the lane exports
+  - [ ] 56.3 The real-Explore test of design.md "Tests the lane writes (M3)", with each guard removed in turn to show it fails
+  - [ ] 56.4 Requirements 31 and 32 get design sections and tasks when their lanes (A7, A8) are scheduled
+  - _Requirements: 28.*, 29.*, 30.*_
+
+## Adopt the tests of outside PR 36 (task 57; tests only)
+> PR 36 by drv653 adds corner/edge transition and viewport tests to `frontend/tests/haptic.corner.regression.test.ts`. Tests only: `hapticEngine.ts`, `core/` and every tuned value are untouched. The PR head is read with `git show pr36-head:...`; nothing is merged or checked out.
+
+- [x] 57. Adopt PR 36's tests and fix the review findings
+  - [x] 57.1 Merge the PR's added tests into the T50 version of the file (the PR's first 4 describe blocks equal main's)
+  - [x] 57.2 Viewport test now runs `step()` through `processPointerMove` with a trace per viewport and asserts the effects (corner [50, 90, 50] once, line vibrate(80) outside the quiet window), not only target kinds
+  - [x] 57.3 BC to C to CA steps through the quiet window (t=1200 no buzz, 1549 none, 1550 buzz); vertex re-entry inside the window (Requirement 4.9 / P96) and after it
+  - [x] 57.4 Each new test mutation-checked against a temporary mutant of `hapticEngine.ts`, reverted; `git diff` on `frontend/src` clean afterwards
+  - [x] 57.5 Gate (`tsc --noEmit`, `vitest run`); path-scoped commit
+  - _Requirements: 4.1, 4.3, 4.4, 4.5, 4.9_
+
+## Sticky line following (Requirement 33; spec written before the code; optional, off by default)
+> Core half only. Do not edit `hitTest.ts`, `hapticEngine.ts`, `compass.ts`, `proximity.ts`, `screens/`, `flow/`, `DEFAULT_RADII` or the tuned haptic values. Owner approval: 2026-11-16, the owner delegated K5 to the orchestrator ("for K5 do what you think is best"); decision: a pure opt-in helper, OFF by default, nothing existing changed. The sticky radius (24 px) and hold time (200 ms) are proposed, pending owner approval and a phone test.
+
+- [x] 58. Sticky line helper in `core/sticky.ts`
+  - [x] 58.1 Requirement 33, design section, properties P114-P119 and a "PROPOSED" row in `tech.md` written before any code
+  - [x] 58.2 `frontend/src/core/sticky.ts`: `STICKY_HOLD_MS`, `STICKY_RADIUS_PX`, `followTarget`; pure, named exports, no `any`
+  - [x] 58.3 Properties P114-P119 in `frontend/tests/sticky.prop.test.ts` (fast-check, 250+ runs each); mutation-checked with at least four mutants, reverted
+  - [x] 58.4 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro) with the approval text; path-scoped commit
+  - _Requirements: 33.*_
+
+- [ ] 58b. Sticky line wiring (agy lane, not Kiro; do not start before the owner turns the feature on)
+  - [ ] 58b.1 Settings switch "Sticky lines", OFF by default, one fixed label, state in `aria-checked` only; strings in `en`, `hi`, `gu`
+  - [ ] 58b.2 `Explore.tsx`: keep the followed target and the time it has been a line target (reset on lift, on any non-line target and on a new touch); pass it to `followTarget` before the engine step; with the switch off, call `hitTest` exactly as today
+  - [ ] 58b.3 Real-Explore test: with the switch off the vibrate and tone calls of a fixed trace are identical to today; deleting the switch guard turns it red
+  - [ ] 58b.4 Phone test of 24 px and 200 ms on the Nord CE6 and one budget phone; only then may `tech.md` lose the "PROPOSED" mark
+  - _Requirements: 33.*_
+
+## Resting on a corner has a heartbeat (Requirement 34; spec written before the code; optional, off by default)
+> Core half only. Do not edit `hapticEngine.ts`, `hitTest.ts`, `DEFAULT_HAPTICS`, `DEFAULT_RADII`, `screens/`, `flow/`, `drivers/` or any existing `tech.md` row. Source: `docs/reports/fable-heartbeat-plan.md`. The beat pattern (the tuned corner pattern, reused) and the 900 ms period are proposed, pending owner approval and a phone test.
+
+- [x] 59. Corner heartbeat helper in `core/heartbeat.ts`
+  - [x] 59.1 Requirement 34, amended Requirement 4.4, design section, properties P120-P127 and a "PROPOSED" row in `tech.md` written before any code
+  - [x] 59.2 `frontend/src/core/heartbeat.ts`: `HeartbeatConfig`, `DEFAULT_HEARTBEAT`, `HeartbeatState`, `initialHeartbeatState`, `HeartbeatInput`, `heartbeatStep`; pure, named exports, no `any`
+  - [x] 59.3 Properties P120-P127 in `frontend/tests/heartbeat.prop.test.ts` (fast-check, 200+ runs each, driving the real `step()`), plus the triangle example; mutation-checked with at least five mutants, reverted
+  - [x] 59.4 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro); path-scoped commit
+  - _Requirements: 4.4, 34.*_
+
+- [ ] 59b. Corner heartbeat wiring (agy lane hb2, not Kiro; do not start before the owner has felt the beat on a phone and turned the feature on)
+  - [ ] 59b.1 Settings switch "Corner heartbeat", OFF by default, one fixed label, state in `aria-checked` only; strings in `en`, `hi`, `gu`
+  - [ ] 59b.2 `flow/explore.ts` and `Explore.tsx`: keep the heartbeat state, pass the engine's effects through `heartbeatStep` only when the switch is on; reset on lift, new touch, pointer promotion and scene change; with the switch off call nothing new
+  - [ ] 59b.3 Real-Explore test: with the switch off the vibrate, tone and speak calls of a fixed trace are identical to today; deleting the switch guard turns it red
+  - [ ] 59b.4 Phone test of the pattern and period on the Nord CE6 and one budget phone; only then may `tech.md` lose the "PROPOSED" mark
+  - _Requirements: 34.*_
+
+
+## One structural guard at every scene ingress (Requirement 35; spec written before the code)
+> Core half only. Do not edit `hitTest.ts`, `hapticEngine.ts`, `screens/`, `flow/`, `api/`, `App.tsx` or any tuned value. Numbered 61 because `kiro: T60` (flaky P117) is already in BUILD_LOG.
+
+- [x] 61. `core/sceneGuard.ts` and its use in `deserialise`
+  - [x] 61.1 Requirement 35, design section and properties P128-P131 written before any code
+  - [x] 61.2 `frontend/src/core/sceneGuard.ts`: `SCENE_GUARD_LIMITS`, `isRenderableScene`; pure, named exports, no `any`
+  - [x] 61.3 `core/savedDiagrams.ts` `deserialise` returns `undefined` when the guard rejects the scene; fix any existing test whose generated scene was not renderable only if the test, not the guard, is wrong
+  - [x] 61.4 Properties P128-P131 in `frontend/tests/sceneGuard.prop.test.ts` (300 runs), limits-equal-backend test, mutation-checked; if P130 finds a throw in `core/`, stop, log it in BUILD_LOG and open a separate task
+  - [x] 61.5 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro); path-scoped commit
+  - [ ] 61b. Later lane (not Kiro, not started): call the guard where a network response and a bundled sample are loaded
+  - _Requirements: 35.*_
+
+
+## Remove luck from the frontend property suite (task 62; tests only)
+> Test files only. Do not edit `frontend/src/` (so not `core/`), `DEFAULT_HAPTICS`, `DEFAULT_RADII` or any other tuned value. Rule (P117 pattern from task 60): a coverage or statistics check must not depend on the random draw. Coverage comes from deterministic, fixed-input cases that run every time; random cases (`fc.assert`) are for breadth and carry only per-case assertions. A counter over random draws compared with `toBeGreaterThan` is a luck gate. A product failure is reported with its seed, never hidden.
+
+- [x] 62. Deterministic coverage, one run-count knob, and a five-run flake census
+  - [x] 62.1 Spec (this entry). Search `frontend/tests/*.prop.test.ts` for counters compared with `toBeGreaterThan`, `fc.pre` filters that reject most cases, and wall-clock budgets; list each in BUILD_LOG with the action taken
+  - [x] 62.2 Each luck gate: add deterministic seeded cases that reach the covered state by construction and assert coverage on those; keep the random property for breadth with per-case assertions only
+  - [x] 62.3 `frontend/tests/support/runs.ts` exports `runs(n) = n * (Number(process.env.FC_RUNS_MULT) || 1)` (rounded up to an integer, at least 1); used for `numRuns` in the hitTest, geometry, hapticEngine, sticky, heartbeat, curve and compass property files. Default behaviour (no env var) is unchanged
+  - [x] 62.4 Run the full suite five times; list every test that failed at least once with its seed in BUILD_LOG, classified as generator bug, test-environment load or product bug. Fix generator bugs; report the other two without touching `core/`
+  - [x] 62.5 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro); path-scoped commit
+
+
+## Can a share link be a decompression bomb? (task 63; test and measurement only, fix proposed and not built)
+> `decodeShare` checks `raw.length <= LIMITS.maxHashChars` (12000), then LZString decompresses the whole string, and only then is `maxDecompressedChars` (200000) checked. Test only: `frontend/tests/share.decodeBound.test.ts`. No file under `frontend/src/` changed.
+
+- [x] 63. Measure the worst input that fits `maxHashChars`
+  - [x] 63.1 Result (repeated "a", "[" and `{"a":`; 1, 5 and 20 MB inputs): 1 MB compresses to 2322 chars (5807 for the `{"a":` pattern), 5 MB to 5803, 20 MB to more than 12000 (not usable). Bisection: 18.12 MB of "a" compresses to exactly 12000 chars and decompresses to 18,999,680 chars in about 10 ms. `decodeShare` threw `too-large` or `bad-format` in under 5 ms for every kept input, so the 250 ms bound holds with a wide margin.
+  - [x] 63.2 Finding: the 2 MB expansion bound does NOT hold. A 12000-char link expands to about 19 million chars (about 38 MB of UTF-16, roughly 95 times the 200000 cap) before the cap rejects it. It is rejected correctly and fast, so this is a transient memory spike on the student's phone, not a hang or a crash on the measured machine. A budget phone was not measured.
+  - [x] 63.3 The test pins today's ceiling (20 million chars), asserts the finding, and carries an `it.todo` for the 2 MB target. No existing share test was changed.
+  - [ ] 63.4 Fix, smallest first (needs an owner decision, no code written):
+    - (a) Lower `LIMITS.maxHashChars`. The sqrt-like growth means about 3300 chars is the ceiling for 2 MB. That would also refuse legitimate large scenes (300 points compress to well over 3300 chars), so it is not recommended.
+    - (b) Compressed-length heuristic: the compressed form has no cheap distinct-symbol count, so a ratio check before decompressing is not reliable. Not recommended.
+    - (c) Recommended: decompress through lz-string's internal `_decompress` with a `getNextValue` wrapper is not possible to cap, so instead vendor a small bounded decoder (stop after `maxDecompressedChars + 1` output chars) in `share/`, and keep LZString for encoding. Needs approval for the new module and a property test that it equals `LZString.decompressFromEncodedURIComponent` whenever the output is within the cap.
+  - _Requirements: 16.4 spirit (bounded resource use); share contract SEC-01_
+
+
+
+## Chaos property for the pure touch pipeline (Requirement 36; spec written before the test; tests only)
+> Test file only. Do not edit `frontend/src/` (so not `core/`), `DEFAULT_HAPTICS`, `DEFAULT_RADII` or any tuned value. A failing seed is pinned as a regression example and reported, never hidden.
+
+- [x] 64. Chaos property P132-P136 in `frontend/tests/touch.chaos.prop.test.ts`
+  - [x] 64.1 Requirement 36, design section and properties P132-P136 written before any code
+  - [x] 64.2 Harness (pointer model, sticky and heartbeat wrappers), scene and event generators including degenerate inputs
+  - [x] 64.3 Properties at 200-300 runs through `runs()`; mutation-check at least three mutants of the harness-visible rules, reverted
+  - [x] 64.4 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro); path-scoped commit
+  - _Requirements: 36.*_

@@ -187,9 +187,17 @@ describe('accessible overlay structure', () => {
     const { drivers } = makeDrivers();
     mount(triangle, drivers);
     const corners = items('point').map((b) => b.getAttribute('aria-label'));
-    expect(corners).toEqual(['Corner A', 'Corner B', 'Corner C']);
+    expect(corners).toEqual([
+      'Corner A, bottom left, joined to B, C',
+      'Corner B, bottom right, joined to A, C',
+      'Corner C, top left, joined to B, A',
+    ]);
     const sides = items('segment').map((b) => b.getAttribute('aria-label'));
-    expect(sides).toEqual(['Side AB', 'Side BC', 'Side CA']);
+    expect(sides).toEqual([
+      'Side AB, from bottom left to bottom right',
+      'Side BC, from bottom right to top left',
+      'Side CA, from top left to bottom left',
+    ]);
   });
 
   it('exposes every bar with its category and value, plus both axes', () => {
@@ -377,7 +385,7 @@ describe('direct canvas touch still works', () => {
       );
     });
     expect(vibrate).toHaveBeenCalledWith(DEFAULT_HAPTICS.cornerPattern);
-    expect(speak).toHaveBeenCalledWith('A', expect.any(String));
+    expect(speak).toHaveBeenCalledWith(expect.stringMatching(/^A[. ]/), expect.any(String));
   });
 
   it('overlay is position: absolute and adds no element to normal flow of canvas container', () => {

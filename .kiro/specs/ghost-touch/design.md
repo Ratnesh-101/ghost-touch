@@ -651,3 +651,160 @@ ull; NaN, infinite, out-of-range and missing data never throw. 250 runs. | 5.6 |
 | P108 | **Hint and pitch (Kiro, task 52):** with several candidates the result is the one nearest the hint (first wins a tie), with no hint the first in scene order, and pitchForY of any result is in [200, 1000]. 250 runs. | 5.6, 5.2 |
 
 **Note on P106 and P108 (Kiro, task 54):** a property that samples an x "somewhere on the curve" must clamp it into [first x, last x]. `first + t * (last - first)` can round one ulp past `last` for t near 1 (seed -1034279350, last x = 0.35624768281849445 gave 0.3562476828184945), and `curveYAtX` rightly answers `null` there (5.6). The product rule is unchanged.
+
+## Corner speech, line names and where-am-I (Requirements 28 to 30, task 55)
+Written by Kiro before any code change, from `docs/reviews/kiro-review-bu3-bu5.md` (M1, M2, M3, M4, L2, L3, L7, L8). It describes what lanes bu3 to bu5 should end up doing, not what `Explore.tsx` does today. The code changes are for an Antigravity lane in `screens/Explore.tsx` and `flow/`; Kiro writes the properties against the pure functions that lane exports. Requirements 31 (speech pacing) and 32 (page edge cue, TalkBack labels) are recorded as requirements only; they get a design section when their lanes are scheduled.
+
+### One rule for all three
+Every speech source in Explore (move speech, corner exits, line names, where-am-I, Ask answers, Guide arrival, overview, earcon speech) records the time it started in one place. The guards of Requirements 29.3 and 30.4 read that single value, so no utterance can be missed (review L3). The speech driver's own "speaking" state may replace the timestamp if it has one.
+
+### Corner speech (28)
+- Pure, in `flow/explore.ts`: `cornerCompass(scene, vertexId, arrivedLineId | null, visitedRecently) → string`. Words after the label come from `vertexExits` (Requirement 26.3). Skip the exit whose `segmentId` equals `arrivedLineId`; more than 4 exits gives the count; `visitedRecently` gives the empty string.
+- Wiring: the same call is made from the pointer-down path, the move path and the keep-alive tick, and its text is passed to `applyMoveResult` as one extra announcement (M1). The pointer-down path has `arrivedLineId = null`. The call is made only when the engine emitted the label for that step, so a re-entry suppressed by Requirement 4.9 stays silent.
+- Guards: Directions on, Ask not listening, Guide not guiding. These are read where Explore calls the function, not inside it.
+
+### Line name (29)
+- Pure, in `flow/`: `lineDwell(state, input) → { state, speak: boolean }`. Input: time, the line id under the finger (or none), the finger position, the time speech last started, and the guard flags. State: the line id, the time the line was entered, the anchor of the current rest and its start time, and whether this visit was already named.
+- The anchor moves to the current position whenever the finger is farther than the rest radius from it, and that restarts the rest timer. The line name is due when the line id is unchanged, the rest has lasted 800 ms, `now − lastSpeechStart ≥ 1500 ms`, the guards allow it, and the visit was not named. A due name sets the named flag. Leaving the line, or a lift, resets the state.
+- The text comes from `lineName(scene, lineId)` (Requirement 29.5), built on `lineEnds` for segments.
+- Proposed numbers, none is a haptic value: rest radius 6 CSS px, dwell 800 ms, speech quiet window 1500 ms. They are shared with the where-am-I dwell constants and will be exported from one place.
+
+### Where am I (30)
+- Pure, in `flow/commands.ts`: `whereAmIDwell(state, input) → { state, speak: boolean }` with the 1200 ms rest and the 20 CSS px re-arm. The sentence comes from `whereAmI(scene, view, cursorNorm, hitTarget)`: a bar or vertex from the `hitTest` result first (L2), `nearestElement` only for `none`.
+- The Directions switch gates `lineDwell`, `cornerCompass` and `whereAmIDwell`. It does not gate the button or the voice command (30.3). The switch has one fixed label that names all three behaviours; state is `aria-checked` only (L7).
+
+### Tests the lane writes (M3)
+At least one jsdom or Playwright test mounts the real `Explore` with fake drivers and shows:
+1. no `playClick` and no corner, line or where-am-I speech while Ask is listening or Guide is guiding;
+2. no compass and no line name or dwell with Directions off, while the button still answers;
+3. a pointer-down on a vertex speaks the label and every exit (28.2);
+4. the vibrate and tone calls of a fixed trace are identical with Directions on and off.
+Deleting each guard in `Explore.tsx` must turn one of these red. The existing tests that copy a guard into the test body (`nearLineClick.test.ts`, `cornerCompass.test.ts` "haptic invariance") do not count.
+
+| # | Property (specified, not built; task 56) | Validates |
+|---|---|---|
+| P109 | **Corner text is complete and omits only the arrival edge (Kiro, task 56):** for random scenes, `cornerCompass` with no arrival edge names every exit of `vertexExits`, with an arrival edge names every exit except that segment, gives a count for more than 4 exits, gives `''` when `visitedRecently`, and no clause is longer than 12 words. | 28.1, 28.3, 28.4, 28.5 |
+| P110 | **A rest is needed for a line name (Kiro, task 56):** for any sequence of positions and times, `lineDwell` never says a name while the finger has moved more than the rest radius from the anchor within the last 800 ms. A trace along a side at any speed above the rest radius per 800 ms never names it. | 29.1, 29.2 |
+| P111 | **A name never cuts speech and comes once per visit (Kiro, task 56):** `lineDwell` never says a name when speech started less than 1500 ms ago or a guard is set; for one continuous visit it says it at most once; leaving the line or a lift re-arms it. | 29.3, 29.4, 29.6 |
+| P112 | **Where-am-I dwell timing (Kiro, task 56):** `whereAmIDwell` speaks only after 1200 ms of rest on a `none` target, once per rest, re-arms after 20 CSS px or a lift, and never speaks inside the speech quiet window or with a guard set. | 30.1, 30.4 |
+| P113 | **The Directions switch gates the automatic cues only (Kiro, task 56):** with Directions off, the three pure functions never ask for speech; with it on and every guard clear, the same traces do. The explicit button command is not an input to them. | 28.8, 29.6, 30.2, 30.3 |
+
+## Owner decisions raised in task 55
+The click cue and Directions defaults (review M4) are not decided in this spec. They are recorded as OD-2 and OD-3 in `docs/reviews/kiro-owner-decisions.md`, each with what the code does today. No default changes in task 55.
+
+
+## Sticky line following (Requirement 33, task 58)
+Written by Kiro before the code. Optional, off by default, phone-untested. One new pure module, `frontend/src/core/sticky.ts`, named exports only. It imports `hitTest` and its types, `geometry` types and `scene` types, and nothing else. `hitTest.ts` and `DEFAULT_RADII` are untouched.
+
+### Interface
+```ts
+const STICKY_HOLD_MS = 200            // proposed
+const STICKY_RADIUS_PX = 24           // proposed
+followTarget(prevTarget: Target, heldMs: number, scene, finger: ScreenPoint, view: Viewport,
+             radii: Radii, stickyRadiusPx: number): Target
+```
+
+### Rules
+1. `base = hitTest(scene, finger, view, radii)`. A `vertex` or `line` base is returned as it is. This is what keeps acquisition at the normal 14 px, lets a vertex win (P2) and lets any different line that `hitTest` reports take over with its usual nearest-wins and curve-beats-axis rules.
+2. Otherwise (`none` or `bar`) the held line may fill the gap. It needs `prevTarget.kind === 'line'`, finite `heldMs >= STICKY_HOLD_MS`, and finite `stickyRadiusPx > radii.line`.
+3. Is the finger within `stickyRadiusPx` of the held line? The helper asks `hitTest` itself, on a reduced scene that holds only the elements of the held kind and id (segments with that id and the points, polylines with that id, the one axis, the bars with that id, nothing else) with radii `{ vertex: -1, line: stickyRadiusPx }`. A vertex radius of -1 can never be hit, so only a line answer is possible. The answer counts when it is a `line` with the held id and element kind. The distance arithmetic is therefore exactly hitTest's, and no second distance routine can drift from it.
+4. A positive answer gives a new object `{ kind: 'line', id, elementKind }` taken from `prevTarget`. Anything else gives `base`.
+5. Total: the reduced scene is built with `Array.isArray` guards; a junk previous target matches nothing and gives `base`.
+
+### Consequences, stated plainly
+- A different line that is nearer than the held one but farther than 14 px does not take over until it is within 14 px or the held line is out of reach. Taking over always follows the normal acquisition rule. This is deliberate: it keeps "acquisition needs the line radius" true for every line, and it is a hysteresis between close parallel lines, not a merge. Lines closer than about 24 px to a held line can be hard to leave; this is the cost the plan names and the reason the helper is off by default.
+- Inside a bar, a held line within the sticky radius beats the bar interior, because a line outranks a bar interior in `hitTest`.
+- The engine gets the followed target. Its line rule then buzzes for a finger up to 24 px from the line; for a curve the tone is the finger's own height (`yNorm`), as before. Not changed here.
+
+| # | Property | Validates |
+|---|---|---|
+| P114 | **Acquisition is unchanged (Kiro, task 58):** for random scenes, viewports and fingers aimed at the radius band, with a previous target that is `none`, a vertex or a bar (any `heldMs`, including Infinity), or a line with `heldMs` below 200, NaN or infinite, `followTarget` deep-equals `hitTest`. A lift (`none`) never sticks. 250+ runs. | 33.1, 33.2, 33.7 |
+| P115 | **A vertex always wins (Kiro, task 58):** a finger within the vertex radius of a point gets that vertex (the one `hitTest` names) and never a line, whatever the previous target, `heldMs` and sticky radius (P2 holds). | 33.4 |
+| P116 | **A line that `hitTest` reports wins (Kiro, task 58):** when `hitTest` reports a line, `followTarget` returns that line, whatever the held line. Includes the example of a held line 22 px away and a different line 10 px away: the different one is returned. | 33.4 |
+| P117 | **It sticks exactly out to the sticky radius (Kiro, task 58):** against a brute-force minimum distance built independently from `distToSegmentXY` over the held element's pieces, with an eligible held line and `hitTest` reporting `none` or a bar: the result is the held line when the minimum is at most the sticky radius minus 1e-6, is `hitTest`'s answer when it is more than the radius plus 1e-6, and whenever the result differs from `hitTest` the minimum is within the radius. Held kinds: segment, polyline, axis, bar edge. | 33.3 |
+| P118 | **Off means identical (Kiro, task 58):** with a sticky radius equal to, or below, the line radius, NaN, or infinite, `followTarget` deep-equals `hitTest` for any previous target and `heldMs`. | 33.5 |
+| P119 | **Total and only two answers (Kiro, task 58):** with NaN, infinite, out-of-range and missing data, dangling and duplicate ids, `__proto__` ids, junk previous targets (unknown kind and id) and NaN or zero viewports, `followTarget` never throws, and its answer is either deep-equal to `hitTest`'s or exactly the held line of the previous target. It never mutates its inputs. | 33.6 |
+
+## Resting on a corner has a heartbeat (Requirement 34, task 59)
+Written by Kiro before the code. Optional, off by default, phone-untested. One new pure module, `frontend/src/core/heartbeat.ts`, named exports only. It imports the `Target` and `Effect` types and nothing else. Same opt-in shape as `proximity.ts` and `sticky.ts`: `hapticEngine.ts` is not edited, so P3 to P6 and P96 cannot be affected. The module wraps the engine's output for one step.
+
+### Interface
+```ts
+interface HeartbeatConfig { pattern: number[]; periodMs: number; quietMs: number }
+const DEFAULT_HEARTBEAT: HeartbeatConfig = { pattern: [50, 90, 50], periodMs: 900, quietMs: 450 }  // proposed; quietMs copied from the tuned value
+interface HeartbeatState { vertexId: string | null; nextBeatAt: number; lastBeatAt: number }
+initialHeartbeatState(): HeartbeatState                      // vertexId null, nextBeatAt Infinity, lastBeatAt -Infinity
+type HeartbeatInput =
+  | { kind: 'move'; t: number; target: Target; engineEffects: readonly Effect[] }
+  | { kind: 'lift'; t: number; engineEffects: readonly Effect[] }
+heartbeatStep(state, input, cfg?: HeartbeatConfig | null): { state: HeartbeatState; effects: Effect[] }
+```
+
+### Rules
+1. Invalid or missing `cfg` (Requirement 34.6): the engine's effects (a copy), initial state.
+2. Lift: the engine's effects, initial state.
+3. A time that is not finite: the engine's effects, state unchanged.
+4. Vertex target and the engine emitted a `vibrate` (entry): remember the id, `nextBeatAt = t + periodMs`, `lastBeatAt = -Infinity`. Add nothing.
+5. Vertex target, an id different from the remembered one, no engine `vibrate` (Requirement 4.9 re-entry): the same bookkeeping as 4. Add nothing.
+6. Vertex target, same id, no engine `vibrate`, `t >= nextBeatAt`: append `vibrate(copy of pattern)`; `lastBeatAt = t`; `nextBeatAt` advances by one period, or becomes `t + periodMs` if that is not after `t`.
+7. Any other target: if a vertex is remembered, `t < lastBeatAt + sum(pattern)` and the engine emitted no `vibrate`, put `vibrate(0)` first. Forget the vertex. (`lastBeatAt` is reset on every entry, so a corner pulse of a new vertex is never cut by the beat of the old one.)
+8. The engine's effects keep their order; at most one effect is added; no `speak` or `tone` is ever added. Inputs are never mutated; junk input never throws.
+
+Why one `vibrate` call per beat and not one long repeating pattern: any later `vibrate` call silently ends the rest of a long pattern, nothing cancels it when the finger leaves a vertex for empty space, browsers may truncate long patterns, and the fallback driver would turn it into one long solid buzz. One call per beat fails safe: if every later step is lost, the motor stops by itself after 190 ms.
+
+| # | Property (task 59) | Validates |
+|---|---|---|
+| P120 | **Off is identity (Kiro):** with `cfg` null, undefined or invalid (empty pattern, zero, negative or non-finite entries, non-finite period or quiet window, period below quiet window plus pattern), for any trace driven through the real `step()` the returned effects deep-equal the engine's and the state stays initial. 200+ runs. | 34.6, 34.7 |
+| P121 | **Beats only on a resting vertex (Kiro):** an added array `vibrate` appears only on a step whose target is a vertex with the same id as the step before and where the engine emitted no `vibrate`. Random valid configs and the default. | 34.1, 34.5 |
+| P122 | **Rate and quiet window (Kiro):** with non-decreasing times, the first beat of a visit is at least one period after its entry, every later beat is at least one period after the previous beat's scheduled time, a beat never falls before the engine's `quietUntil`, and beats never change anything the engine reports (compared against a run without the heartbeat). | 34.1, 34.3 |
+| P123 | **Liveness (Kiro):** a finger resting on one vertex with steps at most 60 ms apart never goes longer than `periodMs + 60` without a beat (counting from the entry). | 34.1 |
+| P124 | **Stops at once (Kiro):** on the first non-vertex step after a beat, with `t` before the beat's end, the effects contain the engine's own `vibrate`, or begin with `vibrate(0)`; after the beat's end nothing is added; no beat follows until a vertex entry. A lift returns exactly the engine's effects. | 34.4 |
+| P125 | **Never over the line buzz (Kiro):** on a line step no array pattern is added, and the engine's line buzz is the last `vibrate` of the list. | 34.4 |
+| P126 | **Additive only (Kiro):** removing the (at most one) added effect gives exactly the engine's effects in order; the added effect is a `vibrate`, never `speak`, `speakKey` or `tone`; the added pattern equals the configured one and is a copy. | 34.2, 34.8 |
+| P127 | **Total (Kiro):** NaN, infinite and backward times, junk targets, effects, state and configs never throw, add no beat for a non-finite time, and do not mutate (deep-frozen inputs). | 34.8 |
+
+Example (`frontend/public/samples/triangle.json`): resting on B for 3 s at 60 ms steps gives the corner pattern at 0 and beats at 900, 1800 and 2700; a step onto side BC at 2750 contains `vibrate(80)` and no array pattern; the label is spoken once.
+
+
+## Scene ingress guard (Requirement 35, task 61)
+Written by Kiro before the code. One new pure module, `frontend/src/core/sceneGuard.ts`, named exports only, importing only the `DiagramScene` type from `scene.ts`.
+
+```ts
+export const SCENE_GUARD_LIMITS = { points: 500, segments: 1000, polylines: 50, polylinePoints: 1000, bars: 100, facts: 100, text: 300, aspectMin: 0.05, aspectMax: 20 } as const;
+export function isRenderableScene(value: unknown): value is DiagramScene
+```
+- Plain loops over the value, no allocation per element, no recursion, no `JSON` calls; a getter that throws is the only way to make it raise, and scenes come from JSON or structured clone, which have none. Reads are wrapped in one `try/catch` that returns `false`, so the function is total even for a hostile object (a Proxy that throws).
+- Why a separate guard and not `validateSceneInvariants`: that function reports editing errors (duplicate and reserved ids) and tolerates missing arrays; this one answers only "can the engine and hit test run on this without throwing or producing NaN".
+- `deserialise` calls it after the existing field checks and returns `undefined` on `false`. The return value keeps the same object (no copy).
+- Limits mirror `backend/app/validate.py` (`MAX_SCENE_POINTS`, `MAX_SCENE_SEGMENTS`, `MAX_SCENE_POLYLINES`, `MAX_POLYLINE_POINTS`, `MAX_SCENE_BARS`, `MAX_SCENE_FACTS`, `MAX_TEXT_CHARS`). The existing `tests/caps.agree.test.ts` pattern is reused: a test reads the constants from `validate.py` and compares them with `SCENE_GUARD_LIMITS`, so the two cannot drift.
+- Not wired yet: the network client and the sample loader (a later `flow/` lane).
+
+| # | Property | Validates |
+|---|---|---|
+| P128 | **Total (Kiro, task 61):** for any JSON value (`fc.jsonValue`, plus scene-shaped values with random junk in random fields, plus a throwing Proxy), `isRenderableScene` returns a boolean and never throws. 300 runs. | 35.4 |
+| P129 | **Bundled scenes are accepted (Kiro, task 61):** every `frontend/public/samples/*.json` and every scene in `backend/fixtures/{triangle,sine,barchart}.json` is accepted; the limits equal the backend constants read from `validate.py`. Example test, not fast-check. | 35.2, 35.3 |
+| P130 | **An accepted scene never breaks the core (Kiro, task 61):** for any accepted scene (generated, so it covers all four kinds, dangling-free segments, empty arrays, bars with any finite value) and any finger (including far outside the canvas and non-finite) and viewport (letterboxed, scale above 0), `hitTest`, `step` driven by the hit result, `directionOf`, `vertexExits`, `lineEnds`, `nearestElement`, `curveYAtX` and `followTarget` never throw, and every number in their results is finite. 300 runs. | 35.6 |
+| P131 | **Damage is rejected (Kiro, task 61):** for any accepted scene, deleting any one of `kind`, `points`, `segments`, `polylines`, `bars`, or setting one of them to a non-array, or replacing any single coordinate (point, polyline vertex, bar edge, axis) with NaN, Infinity, -0.001, 1.001, a string or null, or a bar value with NaN or Infinity, or an id with `''` or a number, or one segment endpoint with an unknown id, or `aspect` with 0.04, 21 or NaN, or exceeding one size cap by one, gives `false`. Plus `deserialise` returns `undefined` for each. 300 runs. | 35.2, 35.5 |
+
+
+
+## Chaos run of the pure touch pipeline (Requirement 36, task 64)
+Written by Kiro before the test. One file, `frontend/tests/touch.chaos.prop.test.ts`; no source file changes.
+
+### Harness
+A small model of what `Explore.tsx` does with pointers, written in the test (nothing from the app is imported except `core/`):
+- `down` with no active pointer: reset engine, heartbeat and followed target, then process the position. `down` of a further pointer only joins the list. `down` of an active id is ignored.
+- `move`: processed only for the primary pointer (the first in the list). Processing is `target = followTarget(prev, heldMs, …)` (sticky on) or `hitTest(…)` (off), then `step()`, then `heartbeatStep` (heartbeat on, `DEFAULT_HEARTBEAT`). `yNorm` is `toNorm(finger).y`. `heldMs` is the time the same line id has been followed without a break.
+- `up` / `cancel`: unknown pointer ignored; otherwise removed; the last one gives a lift, an earlier one promotes the oldest remaining pointer and produces no effects.
+- `blur`, `hidden`: clear all pointers and lift (also with none active).
+- Time starts at a random value and advances by 0 ms (often), small steps or up to 5000 ms.
+- Fingers are drawn from: a point's own screen position, the position at the vertex or line radius, anywhere in an area larger than the canvas, and NaN, ±Infinity. Viewports include width or height 0.
+- Scenes: the three bundled samples, random valid scenes (unique ids and labels), and a degenerate family (zero-length and duplicated segments, coincident points, `x0 == x1` bars, a two-identical-point polyline, axes on the border).
+
+| # | Property | Validates |
+|---|---|---|
+| P132 | **Total and bounded (Kiro, task 64):** over random event sequences (1 to 400 events) the pipeline never throws, no step has more than 4 effects, and every `tone` effect is `null` or finite. 300 runs. | 36.1 |
+| P133 | **A lift silences and stays silent (Kiro, task 64):** after every lift the last `vibrate` of the step is `vibrate(0)`, the last `tone` is `null`, the engine state deep-equals `initialState()`, the heartbeat state is initial, the followed target is none, and no step produces effects before the next `down`. With heartbeat and sticky each on and off. 300 runs. | 36.2 |
+| P134 | **No corner is announced twice inside the quiet window (Kiro, task 64):** within one touch, two consecutive corner announcements of the same vertex are at least `quietMs` apart. A second generator shakes the finger on and off one corner so the re-entry state is reached by construction. 300 runs each. | 36.3 |
+| P135 | **Replay is deterministic and the scene is not touched (Kiro, task 64):** running a sequence twice gives deep-equal effects; the scene deep-equals a clone taken before. 200 runs. | 36.4 |
+| P136 | **Degenerate scenes, viewports and fingers (Kiro, task 64):** P132 and P133 again over the degenerate scene family, zero-size viewports and non-finite fingers only. 300 runs. | 36.1, 36.2 |

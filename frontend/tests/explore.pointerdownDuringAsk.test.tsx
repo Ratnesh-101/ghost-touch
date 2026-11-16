@@ -175,6 +175,6 @@ describe('EX-02: pointerdown gated while voice listening is active', () => {
     });
 
     expect(vibrate).toHaveBeenCalledWith([50, 90, 50]);
-    expect(speak).toHaveBeenCalledWith('A', expect.any(String));
+    expect(speak).toHaveBeenCalledWith(expect.stringMatching(/^A[. ]/), expect.any(String));
   });
 });

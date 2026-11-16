@@ -12,7 +12,8 @@
 
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { App } from '../src/App';
 import type { DiagramScene } from '../src/core/scene';
 import { Correct, executeCorrectSave } from '../src/screens/Correct';
 import { ValidateRequestError, type ValidateResponse } from '../src/api/validate';
@@ -112,15 +113,6 @@ vi.mock('../src/drivers', async (importOriginal) => {
     },
   };
 });
-
-let App!: typeof import('../src/App').App;
-let appModulePromise: Promise<typeof import('../src/App')> | null = null;
-function getAppModule(): Promise<typeof import('../src/App')> {
-  if (!appModulePromise) {
-    appModulePromise = import('../src/App');
-  }
-  return appModulePromise;
-}
 
 describe('FLOW-01: Late Save Protection', () => {
   let container: HTMLDivElement | null = null;
@@ -241,11 +233,6 @@ describe('FLOW-01: Late Save Protection', () => {
   });
 
   describe('App integration with late save and system Back', () => {
-    beforeAll(async () => {
-      const appModule = await getAppModule();
-      App = appModule.App;
-    }, 60_000);
-
     it('ignores late save resolution after system Back discard', async () => {
       const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 

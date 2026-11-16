@@ -9,6 +9,7 @@ import {
   type Input,
 } from '../src/core/hapticEngine';
 import type { Target } from '../src/core/hitTest';
+import { runs } from './support/runs';
 
 /**
  * P96 (Requirement 4.9, task 50): a corner is not repeated inside its quiet window.
@@ -89,7 +90,7 @@ describe('P96 — a corner is not repeated inside its quiet window', () => {
           return corners === 1 && speeches === 1 && finalState.quietUntil === t0 + Q;
         },
       ),
-      { numRuns: 300 },
+      { numRuns: runs(300) },
     );
   });
 
@@ -114,7 +115,7 @@ describe('P96 — a corner is not repeated inside its quiet window', () => {
           );
         },
       ),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 
@@ -159,7 +160,7 @@ describe('P96 — a corner is not repeated inside its quiet window', () => {
           );
         },
       ),
-      { numRuns: 300 },
+      { numRuns: runs(300) },
     );
   });
 
@@ -187,7 +188,7 @@ describe('P96 — a corner is not repeated inside its quiet window', () => {
           );
         },
       ),
-      { numRuns: 300 },
+      { numRuns: runs(300) },
     );
   });
 
@@ -204,7 +205,7 @@ describe('P96 — a corner is not repeated inside its quiet window', () => {
         );
         return perHop[2]!.some(isCorner);
       }),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 
@@ -226,7 +227,7 @@ describe('P96 — a corner is not repeated inside its quiet window', () => {
           );
         },
       ),
-      { numRuns: 300 },
+      { numRuns: runs(300) },
     );
   });
 
@@ -258,7 +259,7 @@ describe('P96 — a corner is not repeated inside its quiet window', () => {
         );
         return r.effects.some(isCorner);
       }),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 
@@ -279,7 +280,7 @@ describe('P96 — a corner is not repeated inside its quiet window', () => {
           ),
         );
       }),
-      { numRuns: 200 },
+      { numRuns: runs(200) },
     );
   });
 });

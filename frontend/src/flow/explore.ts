@@ -22,12 +22,29 @@ import {
   type ProximityState,
 } from '../core/proximity';
 import {
+  DEFAULT_HEARTBEAT,
+  heartbeatStep,
+  initialHeartbeatState,
+  type HeartbeatConfig,
+  type HeartbeatState,
+} from '../core/heartbeat';
+import {
+  _resetCornerHeartbeatSettingForTesting,
+  _resetDirectionsSettingForTesting,
+  _resetFindingSoundSettingForTesting,
+  getStoredCornerHeartbeatSetting,
   getStoredDirectionsSetting,
+  getStoredFindingSoundSetting,
   safeGet,
   safeRemove,
   safeSet,
+  setStoredCornerHeartbeatSetting,
   setStoredDirectionsSetting,
+  setStoredFindingSoundSetting,
+  STORAGE_KEY_CORNER_HEARTBEAT,
   STORAGE_KEY_DIRECTIONS,
+  STORAGE_KEY_FINDING_SOUND,
+  subscribeSettings,
 } from '../drivers/storage';
 import {
   step,
@@ -39,28 +56,6 @@ import {
 } from '../core/hapticEngine';
 import { pitchForY } from '../core/pitch';
 import { t, tf } from '../i18n';
-
-export const STORAGE_KEY_FINDING_SOUND = 'gt_finding_sound_enabled';
-
-let inMemoryFindingSoundSetting: boolean | null = null;
-
-export function getStoredFindingSoundSetting(): boolean {
-  const stored = safeGet(STORAGE_KEY_FINDING_SOUND);
-  if (stored !== null) {
-    return stored === 'true';
-  }
-  return inMemoryFindingSoundSetting ?? true;
-}
-
-export function setStoredFindingSoundSetting(enabled: boolean): void {
-  safeSet(STORAGE_KEY_FINDING_SOUND, enabled ? 'true' : 'false');
-  inMemoryFindingSoundSetting = enabled;
-}
-
-export function _resetFindingSoundSettingForTesting(): void {
-  inMemoryFindingSoundSetting = null;
-  safeRemove(STORAGE_KEY_FINDING_SOUND);
-}
 
 export const STORAGE_KEY_GRAPH_SCAN = 'gt_graph_scan_enabled';
 
@@ -149,7 +144,20 @@ export {
   pitchForY,
   getStoredDirectionsSetting,
   setStoredDirectionsSetting,
+  _resetDirectionsSettingForTesting,
   STORAGE_KEY_DIRECTIONS,
+  getStoredFindingSoundSetting,
+  setStoredFindingSoundSetting,
+  _resetFindingSoundSettingForTesting,
+  STORAGE_KEY_FINDING_SOUND,
+  getStoredCornerHeartbeatSetting,
+  setStoredCornerHeartbeatSetting,
+  _resetCornerHeartbeatSettingForTesting,
+  STORAGE_KEY_CORNER_HEARTBEAT,
+  DEFAULT_HEARTBEAT,
+  initialHeartbeatState,
+  heartbeatStep,
+  subscribeSettings,
   DEFAULT_PROXIMITY,
   initialProximityState,
   proximityStep,
@@ -163,6 +171,8 @@ export type {
   ProximityEffect,
   ProximityState,
   NearestElement,
+  HeartbeatConfig,
+  HeartbeatState,
 };
 
 /**
@@ -490,6 +500,7 @@ export interface MovePipelineResult {
   nearest: NearestElement | null;
   proximityState: ProximityState;
   proximityEffects: ProximityEffect[];
+  heartbeatState: HeartbeatState;
 }
 
 /**
@@ -507,6 +518,8 @@ export function processPointerMove(
   cfg: HapticConfig = DEFAULT_HAPTICS,
   proximityState: ProximityState = initialProximityState(),
   proximityCfg: ProximityConfig = DEFAULT_PROXIMITY,
+  heartbeatState: HeartbeatState = initialHeartbeatState(),
+  heartbeatCfg: HeartbeatConfig | null = null,
 ): MovePipelineResult {
   const target = hitTest(scene, finger, view, radii);
   const norm = toNorm(finger, view);
@@ -550,11 +563,23 @@ export function processPointerMove(
     proximityCfg,
   );
 
+  let finalEffects = effects;
+  let nextHeartbeatState = heartbeatState;
+  if (heartbeatCfg !== null) {
+    const hb = heartbeatStep(
+      heartbeatState,
+      { kind: 'move', t, target, engineEffects: effects },
+      heartbeatCfg,
+    );
+    finalEffects = hb.effects;
+    nextHeartbeatState = hb.state;
+  }
+
   return {
     target,
     xNorm: norm.x,
     yNorm: norm.y,
-    effects,
+    effects: finalEffects,
     nextEngineState,
     centreCheck,
     axisCrossings,
@@ -562,6 +587,7 @@ export function processPointerMove(
     nearest,
     proximityState: nextProximityState,
     proximityEffects,
+    heartbeatState: nextHeartbeatState,
   };
 }
 
@@ -787,6 +813,7 @@ export interface WhereAmIDwellCheckInput {
   lastSpeechStartTime: number;
   isAskActive: boolean;
   isGuiding: boolean;
+  isDirectionsEnabled?: boolean;
 }
 
 export interface WhereAmIDwellResult {
@@ -849,12 +876,20 @@ export function updateWhereAmIDwellOnMove(
 /**
  * Checks if the finger has rested (moved < 6 px) for 1200 ms on a 'none' target.
  * Guards against speech that started < 1500 ms ago, Ask listening, and Guide active.
+ * Sitting behind Directions switch (M4): if Directions is off, dwell does not speak.
  */
 export function checkWhereAmIDwell(
   state: WhereAmIDwellState,
   input: WhereAmIDwellCheckInput,
 ): WhereAmIDwellResult {
   const { targetKind, coords, now, lastSpeechStartTime, isAskActive, isGuiding } = input;
+
+  if (input.isDirectionsEnabled === false) {
+    return {
+      shouldSpeak: false,
+      nextState: state,
+    };
+  }
 
   if (targetKind !== 'none') {
     return {
@@ -901,7 +936,7 @@ export function checkWhereAmIDwell(
     };
   }
 
-  const startTime = state.restStartTime > 0 ? state.restStartTime : now;
+  const startTime = state.restAnchor !== null ? state.restStartTime : now;
   if (now - startTime < WHERE_AM_I_DWELL_MS) {
     return {
       shouldSpeak: false,

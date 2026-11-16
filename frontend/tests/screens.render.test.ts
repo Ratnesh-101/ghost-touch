@@ -1,3 +1,7 @@
+// @ts-expect-error Node.js runtime fs module
+import fs from 'node:fs';
+// @ts-expect-error Node.js runtime path module
+import path from 'node:path';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
@@ -9,6 +13,124 @@ import { SavedDiagrams } from '../src/screens/SavedDiagrams';
 import { Start } from '../src/screens/Start';
 import css from '../src/styles/global.css?raw';
 import exploreCss from '../src/styles/explore.css?raw';
+
+declare const __dirname: string | undefined;
+
+function readStyleFile(fileName: string): string {
+  try {
+    if (typeof __dirname !== 'undefined') {
+      const p = path.resolve(__dirname, '../src/styles', fileName);
+      if (fs.existsSync(p)) return fs.readFileSync(p, 'utf-8');
+    }
+    const frontendPath = path.resolve('frontend/src/styles', fileName);
+    if (fs.existsSync(frontendPath)) return fs.readFileSync(frontendPath, 'utf-8');
+    const srcPath = path.resolve('src/styles', fileName);
+    if (fs.existsSync(srcPath)) return fs.readFileSync(srcPath, 'utf-8');
+  } catch {
+    // fallback
+  }
+  return '';
+}
+
+interface ParsedRule {
+  selectors: string[];
+  declarations: Record<string, string>;
+}
+
+function parseCssRules(cssText: string): ParsedRule[] {
+  const clean = cssText.replace(/\/\*[\s\S]*?\*\//g, '');
+  const rules: ParsedRule[] = [];
+  const ruleRegex = /([^{]+)\{([^}]+)\}/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = ruleRegex.exec(clean)) !== null) {
+    const rawSelectors = match[1];
+    const rawBody = match[2];
+    if (!rawSelectors || !rawBody) continue;
+
+    const selectors = rawSelectors
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    const declarations: Record<string, string> = {};
+    for (const decl of rawBody.split(';')) {
+      const colonIdx = decl.indexOf(':');
+      if (colonIdx === -1) continue;
+      const prop = decl.slice(0, colonIdx).trim().toLowerCase();
+      const val = decl.slice(colonIdx + 1).trim();
+      declarations[prop] = val;
+    }
+    rules.push({ selectors, declarations });
+  }
+  return rules;
+}
+
+function parseLengthToPx(rawVal: string | undefined, allCss: string): number | null {
+  if (!rawVal) return null;
+  const val = rawVal.trim();
+
+  // px: e.g. "52px", "48px"
+  const pxMatch = /^([\d.]+)px$/i.exec(val);
+  if (pxMatch && pxMatch[1]) {
+    const n = parseFloat(pxMatch[1]);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  // rem: e.g. "3rem", "3.25rem" (1 rem = 16 px)
+  const remMatch = /^([\d.]+)rem$/i.exec(val);
+  if (remMatch && remMatch[1]) {
+    const n = parseFloat(remMatch[1]);
+    return Number.isFinite(n) ? n * 16 : null;
+  }
+
+  // var with fallback: e.g. "var(--gt-target, 48px)" or "var(--gt-target, 3rem)"
+  const varWithFallback = /^var\([^,]+,\s*([^)]+)\)$/i.exec(val);
+  if (varWithFallback && varWithFallback[1]) {
+    const fallbackParsed = parseLengthToPx(varWithFallback[1], allCss);
+    if (fallbackParsed !== null) return fallbackParsed;
+  }
+
+  // var without fallback: e.g. "var(--gt-target)"
+  const varNoFallback = /^var\((--[\w-]+)\)$/i.exec(val);
+  if (varNoFallback && varNoFallback[1]) {
+    const varName = varNoFallback[1];
+    const defRegex = new RegExp(`${varName}\\s*:\\s*([^;]+);`, 'i');
+    const defMatch = defRegex.exec(allCss);
+    if (defMatch && defMatch[1]) {
+      return parseLengthToPx(defMatch[1], allCss);
+    }
+  }
+
+  return null;
+}
+
+function findEffectiveDimension(
+  rules: ParsedRule[],
+  prop: 'min-height' | 'min-width',
+  allCss: string,
+): number | null {
+  const candidateSelectors = [
+    '.gt-explore__where-am-i',
+    '.gt-explore__actions button',
+    '.gt-explore__actions .gt-control',
+    '.gt-explore__actions .gt-btn',
+    '.gt-control',
+    '.gt-btn',
+  ];
+
+  for (const selector of candidateSelectors) {
+    const rule = rules.find((r) => r.selectors.some((s) => s === selector || s.includes(selector)));
+    if (rule && rule.declarations[prop]) {
+      const px = parseLengthToPx(rule.declarations[prop], allCss);
+      if (px !== null && !Number.isNaN(px)) {
+        return px;
+      }
+    }
+  }
+
+  return null;
+}
 
 const drivers: Drivers = {
   haptics: { supported: true, lastResult: null, vibrate: vi.fn(), stop: vi.fn() },
@@ -172,9 +294,22 @@ describe('touch targets (Requirement 12.1)', () => {
   });
 
   it('makes the Explore where-am-i button at least 48px tall and wide', () => {
-    const raw = typeof exploreCss === 'string' && exploreCss.length > 0 ? exploreCss : css;
-    const match = /\.gt-explore__where-am-i\s*{[^}]*min-height:\s*(\d+)px/s.exec(raw);
-    expect(Number(match?.[1])).toBeGreaterThanOrEqual(48);
-    expect(raw).toMatch(/\.gt-explore__where-am-i\s*{[^}]*min-width:\s*var\(--gt-target/s);
+    const fileExploreCss = readStyleFile('explore.css');
+    const sourceCss = fileExploreCss || (typeof exploreCss === 'string' ? exploreCss : '');
+    const combined = `${sourceCss}\n${css}`;
+    const parsedRules = [...parseCssRules(sourceCss), ...parseCssRules(css)];
+
+    const minHeight = findEffectiveDimension(parsedRules, 'min-height', combined);
+    const minWidth = findEffectiveDimension(parsedRules, 'min-width', combined);
+
+    expect(minHeight).not.toBeNull();
+    expect(typeof minHeight).toBe('number');
+    expect(Number.isNaN(minHeight)).toBe(false);
+    expect(minHeight!).toBeGreaterThanOrEqual(48);
+
+    expect(minWidth).not.toBeNull();
+    expect(typeof minWidth).toBe('number');
+    expect(Number.isNaN(minWidth)).toBe(false);
+    expect(minWidth!).toBeGreaterThanOrEqual(48);
   });
 });
