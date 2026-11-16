@@ -4,9 +4,10 @@
  * Sends a question about a `DiagramScene` and returns the backend's
  * short answer and its provenance (`source`).
  *
- * Timeout is 12 s (Task 9.2). Errors match the style of `api/scene.ts`.
+ * Timeout is 17 s (Lane hx5). Errors match the style of `api/scene.ts`.
  */
 import type { DiagramScene } from '../core/scene';
+import { parseRetryAfter } from './scene';
 
 export type AskSource = 'ai' | 'facts' | 'unknown';
 
@@ -20,13 +21,16 @@ export interface AskResponse {
   target?: GuideTarget;
 }
 
-/** Server Ask limit is 10 s; allow 12 s client budget (Requirement 7.2). */
-export const ASK_TIMEOUT_MS = 12_000;
+/** Ask client timeout budget: 17 seconds. */
+export const ASK_TIMEOUT_MS = 17_000;
 
-export type AskFailure = 'timeout' | 'network' | 'http' | 'bad-response' | 'aborted';
+export type AskFailure = 'timeout' | 'network' | 'http' | 'bad-response' | 'aborted' | 'busy';
 
 export class AskRequestError extends Error {
-  constructor(readonly failure: AskFailure) {
+  constructor(
+    readonly failure: AskFailure,
+    readonly retryAfterSeconds?: number,
+  ) {
     super(failure);
     this.name = 'AskRequestError';
   }
@@ -43,6 +47,15 @@ export interface AskRequestOptions {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getHeader(response: Response, name: string): string | null | undefined {
+  if (!response.headers) return undefined;
+  if (typeof (response.headers as Headers).get === 'function') {
+    return (response.headers as Headers).get(name);
+  }
+  const record = response.headers as unknown as Record<string, string>;
+  return record[name] ?? record[name.toLowerCase()] ?? record[name.toUpperCase()];
 }
 
 /**
@@ -135,6 +148,10 @@ export async function requestAsk(
       }),
       signal: controller.signal,
     });
+    if (response.status === 429 || response.status === 503) {
+      const retryAfterSeconds = parseRetryAfter(getHeader(response, 'retry-after'));
+      throw new AskRequestError('busy', retryAfterSeconds);
+    }
     if (!response.ok) throw new AskRequestError('http');
     let data: unknown;
     try {

@@ -186,7 +186,7 @@ describe('requestAsk', () => {
     });
   });
 
-  it('exports ASK_TIMEOUT_MS as 12000 ms', () => {
-    expect(ASK_TIMEOUT_MS).toBe(12_000);
+  it('exports ASK_TIMEOUT_MS as 17000 ms', () => {
+    expect(ASK_TIMEOUT_MS).toBe(17_000);
   });
 });

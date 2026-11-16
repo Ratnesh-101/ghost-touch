@@ -15,6 +15,7 @@ import {
   type AskSource,
   type GuideTarget,
 } from '../api/ask';
+import { warmBackend } from '../api/health';
 import type { DiagramScene } from '../core/scene';
 import { ListenError, type AudioDriver, type SpeechDriver } from '../drivers';
 import { getLang, LANG_BCP47, tables, t, type Lang } from '../i18n';
@@ -29,6 +30,46 @@ import {
 /** Listening cue tone (Task 9.2). */
 export const LISTENING_BEEP_HZ = 660;
 export const LISTENING_BEEP_MS = 150;
+
+/** Total budget for an Ask attempt including retries (Lane hx5): 45 seconds. */
+export const ASK_TOTAL_BUDGET_MS = 45_000;
+
+function sleep(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(signal.reason ?? new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(signal.reason ?? new DOMException('Aborted', 'AbortError'));
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+function isBusyError(err: unknown): err is AskRequestError {
+  return err instanceof AskRequestError && err.failure === 'busy';
+}
+
+function isTimeoutError(err: unknown): boolean {
+  if (err instanceof AskRequestError) {
+    return err.failure === 'timeout';
+  }
+  if (err instanceof Error) {
+    const msg = err.message.toLowerCase();
+    return msg.includes('timeout');
+  }
+  return false;
+}
+
+function isNavigatorOffline(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
 
 export type AskOutcome =
   | { kind: 'success'; answer: string; source: AskSource; target?: GuideTarget }
@@ -54,6 +95,7 @@ export interface AskDeps {
   ) => Promise<AskResponse>;
   formatAnswer?: (answer: string, target?: GuideTarget) => string;
   findings?: readonly VerifyFinding[];
+  fetchImpl?: typeof fetch;
 }
 
 /**
@@ -83,6 +125,7 @@ export function askErrorMessage(error: unknown): string {
         return t('ask.errorTimeout');
       case 'network':
         return t('ask.errorOffline');
+      case 'busy':
       case 'http':
       case 'bad-response':
       default:
@@ -263,9 +306,15 @@ export class AskManager {
     }
 
     this.busy = true;
+    void warmBackend(deps.fetchImpl ? { fetchImpl: deps.fetchImpl } : undefined);
     const controller = new AbortController();
     this.activeController = controller;
     this.activeSpeech = deps.speech;
+    let budgetExceeded = false;
+    const budgetTimer = setTimeout(() => {
+      budgetExceeded = true;
+      controller.abort();
+    }, ASK_TOTAL_BUDGET_MS);
 
     try {
       // Stop any TTS first so the microphone does not transcribe it as the question.
@@ -304,9 +353,13 @@ export class AskManager {
       } catch {
         // non-fatal
       }
-      const doRequest =
-        deps.request ?? ((sc, q, l, sig) => requestAsk(sc, q, l, { signal: sig }));
-      const response = await doRequest(deps.scene, question, activeLang, controller.signal);
+      const response = await this.performRequestWithRetry(
+        deps.scene,
+        question,
+        activeLang,
+        controller,
+        deps,
+      );
 
       if (controller.signal.aborted) {
         return { kind: 'cancelled' };
@@ -336,8 +389,8 @@ export class AskManager {
       };
     } catch (err: unknown) {
       if (
-        controller.signal.aborted ||
-        (err instanceof AskRequestError && err.failure === 'aborted')
+        (!budgetExceeded && controller.signal.aborted) ||
+        (!budgetExceeded && err instanceof AskRequestError && err.failure === 'aborted')
       ) {
         return { kind: 'cancelled' };
       }
@@ -346,7 +399,8 @@ export class AskManager {
       } catch {
         // non-fatal
       }
-      const message = askErrorMessage(err);
+      const finalErr = budgetExceeded ? new AskRequestError('timeout') : err;
+      const message = askErrorMessage(finalErr);
       try {
         deps.say(message);
       } catch {
@@ -357,8 +411,9 @@ export class AskManager {
       } catch {
         // non-fatal
       }
-      return { kind: 'failed', message, error: err };
+      return { kind: 'failed', message, error: finalErr };
     } finally {
+      clearTimeout(budgetTimer);
       // Only the active call may clear state; an aborted call must not clobber a newer ask.
       if (this.activeController === controller) {
         this.busy = false;
@@ -393,8 +448,14 @@ export class AskManager {
     }
 
     this.busy = true;
+    void warmBackend(deps.fetchImpl ? { fetchImpl: deps.fetchImpl } : undefined);
     const controller = new AbortController();
     this.activeController = controller;
+    let budgetExceeded = false;
+    const budgetTimer = setTimeout(() => {
+      budgetExceeded = true;
+      controller.abort();
+    }, ASK_TOTAL_BUDGET_MS);
 
     try {
       try {
@@ -408,9 +469,13 @@ export class AskManager {
         // non-fatal
       }
       const activeLang = deps.lang ?? LANG_BCP47[getLang()] ?? 'en-IN';
-      const doRequest =
-        deps.request ?? ((sc, q, l, sig) => requestAsk(sc, q, l, { signal: sig }));
-      const response = await doRequest(deps.scene, trimmed, activeLang, controller.signal);
+      const response = await this.performRequestWithRetry(
+        deps.scene,
+        trimmed,
+        activeLang,
+        controller,
+        deps,
+      );
 
       if (controller.signal.aborted) {
         return { kind: 'cancelled' };
@@ -440,8 +505,8 @@ export class AskManager {
       };
     } catch (err: unknown) {
       if (
-        controller.signal.aborted ||
-        (err instanceof AskRequestError && err.failure === 'aborted')
+        (!budgetExceeded && controller.signal.aborted) ||
+        (!budgetExceeded && err instanceof AskRequestError && err.failure === 'aborted')
       ) {
         return { kind: 'cancelled' };
       }
@@ -450,7 +515,8 @@ export class AskManager {
       } catch {
         // non-fatal
       }
-      const message = askErrorMessage(err);
+      const finalErr = budgetExceeded ? new AskRequestError('timeout') : err;
+      const message = askErrorMessage(finalErr);
       try {
         deps.say(message);
       } catch {
@@ -461,14 +527,60 @@ export class AskManager {
       } catch {
         // non-fatal
       }
-      return { kind: 'failed', message, error: err };
+      return { kind: 'failed', message, error: finalErr };
     } finally {
+      clearTimeout(budgetTimer);
       // Only the active call may clear state; an aborted call must not clobber a newer ask.
       if (this.activeController === controller) {
         this.busy = false;
         this.activeController = null;
         this.activeSpeech = null;
       }
+    }
+  }
+
+  private async performRequestWithRetry(
+    scene: DiagramScene,
+    question: string,
+    lang: string,
+    controller: AbortController,
+    deps: AskDeps,
+  ): Promise<AskResponse> {
+    const doRequest =
+      deps.request ??
+      ((sc, q, l, sig) => requestAsk(sc, q, l, { signal: sig, fetchImpl: deps.fetchImpl }));
+
+    try {
+      return await doRequest(scene, question, lang, controller.signal);
+    } catch (err: unknown) {
+      if (
+        controller.signal.aborted ||
+        (err instanceof AskRequestError && err.failure === 'aborted')
+      ) {
+        throw err;
+      }
+
+      if (isBusyError(err)) {
+        const waitSec = err.retryAfterSeconds ?? 3;
+        await sleep(waitSec * 1000, controller.signal);
+        return await doRequest(scene, question, lang, controller.signal);
+      }
+
+      if (isTimeoutError(err) && !isNavigatorOffline()) {
+        try {
+          deps.onStatusChange?.(t('ask.wakingUp'));
+        } catch {
+          // non-fatal
+        }
+        try {
+          deps.say(t('ask.wakingUp'));
+        } catch {
+          // non-fatal
+        }
+        return await doRequest(scene, question, lang, controller.signal);
+      }
+
+      throw err;
     }
   }
 
