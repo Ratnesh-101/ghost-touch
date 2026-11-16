@@ -10,7 +10,8 @@
 
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { App } from '../src/App';
 import { ShareError } from '../src/screens/ShareError';
 import { setLang, t } from '../src/i18n';
 
@@ -45,15 +46,6 @@ vi.mock('../src/config/features', async (importOriginal) => {
     isGhostwriterOn: () => true,
   };
 });
-
-let App!: typeof import('../src/App').App;
-let appModulePromise: Promise<typeof import('../src/App')> | null = null;
-function getAppModule(): Promise<typeof import('../src/App')> {
-  if (!appModulePromise) {
-    appModulePromise = import('../src/App');
-  }
-  return appModulePromise;
-}
 
 describe('FLOW-03: ShareError Cold Open', () => {
   let container: HTMLDivElement | null = null;
@@ -102,11 +94,9 @@ describe('FLOW-03: ShareError Cold Open', () => {
   });
 
   describe('App cold open integration', () => {
-    beforeAll(async () => {
+    beforeEach(() => {
       window.location.hash = '#s=garbage';
-      const appModule = await getAppModule();
-      App = appModule.App;
-    }, 60_000);
+    });
 
     it('renders ShareError on cold load with #s=garbage and focuses heading', async () => {
       window.location.hash = '#s=garbage';
