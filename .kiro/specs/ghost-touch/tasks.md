@@ -540,3 +540,13 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 64.3 Properties at 200-300 runs through `runs()`; mutation-check at least three mutants of the harness-visible rules, reverted
   - [x] 64.4 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro); path-scoped commit
   - _Requirements: 36.*_
+
+## Explore wiring guard tests (review M3 of `docs/reviews/kiro-review-bu3-bu5.md`; tests only)
+> Test file only: `frontend/tests/explore.wiring.guards.test.tsx`. No file under `frontend/src/` changes (mutants are temporary and reverted; `git diff frontend/src` must be empty afterwards). Requirements 28.7-28.9, 29.6, 29.8, 30.2-30.4 and 34.7 are the oracle. An earlier unfinished version had a deliberate probe assertion and type errors; it was moved out of the repo and is rebuilt here without either.
+
+- [x] 65. Mount the real `Explore` with fake drivers and prove each guard
+  - [x] 65.1 Spec (this entry): the guards under test are Ask listening and Guide guiding (click, speech, line name, compass, where-am-I, scan tone), Finding sound off (no click), Directions off (no compass, line name or dwell; button still answers), Corner heartbeat off and Graph scan off (output identical to the engine's own)
+  - [x] 65.2 `frontend/tests/explore.wiring.guards.test.tsx`: no probe assertions, `tsc` clean, every test has a control showing the cue exists when its guard is open
+  - [x] 65.3 Mutation-check each guard in `Explore.tsx` by a temporary edit, reverted; record every mutant and whether the suite killed it here and in BUILD_LOG. Killed: finding sound (switch, Ask), graph scan (switch, Ask), compass (Directions), line name (Directions, Ask), heartbeat switch, where-am-I Directions (both sites together). Survived as equivalent (redundant or unreachable guards): Guide guard in finding-sound, graph-scan and line-name blocks; where-am-I Directions at one site only; where-am-I Ask and Guide flags on the tick path. Finding: finger promotion while Ask listens speaks the corner exits and plays the corner pattern (Requirement 28.7); pinned as `it.fails`, fix is for an agy lane in `Explore.tsx` `handlePointerUp`
+  - [x] 65.4 Gate (`tsc --noEmit`, `vitest run --maxWorkers=6`); BUILD_LOG entry (tool = Kiro); path-scoped commit `kiro: T65 Explore wiring guard tests`
+  - _Requirements: 28.7-28.9, 29.6, 29.8, 30.2-30.4, 34.7_
