@@ -764,3 +764,24 @@ Why one `vibrate` call per beat and not one long repeating pattern: any later `v
 | P127 | **Total (Kiro):** NaN, infinite and backward times, junk targets, effects, state and configs never throw, add no beat for a non-finite time, and do not mutate (deep-frozen inputs). | 34.8 |
 
 Example (`frontend/public/samples/triangle.json`): resting on B for 3 s at 60 ms steps gives the corner pattern at 0 and beats at 900, 1800 and 2700; a step onto side BC at 2750 contains `vibrate(80)` and no array pattern; the label is spoken once.
+
+
+## Scene ingress guard (Requirement 35, task 61)
+Written by Kiro before the code. One new pure module, `frontend/src/core/sceneGuard.ts`, named exports only, importing only the `DiagramScene` type from `scene.ts`.
+
+```ts
+export const SCENE_GUARD_LIMITS = { points: 500, segments: 1000, polylines: 50, polylinePoints: 1000, bars: 100, facts: 100, text: 300, aspectMin: 0.05, aspectMax: 20 } as const;
+export function isRenderableScene(value: unknown): value is DiagramScene
+```
+- Plain loops over the value, no allocation per element, no recursion, no `JSON` calls; a getter that throws is the only way to make it raise, and scenes come from JSON or structured clone, which have none. Reads are wrapped in one `try/catch` that returns `false`, so the function is total even for a hostile object (a Proxy that throws).
+- Why a separate guard and not `validateSceneInvariants`: that function reports editing errors (duplicate and reserved ids) and tolerates missing arrays; this one answers only "can the engine and hit test run on this without throwing or producing NaN".
+- `deserialise` calls it after the existing field checks and returns `undefined` on `false`. The return value keeps the same object (no copy).
+- Limits mirror `backend/app/validate.py` (`MAX_SCENE_POINTS`, `MAX_SCENE_SEGMENTS`, `MAX_SCENE_POLYLINES`, `MAX_POLYLINE_POINTS`, `MAX_SCENE_BARS`, `MAX_SCENE_FACTS`, `MAX_TEXT_CHARS`). The existing `tests/caps.agree.test.ts` pattern is reused: a test reads the constants from `validate.py` and compares them with `SCENE_GUARD_LIMITS`, so the two cannot drift.
+- Not wired yet: the network client and the sample loader (a later `flow/` lane).
+
+| # | Property | Validates |
+|---|---|---|
+| P128 | **Total (Kiro, task 61):** for any JSON value (`fc.jsonValue`, plus scene-shaped values with random junk in random fields, plus a throwing Proxy), `isRenderableScene` returns a boolean and never throws. 300 runs. | 35.4 |
+| P129 | **Bundled scenes are accepted (Kiro, task 61):** every `frontend/public/samples/*.json` and every scene in `backend/fixtures/{triangle,sine,barchart}.json` is accepted; the limits equal the backend constants read from `validate.py`. Example test, not fast-check. | 35.2, 35.3 |
+| P130 | **An accepted scene never breaks the core (Kiro, task 61):** for any accepted scene (generated, so it covers all four kinds, dangling-free segments, empty arrays, bars with any finite value) and any finger (including far outside the canvas and non-finite) and viewport (letterboxed, scale above 0), `hitTest`, `step` driven by the hit result, `directionOf`, `vertexExits`, `lineEnds`, `nearestElement`, `curveYAtX` and `followTarget` never throw, and every number in their results is finite. 300 runs. | 35.6 |
+| P131 | **Damage is rejected (Kiro, task 61):** for any accepted scene, deleting any one of `kind`, `points`, `segments`, `polylines`, `bars`, or setting one of them to a non-array, or replacing any single coordinate (point, polyline vertex, bar edge, axis) with NaN, Infinity, -0.001, 1.001, a string or null, or a bar value with NaN or Infinity, or an id with `''` or a number, or one segment endpoint with an unknown id, or `aspect` with 0.04, 21 or NaN, or exceeding one size cap by one, gives `false`. Plus `deserialise` returns `undefined` for each. 300 runs. | 35.2, 35.5 |

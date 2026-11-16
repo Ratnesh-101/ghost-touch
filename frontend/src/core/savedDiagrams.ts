@@ -6,6 +6,7 @@
  * arguments (clock, rng) so property tests can control them exactly.
  */
 
+import { isRenderableScene } from './sceneGuard';
 import type { DiagramScene } from './scene';
 
 // ---------------------------------------------------------------------------
@@ -238,6 +239,9 @@ export function deserialise(raw: unknown): SavedDiagram | undefined {
   if (typeof scene.kind !== 'string' || !validKinds.includes(scene.kind)) {
     return undefined;
   }
+
+  // Requirement 35.5: a scene the structural guard rejects is corrupt.
+  if (!isRenderableScene(r.scene)) return undefined;
 
   return {
     id: r.id,

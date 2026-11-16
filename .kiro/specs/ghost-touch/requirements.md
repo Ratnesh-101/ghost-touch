@@ -501,3 +501,25 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 8. THE helper SHALL be pure and total: no DOM, React, `window`, `navigator`, timer, audio or speech; it SHALL NEVER throw, whatever the time (NaN, infinite or going backwards), target, effects, state or configuration, SHALL NEVER mutate its inputs, and SHALL return the configured pattern as a copy. It SHALL add no beat for a time that is not finite. It SHALL keep no timer: the caller's existing steps (pointer moves and the 60 ms keep-alive) drive the beats, so a beat can be up to one step late.
 9. THE helper SHALL NOT change `hapticEngine.ts`, `hitTest.ts`, `DEFAULT_HAPTICS`, `DEFAULT_RADII` or any tuned value, and SHALL NOT be called by the app until lane 59b adds the switch (default off) and the wiring.
 10. Proposed values, all pending owner approval and a phone test (`tech.md`, separate row): beat pattern `[50, 90, 50]`, period 900 ms, quiet window 450 ms (copied). Whether the two pulses are felt as two, whether the beat is told from the line buzz with eyes closed, and whether the 60 ms step jitter is felt are for the phone test. Known limit (Kiro): a step that is late by most of a period (only possible when the keep-alive is stalled, not at its 60 ms rhythm) can be followed by the next beat sooner than one period after it.
+
+
+### Requirement 35: One structural guard at every scene ingress (core half; task 61)
+> Written by Kiro on 2026-11-16 BEFORE the code. This requirement covers the pure guard `frontend/src/core/sceneGuard.ts` and its use in `core/savedDiagrams.ts` `deserialise`. Wiring the guard into the other two ingress points (the network client and the bundled-sample loader, both outside `core/`) is a later lane; until then only saved storage is guarded, and this requirement says so rather than claiming all three. `hitTest.ts`, `hapticEngine.ts` and every tuned value are NOT changed.
+
+**User Story:** As a blind student, I want a diagram that reaches Explore to be one the app can always feel, so that a damaged saved entry, a bad response or a bad file can never freeze or silence the screen I am touching.
+
+#### Acceptance Criteria
+1. EVERY scene that reaches Explore, whether from the network, a bundled sample or saved storage, SHALL have passed one structural guard, `isRenderableScene(value: unknown): value is DiagramScene`. (Now enforced for saved storage; the other two are the later lane.)
+2. THE guard SHALL accept a value only when ALL of these hold:
+   1. it is a non-null, non-array object whose `kind` is one of `geometry`, `function_graph`, `bar_chart`, `unknown`;
+   2. `points`, `segments`, `polylines` and `bars` are present and are arrays (a missing array is NOT read as empty; an empty array is fine). `facts`, when present, is an array of strings;
+   3. every id (of a point, segment, polyline or bar) is a non-empty string; every segment's `a` and `b` are ids of points in the same scene;
+   4. every coordinate is a finite number in [0, 1]: point `x` and `y`, every polyline vertex (a pair of two such numbers), bar `x0`, `x1`, `y_top`, `y_base`, and `axes.x_axis_y` and `axes.y_axis_x` when they are not null;
+   5. every bar `value` is a finite number;
+   6. `aspect`, when present, is a finite number in [0.05, 20];
+   7. `title`, when present, is a string or null; every `label`, when present, is a string or null, and every bar label is a string; `axes`, when present, is null or an object;
+   8. sizes: at most 500 points, 1000 segments, 50 polylines, 1000 vertices in any one polyline, 100 bars and 100 facts (the backend's `MAX_SCENE_*` in `backend/app/validate.py`), and every string (title, label, fact, bar label) at most 300 characters (`MAX_TEXT_CHARS`).
+3. THE guard SHALL NOT require anything the backend does not require beyond 2.2 (it does not demand unique ids, reserved-id checks or a drawable element; those stay with the validators and `validateSceneInvariants`). A scene the backend accepts and that has all four arrays SHALL be accepted.
+4. THE guard SHALL be total and pure: for any value, including cyclic-free JSON of any shape, it returns a boolean and never throws; no React, no browser API, no i18n, no import except scene types.
+5. `deserialise` SHALL return `undefined` for a saved entry whose scene the guard rejects, in addition to its existing checks. A saved entry written before this requirement with a missing array is therefore dropped as corrupt (decided by the owner's brief: a missing array is not acceptable).
+6. FOR ANY accepted scene, AND any finger position and viewport, `hitTest`, `step`, `directionOf`/`vertexExits`/`lineEnds`/`nearestElement`, `curveYAtX` and `followTarget` SHALL NOT throw and SHALL return only finite numbers. IF a counterexample is found in `core/`, THEN work SHALL stop, the counterexample SHALL be logged in `docs/BUILD_LOG.md`, and the fix SHALL be its own specified task.

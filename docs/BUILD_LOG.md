@@ -4382,3 +4382,12 @@ Format for each entry:
 - Earlier flakes seen in this log and not reproduced here: `shareError.coldOpen.test.tsx` 60 s hook timeout under full-run load (task 58 entry, test-environment load, still unexplained).
 - Gate: `tsc --noEmit` 0 errors; `vitest run` 197 files, 2494 passed, 5 of 5 runs.
 - Files: frontend/tests/support/runs.ts, frontend/tests/{sticky,hitTest.curveAxis,hitTest.nan,hitTest.perf,hitTest,geometry,hapticEngine,hapticEngine.reentry,heartbeat,curve,compass}.prop.test.ts, .kiro/specs/ghost-touch/tasks.md, docs/BUILD_LOG.md
+
+### Task 61: scene ingress guard (tool = Kiro)
+- Spec first: Requirement 35, design section, P128-P131, task 61 (written before the code; found uncommitted in the tree after a stream error and continued, not duplicated).
+- Built \rontend/src/core/sceneGuard.ts\ (\isRenderableScene\, \SCENE_GUARD_LIMITS\) and used it in \deserialise\. Not yet wired to the network client or sample loader (61b, later lane).
+- Properties in \rontend/tests/sceneGuard.prop.test.ts\ (300 runs). P130 found no throw or non-finite number in core, so no core task was opened. Mutants checked: no segment endpoint check, no aspect lower bound, missing bars array accepted, NaN bar value accepted: all caught. A fifth (no polyline pair-length check) survived, so an example test was added.
+- Two existing test files built scenes with missing arrays (\{ kind: 'geometry' }\) and went through \deserialise\; the fixtures were wrong under 35.5, so they now include empty arrays (savedDiagrams.test.ts, drivers.diagramStore.test.ts).
+- Gate: \	sc --noEmit\ 0 errors; \itest run\ 198 files, 2512 passed.
+- Files: frontend/src/core/sceneGuard.ts, frontend/src/core/savedDiagrams.ts, frontend/tests/{sceneGuard.prop,savedDiagrams,drivers.diagramStore}.test.ts, .kiro/specs/ghost-touch/{requirements,design,tasks}.md, docs/BUILD_LOG.md
+
