@@ -33,7 +33,9 @@ import {
   setStoredGuideSetting,
 } from '../config/features';
 import {
+  getStoredCornerHeartbeatSetting,
   getStoredDirectionsSetting,
+  setStoredCornerHeartbeatSetting,
   setStoredDirectionsSetting,
 } from '../drivers/storage';
 import {
@@ -87,6 +89,7 @@ export function LabSettings({
   const [directionsEnabled, setDirectionsEnabled] = useState(() => getStoredDirectionsSetting());
   const [findingSoundEnabled, setFindingSoundEnabled] = useState(() => getStoredFindingSoundSetting());
   const [graphScanEnabled, setGraphScanEnabled] = useState(() => getStoredGraphScanSetting());
+  const [cornerHeartbeatEnabled, setCornerHeartbeatEnabled] = useState(() => getStoredCornerHeartbeatSetting());
   const [teacherEnabled, setTeacherEnabled] = useState(() => getStoredTeacherSetting());
 
   const doSpeak = (text: string): void => {
@@ -118,6 +121,14 @@ export function LabSettings({
     setGraphScanEnabled(next);
     setStoredGraphScanSetting(next);
     const spoken = next ? t('lab.settings.graphScanOn') : t('lab.settings.graphScanOff');
+    doSpeak(spoken);
+  };
+
+  const handleToggleCornerHeartbeat = (): void => {
+    const next = !cornerHeartbeatEnabled;
+    setCornerHeartbeatEnabled(next);
+    setStoredCornerHeartbeatSetting(next);
+    const spoken = next ? t('lab.settings.cornerHeartbeatOn') : t('lab.settings.cornerHeartbeatOff');
     doSpeak(spoken);
   };
 
@@ -159,6 +170,7 @@ export function LabSettings({
       setDirectionsEnabled(getStoredDirectionsSetting());
       setFindingSoundEnabled(getStoredFindingSoundSetting());
       setGraphScanEnabled(getStoredGraphScanSetting());
+      setCornerHeartbeatEnabled(getStoredCornerHeartbeatSetting());
       setTeacherEnabled(getStoredTeacherSetting());
       hasSpokenClose.current = false;
       if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
@@ -388,6 +400,42 @@ export function LabSettings({
               {graphScanEnabled
                 ? t('lab.settings.graphScanOn')
                 : t('lab.settings.graphScanOff')}
+            </AccessibleButton>
+          </section>
+
+          <section
+            className="gt-lab-settings__section"
+            aria-labelledby="lab-settings-section-corner-heartbeat"
+          >
+            <h3 id="lab-settings-section-corner-heartbeat" className="gt-lab-settings__section-title">
+              {t('lab.settings.cornerHeartbeat')}
+            </h3>
+            <p
+              className="gt-lab-settings__hint"
+              style={{
+                margin: '0 0 var(--gt-space-sm, 8px) 0',
+                fontSize: '0.9rem',
+                color: 'var(--gt-bone, #ded6c4)',
+              }}
+            >
+              {t('lab.settings.cornerHeartbeatHint')}
+            </p>
+            <AccessibleButton
+              type="button"
+              role="switch"
+              aria-checked={cornerHeartbeatEnabled}
+              className={`gt-control gt-btn ${
+                cornerHeartbeatEnabled ? 'gt-btn--primary' : 'gt-btn--secondary'
+              }`}
+              onClick={handleToggleCornerHeartbeat}
+              style={{
+                minWidth: '48px',
+                minHeight: '48px',
+                padding: '12px 20px',
+                width: '100%',
+              }}
+            >
+              {t('lab.settings.cornerHeartbeat')}
             </AccessibleButton>
           </section>
 

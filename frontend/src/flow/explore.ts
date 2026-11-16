@@ -22,15 +22,26 @@ import {
   type ProximityState,
 } from '../core/proximity';
 import {
+  DEFAULT_HEARTBEAT,
+  heartbeatStep,
+  initialHeartbeatState,
+  type HeartbeatConfig,
+  type HeartbeatState,
+} from '../core/heartbeat';
+import {
+  _resetCornerHeartbeatSettingForTesting,
   _resetDirectionsSettingForTesting,
   _resetFindingSoundSettingForTesting,
+  getStoredCornerHeartbeatSetting,
   getStoredDirectionsSetting,
   getStoredFindingSoundSetting,
   safeGet,
   safeRemove,
   safeSet,
+  setStoredCornerHeartbeatSetting,
   setStoredDirectionsSetting,
   setStoredFindingSoundSetting,
+  STORAGE_KEY_CORNER_HEARTBEAT,
   STORAGE_KEY_DIRECTIONS,
   STORAGE_KEY_FINDING_SOUND,
   subscribeSettings,
@@ -115,6 +126,13 @@ export {
   setStoredFindingSoundSetting,
   _resetFindingSoundSettingForTesting,
   STORAGE_KEY_FINDING_SOUND,
+  getStoredCornerHeartbeatSetting,
+  setStoredCornerHeartbeatSetting,
+  _resetCornerHeartbeatSettingForTesting,
+  STORAGE_KEY_CORNER_HEARTBEAT,
+  DEFAULT_HEARTBEAT,
+  initialHeartbeatState,
+  heartbeatStep,
   subscribeSettings,
   DEFAULT_PROXIMITY,
   initialProximityState,
@@ -129,6 +147,8 @@ export type {
   ProximityEffect,
   ProximityState,
   NearestElement,
+  HeartbeatConfig,
+  HeartbeatState,
 };
 
 /**
@@ -456,6 +476,7 @@ export interface MovePipelineResult {
   nearest: NearestElement | null;
   proximityState: ProximityState;
   proximityEffects: ProximityEffect[];
+  heartbeatState: HeartbeatState;
 }
 
 /**
@@ -473,6 +494,8 @@ export function processPointerMove(
   cfg: HapticConfig = DEFAULT_HAPTICS,
   proximityState: ProximityState = initialProximityState(),
   proximityCfg: ProximityConfig = DEFAULT_PROXIMITY,
+  heartbeatState: HeartbeatState = initialHeartbeatState(),
+  heartbeatCfg: HeartbeatConfig | null = null,
 ): MovePipelineResult {
   const target = hitTest(scene, finger, view, radii);
   const norm = toNorm(finger, view);
@@ -516,11 +539,23 @@ export function processPointerMove(
     proximityCfg,
   );
 
+  let finalEffects = effects;
+  let nextHeartbeatState = heartbeatState;
+  if (heartbeatCfg !== null) {
+    const hb = heartbeatStep(
+      heartbeatState,
+      { kind: 'move', t, target, engineEffects: effects },
+      heartbeatCfg,
+    );
+    finalEffects = hb.effects;
+    nextHeartbeatState = hb.state;
+  }
+
   return {
     target,
     xNorm: norm.x,
     yNorm: norm.y,
-    effects,
+    effects: finalEffects,
     nextEngineState,
     centreCheck,
     axisCrossings,
@@ -528,6 +563,7 @@ export function processPointerMove(
     nearest,
     proximityState: nextProximityState,
     proximityEffects,
+    heartbeatState: nextHeartbeatState,
   };
 }
 

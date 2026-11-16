@@ -456,6 +456,12 @@ const en: Record<string, string> = {
   'lab.settings.graphScanOn': 'Graph scan enabled.',
   'lab.settings.graphScanOff': 'Graph scan disabled.',
 
+  // Corner heartbeat setting (Lane hb2)
+  'lab.settings.cornerHeartbeat': 'Corner heartbeat',
+  'lab.settings.cornerHeartbeatHint': 'Repeating heartbeat vibration while resting on a corner.',
+  'lab.settings.cornerHeartbeatOn': 'Corner heartbeat enabled.',
+  'lab.settings.cornerHeartbeatOff': 'Corner heartbeat disabled.',
+
   // Corner compass & line names (Lane A3)
   'compass.dir.up': 'up',
   'compass.dir.down': 'down',
@@ -917,6 +923,12 @@ const hi: Record<string, string> = {
   'lab.settings.graphScanHint': 'ग्राफ़ पर कहीं भी वक्र की ध्वनि सुनें।',
   'lab.settings.graphScanOn': 'ग्राफ़ स्कैन सक्षम किया गया।',
   'lab.settings.graphScanOff': 'ग्राफ़ स्कैन अक्षम किया गया।',
+
+  // Corner heartbeat setting (Lane hb2)
+  'lab.settings.cornerHeartbeat': 'कोना धड़कन',
+  'lab.settings.cornerHeartbeatHint': 'कोने पर रुकने पर दोहराया जाने वाला कंपन।',
+  'lab.settings.cornerHeartbeatOn': 'कोना धड़कन सक्षम की गई।',
+  'lab.settings.cornerHeartbeatOff': 'कोना धड़कन अक्षम की गई।',
 
   // Corner compass & line names (Lane A3)
   'compass.dir.up': 'ऊपर',
@@ -1380,6 +1392,12 @@ const gu: Record<string, string> = {
   'lab.settings.graphScanHint': 'આલેખ પર ગમે ત્યાં વક્રનો સૂર સાંભળો.',
   'lab.settings.graphScanOn': 'આલેખ સ્કેન સક્ષમ કરી.',
   'lab.settings.graphScanOff': 'આલેખ સ્કેન અક્ષમ કરી.',
+
+  // Corner heartbeat setting (Lane hb2)
+  'lab.settings.cornerHeartbeat': 'ખૂણાના ધબકારા',
+  'lab.settings.cornerHeartbeatHint': 'ખૂણા પર રોકાવા પર પુનરાવર્તિત વાઇબ્રેશન.',
+  'lab.settings.cornerHeartbeatOn': 'ખૂણાના ધબકારા સક્ષમ કર્યા.',
+  'lab.settings.cornerHeartbeatOff': 'ખૂણાના ધબકારા અક્ષમ કર્યા.',
 
   // Corner compass & line names (Lane A3)
   'compass.dir.up': 'ઉપર',

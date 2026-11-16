@@ -42,12 +42,16 @@ import {
   cornerCompass,
   createHoldKeepAliveTimer,
   DEFAULT_HAPTICS,
+  DEFAULT_HEARTBEAT,
+  DEFAULT_PROXIMITY,
   DEFAULT_RADII,
+  getStoredCornerHeartbeatSetting,
   getStoredDirectionsSetting,
   getStoredFindingSoundSetting,
   getStoredGraphScanSetting,
   initialAxisState,
   initialCentreTickState,
+  initialHeartbeatState,
   initialProximityState,
   initialState,
   initialWhereAmIDwellState,
@@ -73,6 +77,7 @@ import {
   type AxisTrackerState,
   type CentreTickState,
   type EngineState,
+  type HeartbeatState,
   type HoldKeepAliveOptions,
   type HoldKeepAliveTimer,
   type PointerHistory,
@@ -258,6 +263,7 @@ export function Explore({
   const textInputRef = useRef<HTMLInputElement>(null);
 
   const engineState = useRef<EngineState>(initialState());
+  const heartbeatState = useRef<HeartbeatState>(initialHeartbeatState());
   const proximityState = useRef<ProximityState>(initialProximityState());
   const centreTickState = useRef<CentreTickState>(initialCentreTickState());
   const axisState = useRef<AxisTrackerState>(initialAxisState());
@@ -289,12 +295,14 @@ export function Explore({
   const directionsSettingRef = useRef<boolean>(getStoredDirectionsSetting());
   const findingSoundSettingRef = useRef<boolean>(getStoredFindingSoundSetting());
   const graphScanSettingRef = useRef<boolean>(getStoredGraphScanSetting());
+  const cornerHeartbeatSettingRef = useRef<boolean>(getStoredCornerHeartbeatSetting());
 
   useEffect(() => {
     return subscribeSettings(() => {
       directionsSettingRef.current = getStoredDirectionsSetting();
       findingSoundSettingRef.current = getStoredFindingSoundSetting();
       graphScanSettingRef.current = getStoredGraphScanSetting();
+      cornerHeartbeatSettingRef.current = getStoredCornerHeartbeatSetting();
     });
   }, []);
 
@@ -444,6 +452,8 @@ export function Explore({
       setOfferedTarget(null);
       drivers.audio.setTone(null);
       playingScanToneRef.current = false;
+      engineState.current = initialState();
+      heartbeatState.current = initialHeartbeatState();
       if (shouldPlayAlive(scene)) {
         markAlivePlayed(scene);
         setIsAlive(true);
@@ -537,9 +547,11 @@ export function Explore({
       sendProximityLift();
       setOfferedTarget(null);
       drivers.audio.unlock();
+      drivers.haptics.stop();
       drivers.audio.setTone(null);
       playingScanToneRef.current = false;
       engineState.current = initialState();
+      heartbeatState.current = initialHeartbeatState();
       guideController.current.start(resolved);
       setIsGuiding(true);
       const msg = t('guide.start').replace('{label}', resolved.label);
@@ -574,6 +586,7 @@ export function Explore({
     whereAmIDwellState.current = resetWhereAmIDwellOnLift();
     lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
     prevTargetRef.current = { kind: 'none' };
+    heartbeatState.current = initialHeartbeatState();
     leaveExploreEntry();
     onBack();
   };
@@ -592,6 +605,8 @@ export function Explore({
     try {
       drivers.audio.setTone(null);
       playingScanToneRef.current = false;
+      engineState.current = initialState();
+      heartbeatState.current = initialHeartbeatState();
       drivers.haptics.stop();
     } catch {
       // ignore
@@ -683,8 +698,10 @@ export function Explore({
         } else if (result.guideTarget) {
           keepAliveTimer.current?.stop();
           sendProximityLift();
+          drivers.haptics.stop();
           drivers.audio.setTone(null);
           engineState.current = initialState();
+          heartbeatState.current = initialHeartbeatState();
           guideController.current?.start(result.guideTarget);
           setIsGuiding(true);
         }
@@ -1145,6 +1162,7 @@ export function Explore({
       clearLongPressTimer();
       activePointers.current.clear();
       primaryPointerId.current = null;
+      heartbeatState.current = initialHeartbeatState();
       onBackRef.current();
     });
 
@@ -1156,6 +1174,7 @@ export function Explore({
         if (guideController.current?.isGuiding()) {
           guideController.current.stop('user');
         }
+        drivers.haptics.stop();
         drivers.audio.setTone(null);
         drivers.audio.setGuideTone?.(null);
         clearLongPressTimer();
@@ -1164,6 +1183,7 @@ export function Explore({
         whereAmIDwellState.current = resetWhereAmIDwellOnLift();
         lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
         prevTargetRef.current = { kind: 'none' };
+        heartbeatState.current = initialHeartbeatState();
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
         engineState.current = state;
         runEffects(effects, drivers);
@@ -1177,6 +1197,7 @@ export function Explore({
       if (guideController.current?.isGuiding()) {
         guideController.current.stop('user');
       }
+      drivers.haptics.stop();
       drivers.audio.setTone(null);
       drivers.audio.setGuideTone?.(null);
       clearLongPressTimer();
@@ -1185,6 +1206,7 @@ export function Explore({
       whereAmIDwellState.current = resetWhereAmIDwellOnLift();
       lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
       prevTargetRef.current = { kind: 'none' };
+      heartbeatState.current = initialHeartbeatState();
       const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
       engineState.current = state;
       runEffects(effects, drivers);
@@ -1238,6 +1260,7 @@ export function Explore({
         rafId.current = null;
       }
       // Lift on unmount
+      heartbeatState.current = initialHeartbeatState();
       const { effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
       runEffects(effects, drivers);
       sendProximityLift(performance.now());
@@ -1259,6 +1282,7 @@ export function Explore({
     afterAnnouncements: readonly string[] = [],
   ): void => {
     engineState.current = moveResult.nextEngineState;
+    heartbeatState.current = moveResult.heartbeatState;
     centreTickState.current = moveResult.centreCheck.nextState;
     axisState.current = moveResult.nextAxisState;
 
@@ -1413,6 +1437,9 @@ export function Explore({
           DEFAULT_RADII,
           DEFAULT_HAPTICS,
           proximityState.current,
+          DEFAULT_PROXIMITY,
+          heartbeatState.current,
+          cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, coords, now, lang);
@@ -1453,6 +1480,7 @@ export function Explore({
     directionsSettingRef.current = getStoredDirectionsSetting();
     findingSoundSettingRef.current = getStoredFindingSoundSetting();
     graphScanSettingRef.current = getStoredGraphScanSetting();
+    cornerHeartbeatSettingRef.current = getStoredCornerHeartbeatSetting();
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
@@ -1505,6 +1533,7 @@ export function Explore({
 
     // Re-centre on each new hold (Requirement 13)
     engineState.current = initialState();
+    heartbeatState.current = initialHeartbeatState();
     // Re-arm centre tick state on every new hold (finding 2)
     centreTickState.current = rearmCentreTick(centreTickState.current);
 
@@ -1540,11 +1569,15 @@ export function Explore({
         DEFAULT_RADII,
         DEFAULT_HAPTICS,
         proximityState.current,
+        DEFAULT_PROXIMITY,
+        heartbeatState.current,
+        cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
       );
       engineState.current = moveResult.nextEngineState;
       centreTickState.current = moveResult.centreCheck.nextState;
       axisState.current = moveResult.nextAxisState;
       proximityState.current = moveResult.proximityState;
+      heartbeatState.current = moveResult.heartbeatState;
       prevTargetRef.current = moveResult.target;
       scheduleDraw(view, coords);
       return;
@@ -1576,6 +1609,9 @@ export function Explore({
       DEFAULT_RADII,
       DEFAULT_HAPTICS,
       proximityState.current,
+      DEFAULT_PROXIMITY,
+      heartbeatState.current,
+      cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
     );
     const compassAnnouncements = checkVertexCompass(moveResult.target, now);
     checkLineDwell(moveResult.target, coords, now, lang);
@@ -1642,11 +1678,15 @@ export function Explore({
         DEFAULT_RADII,
         DEFAULT_HAPTICS,
         proximityState.current,
+        DEFAULT_PROXIMITY,
+        heartbeatState.current,
+        cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
       );
       engineState.current = moveResult.nextEngineState;
       centreTickState.current = moveResult.centreCheck.nextState;
       axisState.current = moveResult.nextAxisState;
       proximityState.current = moveResult.proximityState;
+      heartbeatState.current = moveResult.heartbeatState;
       prevTargetRef.current = moveResult.target;
       scheduleDraw(view, coords);
       return;
@@ -1668,6 +1708,9 @@ export function Explore({
       DEFAULT_RADII,
       DEFAULT_HAPTICS,
       proximityState.current,
+      DEFAULT_PROXIMITY,
+      heartbeatState.current,
+      cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
     );
     const compassAnnouncements = checkVertexCompass(moveResult.target, now);
     checkLineDwell(moveResult.target, coords, now, lang);
@@ -1739,6 +1782,7 @@ export function Explore({
         directionsSettingRef.current = getStoredDirectionsSetting();
         findingSoundSettingRef.current = getStoredFindingSoundSetting();
         graphScanSettingRef.current = getStoredGraphScanSetting();
+        cornerHeartbeatSettingRef.current = getStoredCornerHeartbeatSetting();
         const view = viewportRef.current;
         const lang = LANG_BCP47[getLang()] ?? 'en-IN';
 
@@ -1749,6 +1793,7 @@ export function Explore({
         sendProximityLift(now);
 
         engineState.current = initialState();
+        heartbeatState.current = initialHeartbeatState();
         const norm = toNorm(promotedCoords, view);
         axisState.current = seedAxisState(norm, scene.axes);
 
@@ -1763,6 +1808,9 @@ export function Explore({
           DEFAULT_RADII,
           DEFAULT_HAPTICS,
           proximityState.current,
+          DEFAULT_PROXIMITY,
+          heartbeatState.current,
+          cornerHeartbeatSettingRef.current ? DEFAULT_HEARTBEAT : null,
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, promotedCoords, now, lang);
@@ -1778,6 +1826,7 @@ export function Explore({
         whereAmIDwellState.current = resetWhereAmIDwellOnLift();
         lineDwellRef.current = { lineId: null, enterTime: 0, anchor: null, spoken: false };
         prevTargetRef.current = { kind: 'none' };
+        heartbeatState.current = initialHeartbeatState();
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
         engineState.current = state;
         runEffects(effects, drivers);
