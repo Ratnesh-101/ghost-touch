@@ -567,9 +567,9 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 ## Seven Explore bugs: spec and failing oracles (Requirements 31.6, 31.7, 37 to 42; spec written before the tests)
 > Tests and spec only. Do not edit `frontend/src/`, `tech.md` or any tuned value. Fixes are agy lanes ux1 (37), ux2 (38, 40, 42, 31.7 rest), ux3 (39, 41, 31.6, compass in short mode). Each oracle is `it.fails` with its reason in BUILD_LOG; lanes remove `.fails` when they fix it.
 
-- [ ] 67. Spec and failing oracles for the seven Explore bugs
+- [x] 67. Spec and failing (lanes in 67.4 still to do) oracles for the seven Explore bugs
   - [x] 67.1 Requirements 37 to 42, amended 31.3 plus new 31.6 and 31.7, design section with oracles U1 to U8 (P137, P138) before any test
-  - [ ] 67.2 `tests/support/exploreRig.tsx`, `tests/explore.ux.bugs.test.tsx`, `tests/explore.ux.pacing.prop.test.ts`; every red oracle `it.fails`, each with a passing control; `git diff frontend/src` empty
-  - [ ] 67.3 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro) with each oracle and why it fails; path-scoped commits
+  - [x] 67.2 `tests/support/exploreRig.tsx`, `tests/explore.ux.bugs.test.tsx`, `tests/explore.ux.pacing.prop.test.ts`; every red oracle `it.fails`, each with a passing control; `git diff frontend/src` empty
+  - [x] 67.3 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro) with each oracle and why it fails; path-scoped commits
   - [ ] 67.4 Lane ux1: Requirement 37. Lane ux2: 38, 40, 42, 31.7. Lane ux3: 39, 41, 31.6 and compass in short mode. Each removes the `.fails` of its oracles
   - _Requirements: 31.*, 37.* to 42.*_
