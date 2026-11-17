@@ -29,6 +29,7 @@ declare module 'react' {
   }
 }
 import { loadSample, type SampleId, type SceneMode } from '../api/scene';
+import { warmBackend } from '../api/health';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { LabLoading } from '../components/loading/LabLoading';
 import { LabSettings, describeSettings } from '../components/LabSettings';
@@ -107,6 +108,7 @@ export function Capture({
   const activeRate = drivers.speech.getRate ? drivers.speech.getRate() : currentRate;
 
   useEffect(() => {
+    void warmBackend();
     takeButton.current?.focus();
     const controller = new AbortController();
     lifetime.current = controller;
@@ -146,7 +148,10 @@ export function Capture({
   // Do not open a picker while an upload is running; say why instead of ignoring the tap.
   const openPicker = (picker: RefObject<HTMLInputElement | null>): void => {
     if (busy || busyRef.current) say(t('capture.busy'));
-    else picker.current?.click();
+    else {
+      void warmBackend();
+      picker.current?.click();
+    }
   };
 
   const handleCancel = (): void => {
@@ -164,6 +169,7 @@ export function Capture({
     event: ChangeEvent<HTMLInputElement>,
     source: FileSource,
   ): Promise<void> => {
+    void warmBackend();
     const input = event.target;
     const file = input.files?.[0];
     input.value = ''; // lets the same file be chosen again
