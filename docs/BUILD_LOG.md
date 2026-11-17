@@ -4652,3 +4652,12 @@ Format for each entry:
   - `backend/tests/test_ux12_breaker.py`
   - `docs/reports/agy-ux12-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-17 - Kiro - T71-T74 three missing gate tests (tests only)
+- Tool: Kiro. No file under `frontend/src/` changed; no tuned value or stored default changed. A previous run died during a mutation check; `git status` showed no partial edits to `src/`, and the two test files it left (`commands.table.test.ts`, `storage.settings.prop.test.ts`) were complete, so they were kept as they were.
+- T71 (Requirement 45, P147): 20-question table (14 en, 3 hi, 3 gu) and a 250-run sentence property, both `it.fails` today (e.g. "Which bar grows faster?" -> set_rate, "Can you help me find AB?" -> help, "Describe angle B" -> describe). The bare commands in en, hi, gu pass as a control. Open: lane 71b removes the two `.fails`.
+- T72 (Requirement 46, P148, P149): seven boolean getters. Junk reads the default (red for the three default-true getters), a failed `setItem` keeps the in-memory value (red for all seven). Ten `.fails`; lane 72b removes them.
+- T73 (Requirement 47, P150): `frontend/tests/explore.soak.test.tsx`, 15 seeds of about 60 simulated seconds on the real Explore (triangle and sine), seeded generator, `PINNED_SEEDS` empty because no seed failed. Mutants of `Explore.tsx` killed: timer survives a lift (15 of 15 runs red), ticks while Ask listens (8 red), no hold ticks (11 red, tail check). Source restored; `git diff frontend/src` empty.
+- T74: P109, P112, P113 already in `explore.dwell.prop.test.ts`. P110 and P111 cannot be written: the line-name dwell is inline in `Explore.tsx` and no pure `lineDwell` is exported. Recorded in tasks.md; task 56.1 stays open.
+- Gate: `tsc --noEmit` 0 errors; `vitest run --maxWorkers=4`: 226 files, 2861 passed, 15 expected fail, 1 todo.
+- Files: `frontend/tests/commands.table.test.ts`, `frontend/tests/storage.settings.prop.test.ts`, `frontend/tests/explore.soak.test.tsx`, `.kiro/specs/ghost-touch/tasks.md`, `docs/BUILD_LOG.md`.

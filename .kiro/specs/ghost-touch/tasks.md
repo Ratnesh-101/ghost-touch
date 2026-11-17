@@ -602,21 +602,21 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 ## Three gate tests that were missing (Requirements 45 to 47; spec written before the tests)
 > Tests only. Do not edit `frontend/src/`, `tech.md`, any tuned value or stored default. Each red oracle is `it.fails` with its reason; the agy lane that fixes the bug removes `.fails`.
 
-- [ ] 71. Voice command table (Requirement 45, P147): `frontend/tests/commands.table.test.ts`
-  - [ ] 71.1 Requirement 45, design row P147 written before the test
-  - [ ] 71.2 20 real questions (14 en, 3 hi, 3 gu) parse as `unknown` (`it.fails`, rows still matching listed in the message); bare commands in en, hi, gu keep their type and rate (passing); fast-check sentence property (250 runs)
-  - [ ] 71.3 Gate; BUILD_LOG; path-scoped commit
-  - [ ] 71b. Lane (not Kiro): `flow/commands.ts` whole-phrase rule of 45.1; removes `.fails`
-- [ ] 72. Storage getters (Requirement 46, P148, P149): `frontend/tests/storage.settings.prop.test.ts`
-  - [ ] 72.1 Requirement 46, design rows P148 and P149 written before the test
-  - [ ] 72.2 P148 per getter (junk reads the default; `'true'` and `'false'` read exactly), P149 per getter (failed `setItem`, in-memory value wins); rows red today are `it.fails`
-  - [ ] 72.3 Gate; BUILD_LOG; path-scoped commit
-  - [ ] 72b. Lane (not Kiro): the seven getters
-- [ ] 73. Explore soak (Requirement 47, P150): `frontend/tests/explore.soak.test.tsx`
-  - [ ] 73.1 Requirement 47, design row P150 written before the test
-  - [ ] 73.2 Soak on the real `Explore` with the task 67 rig; failing seeds pinned
-  - [ ] 73.3 Gate; BUILD_LOG; path-scoped commit
-- [ ] 74. Close task 56.2 (P109 to P113): see 56.2 and design.md "Where P109 to P113 stand"
+- [x] 71. Voice command table (Requirement 45, P147): `frontend/tests/commands.table.test.ts`
+  - [x] 71.1 Requirement 45, design row P147 written before the test
+  - [x] 71.2 20 real questions (14 en, 3 hi, 3 gu) parse as `unknown` (`it.fails`, rows still matching listed in the message); bare commands in en, hi, gu keep their type and rate (passing); fast-check sentence property (250 runs)
+  - [x] 71.3 Gate; BUILD_LOG; path-scoped commit
+  - [ ] 71b. Lane (not Kiro): `flow/commands.ts` whole-phrase rule of Requirement 45.1; removes the two `.fails` in `commands.table.test.ts`
+- [x] 72. Storage getters (Requirement 46, P148, P149): `frontend/tests/storage.settings.prop.test.ts`
+  - [x] 72.1 Requirement 46, design rows P148 and P149 written before the test
+  - [x] 72.2 P148 per getter (junk reads the default; `'true'` and `'false'` read exactly), P149 per getter (failed `setItem`, in-memory value wins); rows red today are `it.fails`
+  - [x] 72.3 Gate; BUILD_LOG; path-scoped commit
+  - [ ] 72b. Lane (not Kiro): the seven getters of Requirement 46; removes the ten `.fails` in `storage.settings.prop.test.ts`
+- [x] 73. Explore soak (Requirement 47, P150): `frontend/tests/explore.soak.test.tsx`
+  - [x] 73.1 Requirement 47, design row P150 written before the test
+  - [x] 73.2 Soak on the real `Explore` with the task 67 rig; 15 seeds, no failing seed so far (`PINNED_SEEDS` is empty); three mutants of `Explore.tsx` killed (timer survives a lift, ticks while Ask listens, no hold ticks), source restored
+  - [x] 73.3 Gate; BUILD_LOG; path-scoped commit
+- [x] 74. Close task 56.2 (P109 to P113): P109, P112 and P113 (pure part) are in `tests/explore.dwell.prop.test.ts` (committed in T75). P110 and P111 cannot be written: the line-name dwell is inline in `screens/Explore.tsx` (`lineDwellRef`, `checkLineDwell`) and no pure `lineDwell` is exported, so there is nothing to call without copying the logic into the test. They become writable when the lane extracts `lineDwell(state, input)` (Requirement 29.7); task 56.1 stays open for that. See design.md "Where P109 to P113 stand"
 
 ## P112 flaky failure (task 75; spec first)
 - [x] 75. `checkWhereAmIDwell` restarts the rest on a non-none target even with Directions off (Requirement 30.2 amended, P112 and P113 notes in design.md)
