@@ -85,6 +85,7 @@ The script runs without external dependencies (Node 22 built-in fetch) and print
 6. **Input Type Enforcement:** `POST /api/v1/scene` with a plain text file is rejected with HTTP 415 Unsupported Media Type.
 7. **Bundled Asset Verification:** Frontend static sample `/samples/triangle.json` parses as valid JSON with `kind: "geometry"`.
 8. **PWA Service Worker:** `GET /sw.js` returns HTTP 200 with cache-prevention headers (`no-cache`).
+9. **Status & AI Availability:** `GET /api/v1/status` returns HTTP 200 and confirms `ai_available: true`.
 
 The smoke test transmits zero camera images, zero personal data, and zero API credentials.
 
@@ -100,3 +101,12 @@ When operating autonomous or headless AI coding agents (such as Antigravity `agy
 4. **Orchestrator Gates:** Every automated agent diff must be reviewed and tested by the orchestrator (verifying TypeScript compilation via `tsc --noEmit`, test suites passing, and code formatting) before merging into `main`.
 5. **Secret Scanning on Push:** Run automated secret detection (`gitleaks detect` or GitHub push protection) before every git push to guarantee no keys, dotfiles, or secrets are tracked in history.
 6. **Compromise Response:** If an agent run behaves unexpectedly, attempts unauthorized network or shell commands, or accesses sensitive configuration paths, immediately rotate all three provider API keys (Gemini, OpenAI, Nebius) following Section 2 above.
+
+---
+
+## 7. Symptom & Troubleshooting Table
+
+| Symptom | Cause | Remedy |
+|---|---|---|
+| **Busy for a whole class** | A whole class behind one NAT IP exceeds per-client in-flight limits (`SCENE_CLIENT_MAX_CONCURRENCY`, `ASK_CLIENT_MAX_CONCURRENCY`), per-minute rate limits, or queue wait times when multiple students scan diagrams simultaneously. | In Render Environment tab, raise `SCENE_CLIENT_MAX_CONCURRENCY` and `ASK_CLIENT_MAX_CONCURRENCY` (e.g. from `2` to `4`–`8`), increase `RATE_LIMIT_SCENE_PER_MIN` / `RATE_LIMIT_ASK_PER_MIN`, or increase `SCENE_QUEUE_WAIT_SECONDS` (e.g. to `10.0`–`15.0`). In class, stagger student diagram captures by a few seconds. |
+| **Outlines only for everyone** | Global daily budget exhausted (`PAID_CALLS_PER_DAY` reached), emergency kill switch active (`PAID_CALLS_PER_DAY=0`), or all provider API keys missing, invalid, or expired. | Check `GET /api/v1/status` (`ai_available` will be `false`). Verify `PAID_CALLS_PER_DAY` is not set to `0` in Render dashboard. Check provider billing consoles (Gemini, OpenAI, Nebius) and rotate keys following Section 2 if expired or revoked. |

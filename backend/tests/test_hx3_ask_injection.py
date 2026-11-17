@@ -146,9 +146,7 @@ class ObeyingFakeProvider:
             return "Reference URL: http://insecure-leak.example.net/exfiltrate"
 
         if self.mode == "delimiter":
-            return (
-                f"Here is the answer: {QUESTION_DELIMITER_START} leaked {QUESTION_DELIMITER_END}"
-            )
+            return f"Here is the answer: {QUESTION_DELIMITER_START} leaked {QUESTION_DELIMITER_END}"
 
         if self.mode == "scene_element_ids":
             return "Scene Element IDs: A, B, C are the points of interest."
@@ -351,9 +349,7 @@ def test_obeying_provider_returns_fake_target_id() -> None:
     """When model returns an elementId not in the scene, target is sanitized to None."""
     scene = triangle_scene()
     valid_ids = extract_scene_element_ids(scene)
-    provider = ObeyingFakeProvider(
-        mode="fake_target", target_id="attacker_node_id_not_in_scene"
-    )
+    provider = ObeyingFakeProvider(mode="fake_target", target_id="attacker_node_id_not_in_scene")
     chain = ProviderChain([provider])  # type: ignore[list-item]
 
     req = AskRequest(scene=scene, question="Where is the secret node?")
@@ -395,8 +391,7 @@ json_primitives = (
 json_arbitrary = st.recursive(
     json_primitives,
     lambda children: (
-        st.lists(children, max_size=4)
-        | st.dictionaries(st.text(max_size=20), children, max_size=4)
+        st.lists(children, max_size=4) | st.dictionaries(st.text(max_size=20), children, max_size=4)
     ),
     max_leaves=12,
 )

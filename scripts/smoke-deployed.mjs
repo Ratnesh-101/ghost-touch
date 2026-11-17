@@ -6,7 +6,7 @@
  * Usage:
  *   node scripts/smoke-deployed.mjs <frontend-url> <api-url>
  *
- * Runs 9 checks against the deployed frontend and backend:
+ * Runs 10 checks against the deployed frontend and backend:
  *   1. GET frontend / is 200 and has CSP, HSTS, nosniff, Referrer-Policy, and Permissions-Policy headers.
  *   2. CSP connect-src contains the origin of <api-url>.
  *   3. GET <api>/api/v1/health is {"ok":true} within 70s (cold start) and has x-content-type-options: nosniff.
@@ -16,6 +16,7 @@
  *   7. POST <api>/api/v1/scene with a 10-byte text file as "image" is 415.
  *   8. GET frontend /samples/triangle.json parses as JSON with kind "geometry".
  *   9. GET /sw.js is 200 with no-cache.
+ *   10. GET <api>/api/v1/status is 200 and ai_available is true.
  *
  * Exit code: 0 if all checks pass, 1 if any check fails.
  * Node 22, no external dependencies, uses global fetch.
@@ -306,6 +307,27 @@ try {
   }
 } catch (err) {
   report('GET /sw.js is 200 with no-cache', false, err.message);
+}
+
+// Check 10: GET <api>/api/v1/status is 200 and ai_available is true
+try {
+  const res = await fetch(`${apiUrl}/api/v1/status`);
+  if (res.status !== 200) {
+    report('GET <api>/api/v1/status is 200 and ai_available is true', false, `HTTP ${res.status}`);
+  } else {
+    const data = await res.json().catch(() => null);
+    if (data && data.ai_available === true) {
+      report('GET <api>/api/v1/status is 200 and ai_available is true', true);
+    } else {
+      report(
+        'GET <api>/api/v1/status is 200 and ai_available is true',
+        false,
+        `ai_available is false (data=${JSON.stringify(data)})`
+      );
+    }
+  }
+} catch (err) {
+  report('GET <api>/api/v1/status is 200 and ai_available is true', false, err.message);
 }
 
 console.log(`\nSummary: ${passedCount} passed, ${failedCount} failed.`);

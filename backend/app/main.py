@@ -447,6 +447,13 @@ router = APIRouter()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Validate settings and initialize provider chain at startup."""
+    app_logger = logging.getLogger("app")
+    app_logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+    handler.setFormatter(formatter)
+    app_logger.handlers = [handler]
+
     validate_env_settings()
     allowed = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173")
     origins = filter_production_origins(parse_allowed_origins(allowed))
@@ -542,6 +549,19 @@ def _call_raw_scene(
 async def health() -> dict[str, bool]:
     """Liveness probe. DoD: returns ``{"ok": true}``."""
     return {"ok": True}
+
+
+@router.get("/api/v1/status")
+async def status(
+    chain: Annotated[ProviderChain, Depends(get_provider_chain)],
+) -> dict[str, Any]:
+    """Service status and AI availability (Lane ux11)."""
+    commit = os.environ.get("RENDER_GIT_COMMIT", "").strip() or "unknown"
+    ai_available = bool(chain.providers) and not is_budget_exhausted()
+    return {
+        "commit": commit,
+        "ai_available": ai_available,
+    }
 
 
 @router.post("/api/v1/scene")

@@ -403,9 +403,7 @@ def prepare_ask_prompt(
         len(prompt),
         max_chars,
     )
-    prompt_no_coords = build_ask_prompt(
-        scene, question, lang, drop_coordinates=True, canary=canary
-    )
+    prompt_no_coords = build_ask_prompt(scene, question, lang, drop_coordinates=True, canary=canary)
     if len(prompt_no_coords) <= max_chars:
         return prompt_no_coords
 
@@ -1015,8 +1013,7 @@ async def answer_question(
         is_exhausted
         and chain.providers
         and all(
-            getattr(p, "name", "") not in ("gemini", "openai", "nebius")
-            for p in chain.providers
+            getattr(p, "name", "") not in ("gemini", "openai", "nebius") for p in chain.providers
         )
     ):
         is_exhausted = False
@@ -1024,9 +1021,7 @@ async def answer_question(
     if is_exhausted:
         logger.info("ask: paid budget exhausted; skipping model calls")
     elif chain.providers:
-        prompt = prepare_ask_prompt(
-            request.scene, request.question, request.lang, canary=canary
-        )
+        prompt = prepare_ask_prompt(request.scene, request.question, request.lang, canary=canary)
         if prompt is None:
             logger.info("ask: prompt exceeded cap; skipping model calls and answering from facts")
         else:

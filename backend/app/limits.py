@@ -10,6 +10,7 @@ from __future__ import annotations
 import ipaddress
 import json
 import logging
+import math
 import os
 import time
 from collections import defaultdict, deque
@@ -170,6 +171,26 @@ def reset_rate_limits() -> None:
     _sweep_count = 0
 
 
+def compute_retry_after(
+    oldest_hit: float, now: float, window_seconds: float = RATE_WINDOW_SECONDS
+) -> int:
+    """Compute Retry-After in seconds from the oldest hit in the window, clamped to 1..60."""
+    remaining = (oldest_hit + window_seconds) - now
+    return max(1, min(60, int(math.ceil(remaining))))
+
+
+def give_back_rate_slot(client: str, path: str) -> None:
+    """Give back the latest rate slot for a client and path (after an in-flight rejection)."""
+    key = (client, normalize_path(path))
+    window = _HITS.get(key)
+    if window:
+        window.pop()
+
+
+return_rate_slot = give_back_rate_slot
+refund_rate_slot = give_back_rate_slot
+
+
 class _BodyTooLarge(BaseException):  # noqa: N818 - control-flow signal, not an error
     """Raised from the wrapped receive() once the streamed body passes its cap.
 
@@ -229,27 +250,43 @@ class RequestGuardMiddleware:
         if joined_xff is not None:
             headers["x-forwarded-for"] = joined_xff
 
-        if rate is not None and not self._allow(self._client_key(scope, headers), path, rate):
-            await self._reject(send, 429, "Too many requests. Please wait a moment and retry.")
-            return
+        client_k = self._client_key(scope, headers)
+        rate_deducted = False
 
-        if limit is None:
-            await self.app(scope, receive, send)
-            return
+        if rate is not None:
+            if not self._allow(client_k, path, rate):
+                retry_after = self._retry_after(client_k, path)
+                await self._reject(
+                    send,
+                    429,
+                    "Too many requests. Please wait a moment and retry.",
+                    retry_after=retry_after,
+                )
+                return
+            rate_deducted = True
 
         declared = headers.get("content-length")
-        if declared is not None:
+        if limit is not None and declared is not None:
             # R3-5: Safe parsing for Content-Length (superscripts / >4300 digits
             # must give 400/413, never 500)
             if not (declared.isascii() and declared.isdigit()) or len(declared) > 18:
+                if rate_deducted:
+                    give_back_rate_slot(client_k, path)
+                    rate_deducted = False
                 await self._reject(send, 400, "Invalid Content-Length header.")
                 return
             try:
                 parsed_len = int(declared)
             except ValueError:
+                if rate_deducted:
+                    give_back_rate_slot(client_k, path)
+                    rate_deducted = False
                 await self._reject(send, 400, "Invalid Content-Length header.")
                 return
             if parsed_len > limit:
+                if rate_deducted:
+                    give_back_rate_slot(client_k, path)
+                    rate_deducted = False
                 await self._reject(send, 413, "Request body is too large.")
                 return
 
@@ -261,19 +298,28 @@ class RequestGuardMiddleware:
             message = await receive()
             if message["type"] == "http.request":
                 received += len(message.get("body", b""))
-                if received > limit:
+                if limit is not None and received > limit:
                     raise _BodyTooLarge
             return message
 
         async def tracking_send(message: Message) -> None:
-            nonlocal started
+            nonlocal started, rate_deducted
             if message["type"] == "http.response.start":
                 started = True
+                status = message.get("status")
+                if rate_deducted and status == 429:
+                    give_back_rate_slot(client_k, path)
+                    rate_deducted = False
             await send(message)
 
+        target_receive = guarded_receive if limit is not None else receive
+
         try:
-            await self.app(scope, guarded_receive, tracking_send)
+            await self.app(scope, target_receive, tracking_send)
         except _BodyTooLarge:
+            if rate_deducted:
+                give_back_rate_slot(client_k, path)
+                rate_deducted = False
             if not started:
                 await self._reject(send, 413, "Request body is too large.")
 
@@ -284,6 +330,15 @@ class RequestGuardMiddleware:
         if headers is None:
             headers = Headers(scope=scope)
         return client_key(peer, extract_joined_xff(headers), trusted_proxy_hops())
+
+    @staticmethod
+    def _retry_after(client: str, path: str, now: float | None = None) -> int:
+        now = time.monotonic() if now is None else now
+        key = (client, path)
+        window = _HITS.get(key)
+        if not window:
+            return 1
+        return compute_retry_after(window[0], now)
 
     def _allow(self, client: str, path: str, per_minute: int, now: float | None = None) -> bool:
         global _last_sweep
@@ -314,16 +369,24 @@ class RequestGuardMiddleware:
         return True
 
     @staticmethod
-    async def _reject(send: Send, status: int, detail: str) -> None:
+    async def _reject(
+        send: Send,
+        status: int,
+        detail: str,
+        retry_after: int | None = None,
+    ) -> None:
         body = json.dumps({"detail": detail}).encode("utf-8")
+        headers: list[tuple[bytes, bytes]] = [
+            (b"content-type", b"application/json"),
+            (b"content-length", str(len(body)).encode("ascii")),
+        ]
+        if retry_after is not None:
+            headers.append((b"retry-after", str(retry_after).encode("ascii")))
         await send(
             {
                 "type": "http.response.start",
                 "status": status,
-                "headers": [
-                    (b"content-type", b"application/json"),
-                    (b"content-length", str(len(body)).encode("ascii")),
-                ],
+                "headers": headers,
             }
         )
         await send({"type": "http.response.body", "body": body})

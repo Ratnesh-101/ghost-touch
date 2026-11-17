@@ -4603,3 +4603,20 @@ Format for each entry:
   - frontend/tests/raw.reason.test.ts
   - docs/reports/agy-ux9-report.md
   - docs/BUILD_LOG.md
+
+## 2026-11-17 — Antigravity — Lane ux11: Classroom limits, observability, and follow-up pass 1 fixes
+- Implemented classroom concurrency limits and observability:
+  - Added `GET /api/v1/status` endpoint with strict privacy reporting `commit` and `ai_available`.
+  - Configured app logger in lifespan with INFO level and stream handler.
+  - Implemented accurate `compute_retry_after` (1..60s) and Retry-After header on 429 responses.
+  - Implemented rate slot refund on downstream in-flight 429 rejections in `RequestGuardMiddleware`.
+  - Added smoke test Check 10 and security runbook Section 7 troubleshooting table.
+- Follow-up pass 1 gate fixes:
+  - In `backend/tests/test_ux11_limits.py`: Removed unused imports `RATE_WINDOW_SECONDS`, `get_scene_in_flight_limiter`, and `TestClient` per ruff check; sorted remaining imports cleanly.
+  - In `backend/tests/test_ux11_limits.py` (`test_rejected_by_in_flight_does_not_reduce_remaining_rate_allowance`): Replaced module-level `app` with `test_app = create_app()`, allowing monkeypatched `RATE_LIMIT_SCENE_PER_MIN="2"` to configure application middleware so the 4th request hits the rate limit as designed.
+- Follow-Up Pass 2 gate fixes:
+  - In `backend/tests/test_ux11_limits.py`: Placed `_HITS` ahead of `RequestGuardMiddleware` in `from app.limits import (...)` to resolve Ruff `I001` import ordering gate failure. Zero shell commands run; files outside lane ux11 untouched; all tests preserved without weakening.
+- Files touched:
+  - `backend/tests/test_ux11_limits.py`
+  - `docs/reports/agy-ux11-report.md`
+  - `docs/BUILD_LOG.md`
