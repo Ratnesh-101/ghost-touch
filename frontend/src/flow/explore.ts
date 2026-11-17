@@ -749,10 +749,8 @@ export function createHoldKeepAliveTimer(
     lastCoords = null;
   };
 
-  const start = (coords: ScreenPoint, now: number = performance.now()): void => {
-    stop();
-    lastCoords = coords;
-    lastMoveAt = now;
+  const startInterval = (): void => {
+    if (timer !== null) return;
     timer = setInterval(() => {
       if (options.shouldRun && !options.shouldRun()) {
         stop();
@@ -767,9 +765,19 @@ export function createHoldKeepAliveTimer(
     }, intervalMs);
   };
 
+  const start = (coords: ScreenPoint, now: number = performance.now()): void => {
+    stop();
+    lastCoords = coords;
+    lastMoveAt = now;
+    startInterval();
+  };
+
   const update = (coords: ScreenPoint, now: number = performance.now()): void => {
     lastCoords = coords;
     lastMoveAt = now;
+    if (timer === null) {
+      startInterval();
+    }
   };
 
   return {

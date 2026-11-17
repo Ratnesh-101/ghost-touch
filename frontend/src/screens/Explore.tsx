@@ -1581,6 +1581,40 @@ export function Explore({
     }
   };
 
+  const checkWhereAmIDwellLocal = (
+    targetKind: Target['kind'],
+    coords: ScreenPoint,
+    now: number,
+  ): void => {
+    const dwellResult = checkWhereAmIDwell(whereAmIDwellState.current, {
+      targetKind,
+      coords,
+      now,
+      lastSpeechStartTime: lastSpeechStartRef.current,
+      isAskActive: askActive.current,
+      isGuiding: Boolean(guideController.current?.isGuiding()),
+      isDirectionsEnabled: directionsSettingRef.current,
+    });
+    if (
+      dwellResult.shouldSpeak &&
+      directionsSettingRef.current &&
+      !leaving.current &&
+      !isSpeechSpeaking()
+    ) {
+      whereAmIDwellState.current = dwellResult.nextState;
+      const view = viewportRef.current;
+      const norm = toNorm(coords, view);
+      const text = whereAmI(sceneRef.current, view, norm);
+      const lang = LANG_BCP47[getLang()] ?? 'en-IN';
+      drivers.speech.speak(text, lang);
+      markSpeechStart(now);
+      lastSpokenRef.current = text;
+      setStatusMessage(text);
+    } else if (!dwellResult.shouldSpeak) {
+      whereAmIDwellState.current = dwellResult.nextState;
+    }
+  };
+
   if (!keepAliveTimer.current) {
     keepAliveTimer.current = createHoldKeepAliveTimer({
       intervalMs: KEEP_ALIVE_INTERVAL_MS,
@@ -1642,29 +1676,7 @@ export function Explore({
           }
         }
 
-        const dwellResult = checkWhereAmIDwell(whereAmIDwellState.current, {
-          targetKind: moveResult.target.kind,
-          coords,
-          now,
-          lastSpeechStartTime: lastSpeechStartRef.current,
-          isAskActive: askActive.current,
-          isGuiding: Boolean(guideController.current?.isGuiding()),
-          isDirectionsEnabled: directionsSettingRef.current,
-        });
-        whereAmIDwellState.current = dwellResult.nextState;
-        if (
-          dwellResult.shouldSpeak &&
-          directionsSettingRef.current &&
-          !leaving.current &&
-          !isSpeechSpeaking()
-        ) {
-          const norm = toNorm(coords, view);
-          const text = whereAmI(sceneRef.current, view, norm);
-          drivers.speech.speak(text, lang);
-          markSpeechStart(now);
-          lastSpokenRef.current = text;
-          setStatusMessage(text);
-        }
+        checkWhereAmIDwellLocal(moveResult.target.kind, coords, now);
       },
     });
   }
@@ -1709,6 +1721,8 @@ export function Explore({
       keepAliveTimer.current?.stop();
       primaryPointerId.current = e.pointerId;
       const norm = toNorm(coords, view);
+      axisState.current = seedAxisState(norm, scene.axes);
+      pageEdgeState.current = initialPageEdgeState();
       guideController.current.move(norm, now);
       scheduleDraw(view, coords);
       return;
@@ -1880,11 +1894,13 @@ export function Explore({
     }
 
     if (guideController.current?.isGuiding()) {
-      keepAliveTimer.current?.stop();
       const norm = toNorm(coords, view);
       guideController.current.move(norm, now);
       scheduleDraw(view, coords);
-      return;
+      if (guideController.current.isGuiding()) {
+        keepAliveTimer.current?.stop();
+        return;
+      }
     }
 
     const heldMs = getHeldMs(stickyHoldRef.current, prevTargetRef.current, now);
@@ -1965,28 +1981,7 @@ export function Explore({
     scheduleDraw(view, coords);
     keepAliveTimer.current?.update(coords, now);
 
-    const dwellResult = checkWhereAmIDwell(whereAmIDwellState.current, {
-      targetKind: moveResult.target.kind,
-      coords,
-      now,
-      lastSpeechStartTime: lastSpeechStartRef.current,
-      isAskActive: askActive.current,
-      isGuiding: Boolean(guideController.current?.isGuiding()),
-      isDirectionsEnabled: directionsSettingRef.current,
-    });
-    whereAmIDwellState.current = dwellResult.nextState;
-    if (
-      dwellResult.shouldSpeak &&
-      directionsSettingRef.current &&
-      !leaving.current &&
-      !isSpeechSpeaking()
-    ) {
-      const text = whereAmI(sceneRef.current, view, norm);
-      drivers.speech.speak(text, lang);
-      markSpeechStart(now);
-      lastSpokenRef.current = text;
-      setStatusMessage(text);
-    }
+    checkWhereAmIDwellLocal(moveResult.target.kind, coords, now);
   };
 
   const handlePointerLift = (e: PointerEvent<HTMLCanvasElement>): void => {
@@ -2088,6 +2083,7 @@ export function Explore({
       } else {
         // All fingers lifted: silence effects
         primaryPointerId.current = null;
+        axisState.current = initialAxisState();
         pageEdgeState.current = initialPageEdgeState();
         whereAmIDwellState.current = resetWhereAmIDwellOnLift();
         speechPacingState.current = resetBarRest(speechPacingState.current);

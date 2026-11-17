@@ -4527,6 +4527,7 @@ Format for each entry:
 - `frontend/tests/presets.prop.test.ts`: 17 tests, 200-300 runs through `runs()`.
 - Mutants, all killed, reverted: Standard with stickyLine on, presetOf ignoring cornerHeartbeat, applyPreset returning the shared table object, junk id giving Explorer, Simple with full speech, presetOf without try/catch.
 - Gate: tsc 0 errors; vitest --maxWorkers=6: 218 files, 2744 passed, 12 expected fail, 1 todo.
+
 ## 2026-11-17 — Antigravity — Lane ux1 follow-up pass 1: hold-lifecycle timer test fix
 - Resolved gate failure in `frontend/tests/explore.holdLifecycle.test.tsx` (`Bug 1: createHoldKeepAliveTimer update restarts when timer === null > update restarts interval when timer === null and fires onTick on stillness`):
   - Advanced fake timers via `vi.advanceTimersByTime(1000)` and `vi.advanceTimersByTime(100)` to synchronize fake clock `performance.now()` with simulated timestamps `1000` and `1100`, allowing `shouldKeepAlive` to fire `onTick` after stillness.
