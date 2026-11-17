@@ -4527,3 +4527,44 @@ Format for each entry:
 - `frontend/tests/presets.prop.test.ts`: 17 tests, 200-300 runs through `runs()`.
 - Mutants, all killed, reverted: Standard with stickyLine on, presetOf ignoring cornerHeartbeat, applyPreset returning the shared table object, junk id giving Explorer, Simple with full speech, presetOf without try/catch.
 - Gate: tsc 0 errors; vitest --maxWorkers=6: 218 files, 2744 passed, 12 expected fail, 1 todo.
+## 2026-11-17 — Antigravity — Lane ux1 follow-up pass 1: hold-lifecycle timer test fix
+- Resolved gate failure in `frontend/tests/explore.holdLifecycle.test.tsx` (`Bug 1: createHoldKeepAliveTimer update restarts when timer === null > update restarts interval when timer === null and fires onTick on stillness`):
+  - Advanced fake timers via `vi.advanceTimersByTime(1000)` and `vi.advanceTimersByTime(100)` to synchronize fake clock `performance.now()` with simulated timestamps `1000` and `1100`, allowing `shouldKeepAlive` to fire `onTick` after stillness.
+  - Refactored `createHoldKeepAliveTimer` in `frontend/src/flow/explore.ts` to deduplicate interval creation via `startInterval()`.
+  - Zero tests weakened; all coordinate and timer assertions preserved.
+- What broke / surprising findings:
+  - In `exploreRig.tsx`, `setupRigEnv()` fakes `performance` via `vi.useFakeTimers({ toFake: ['performance', ...] })`. Because fake `performance.now()` initializes at 0, passing arbitrary future timestamps without advancing fake timers causes `performance.now() - lastMoveAt` to be negative during interval ticks. Advancing fake timers to align with test timestamps cleanly resolves the condition.
+- Files touched:
+  - `frontend/tests/explore.holdLifecycle.test.tsx`
+  - `frontend/src/flow/explore.ts`
+  - `docs/reports/agy-ux1-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-17 — Antigravity — Lane ux2: lift quiet speech, edge cue audio fix, whole labels in Short
+- Addressed 4 DO items for Requirements 31.6, 31.7, 37, 39:
+  - DO 1 (Req 37): Scheduled `drivers.speech.stopSpeaking?.()` 300 ms after lift in all-fingers-up branch in `Explore.tsx`; cancelled timer on pointerdown; skipped when Ask answer is speaking or leaving; cleared timer on unmount and exit.
+  - DO 2 (Req 39): Removed `drivers.audio.playEarcon?.('back')` from page edge cue in `applyMoveResult` in `Explore.tsx` while preserving spoken edge sentence.
+  - DO 3 (Req 31.6, 31.7): Spoke corner label unchanged in short detail without punctuation cut in `extractCornerLabel` and `paceSpeech`; passed separate `label` and `value` fields for bars to `paceSpeech` from `Explore.tsx` instead of splitting at comma; preserved corner compass on first visit in Short by deleting suppression of `afterAnnouncements`.
+  - DO 4 (Req 31.7): In `updateBarMove`, tracked `restAnchor` and counted moves as movement only when >= 20 px from rest anchor (`BAR_REST_MAX_MOVE_PX`); smaller jitter (< 20 px) does not push `lastMoveTime` forward, enabling resting dwell to speak bar value after 500 ms.
+- Added comprehensive test suite `frontend/tests/explore.quietSpeech.test.tsx` verifying:
+  - Lift stops corner speech after 300 ms; re-touch at 200 ms does not stop speech; Ask answer in progress is not cut by lift.
+  - Label "(2.5, 3)" and bar "Q1, 2024" are spoken whole in Short.
+  - 1 px jitter for 600 ms on a bar speaks its value.
+  - Edge crossing plays no earcon.
+- Files touched:
+  - `frontend/src/flow/explore.ts`
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/tests/explore.quietSpeech.test.tsx`
+  - `docs/reports/agy-ux2-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-17 — Antigravity — Lane ux2 follow-up pass 2: gate fixes for R3-01 source guard and speech pacing
+- Resolved gate failures in `tests/h7.explore.fixes.test.ts` and `tests/speechPacing.test.ts`:
+  - `h7.explore.fixes.test.ts` R3-01 source guard: Restored exact call signature `applyMoveResult(moveResult, lang, centreAnnouncements, compassAnnouncements)` in `handlePointerDown` in `frontend/src/screens/Explore.tsx`, using `coords ?? pendingCursor.current` internally inside `applyMoveResult` to preserve coordinates for bar rest dwell and speech pacing without altering the 4-argument call signature.
+  - `speechPacing.test.ts` corner label in short mode: Updated `extractCornerLabel` in `frontend/src/flow/explore.ts` to detect and strip appended compass exit clauses (e.g. `'Point A. Down-right to B.'` -> `'Point A'`) across English, Hindi, and Gujarati, while leaving labels without compass exits untouched and untrimmed (per Requirement 31.6). In `paceSpeech`, prioritized `input.label !== undefined ? input.label : extractCornerLabel(text)`, and passed `vertexTarget?.label` as `label` from `Explore.tsx`.
+- Zero tests weakened. All property and unit tests preserved.
+- Files touched:
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/flow/explore.ts`
+  - `docs/reports/agy-ux2-report.md`
+  - `docs/BUILD_LOG.md`

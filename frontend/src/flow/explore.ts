@@ -1201,6 +1201,9 @@ export interface SpeechPacingInput {
   source: SpeechSource;
   detail?: SpeechDetail;
   barId?: string | null;
+  label?: string;
+  value?: string | number;
+  coords?: ScreenPoint | null;
 }
 
 export interface PendingBarRest {
@@ -1210,6 +1213,7 @@ export interface PendingBarRest {
   enterTime: number;
   lastMoveTime: number;
   spoken: boolean;
+  restAnchor?: ScreenPoint | null;
 }
 
 export interface SpeechPacingState {
@@ -1249,12 +1253,13 @@ export function extractBarLabel(text: string): string {
 }
 
 export function extractCornerLabel(text: string): string {
-  const trimmed = text.trim();
-  const match = trimmed.match(/^([^.!?।॥]+)/);
-  if (match && match[1]) {
+  const match = text.match(
+    /^(.*?)[.!?।॥]\s+(?:(?:up|down|left|right|up-left|up-right|down-left|down-right|ऊपर|नीचे|बाएँ|दाएँ|ऊपर-बाएँ|ऊपर-दाएँ|नीचे-बाएँ|नीचे-दाएँ|ઉપર|નીચે|ડાબે|જમણે|ઉપર-ડાબે|ઉપર-જમણે|નીચે-ડાબે|નીચે-જમણે)\b|\d+\s*(?:edges|किनारे|કાંઠા|કિનારીઓ)\b)/i,
+  );
+  if (match && match[1] !== undefined) {
     return match[1].trim();
   }
-  return trimmed;
+  return text;
 }
 
 /**
@@ -1320,7 +1325,7 @@ export function paceSpeech(
     };
 
     if (detail === 'short') {
-      const label = extractCornerLabel(text);
+      const label = input.label !== undefined ? input.label : extractCornerLabel(text);
       return {
         state: nextState,
         speakNow: label,
@@ -1370,7 +1375,7 @@ export function paceSpeech(
         t - state.lastBarTime < BAR_SHORT_FOLLOW_INTERVAL_MS;
 
       if (followsAnotherBar) {
-        const label = extractBarLabel(text);
+        const label = input.label !== undefined ? input.label : extractBarLabel(text);
         nextState.pendingBarRest = {
           barId: input.barId ?? null,
           fullText: text,
@@ -1378,6 +1383,7 @@ export function paceSpeech(
           enterTime: t,
           lastMoveTime: t,
           spoken: false,
+          restAnchor: input.coords ?? null,
         };
         return {
           state: nextState,
@@ -1410,10 +1416,14 @@ export function paceSpeech(
   };
 }
 
+export const BAR_REST_MAX_MOVE_PX = 20;
+
 export function updateBarMove(
   state: SpeechPacingState,
   t: number,
   barId?: string | null,
+  coords?: ScreenPoint | null,
+  maxMovePx: number = BAR_REST_MAX_MOVE_PX,
 ): SpeechPacingState {
   if (!state.pendingBarRest) return state;
   if (barId && state.pendingBarRest.barId && state.pendingBarRest.barId !== barId) {
@@ -1422,6 +1432,32 @@ export function updateBarMove(
       pendingBarRest: null,
     };
   }
+
+  const anchor = state.pendingBarRest.restAnchor;
+  if (coords) {
+    if (!anchor) {
+      return {
+        ...state,
+        pendingBarRest: {
+          ...state.pendingBarRest,
+          restAnchor: coords,
+        },
+      };
+    }
+    const dist = Math.hypot(coords.x - anchor.x, coords.y - anchor.y);
+    if (dist < maxMovePx) {
+      return state;
+    }
+    return {
+      ...state,
+      pendingBarRest: {
+        ...state.pendingBarRest,
+        restAnchor: coords,
+        lastMoveTime: t,
+      },
+    };
+  }
+
   return {
     ...state,
     pendingBarRest: {
