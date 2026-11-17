@@ -14,10 +14,7 @@
 ## 1. Pre-Filming Setup Checklist
 
 - **Device:** Android smartphone running Chrome over HTTPS. Touch haptics active at maximum
-  intensity in Android Settings > Accessibility. *(Note: The haptic timings were tuned on a
-  OnePlus Nord CE6 and the TalkBack double-tap-and-hold gesture worked on the prototype there.
-  On a Samsung Galaxy S24+, the canvas growth bug was confirmed fixed. Other phone steps are
-  pending verification).*
+  intensity in Android Settings > Accessibility. *(Note: The installed app has been run on one phone (Samsung Galaxy S24+); that run found one layout bug and confirmed its fix. A full test pass has not been recorded yet. The vibration timings were tuned by hand on a OnePlus Nord CE6 in the prototype).*
 - **Backend Warm-Up (Mandatory):** Render free-tier container sleeps after 15 min idle. Open
   `https://ghost-touch-api.onrender.com/api/v1/health` 1–2 minutes before filming until
   `{"ok":true}` returns (first call can take 30 to 60 seconds).
@@ -44,9 +41,9 @@
 | **0:45–1:20** (35s) | **Textbook Capture:** Photograph a real textbook triangle. Charging loading meter. Explore opens. Trace the detected triangle. | Camera capture → Loading meter → Explore screen with geometry. | *"A teacher or parent takes one photo."* | `[HW: owner to confirm]` (Real photo processing on phone). |
 | **1:20–1:40** (20s) | **Voice Q&A:** Tap Ask. Ask aloud: *"How long is AC?"* Voice answers from diagram facts: *"AC is 4 cm long."* | Ask HUD dialog and response card. | *"The answer comes from the diagram's facts."* | `[HW: owner to confirm]` (Voice input on phone; keep typed Ask ready as backup). |
 | **1:40–2:00** (20s) | **Mathematical Curves & Bar Charts:** Sine wave sample: continuous tone rises and falls with wave height (200–1000 Hz). Cut to Bar chart: touching bars plays height tone and speaks value. | Explore screen (Sine wave / Bar chart). | *"Height becomes pitch."* | `[HW: owner to confirm]` (Audio volume on phone loudspeaker). |
-| **2:00–2:15** (15s) | **TalkBack Screen Reader:** TalkBack on. Double-tap and hold, then drag across diagram lines. Vibration passes through. | Explore screen with TalkBack accessibility focus. | *"It works with the screen reader blind students already use."* | `[HW: owner to confirm]` (Gesture passed on prototype on Nord CE6; full-app check pending). |
-| **2:15–2:30** (15s) | **Raw Mode Safety Net:** Messy or poorly lit photo. App announces: *"The creature's eyes are blurry, you can still feel the outlines."* Explore opens with Canny edges. | Explore screen with Raw Mode banner and edge outlines. | *"It never leaves the student with nothing."* | `[HW: owner to confirm]` (Raw Mode on cluttered photo on phone). |
-| **2:30–2:45** (15s) | **Spec-Driven Rigor:** Kiro IDE screen capture: formal EARS requirements, agent hook running tests on save, property test failing then passing. | Kiro IDE (spec task list, hooks, property test). | *"Specs, steering, hooks and property tests, built with Kiro."* | Recorded from Kiro IDE (`docs/kiro-evidence/`). |
+| **2:00–2:15** (15s) | **TalkBack Screen Reader:** TalkBack on. Double-tap and hold, then drag across diagram lines. Vibration passes through. Film only if recorded evidence exists. | Explore screen with TalkBack accessibility focus. | *"It works with the screen reader blind students already use."* | `[HW: owner to confirm]` (Gesture passed on prototype on Nord CE6; full-app check pending; film only if recorded evidence exists). |
+| **2:15–2:30** (15s) | **Raw Mode Safety Net:** Messy or poorly lit photo. App announces: *"The creature's eyes are blurry, you can still feel the outlines."* Explore opens with Canny edges. | Explore screen with Raw Mode banner and edge outlines. | *"It still gives outlines to follow when online, even if rough."* | `[HW: owner to confirm]` (Raw Mode on cluttered photo on phone). |
+| **2:30–2:45** (15s) | **Spec-Driven Rigor:** Kiro IDE screen capture: formal EARS requirements, agent hook running tests on save, property test failing then passing. Film only if recorded evidence exists. | Kiro IDE (spec task list, hooks, property test). | *"Specs, steering, hooks and property tests, built with Kiro."* | Recorded from Kiro IDE (`docs/kiro-evidence/`; film only if recorded evidence exists). |
 | **2:45–2:55** (10s) | **Closing & Next Steps:** Final title card with repository link and live app URL. | Final title card: Ghost Touch, GitHub link, live URL. | *"Next: first sessions with blind students."* | Honest forward-looking close (school sessions pending). |
 
 ---
@@ -65,10 +62,7 @@
 
 ## 4. What NOT to Claim on Video
 
-1. **Do not claim physical phone validation beyond what is verified:** State honestly that haptic
-   timings were tuned on a OnePlus Nord CE6, the TalkBack gesture passed on the prototype there,
-   and the canvas growth bug fix was verified on a Samsung Galaxy S24+. All other full-app phone
-   steps are pending.
+1. **Do not claim physical phone validation beyond what is verified:** The installed app has been run on one phone (Samsung Galaxy S24+); that run found one layout bug and confirmed its fix. A full test pass has not been recorded yet. The vibration timings were tuned by hand on a OnePlus Nord CE6 in the prototype.
 2. **Do not claim native-speaker verified translations:** Disclose that Hindi and Gujarati text
    and voices are machine-translated and pending review by native-speaking educators.
 3. **Do not claim unmeasured accuracy on textbook photos:** Do not state percentage accuracy for
@@ -76,8 +70,8 @@
 4. **Do not fake blind student footage:** Show only footage and quotes collected with full, informed
    written consent. If field trials are pending, demonstrate the TalkBack pass-through gesture on
    camera with TalkBack speech clearly audible.
-5. **Do not misattribute tool roles:** Be scrupulously honest: Kiro authored specs, steering,
-   hooks, pure core, haptic engine, and property tests; Antigravity built the Frankenstein Lab
+5. **Do not misattribute tool roles:** Be scrupulously honest: Kiro and Antigravity wrote the hooks; Kiro authored specs, steering,
+   pure core, haptic engine, and property tests; Antigravity built the Frankenstein Lab
    redesign, screens, drivers, and hardening; Claude Code supervised, gated tasks, and reviewed.
 6. **NO Blindness Tropes:** Never joke about darkness, blindness, or sightlessness; use eyes-closed
    trace by a sighted helper, or a real student with consent.

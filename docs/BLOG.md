@@ -18,8 +18,8 @@ Web Audio synthesizer for voice.
 
 When a teacher snaps a photo of a textbook page, our vision pipeline extracts a clean
 mathematical scene: vertices, segments, curves, and bars, with coordinates normalized to the
-screen. If the cloud AI model times out or encounters a poorly lit photograph, Ghost Touch never
-leaves the student with nothing: our classical computer vision fallback—Raw Mode, powered by
+screen. If the cloud AI model times out or encounters a poorly lit photograph, Ghost Touch still
+gives outlines to follow when online, even if rough: our classical computer vision fallback—Raw Mode, powered by
 OpenCV edge detection—extracts physical outlines directly on the backend.
 
 On the phone screen, the diagram becomes a tactile terrain. Dragging a finger along a line
@@ -44,12 +44,7 @@ resolved it spec-first under Requirement 25 (Task 42): defining formal invariant
 adding an automated Playwright regression suite (`frontend/e2e`), and fixing the underlying CSS
 layout feedback loop. The owner confirmed on the Samsung Galaxy S24+ that the fix worked.
 
-We believe in radical honesty about what is proven and what is not. Ghost Touch passes
-2,231 frontend tests across 181 files and 834 backend tests, verifying
-83 numbered correctness properties with fast-check and Hypothesis. The haptic timings were tuned
-on a OnePlus Nord CE6, the TalkBack double-tap-and-hold gesture worked on our prototype there,
-and the canvas growth bug fix was confirmed on the Galaxy S24+. Nothing else has been verified
-on hardware by the owner. Full-app testing of other phone steps is pending. No blind student
+We believe in radical honesty about what is proven and what is not. On 2026-11-17 (at main 8eda0ac): frontend tests 2,700 passed (plus 1 expected fail and 1 todo) in 213 files; backend tests 908 passed; Playwright 22 passed; requirements 36; properties numbered to P136 (P109 to P113 specified, not yet tested); tasks 66; commits 898, of which 88 carry the kiro: prefix. The installed app has been run on one phone (Samsung Galaxy S24+); that run found one layout bug and confirmed its fix. A full test pass has not been recorded yet. The vibration timings were tuned by hand on a OnePlus Nord CE6 in the prototype. No blind student
 has tested it yet; accuracy on real textbook photos has not been benchmarked; and Hindi and
 Gujarati text is machine-translated and awaits native-speaker review. Guide and Share ship in
 the app but stay off until enabled in Settings, and neither has been tested on a phone.

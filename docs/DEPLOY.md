@@ -87,6 +87,10 @@ The frontend is a Vite + React 19 Progressive Web App configured via `frontend/v
    - **Value**: Your Render backend URL from Step 1 (e.g., `https://ghost-touch-backend-xxxx.onrender.com`, **strictly without trailing slash**).
    - **Key**: `VITE_SITE_URL` *(Optional on initial deployment; configure in Step 3 once your production domain is established)*
    - **Value**: Your frontend URL (e.g., `https://ghost-touch-iota.vercel.app`, **strictly without trailing slash**).
+   - **Key**: `VITE_FEATURE_GUIDE` *(Optional; default unset/0)*
+   - **Value**: Set to `1` to enable the "Guide my finger" directional audio/haptic guidance feature (ships off until toggled in Settings).
+   - **Key**: `VITE_FEATURE_SHARE` *(Optional; default unset/0)*
+   - **Value**: Set to `1` to enable Teacher verify & share. Teacher tools are hidden without this flag.
 6. Click **Deploy**.
 7. Wait ~60 seconds for the build to complete.
 8. Copy your production frontend URL:
@@ -241,7 +245,7 @@ Replace `<RENDER_URL>` with your backend domain (e.g. `https://ghost-touch-backe
      - Heavy clutter or complex handwriting automatically and gracefully falls back to OpenCV Raw Mode (`mode: "raw"`).
 
 5. **Feature Flagged & Optional Features**:
-   - **Guide and Share:** Guide and Share ship in the live app but stay off until the user turns them on in Settings; neither has been tested on a phone.
+   - **Guide and Share (`VITE_FEATURE_GUIDE`, `VITE_FEATURE_SHARE`):** Teacher tools are hidden without `VITE_FEATURE_SHARE`. Guide and Share ship in the live app but stay off until the user turns them on in Settings; neither has been tested on a phone.
 
 ---
 
@@ -261,11 +265,11 @@ Render free-tier web services automatically spin down into a sleep state after *
 
 #### 7. Known Limits, Privacy & Open Items
 
-- **Hardware Verification Pending:** The TalkBack double-tap-and-hold gesture worked on our prototype on a OnePlus Nord CE6 (docs/research/talkback-spike.md). It has not yet been tested in the full app. Tactile motor strength and stereo panning are unverified on physical hardware (`docs/OWNER_CHECKLIST.md`).
-- **Feature Flags:** Guide and Share ship in the live app but stay off until the user turns them on in Settings; neither has been tested on a phone.
+- **Hardware Verification Pending:** The installed app has been run on one phone (Samsung Galaxy S24+); that run found one layout bug and confirmed its fix. A full test pass has not been recorded yet. The vibration timings were tuned by hand on a OnePlus Nord CE6 in the prototype.
+- **Feature Flags:** `VITE_FEATURE_GUIDE` (directional guidance) and `VITE_FEATURE_SHARE` (teacher sharing). Teacher tools are hidden without `VITE_FEATURE_SHARE`. Both features ship in the live app but stay off until the user turns them on in Settings; neither has been tested on a phone.
 - **Security & Bug Audits Ongoing:** No claims of "bug free" or "secure" software. Round 2 items CORE-09 (pointer capture) and NEEDS-KIRO-02 (tone sequencing) were resolved by Kiro in Round 3.
 - **Spec Ghost (`frontend/src/core/verify.ts`):** Client-side geometric consistency check between printed facts and drawing, wired into Explore and Ask announcements by lane k1; parse rate is ~35% on sample and research scenes (21 of 60, measured on the sample set).
-- **Privacy Architecture:** All diagram processing is stateless in RAM; images are never written to server disk. See [docs/PRIVACY.md](docs/PRIVACY.md) for full verified data flow.
+- **Privacy Architecture:** All diagram processing is stateless in RAM; images are not stored; a large upload may pass through a temporary file that is deleted when the request ends. See [docs/PRIVACY.md](docs/PRIVACY.md) for full verified data flow.
 - **Language Review:** Hindi and Gujarati translations are machine-translated and pending educator review.
 
 ---

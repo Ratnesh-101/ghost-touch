@@ -21,9 +21,7 @@ We stitched three phone parts into an assistive creature:
 [OWNER: say in your own words how one Kiro feature—such as formal EARS specs, steering rules, or
 property tests—shaped how you built this.]
 
-The TalkBack double-tap-and-hold gesture worked on our prototype on a OnePlus Nord CE6, and the
-S24+ canvas layout bug was fixed spec-first by Kiro and verified on phone. Other phone steps are
-pending. 2,231 frontend tests and 834 backend tests pass cleanly.
+The installed app has been run on one phone (Samsung Galaxy S24+); that run found one layout bug and confirmed its fix. A full test pass has not been recorded yet. The vibration timings were tuned by hand on a OnePlus Nord CE6 in the prototype. On 2026-11-17 (at main 8eda0ac): frontend tests 2,700 passed (plus 1 expected fail and 1 todo) in 213 files; backend tests 908 passed; Playwright 22 passed; requirements 36; properties numbered to P136 (P109 to P113 specified, not yet tested); tasks 66; commits 898, of which 88 carry the kiro: prefix.
 
 Demo video: [FILL: video URL]  
 Live app: https://ghost-touch-iota.vercel.app  
@@ -54,10 +52,7 @@ Ghost Touch stitches these spare parts into an assistive creature:
 requirements and property tests before code caught edge cases like the Galaxy S24+ canvas growth
 bug, or how agent hooks automated your workflow.]
 
-Radical transparency: 2,231 frontend tests across 181 files and 834 backend tests
-pass cleanly. Haptic timings were tuned on a OnePlus Nord CE6, the TalkBack gesture worked on
-our prototype there, and the Galaxy S24+ canvas bug fix was confirmed on hardware; full-app
-phone testing of other steps is pending. No blind student has tested it yet, and Hindi and
+Radical transparency: On 2026-11-17 (at main 8eda0ac): frontend tests 2,700 passed (plus 1 expected fail and 1 todo) in 213 files; backend tests 908 passed; Playwright 22 passed; requirements 36; properties numbered to P136 (P109 to P113 specified, not yet tested); tasks 66; commits 898, of which 88 carry the kiro: prefix. The installed app has been run on one phone (Samsung Galaxy S24+); that run found one layout bug and confirmed its fix. A full test pass has not been recorded yet. The vibration timings were tuned by hand on a OnePlus Nord CE6 in the prototype. No blind student has tested it yet, and Hindi and
 Gujarati text is machine-translated awaiting native review.
 
 Watch the 3-minute demo: [FILL: video URL]  
@@ -88,7 +83,7 @@ Live app: https://ghost-touch-iota.vercel.app
 • Tracing a curve → tone rises and falls with graph height (200–1000 Hz)  
 • Screen reader → TalkBack double-tap-and-hold pass-through gesture (passed on prototype on
   OnePlus Nord CE6)  
-• Safety net → If cloud AI drops, OpenCV Raw Mode extracts outlines so the screen is never blank.
+• Safety net → If cloud AI drops, OpenCV Raw Mode extracts outlines, which still gives outlines to follow when online, even if rough.
 
 ### Post 3/4 (Building with Kiro — Owner's Perspective)
 #KiroweenHackathon26 3/4: [OWNER: say in your own words what Kiro did best for this project. Focus
@@ -97,10 +92,7 @@ Samsung Galaxy S24+ canvas layout bug (Requirement 25), or how Kiro's property-b
 agent hooks kept the pure core rock solid.]
 
 ### Post 4/4 (Open Source & Honest Next Steps)
-#KiroweenHackathon26 4/4: Honest engineering: 2,231 frontend tests and 834 backend tests
-verify mathematical invariants. Haptics were tuned on a OnePlus Nord CE6, the TalkBack gesture
-passed on the prototype there, and the S24+ canvas bug fix was confirmed on device. Full-app
-testing of other phone steps is pending.
+#KiroweenHackathon26 4/4: Honest engineering: on 2026-11-17 (at main 8eda0ac), frontend tests 2,700 passed (plus 1 expected fail and 1 todo) in 213 files; backend tests 908 passed; Playwright 22 passed; requirements 36; properties numbered to P136 (P109 to P113 specified, not yet tested); tasks 66; commits 898, of which 88 carry the kiro: prefix. The installed app has been run on one phone (Samsung Galaxy S24+); that run found one layout bug and confirmed its fix. A full test pass has not been recorded yet. The vibration timings were tuned by hand on a OnePlus Nord CE6 in the prototype.
 
 Next step: first testing sessions with blind students at the Blind People's Association in
 Ahmedabad.

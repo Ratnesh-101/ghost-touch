@@ -6,12 +6,12 @@
 
 ## 1. Quick Summary (For Teachers and Parents)
 
-Ghost Touch is an open-source assistive web application designed to help blind and low-vision students explore diagrams through vibration, sound, and spoken words on an Android phone.
+Ghost Touch is an open-source assistive web application designed to help blind and low-vision students explore diagrams through vibration, sound, and spoken words on an Android phone. Low-vision students use the same touch and sound; the screen has no large-print or contrast options yet.
 
 - **No Student Accounts:** Students never log in, create usernames, enter passwords, or provide personal details.
 - **No Analytics or Trackers:** There are no tracking scripts, advertising trackers, analytics libraries, or telemetry SDKs installed in the app.
 - **Photos Go to AI Providers for Processing:** When a student takes or selects a photo of a diagram, that photo is sent to our backend server and then to an AI vision service (Google Gemini, OpenAI, or Nebius Token Factory) to convert lines and shapes into coordinate data.
-- **Photos Are Not Kept on Our Servers:** Our backend does not write photos to disk or keep them in a database. It temporarily caches the resulting line/point coordinate data in memory for up to 6 hours to save processing quota on repeated scans; the photo itself is discarded after processing.
+- **Photos Are Not Kept on Our Servers:** Photos are not stored; a large upload may pass through a temporary file that is deleted when the request ends. It temporarily caches the resulting line/point coordinate data in memory for up to 6 hours to save processing quota on repeated scans; the photo itself is discarded after processing.
 - **Saved Diagrams Stay on the Phone:** Diagrams that students choose to save are stored exclusively in the phone browser's local database (IndexedDB). They are never synced or uploaded to our server.
 - **Voice Questions:** When a student speaks a question using the microphone, Android Chrome's built-in speech recognition transcribes the audio. The browser vendor (Google) may process this audio according to their own platform privacy policies. Ghost Touch only receives the transcribed text.
 - **Teacher Shared Diagrams:** Diagrams shared by teachers are compressed directly into the URL web address (the `#` fragment). Opening a shared diagram requires zero communication with our backend server.
@@ -224,7 +224,7 @@ During our thorough audit of the backend and frontend codebases, we identified t
 |---|---|---|
 | Photos leave the phone | **VERIFIED** | `frontend/src/api/scene.ts`, `backend/app/main.py` |
 | Photos forwarded to Gemini, OpenAI, Nebius | **VERIFIED** | `backend/app/vision/chain.py`, `render.yaml` |
-| Backend does not store photos on disk | **VERIFIED** | `backend/app/main.py`, `backend/app/scene_cache.py` |
+| Photos not stored (temporary upload file deleted when request ends) | **VERIFIED** | `backend/app/main.py`, `backend/app/scene_cache.py` |
 | Scene cache stores only JSON, not image bytes | **VERIFIED** | `backend/app/scene_cache.py` (`payload` holds `scene` dict, not `image`) |
 | Scene cache expires in 6 hours / 64 entries | **VERIFIED** | `backend/app/scene_cache.py` (defaults 64 entries, 21600s TTL) |
 | Question text is not written to server logs | **VERIFIED** | `backend/app/ask.py` (`question_len=%d` only) |
