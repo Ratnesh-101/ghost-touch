@@ -617,3 +617,30 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 3. Single letters and short textbook names ("A", "B'", "P1", "O", "AB") SHALL be speakable. Every id the backend Raw Mode produces (`raw_p<n>`, `raw_s<n>`) SHALL NOT be.
 4. WHEN `speakableName` returns `null` THE caller SHALL describe the element (kind, position or direction) and SHALL NOT speak the id. The wording and wiring are a later lane.
 5. Both functions SHALL be pure and total: never throw for any input, no browser API, no i18n, no import.
+
+
+### Requirement 44: Three presets set every Explore switch at once (core half; task 70)
+> Written by Kiro on 2026-11-17 BEFORE the code. This requirement covers the pure data module `frontend/src/core/presets.ts` only. Reading and writing storage, the Settings UI, spoken text and strings are lane ux10. No tuned value changes and no stored default changes.
+
+**User Story:** As a blind student (or the person helping me), I want to pick one of three named settings instead of six switches, so that I get a sensible set without having to understand each one.
+
+#### Definitions
+- **Explore settings:** speech detail (`full` or `short`) and five switches: directions, finding sound, graph scan, stay on line (`stickyLine`), corner heartbeat (`cornerHeartbeat`).
+- **PROPOSED feature:** one whose values `tech.md` marks "PROPOSED, pending owner approval, not phone-tested" and that ships OFF: stay on line (Requirement 33) and corner heartbeat (Requirement 34).
+
+#### Acceptance Criteria
+1. THE core SHALL export three presets, `simple`, `standard` and `explorer`, each giving a value for every Explore setting:
+
+   | Preset | speechDetail | directions | findingSound | graphScan | stickyLine | cornerHeartbeat |
+   |---|---|---|---|---|---|---|
+   | simple | short | on | off | off | off | off |
+   | standard | full | on | on | on | off | off |
+   | explorer | full | on | on | on | on | on |
+
+2. THE `standard` preset SHALL equal the defaults the app ships today, which are the documented defaults of the storage getters (`getStoredSpeechDetailSetting`, `getStoredDirectionsSetting`, `getStoredFindingSoundSetting`, `getStoredGraphScanSetting`, `getStoredStickyLineSetting`, `getStoredCornerHeartbeatSetting`) when nothing is stored. A test SHALL read them from those getters, so the two cannot drift.
+3. A preset SHALL NOT turn on a PROPOSED feature (stay on line, corner heartbeat) unless it is `explorer`. Only `explorer` has either on. (Finding sound is also still PROPOSED, task 51, but it ships on today, owner decision OD-2; `standard` keeps today's value and does not change it. `simple` turns it off.)
+4. `applyPreset(id)` SHALL return the settings of that preset as a new object each call, so a caller cannot change the preset table by editing the result. IF `id` is not one of the three (junk from storage) THEN it SHALL return a copy of `standard`.
+5. `presetOf(settings)` SHALL return the id of the preset whose six values all equal `settings`, and `'custom'` for every other value, including a missing or mistyped field, extra fields with the right six values being ignored, `null`, `undefined` and any non-object. It SHALL never throw.
+6. FOR EVERY id, `presetOf(applyPreset(id))` SHALL equal `id`. The three presets SHALL differ from one another, so the answer is never ambiguous.
+7. THE module SHALL be pure: no storage, `localStorage`, React, i18n, DOM or other import. It SHALL NOT import from `flow/` (it declares its own `'full' | 'short'` type).
+8. No tuned haptic value, storage key or stored default SHALL change. THE module is not called by the app until lane ux10.

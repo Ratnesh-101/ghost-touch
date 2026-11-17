@@ -585,3 +585,14 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 69.4 Gate (`tsc --noEmit`, `vitest run --maxWorkers=6`); BUILD_LOG entry (tool = Kiro); path-scoped commit
   - [ ] 69b. Later lane (not Kiro): use `speakableName` where Explore, Ask and the feature buttons name an element
   - _Requirements: 43.*_
+
+## Presets as pure data (Requirement 44; spec written before the code)
+> Core only. Do not edit `drivers/storage.ts`, `flow/`, `screens/`, `components/`, `i18n/` or any tuned value or stored default. The UI is agy lane ux10.
+
+- [x] 70. `core/presets.ts`
+  - [x] 70.1 Requirement 44, design section and properties P143-P146 written before any code
+  - [x] 70.2 `frontend/src/core/presets.ts`: `PresetId`, `ExploreSettings`, `PRESETS`, `applyPreset`, `presetOf`; pure, no `any`, no imports
+  - [x] 70.3 Properties P143-P146 in `frontend/tests/presets.prop.test.ts` (200-300 runs through `runs()`), mutation-checked
+  - [x] 70.4 Gate (`tsc --noEmit`, `vitest run --maxWorkers=6`); BUILD_LOG entry (tool = Kiro); path-scoped commit
+  - [ ] 70b. Lane ux10 (not Kiro): read the six getters, write the six setters from `applyPreset`, show the active preset or "custom", strings in `en`, `hi`, `gu`
+  - _Requirements: 44.*_

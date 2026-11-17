@@ -4518,3 +4518,12 @@ Format for each entry:
 - `frontend/tests/speakable.prop.test.ts`: 300 runs each; raw_p<n> and raw_s<n> checked as machine ids.
 - Mutants: length bound, label-wins and the underscore-with-digit clause were killed. Dropping the prefix regex's optional letter survives: it is equivalent, because every such id (raw_p3) also contains an underscore and a digit. Reverted all mutants.
 - Gate: tsc 0 errors; vitest --maxWorkers=6: 216 files, 2717 passed, 12 expected fail, 1 todo.
+
+## 2026-11-17 | Kiro | T70 core/presets.ts (Requirement 44, P143-P146)
+- Spec first: Requirement 44, design section, task 70 (numbers 44, 70 and P143-P146 were free).
+- `frontend/src/core/presets.ts`: `PresetId`, `ExploreSettings`, `PRESETS`, `applyPreset` (fresh copy; junk id gives a copy of standard), `presetOf(unknown)` (exact match on the six keys, else `'custom'`; try/catch for hostile objects). Pure, no imports. Not wired; storage, `flow/`, `screens/`, i18n untouched; no tuned value or stored default changed.
+- Shipped defaults read from the real getters, not guessed: speechDetail `full`, directions true, findingSound true, graphScan true (`flow/explore.ts`), stickyLine false, cornerHeartbeat false. They equal the Standard row; P144 reads them from the getters.
+- Spec note: the finding-sound click cue is also PROPOSED (task 51) but ships on (OD-2). Requirement 44.3 therefore pins only stickyLine and cornerHeartbeat to Explorer; Standard keeps today's finding sound and Simple turns it off.
+- `frontend/tests/presets.prop.test.ts`: 17 tests, 200-300 runs through `runs()`.
+- Mutants, all killed, reverted: Standard with stickyLine on, presetOf ignoring cornerHeartbeat, applyPreset returning the shared table object, junk id giving Explorer, Simple with full speech, presetOf without try/catch.
+- Gate: tsc 0 errors; vitest --maxWorkers=6: 218 files, 2744 passed, 12 expected fail, 1 todo.

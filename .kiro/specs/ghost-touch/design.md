@@ -851,3 +851,23 @@ Rules are the ones in Requirement 43.1 and 43.2. The prefix test is `/^(raw|poin
 | P140 | **A label wins (Kiro, task 69):** for any non-blank label and any id, `speakableName` returns the label trimmed; a blank or missing label gives the id result. 300 runs. | 43.2 |
 | P141 | **Textbook names are speakable (Kiro, task 69):** single letters, a letter with prime marks, a letter with 1 to 2 digits (no underscore) and two or three capital letters are not machine ids, and `speakableName(undefined, id)` returns them. 300 runs. | 43.3 |
 | P142 | **Raw Mode ids are never spoken (Kiro, task 69):** for any n, `raw_p<n>` and `raw_s<n>` are machine ids and `speakableName` gives `null` without a label; the prefixed families (`point_`, `pt_`, `seg_`, `line_`, `poly_`, `bar_` plus digits) and any id over 12 characters likewise. 300 runs. | 43.1, 43.3 |
+
+
+## Presets as pure data (Requirement 44, task 70)
+Written by Kiro before the code. One pure module, `frontend/src/core/presets.ts`, named exports, no imports.
+```ts
+type PresetId = 'simple' | 'standard' | 'explorer'
+interface ExploreSettings { speechDetail: 'full' | 'short'; directions: boolean; findingSound: boolean;
+                            graphScan: boolean; stickyLine: boolean; cornerHeartbeat: boolean }
+const PRESETS: Record<PresetId, ExploreSettings>    // table in Requirement 44.1
+applyPreset(id: PresetId): ExploreSettings          // fresh copy; junk id gives a copy of standard
+presetOf(settings: unknown): PresetId | 'custom'    // exact match on the six values, else 'custom'; total
+```
+`presetOf` takes `unknown` so junk read from storage needs no cast; a typed `ExploreSettings` still fits. Fields are compared with `===` on the six keys only. Lane ux10 owns reading the six storage getters into an `ExploreSettings`, writing the six setters from `applyPreset`, the UI and the strings.
+
+| # | Property | Validates |
+|---|---|---|
+| P143 | **Round trip (Kiro, task 70):** for each id, `presetOf(applyPreset(id)) === id`; the three presets are pairwise different; `applyPreset` returns a new object each call and editing it does not change `PRESETS`. Example test over the three ids plus a fast-check property over `fc.constantFrom(...)` (200+ runs). | 44.4, 44.6 |
+| P144 | **Standard is today's shipped default (Kiro, task 70):** after resetting storage, the six getters (`getStoredSpeechDetailSetting`, `getStoredDirectionsSetting`, `getStoredFindingSoundSetting`, `getStoredGraphScanSetting`, `getStoredStickyLineSetting`, `getStoredCornerHeartbeatSetting`) read into an `ExploreSettings` deep-equal `PRESETS.standard`. Example test, not fast-check. | 44.2 |
+| P145 | **Only Explorer has a PROPOSED feature on (Kiro, task 70):** for every id, `stickyLine` and `cornerHeartbeat` are true exactly when the id is `explorer`; `applyPreset` of a junk id (any JSON value) has both off. 200+ runs. | 44.3, 44.4 |
+| P146 | **`presetOf` is total and exact (Kiro, task 70):** for any JSON value, any object with random fields of random types, and any preset with one field flipped or mistyped, it returns a string and never throws; flipping any one of the six fields of a preset gives `'custom'`; extra fields do not change the answer. 300 runs. | 44.5 |
