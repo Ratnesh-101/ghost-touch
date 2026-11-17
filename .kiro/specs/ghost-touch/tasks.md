@@ -617,3 +617,11 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [ ] 73.2 Soak on the real `Explore` with the task 67 rig; failing seeds pinned
   - [ ] 73.3 Gate; BUILD_LOG; path-scoped commit
 - [ ] 74. Close task 56.2 (P109 to P113): see 56.2 and design.md "Where P109 to P113 stand"
+
+## P112 flaky failure (task 75; spec first)
+- [x] 75. `checkWhereAmIDwell` restarts the rest on a non-none target even with Directions off (Requirement 30.2 amended, P112 and P113 notes in design.md)
+  - [x] 75.1 Reproduce: seed 963477463 (about 1 run in 12), shrunk to 6 steps; recorded in BUILD_LOG
+  - [x] 75.2 Decide: product bug in `flow/explore.ts`, not a generator bug and not Requirement 40 (which only delays); lane ux1 does not touch the pure dwell functions
+  - [x] 75.3 Fix in `flow/explore.ts`; pinned example, P113 amended; two mutants
+  - [x] 75.4 Gate (`tsc --noEmit`, `vitest run --maxWorkers=4` twice); path-scoped commit
+  - _Requirements: 30.1, 30.2, 30.4_

@@ -991,9 +991,12 @@ export function checkWhereAmIDwell(
   const { targetKind, coords, now, lastSpeechStartTime, isAskActive, isGuiding } = input;
 
   if (input.isDirectionsEnabled === false) {
+    // Never speaks. A non-none target still restarts the rest (Requirement 30.2, task 75), so
+    // switching Directions on mid-touch cannot count a rest that began before this step.
     return {
       shouldSpeak: false,
-      nextState: state,
+      nextState:
+        targetKind === 'none' ? state : { ...state, restAnchor: coords, restStartTime: now },
     };
   }
 

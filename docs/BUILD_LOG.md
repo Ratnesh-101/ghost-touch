@@ -4568,3 +4568,16 @@ Format for each entry:
   - `frontend/src/flow/explore.ts`
   - `docs/reports/agy-ux2-report.md`
   - `docs/BUILD_LOG.md`
+
+
+### 2026-11-17 Kiro T75: P112 where-am-I dwell flaky failure
+- **Tool:** Kiro.
+- **Reproduced:** `npx vitest run tests/explore.dwell.prop.test.ts` 12 times on main; run 12 failed with seed 963477463 ("rested at least 1200 ms: expected 242 to be greater than or equal to 1200"), about 1 run in 12. Shrunk to 6 steps: `none, none (+409 ms), line with Directions off (+549), none, none, none` (+120, +119, +3 ms) with Directions on again. The test file was untracked on main (not in any earlier gate), so the "passed on 2026-11-16" runs did not include it.
+- **Cause (product bug, `flow/explore.ts` `checkWhereAmIDwell`):** with Directions off the function returned before it restarted the rest on a non-`none` target, so a rest start from before a line visit survived. Switching Directions on mid-touch then spoke after 242 ms of real rest. Not a generator bug (the generator flips Directions rarely, which is why it was flaky, not wrong), and not Requirement 40 (that can only delay a sentence). ux1 (`git diff main..agy/ux1`, read-only) does not change the pure dwell functions (its diff there only reverts ux2's pacing code against an older base), so it neither fixes nor breaks P112.
+- **Spec first:** Requirement 30.2 amended; design.md P112 and P113 amended; tasks.md task 75.
+- **Fix:** Directions off still never speaks; a non-`none` target now restarts the rest at that position and time; a `none` target still returns the same state object. P113 amended to say so. Pinned example "line step with Directions off restarts the rest (seed 963477463)".
+- **Mutants (reverted, `git diff frontend/src` is only the fix):** (1) old behaviour, state unchanged for every target with Directions off: killed by the pinned example, P112 and P113; (2) rest also restarted on a `none` target with Directions off: killed by P113.
+- **Verification:** 15 runs of the file at `FC_RUNS_MULT=25`, 0 failures; `tsc --noEmit` 0 errors; full `vitest run --maxWorkers=4` twice: 222 files, 2790 passed, 18 expected fail, 1 todo.
+- **Incident:** a PowerShell read/write round trip used for the first mutant removed the BOM and turned non-ASCII characters in `flow/explore.ts` into `?`. Caught in `git diff` before any commit; the file was restored byte-exact with `git show HEAD:... > file` (via cmd) and the fix reapplied with the edit tool. Mutants after that were made with the edit tool only.
+- **Not committed:** `tests/commands.table.test.ts` and `tests/storage.settings.prop.test.ts` (tasks 71, 72, other work) are left untracked.
+- **Files:** `frontend/src/flow/explore.ts`, `frontend/tests/explore.dwell.prop.test.ts` (new to git), `.kiro/specs/ghost-touch/{requirements,design,tasks}.md`, `docs/BUILD_LOG.md`.
