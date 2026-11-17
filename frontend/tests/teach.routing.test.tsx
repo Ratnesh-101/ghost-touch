@@ -172,7 +172,9 @@ describe('Teacher Editor Routing & Gating', () => {
       }),
     );
     expect(htmlOn).toContain(t('lab.settings.teacher'));
-    expect(htmlOn).toContain(t('lab.settings.teacherOff'));
+    expect(htmlOn).toContain('aria-checked="false"');
+    // Fixed name; state is in aria-checked only, not as visible state text.
+    expect(htmlOn).not.toContain(t('lab.settings.teacherOff'));
   });
 
   it('opens a shared diagram via pasted link into Teach editor', () => {

@@ -90,7 +90,7 @@ describe('Lab theme i18n & copy parity (Lane lab-i18n)', () => {
     expect(t('lab.organ.voice.title')).toBe('Voice');
     expect(t('lab.organ.voice.line')).toBe('Tones and speech tell you more');
 
-    expect(t('lab.settings.title')).toBe('Lab settings');
+    expect(t('lab.settings.title')).toBe('Settings');
     expect(t('lab.settings.close')).toBe('Close settings');
     expect(t('lab.settings.language')).toBe('Language');
     expect(t('lab.settings.rate')).toBe('Speech speed');
@@ -114,7 +114,7 @@ describe('Lab theme i18n & copy parity (Lane lab-i18n)', () => {
     setLang('hi');
     expect(t('lab.start.wake')).toBe('जीव को जगाएं');
     expect(t('lab.raw.notice')).toContain('जीव की आंखें धुंधली हैं');
-    expect(t('lab.settings.title')).toBe('लैब सेटिंग्स');
+    expect(t('lab.settings.title')).toBe('सेटिंग्स');
     expect(t('lab.settings.close')).toBe('सेटिंग्स बंद करें');
     expect(t('lab.organ.nerves.title')).toBe('तंत्रिकाएं');
     expect(t('lab.organ.eyes.title')).toBe('आंखें');
@@ -125,7 +125,7 @@ describe('Lab theme i18n & copy parity (Lane lab-i18n)', () => {
     setLang('gu');
     expect(t('lab.start.wake')).toBe('પ્રાણીને જગાડો');
     expect(t('lab.raw.notice')).toContain('પ્રાણીની આંખો ઝાંખી છે');
-    expect(t('lab.settings.title')).toBe('લેબ સેટિંગ્સ');
+    expect(t('lab.settings.title')).toBe('સેટિંગ્સ');
     expect(t('lab.settings.close')).toBe('સેટિંગ્સ બંધ કરો');
     expect(t('lab.organ.nerves.title')).toBe('ચેતાઓ');
     expect(t('lab.organ.eyes.title')).toBe('આંખો');

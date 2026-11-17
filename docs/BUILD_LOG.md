@@ -4679,4 +4679,22 @@ Format for each entry:
   - `frontend/src/screens/Start.tsx`
   - `frontend/tests/navigation.hint.test.ts`
   - `docs/reports/agy-ux4-report.md`
+
+## 2026-11-17 — Antigravity — Lane ux10: Three choices instead of eight switches
+- Replaced eight standalone switches with three Explore presets (Simple, Standard, Explorer) and a More Settings disclosure:
+  - Added preset radio group (`role="radiogroup"`) with 3 `role="radio"` buttons (Simple, Standard, Explorer), 48px min touch target, and hints via `aria-describedby`.
+  - Added Reset button applying Standard preset.
+  - Automatically identifies Custom state via `presetOf` from `frontend/src/core/presets.ts` and renders Custom status badge when any switch deviates.
+  - Moved all sections except Language and Speech speed into collapsible "More settings" disclosure (`aria-expanded`, collapsed on open).
+  - Standardized all switch buttons with invariant accessible names and state in `aria-checked`; fixed Graph scan, Guide, and Teacher buttons which previously alternated names via status sentences.
+  - Removed spoken dialog open/close speech calls and renamed dialog title text to "Settings" in en, hi, gu.
+  - Updated `drivers/storage.ts` boolean getters to return documented defaults on any non-strict boolean stored value, giving precedence to in-memory overrides.
+  - Added test suite in `frontend/tests/settings.presets.test.tsx` verifying preset application, Custom state detection, switch name invariance, collapsed disclosure on open, and storage garbage handling.
+- Files touched:
+  - `frontend/src/drivers/storage.ts`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/styles/settings.css`
+  - `frontend/src/components/LabSettings.tsx`
+  - `frontend/tests/settings.presets.test.tsx`
+  - `docs/reports/agy-ux10-report.md`
   - `docs/BUILD_LOG.md`

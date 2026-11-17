@@ -180,7 +180,8 @@ describe('Guide UI Explore & LabSettings (Server/Node Markup & Flow)', () => {
       expect(htmlOff).toContain(t('lab.settings.guide'));
       expect(htmlOff).toContain('role="switch"');
       expect(htmlOff).toContain('aria-checked="false"');
-      expect(htmlOff).toContain(t('lab.settings.guideOff'));
+      // Fixed name; state is in aria-checked only, not as visible state text.
+      expect(htmlOff).not.toContain(t('lab.settings.guideOff'));
 
       setStoredGuideSetting(true);
       const htmlOn = renderToStaticMarkup(
@@ -191,7 +192,7 @@ describe('Guide UI Explore & LabSettings (Server/Node Markup & Flow)', () => {
         }),
       );
       expect(htmlOn).toContain('aria-checked="true"');
-      expect(htmlOn).toContain(t('lab.settings.guideOn'));
+      expect(htmlOn).not.toContain(t('lab.settings.guideOn'));
     });
 
     it('voice commands parse successfully when guide is active', () => {

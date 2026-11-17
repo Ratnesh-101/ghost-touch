@@ -184,3 +184,113 @@
   color: var(--gt-text-muted, #a9b8ae);
 }
 
+/* Presets section (Lane ux10) */
+.gt-lab-settings__presets-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gt-space-sm, 8px);
+}
+
+.gt-preset-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--gt-radius-sm, 6px);
+  background: var(--gt-copper-subtle, rgba(184, 115, 51, 0.15));
+  border: 1px solid var(--gt-copper, #b87333);
+  color: var(--gt-copper, #b87333);
+  font-size: var(--gt-text-xs, 0.75rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gt-preset-radiogroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-sm, 8px);
+}
+
+.gt-preset-radio {
+  min-width: var(--gt-target, 48px);
+  min-height: var(--gt-target, 48px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  text-align: left;
+  padding: 12px 16px;
+  background: var(--gt-surface, #14141e);
+  color: var(--gt-text, #eafff5);
+  border: 1px solid var(--gt-border, rgba(57, 255, 136, 0.22));
+  border-radius: var(--gt-radius-md, 12px);
+  cursor: pointer;
+  transition: background var(--gt-transition-fast, 150ms ease),
+              border-color var(--gt-transition-fast, 150ms ease);
+}
+
+.gt-preset-radio:hover {
+  background: var(--gt-surface-hover, #1c1c2a);
+  border-color: var(--gt-green, #39ff88);
+}
+
+.gt-preset-radio--active {
+  background: var(--gt-surface-active, rgba(57, 255, 136, 0.12));
+  border-color: var(--gt-green, #39ff88);
+  border-width: 2px;
+}
+
+.gt-preset-radio:focus-visible {
+  outline: 3px solid var(--gt-copper, var(--gt-focus, #39ff88));
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px var(--gt-copper, var(--gt-focus, #39ff88));
+}
+
+.gt-preset-radio__label {
+  font-weight: 700;
+  font-size: var(--gt-text-md, 1rem);
+  color: var(--gt-text-primary, #f5fff8);
+}
+
+.gt-preset-radio__hint {
+  font-size: var(--gt-text-xs, 0.8rem);
+  color: var(--gt-bone, #ded6c4);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.gt-preset-reset-container {
+  display: flex;
+  margin-top: var(--gt-space-xs, 4px);
+}
+
+.gt-preset-reset-btn {
+  min-width: var(--gt-target, 48px);
+  min-height: var(--gt-target, 48px);
+  width: 100%;
+}
+
+/* More settings disclosure (Lane ux10) */
+.gt-lab-settings__more-toggle {
+  min-width: var(--gt-target, 48px);
+  min-height: var(--gt-target, 48px);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  font-weight: 600;
+}
+
+.gt-lab-settings__more-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-lg, 20px);
+}
+
+.gt-lab-settings__more-content[hidden] {
+  display: none !important;
+}
+
+

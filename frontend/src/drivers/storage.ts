@@ -64,12 +64,22 @@ export function notifySettingsChanged(key?: string): void {
 
 let inMemoryDirectionsSetting: boolean | null = null;
 
-export function getStoredDirectionsSetting(): boolean {
-  const stored = safeGet(STORAGE_KEY_DIRECTIONS);
-  if (stored !== null) {
-    return stored === 'true';
+function getStoredBoolean(inMemory: boolean | null, key: string, defaultValue: boolean): boolean {
+  if (inMemory !== null) {
+    return inMemory;
   }
-  return inMemoryDirectionsSetting ?? true;
+  const stored = safeGet(key);
+  if (stored === 'true') {
+    return true;
+  }
+  if (stored === 'false') {
+    return false;
+  }
+  return defaultValue;
+}
+
+export function getStoredDirectionsSetting(): boolean {
+  return getStoredBoolean(inMemoryDirectionsSetting, STORAGE_KEY_DIRECTIONS, true);
 }
 
 export function setStoredDirectionsSetting(enabled: boolean): void {
@@ -87,11 +97,7 @@ export function _resetDirectionsSettingForTesting(): void {
 let inMemoryFindingSoundSetting: boolean | null = null;
 
 export function getStoredFindingSoundSetting(): boolean {
-  const stored = safeGet(STORAGE_KEY_FINDING_SOUND);
-  if (stored !== null) {
-    return stored === 'true';
-  }
-  return inMemoryFindingSoundSetting ?? true;
+  return getStoredBoolean(inMemoryFindingSoundSetting, STORAGE_KEY_FINDING_SOUND, true);
 }
 
 export function setStoredFindingSoundSetting(enabled: boolean): void {
@@ -109,11 +115,7 @@ export function _resetFindingSoundSettingForTesting(): void {
 let inMemoryStickyLineSetting: boolean | null = null;
 
 export function getStoredStickyLineSetting(): boolean {
-  const stored = safeGet(STORAGE_KEY_STICKY_LINE);
-  if (stored !== null) {
-    return stored === 'true';
-  }
-  return inMemoryStickyLineSetting ?? false;
+  return getStoredBoolean(inMemoryStickyLineSetting, STORAGE_KEY_STICKY_LINE, false);
 }
 
 export function setStoredStickyLineSetting(enabled: boolean): void {
@@ -131,11 +133,7 @@ export function _resetStickyLineSettingForTesting(): void {
 let inMemoryCornerHeartbeatSetting: boolean | null = null;
 
 export function getStoredCornerHeartbeatSetting(): boolean {
-  const stored = safeGet(STORAGE_KEY_CORNER_HEARTBEAT);
-  if (stored !== null) {
-    return stored === 'true';
-  }
-  return inMemoryCornerHeartbeatSetting ?? false;
+  return getStoredBoolean(inMemoryCornerHeartbeatSetting, STORAGE_KEY_CORNER_HEARTBEAT, false);
 }
 
 export function setStoredCornerHeartbeatSetting(enabled: boolean): void {

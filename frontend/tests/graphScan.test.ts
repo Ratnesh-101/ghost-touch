@@ -391,7 +391,10 @@ describe('Lane A6 — LabSettings Graph scan toggle markup and interaction', () 
     expect(html).toContain('Graph scan');
     expect(html).toContain('role="switch"');
     expect(html).toContain('aria-checked="true"');
-    expect(html).toContain('Graph scan enabled.');
+    // The name is fixed and the state lives in aria-checked only, so the
+    // spoken state sentence must not be rendered in the markup.
+    expect(html).not.toContain(t('lab.settings.graphScanOn'));
+    expect(html).not.toContain(t('lab.settings.graphScanOff'));
     expect(html).toContain('Hear curve pitch anywhere on the graph.');
   });
 });

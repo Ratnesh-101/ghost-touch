@@ -68,7 +68,7 @@ describe('LabSettings dialog semantics (renderToStaticMarkup)', () => {
     expect(html).toContain('aria-modal="true"');
     expect(html).toContain('aria-labelledby="lab-settings-title"');
     expect(html).toContain('id="lab-settings-title"');
-    expect(html).toContain('Lab settings');
+    expect(html).toContain('class="gt-lab-settings__title">Settings</h2>');
   });
 
   it('includes an accessible close button with lab.settings.close label', () => {
@@ -152,7 +152,7 @@ describe('LabSettings dialog semantics (renderToStaticMarkup)', () => {
       }),
     );
 
-    expect(html).toContain('लैब सेटिंग्स');
+    expect(html).toContain('class="gt-lab-settings__title">सेटिंग्स</h2>');
     expect(html).toContain('सेटिंग्स बंद करें');
     expect(html).toContain('भाषा');
     expect(html).toContain('बोलने की गति');
@@ -170,7 +170,7 @@ describe('LabSettings dialog semantics (renderToStaticMarkup)', () => {
       }),
     );
 
-    expect(html).toContain('લેબ સેટિંગ્સ');
+    expect(html).toContain('class="gt-lab-settings__title">સેટિંગ્સ</h2>');
     expect(html).toContain('સેટિંગ્સ બંધ કરો');
     expect(html).toContain('ભાષા');
     expect(html).toContain('વાણી ગતિ');
