@@ -346,6 +346,15 @@ export function Explore({
   const lastSpeechStartRef = useRef<number>(-Infinity);
   const lastFingerNormRef = useRef<NormPoint | null>(null);
   const playingScanToneRef = useRef(false);
+  const liftSpeechQuietTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const askAnswerSpeakingRef = useRef<boolean>(false);
+
+  const clearLiftSpeechQuietTimer = (): void => {
+    if (liftSpeechQuietTimer.current !== null) {
+      clearTimeout(liftSpeechQuietTimer.current);
+      liftSpeechQuietTimer.current = null;
+    }
+  };
 
   const isSpeechSpeaking = useCallback((): boolean => {
     if (typeof drivers.speech.isSpeaking === 'function') {
@@ -362,6 +371,15 @@ export function Explore({
     }
     return false;
   }, [drivers.speech]);
+
+  const isAskAnswerSpeaking = (): boolean => {
+    if (!askAnswerSpeakingRef.current) return false;
+    if (!isSpeechSpeaking()) {
+      askAnswerSpeakingRef.current = false;
+      return false;
+    }
+    return true;
+  };
 
   const markSpeechStart = (now = performance.now()): void => {
     lastSpeechStartRef.current = now;
@@ -589,6 +607,7 @@ export function Explore({
   };
 
   const handleExit = (): void => {
+    clearLiftSpeechQuietTimer();
     keepAliveTimer.current?.stop();
     sendProximityLift();
     if (guideController.current?.isGuiding()) {
@@ -788,6 +807,7 @@ export function Explore({
         scene,
         lang,
         formatAnswer: (ans: string, target?: GuideTarget) => {
+          askAnswerSpeakingRef.current = true;
           if (target && isGuide) {
             return `${ans} ${t('ask.guideOffer')}`;
           }
@@ -813,6 +833,7 @@ export function Explore({
 
       if (leaving.current) return;
       if (outcome.kind === 'success') {
+        askAnswerSpeakingRef.current = true;
         if (outcome.target && isGuide) {
           setOfferedTarget(outcome.target);
         }
@@ -876,6 +897,7 @@ export function Explore({
         scene,
         lang,
         formatAnswer: (ans: string, target?: GuideTarget) => {
+          askAnswerSpeakingRef.current = true;
           if (target && isGuideActive()) {
             return `${ans} ${t('ask.guideOffer')}`;
           }
@@ -920,6 +942,7 @@ export function Explore({
       if (!leaving.current) {
         setIsBusy(false);
         if (outcome?.kind === 'success') {
+          askAnswerSpeakingRef.current = true;
           if (outcome.target && isGuideActive()) {
             setOfferedTarget(outcome.target);
           }
@@ -1281,6 +1304,7 @@ export function Explore({
     }
 
     return () => {
+      clearLiftSpeechQuietTimer();
       keepAliveTimer.current?.stop();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
@@ -1327,6 +1351,7 @@ export function Explore({
     extraAnnouncements: readonly string[] = [],
     afterAnnouncements: readonly string[] = [],
     isStillness = false,
+    coords?: ScreenPoint | null,
   ): void => {
     engineState.current = moveResult.nextEngineState;
     heartbeatState.current = moveResult.heartbeatState;
@@ -1334,13 +1359,6 @@ export function Explore({
     axisState.current = moveResult.nextAxisState;
     if (moveResult.pageEdge) {
       pageEdgeState.current = moveResult.pageEdge.nextState;
-      if (moveResult.pageEdge.spoken) {
-        try {
-          drivers.audio.playEarcon?.('back');
-        } catch {
-          // ignore
-        }
-      }
     }
 
     if (moveResult.centreCheck.tick) {
@@ -1349,6 +1367,7 @@ export function Explore({
 
     const detail = speechDetailSettingRef.current;
     const now = performance.now();
+    const effectiveCoords = coords ?? pendingCursor.current;
 
     // Track pointer movement on bar or reset if moving away
     if (!isStillness) {
@@ -1357,6 +1376,7 @@ export function Explore({
           speechPacingState.current,
           now,
           moveResult.target.id,
+          effectiveCoords,
         );
       } else {
         speechPacingState.current = resetBarRest(speechPacingState.current);
@@ -1388,10 +1408,13 @@ export function Explore({
       const words = speechText(effect);
       if (!words) continue;
 
+      const target = moveResult.target;
+      const barTarget = target.kind === 'bar' ? target : null;
+      const vertexTarget = target.kind === 'vertex' ? target : null;
       const source: SpeechSource =
-        moveResult.target.kind === 'vertex'
+        vertexTarget !== null
           ? 'corner'
-          : moveResult.target.kind === 'bar'
+          : barTarget !== null
           ? 'bar'
           : 'other';
 
@@ -1400,19 +1423,16 @@ export function Explore({
         text: words,
         source,
         detail,
-        barId: moveResult.target.kind === 'bar' ? moveResult.target.id : null,
+        barId: barTarget ? barTarget.id : null,
+        label: barTarget ? barTarget.label : (vertexTarget?.label ?? undefined),
+        value: barTarget ? barTarget.value : undefined,
+        coords: effectiveCoords,
       });
       speechPacingState.current = paced.state;
       if (paced.speakNow !== null) {
         pacedEffects.push({ kind: 'speak', text: paced.speakNow });
       }
     }
-
-    // Corners in short mode speak label only (suppress compass directions)
-    const pacedAfterAnnouncements =
-      detail === 'short' && moveResult.target.kind === 'vertex'
-        ? []
-        : afterAnnouncements;
 
     // R3-01 / R3-03: Unified move pipeline calls mergeAnnouncements (previously in pointerdown, move, promotion)
     // PointerDown: mergeAnnouncements([centreMsg, ...axisCrossings], effects) (R3-01)
@@ -1422,11 +1442,12 @@ export function Explore({
     const moveEffects = mergeAnnouncements(
       [...extraAnnouncements, ...pacedAxisCrossings, ...edgeAnnouncements],
       pacedEffects,
-      pacedAfterAnnouncements,
+      afterAnnouncements,
     );
     // R3-02: update lastSpokenRef unconditionally from the merged speak effect
     const joined = moveEffects.find((e) => e.kind === 'speak');
     if (joined?.kind === 'speak') {
+      askAnswerSpeakingRef.current = false;
       lastSpokenRef.current = joined.text;
       lastSpeechStartRef.current = performance.now();
       if (moveResult.pageEdge?.spoken) {
@@ -1435,6 +1456,22 @@ export function Explore({
     }
     proximityState.current = moveResult.proximityState;
     runEffects(moveEffects, drivers, lang);
+
+    if (moveResult.target.kind === 'bar') {
+      const restResult = checkBarRest(speechPacingState.current, now, moveResult.target.id);
+      speechPacingState.current = restResult.state;
+      if (
+        restResult.speakNow !== null &&
+        !leaving.current &&
+        !askActive.current &&
+        !guideController.current?.isGuiding()
+      ) {
+        drivers.speech.speak(restResult.speakNow, lang);
+        lastSpeechStartRef.current = now;
+        lastSpokenRef.current = restResult.speakNow;
+        setStatusMessage(restResult.speakNow);
+      }
+    }
 
     if (
       findingSoundSettingRef.current &&
@@ -1614,7 +1651,7 @@ export function Explore({
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, coords, now, lang);
-        applyMoveResult(moveResult, lang, [], compassAnnouncements, true);
+        applyMoveResult(moveResult, lang, [], compassAnnouncements, true, coords);
         stickyHoldRef.current = updateStickyHoldState(
           stickyHoldRef.current,
           moveResult.target,
@@ -1646,6 +1683,7 @@ export function Explore({
 
   const handlePointerDown = (e: PointerEvent<HTMLCanvasElement>): void => {
     if (leaving.current) return;
+    clearLiftSpeechQuietTimer();
     drivers.audio.unlock();
     directionsSettingRef.current = getStoredDirectionsSetting();
     findingSoundSettingRef.current = getStoredFindingSoundSetting();
@@ -1933,7 +1971,7 @@ export function Explore({
     );
     const compassAnnouncements = checkVertexCompass(moveResult.target, now);
     checkLineDwell(moveResult.target, coords, now, lang);
-    applyMoveResult(moveResult, lang, [], compassAnnouncements);
+    applyMoveResult(moveResult, lang, [], compassAnnouncements, false, coords);
     stickyHoldRef.current = updateStickyHoldState(
       stickyHoldRef.current,
       moveResult.target,
@@ -2031,7 +2069,7 @@ export function Explore({
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, promotedCoords, now, lang);
         // Promotion of surviving pointer
-        applyMoveResult(moveResult, lang, [], compassAnnouncements);
+        applyMoveResult(moveResult, lang, [], compassAnnouncements, false, promotedCoords);
         stickyHoldRef.current = updateStickyHoldState(
           stickyHoldRef.current,
           moveResult.target,
@@ -2059,6 +2097,20 @@ export function Explore({
         playingScanToneRef.current = false;
         sendProximityLift(performance.now());
         scheduleDraw(viewportRef.current, null);
+
+        clearLiftSpeechQuietTimer();
+        if (!leaving.current && !isAskAnswerSpeaking()) {
+          liftSpeechQuietTimer.current = setTimeout(() => {
+            liftSpeechQuietTimer.current = null;
+            if (!leaving.current && !isAskAnswerSpeaking()) {
+              try {
+                drivers.speech.stopSpeaking?.();
+              } catch {
+                // ignore
+              }
+            }
+          }, 300);
+        }
       }
     }
   };

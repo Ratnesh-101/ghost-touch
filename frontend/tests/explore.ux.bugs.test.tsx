@@ -116,7 +116,7 @@ describe('task 67: seven Explore bugs (Requirements 31.6, 31.7, 37 to 42)', () =
 
     // Fails today: `handlePointerLift` stops vibration and tone but nothing ever calls
     // `drivers.speech.stopSpeaking`, so corner speech keeps playing after the last finger lifts.
-    it.fails('the last finger lifting stops exploration speech within 400 ms', async () => {
+    it('the last finger lifting stops exploration speech within 400 ms', async () => {
       await withExplore({ scene: triangle }, (rig) => {
         rig.down(100, 100); // corner A: label and exits start
         expect(rig.spoken().length).toBeGreaterThan(0);
@@ -142,7 +142,7 @@ describe('task 67: seven Explore bugs (Requirements 31.6, 31.7, 37 to 42)', () =
 
     // Fails today: `applyMoveResult` plays `playEarcon('back')` whenever the page-edge sentence
     // is spoken, so sliding off the page sounds like leaving Explore.
-    it.fails('the page-edge cue speaks the edge and does not play the back earcon', async () => {
+    it('the page-edge cue speaks the edge and does not play the back earcon', async () => {
       await withExplore({ scene: triangle }, (rig) => {
         rig.down(200, 200);
         rig.clearCalls();
@@ -164,7 +164,7 @@ describe('task 67: seven Explore bugs (Requirements 31.6, 31.7, 37 to 42)', () =
 
     // Fails today: `pacedAfterAnnouncements` is empty for every short-mode corner. The label
     // properties of the same oracle are P137 in explore.ux.pacing.prop.test.ts.
-    it.fails('in short detail a new touch on corner A still speaks its exits', async () => {
+    it('in short detail a new touch on corner A still speaks its exits', async () => {
       await withExplore({ scene: triangle, detail: 'short' }, (rig) => {
         rig.clearCalls();
         rig.down(100, 100);
@@ -190,7 +190,7 @@ describe('task 67: seven Explore bugs (Requirements 31.6, 31.7, 37 to 42)', () =
     // Fails today: `updateBarMove` sets the rest clock on every pointer move, so 1 px of jitter
     // every 50 ms keeps restarting the 500 ms and the value is never spoken. The 20 px rule of
     // Requirement 31.7 does not exist yet.
-    it.fails('with 1 px of jitter for 600 ms on Q2 its value is still spoken', async () => {
+    it('with 1 px of jitter for 600 ms on Q2 its value is still spoken', async () => {
       await withExplore({ scene: bars, detail: 'short' }, (rig) => {
         rig.down(Q1.x, Q1.y);
         rig.advance(100);

@@ -74,7 +74,7 @@ describe('P137 short mode speaks a label unchanged (U4, Requirement 31.6)', () =
   });
 
   // Fails today: `extractCornerLabel` trims and cuts at . ! ? and the danda characters.
-  it.fails('a corner label of any text is returned unchanged in short mode', () => {
+  it('a corner label of any text is returned unchanged in short mode', () => {
     fc.assert(
       fc.property(anyLabel, (label) => {
         expect(cornerSpoken(label)).toBe(label);
@@ -84,7 +84,7 @@ describe('P137 short mode speaks a label unchanged (U4, Requirement 31.6)', () =
   });
 
   // Fails today: `extractBarLabel` ignores `label`, cuts "label, value" at the first comma and trims.
-  it.fails('a bar that follows another within 700 ms is spoken as its label, unchanged', () => {
+  it('a bar that follows another within 700 ms is spoken as its label, unchanged', () => {
     fc.assert(
       fc.property(anyLabel, anyValue, (label, value) => {
         expect(barLabelSpoken(label, value)).toBe(label);
