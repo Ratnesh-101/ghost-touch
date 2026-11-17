@@ -4582,3 +4582,24 @@ Format for each entry:
 - **Incident:** a PowerShell read/write round trip used for the first mutant removed the BOM and turned non-ASCII characters in `flow/explore.ts` into `?`. Caught in `git diff` before any commit; the file was restored byte-exact with `git show HEAD:... > file` (via cmd) and the fix reapplied with the edit tool. Mutants after that were made with the edit tool only.
 - **Not committed:** `tests/commands.table.test.ts` and `tests/storage.settings.prop.test.ts` (tasks 71, 72, other work) are left untracked.
 - **Files:** `frontend/src/flow/explore.ts`, `frontend/tests/explore.dwell.prop.test.ts` (new to git), `.kiro/specs/ghost-touch/{requirements,design,tasks}.md`, `docs/BUILD_LOG.md`.
+
+
+## 2026-11-17 — Antigravity — Lane ux9: tell user what to do after Raw Mode
+- Built:
+  - Closed union RawReason ('timeout' | 'budget' | 'provider' | 'unreadable') and RAW_REASONS array.
+  - mapRawReason() mapping server strings to the closed union and defaulting unknown or missing strings to 'unreadable'.
+  - rawReasonSentence() returning the translated sentence without speaking or exposing raw server strings.
+  - Updated exploreAnnouncement() to append the localized reason sentence immediately after raw.announce in Raw Mode.
+  - Passed outcome.response.reason from Capture screen through App handleScene to exploreAnnouncement.
+  - Added new i18n keys raw.reason.timeout, raw.reason.budget, raw.reason.provider, raw.reason.unreadable in en, hi, and gu.
+  - Added new test suite frontend/tests/raw.reason.test.ts covering mapping, 3-language translations, Explore entry announcements, and negative assertions.
+- What broke / surprising findings:
+  - None. All additions are cleanly isolated and strictly conform to lane rules and constraints.
+- Files touched:
+  - frontend/src/i18n/index.ts
+  - frontend/src/flow/navigation.ts
+  - frontend/src/screens/Capture.tsx
+  - frontend/src/App.tsx
+  - frontend/tests/raw.reason.test.ts
+  - docs/reports/agy-ux9-report.md
+  - docs/BUILD_LOG.md

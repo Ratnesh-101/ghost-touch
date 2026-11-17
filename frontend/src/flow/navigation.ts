@@ -54,9 +54,56 @@ export function verifyCaveatForScene(
   return null;
 }
 
+/** Closed union of supported Raw Mode fallback reasons. */
+export type RawReason = 'timeout' | 'budget' | 'provider' | 'unreadable';
+
+export const RAW_REASONS: readonly RawReason[] = [
+  'timeout',
+  'budget',
+  'provider',
+  'unreadable',
+] as const;
+
+/**
+ * Maps arbitrary server strings or raw reason indicators to the closed union
+ * ('timeout' | 'budget' | 'provider' | 'unreadable'). Any unknown or missing reason
+ * maps to 'unreadable'.
+ */
+export function mapRawReason(serverReason?: string | null): RawReason {
+  if (typeof serverReason !== 'string') {
+    return 'unreadable';
+  }
+  const s = serverReason.trim().toLowerCase();
+  if (s === 'timeout' || s.includes('timeout')) {
+    return 'timeout';
+  }
+  if (s === 'budget' || s.includes('budget')) {
+    return 'budget';
+  }
+  if (s === 'provider' || s.includes('provider')) {
+    return 'provider';
+  }
+  return 'unreadable';
+}
+
+/**
+ * Localized guidance sentence for the closed union RawReason.
+ * Never speaks the raw server string.
+ */
+export function rawReasonSentence(reason?: RawReason | string | null): string {
+  const mapped = mapRawReason(reason);
+  return t(`raw.reason.${mapped}`);
+}
+
+export interface ExploreAnnouncementOptions {
+  honestTitle?: boolean;
+  rawReason?: RawReason | string;
+}
+
 /**
  * Entry announcement for the Explore screen. A Raw Mode scene starts with the
- * exact sentence required by Requirement 8.1.
+ * exact sentence required by Requirement 8.1, followed immediately by guidance
+ * on what the user should do next based on the reason.
  *
  * Runs verifyScene(scene, {mode}) once on entry:
  * - If 'disagree', appends ONE extra sentence localized in en, hi, gu via joinAnnouncements.
@@ -66,7 +113,8 @@ export function exploreAnnouncement(
   scene: DiagramScene,
   mode: SceneMode | VerifyMode = 'ai',
   verifyMode?: VerifyMode,
-  options?: { honestTitle?: boolean },
+  options?: ExploreAnnouncementOptions,
+  rawReason?: RawReason | string,
 ): string {
   const isShared = mode === 'shared' || verifyMode === 'shared';
   const rawTitle = scene.title;
@@ -89,20 +137,32 @@ export function exploreAnnouncement(
   const isRaw = mode === 'raw' || scene.kind === 'unknown';
   const overview = isRaw ? '' : buildOverview(scene, name);
   const lead = overview.length > 0 ? overview : name;
+
+  const resolvedRawReason = rawReason ?? options?.rawReason;
+
   const base =
     mode === 'raw'
-      ? `${t('raw.announce')} ${name}. ${hint}`
+      ? joinAnnouncements([
+          t('raw.announce'),
+          rawReasonSentence(resolvedRawReason),
+          `${name}. ${hint}`,
+        ])
       : joinAnnouncements([lead, hint]);
 
   const vMode: VerifyMode =
-    verifyMode ??
-    (mode === 'raw'
-      ? 'raw'
-      : mode === 'sample'
-        ? 'sample'
-        : mode === 'shared'
-          ? 'shared'
-          : 'ai');
+    verifyMode &&
+    (verifyMode === 'ai' ||
+      verifyMode === 'raw' ||
+      verifyMode === 'sample' ||
+      verifyMode === 'shared')
+      ? verifyMode
+      : mode === 'raw'
+        ? 'raw'
+        : mode === 'sample'
+          ? 'sample'
+          : mode === 'shared'
+            ? 'shared'
+            : 'ai';
 
   const caveat = verifyCaveatForScene(scene, vMode);
   return caveat ? joinAnnouncements([base, caveat]) : base;

@@ -65,6 +65,10 @@ const en: Record<string, string> = {
   'ask.errorUnsupported': 'Speech recognition is not supported. You can type your question.',
   'ask.errorEmpty': 'Please enter a question.',
   'raw.announce': "I couldn't fully read this diagram. You can still feel its outlines.",
+  'raw.reason.timeout': 'The reader was slow. Try once more.',
+  'raw.reason.budget': "Today's AI limit is used up. Saved diagrams still work. Try again tomorrow.",
+  'raw.reason.provider': 'The reader is not available right now. Try again in a minute.',
+  'raw.reason.unreadable': 'Try again with the page flat, closer, and in more light.',
   'common.vibrationUnsupported': 'Vibration is not supported. Use Chrome on Android for full haptics.',
   'start.noVibration':
     'Vibration is not supported on this device. Please use Chrome on Android. Audio-only mode.',
@@ -557,6 +561,10 @@ const hi: Record<string, string> = {
   'ask.errorUnsupported': 'वाणी पहचान समर्थित नहीं है। आप अपना प्रश्न टाइप कर सकते हैं।',
   'ask.errorEmpty': 'कृपया एक प्रश्न दर्ज करें।',
   'raw.announce': 'मैं इस चित्र को पूरी तरह नहीं पढ़ सका। आप अभी भी इसकी रूपरेखा महसूस कर सकते हैं।',
+  'raw.reason.timeout': 'रीडर धीमा था। एक बार फिर प्रयास करें।',
+  'raw.reason.budget': 'आज की एआई सीमा समाप्त हो गई है। सहेजे गए आरेख अभी भी काम करते हैं। कल पुनः प्रयास करें।',
+  'raw.reason.provider': 'रीडर अभी उपलब्ध नहीं है। एक मिनट में पुनः प्रयास करें।',
+  'raw.reason.unreadable': 'पृष्ठ को सीधा, पास और अधिक प्रकाश में रखकर पुनः प्रयास करें।',
   'common.vibrationUnsupported': 'कंपन समर्थित नहीं है। पूर्ण हैप्टिक्स के लिए एंड्रॉइड पर क्रोम का उपयोग करें।',
   'start.noVibration':
     'इस डिवाइस पर कंपन समर्थित नहीं है। कृपया एंड्रॉइड पर क्रोम का उपयोग करें। केवल ऑडियो मोड।',
@@ -1051,6 +1059,10 @@ const gu: Record<string, string> = {
   'ask.errorUnsupported': 'વાણી ઓળખ સપોર્ટેડ નથી. તમે તમારો પ્રશ્ન લખી શકો છો.',
   'ask.errorEmpty': 'કૃપા કરીને પ્રશ્ન દાખલ કરો.',
   'raw.announce': 'હું આ આકૃતિ સંપૂર્ણ રીતે વાંચી શક્યો નથી. તમે હજી પણ તેની રૂપરેખા અનુભવી શકો છો.',
+  'raw.reason.timeout': 'રીડર ધીમું હતું. ફરી એકવાર પ્રયાસ કરો.',
+  'raw.reason.budget': 'આજની AI મર્યાદા સમાપ્ત થઈ ગઈ છે. સેવ કરેલી આકૃતિઓ હજી પણ કામ કરે છે. આવતીકાલે ફરી પ્રયાસ કરો.',
+  'raw.reason.provider': 'રીડર અત્યારે ઉપલબ્ધ નથી. એક મિનિટમાં ફરી પ્રયાસ કરો.',
+  'raw.reason.unreadable': 'પેજને સપાટ, નજીક અને વધુ પ્રકાશમાં રાખીને ફરી પ્રયાસ કરો.',
   'common.vibrationUnsupported': 'વાઇબ્રેશન સપોર્ટેડ નથી. સંપૂર્ણ હેપ્ટિક્સ માટે Android પર Chrome વાપરો.',
   'start.noVibration':
     'આ ઉપકરણ પર વાઇબ્રેશન સપોર્ટેડ નથી. કૃપા કરીને Android પર Chrome વાપરો. માત્ર ઓડિયો મોડ.',

@@ -41,6 +41,7 @@ import type { Drivers, SpeechRateSetting } from '../drivers';
 import { ACCEPTED_IMAGE_TYPES, MAX_IMAGE_SIDE, prepareImage } from '../drivers/camera';
 import { defaultPdfLoader, renderFirstPage } from '../drivers/pdf';
 import { processImageFile, type FileSource } from '../flow/capture';
+import { mapRawReason, type RawReason } from '../flow/navigation';
 import { getLang, LANG_BCP47, subscribeLang, t } from '../i18n';
 
 interface CaptureProps {
@@ -52,6 +53,7 @@ interface CaptureProps {
     mode: SceneMode,
     photoUrl?: string,
     source?: 'camera' | 'file' | 'sample',
+    rawReason?: RawReason,
   ) => void;
   /** Opens the saved-diagrams list. */
   onSavedDiagrams?: () => void;
@@ -229,7 +231,11 @@ export function Capture({
       }
       activePhotoUrlRef.current = photoUrl ?? null;
       handedOffRef.current = true;
-      onScene(outcome.response.scene, outcome.response.mode, photoUrl, source);
+      const rawReason =
+        outcome.response.mode === 'raw'
+          ? mapRawReason(outcome.response.reason)
+          : undefined;
+      onScene(outcome.response.scene, outcome.response.mode, photoUrl, source, rawReason);
     } else if (outcome.kind !== 'cancelled') {
       drivers.audio.playEarcon?.('error');
       takeButton.current?.focus();
