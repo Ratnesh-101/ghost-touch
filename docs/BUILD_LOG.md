@@ -4620,3 +4620,16 @@ Format for each entry:
   - `backend/tests/test_ux11_limits.py`
   - `docs/reports/agy-ux11-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-17 — Antigravity — Lane ux8 follow-up pass 1: Gate fixes
+- Resolved TypeScript strict check issues in `frontend/tests/locale.firstRun.test.ts`:
+  - Removed unused imports `safeRemove` and `safeSet` (TS6133).
+  - Used safe indexed property access `firstCall?.text` and `firstCall?.queue` for `calls[0]` under `noUncheckedIndexedAccess` (TS2532).
+- Resolved copy regression in `frontend/src/i18n/index.ts`:
+  - Restored `lab.start.wake` to `'जीव को जगाएं'` in Hindi and `'પ્રાણીને જગાડો'` in Gujarati, preserving Frankenstein Lab creature phrasing and satisfying `tests/lab.i18n.test.ts` and `tests/start.lab.test.tsx`.
+  - Updated `locale.firstRun.test.ts` to assert both `start.begin` and creature phrasing for `lab.start.wake` without weakening any test.
+- Files touched: frontend/src/i18n/index.ts, frontend/tests/locale.firstRun.test.ts, docs/reports/agy-ux8-report.md, docs/BUILD_LOG.md.
+
+## 2026-11-17 — Antigravity — Lane ux8 follow-up pass 2: Gate fix
+- Fixed mismatch in `frontend/tests/locale.firstRun.test.ts` where the first-run resolution test asserted `t('lab.start.wake')` was `'शुरू करें'` instead of creature phrasing `'जीव को जगाएं'`. Added explicit assertions for both `start.begin` (`'शुरू करें'` / `'Begin'`) and `lab.start.wake` (`'जीव को जगाएं'` / `'Wake the creature'`). Kept all tests strictly meaningful with zero weakening.
+- Files touched: frontend/tests/locale.firstRun.test.ts, docs/reports/agy-ux8-report.md, docs/BUILD_LOG.md.

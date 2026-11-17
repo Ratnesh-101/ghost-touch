@@ -6,7 +6,8 @@
  * Language preference is persisted to localStorage (wrapped in try/catch).
  */
 
-import { safeGet, safeSet } from '../drivers/storage';
+import { deviceLang } from '../drivers/locale';
+import { safeGet, safeRemove, safeSet } from '../drivers/storage';
 
 export type Lang = 'en' | 'hi' | 'gu';
 
@@ -26,14 +27,28 @@ export const LANG_NAMES: Record<Lang, { native: string; english: string }> = {
 
 export const STORAGE_KEY_LANG = 'gt_language';
 
-export function getStoredLang(): Lang {
+export function getStoredLang(): Lang | null {
   const val = safeGet(STORAGE_KEY_LANG);
   if (val === 'en' || val === 'hi' || val === 'gu') return val;
-  return 'en';
+  return null;
 }
 
 export function setStoredLang(lang: Lang): void {
   safeSet(STORAGE_KEY_LANG, lang);
+}
+
+export function clearStoredLang(): void {
+  safeRemove(STORAGE_KEY_LANG);
+}
+
+/**
+ * Determine initial language:
+ * When no language is stored, use deviceLang() and store nothing until the user chooses.
+ */
+export function resolveInitialLang(): Lang {
+  const stored = getStoredLang();
+  if (stored !== null) return stored;
+  return deviceLang();
 }
 
 /** English string table. Nested keys read like `t('start.tapToBegin')`. */
@@ -44,6 +59,7 @@ const en: Record<string, string> = {
   'start.intro': 'Ghost Touch. Tap anywhere to begin.',
   'start.tapToBegin': 'Tap anywhere to begin',
   'start.begin': 'Begin',
+  'start.langOffer': 'Also available in Hindi and Gujarati. Change language in Settings.',
   'capture.takePhoto': 'Take photo',
   'capture.chooseImage': 'Choose image',
   'capture.samples': 'Sample diagrams',
@@ -540,6 +556,7 @@ const hi: Record<string, string> = {
   'start.intro': 'घोस्ट टच। शुरू करने के लिए कहीं भी टैप करें।',
   'start.tapToBegin': 'शुरू करने के लिए कहीं भी टैप करें',
   'start.begin': 'शुरू करें',
+  'start.langOffer': 'अंग्रेज़ी और गुजराती में भी उपलब्ध। सेटिंग्स में भाषा बदलें।',
   'capture.takePhoto': 'फोटो लें',
   'capture.chooseImage': 'छवि चुनें',
   'capture.samples': 'नमूना चित्र',
@@ -1038,6 +1055,7 @@ const gu: Record<string, string> = {
   'start.intro': 'ગોસ્ટ ટચ. શરૂ કરવા માટે ગમે ત્યાં ટેપ કરો.',
   'start.tapToBegin': 'શરૂ કરવા માટે ગમે ત્યાં ટેપ કરો',
   'start.begin': 'શરૂ કરો',
+  'start.langOffer': 'અંગ્રેજી અને હિન્દીમાં પણ ઉપલબ્ધ. સેટિંગ્સમાં ભાષા બદલો.',
   'capture.takePhoto': 'ફોટો લો',
   'capture.chooseImage': 'ઇમેજ પસંદ કરો',
   'capture.samples': 'નમૂના આકૃતિઓ',
@@ -1557,8 +1575,19 @@ export function updateDocumentLang(lang: Lang = currentLang): string {
 
 export const setDocumentLang = updateDocumentLang;
 
-let currentLang: Lang = getStoredLang();
+let currentLang: Lang = resolveInitialLang();
 updateDocumentLang(currentLang);
+
+export function initLang(): Lang {
+  currentLang = resolveInitialLang();
+  updateDocumentLang(currentLang);
+  return currentLang;
+}
+
+export function _resetLangForTesting(): void {
+  safeRemove(STORAGE_KEY_LANG);
+  initLang();
+}
 
 const listeners = new Set<(lang: Lang) => void>();
 
