@@ -468,9 +468,9 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - _Requirements: 33.*_
 
 - [ ] 58b. Sticky line wiring (agy lane, not Kiro; do not start before the owner turns the feature on)
-  - [ ] 58b.1 Settings switch "Sticky lines", OFF by default, one fixed label, state in `aria-checked` only; strings in `en`, `hi`, `gu`
-  - [ ] 58b.2 `Explore.tsx`: keep the followed target and the time it has been a line target (reset on lift, on any non-line target and on a new touch); pass it to `followTarget` before the engine step; with the switch off, call `hitTest` exactly as today
-  - [ ] 58b.3 Real-Explore test: with the switch off the vibrate and tone calls of a fixed trace are identical to today; deleting the switch guard turns it red
+  - [x] 58b.1 Settings switch "Sticky lines", OFF by default, one fixed label, state in `aria-checked` only; strings in `en`, `hi`, `gu` (checked 2026-11-17: `LabSettings.tsx` role="switch" with fixed label `lab.settings.stickyLine` ("Stay on line"), `getStoredStickyLineSetting()` returns false when nothing is stored, `labSettings.test.tsx` covers en, hi, gu and `stickyWiring.test.ts` the default)
+  - [x] 58b.2 `Explore.tsx`: keep the followed target and the time it has been a line target (reset on lift, on any non-line target and on a new touch); pass it to `followTarget` before the engine step; with the switch off, call `hitTest` exactly as today (checked 2026-11-17: `stickyHoldRef` and `prevTargetRef` in `Explore.tsx`, `updateStickyHoldState` resets on any non-line target, `resetStickyHoldOnLift()` on lift, touch, Guide start and scene change; `processPointerMove` calls `followTarget` only when `sticky.enabled`, else `hitTest`; pure-level tests in `stickyWiring.test.ts`)
+  - [ ] 58b.3 (open: `stickyWiring.test.ts` exercises `processPointerMove` only, not the mounted `Explore`, and no guard-deletion mutant is recorded for it) Real-Explore test: with the switch off the vibrate and tone calls of a fixed trace are identical to today; deleting the switch guard turns it red
   - [ ] 58b.4 Phone test of 24 px and 200 ms on the Nord CE6 and one budget phone; only then may `tech.md` lose the "PROPOSED" mark
   - _Requirements: 33.*_
 
@@ -485,10 +485,11 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - _Requirements: 4.4, 34.*_
 
 - [ ] 59b. Corner heartbeat wiring (agy lane hb2, not Kiro; do not start before the owner has felt the beat on a phone and turned the feature on)
-  - [ ] 59b.1 Settings switch "Corner heartbeat", OFF by default, one fixed label, state in `aria-checked` only; strings in `en`, `hi`, `gu`
-  - [ ] 59b.2 `flow/explore.ts` and `Explore.tsx`: keep the heartbeat state, pass the engine's effects through `heartbeatStep` only when the switch is on; reset on lift, new touch, pointer promotion and scene change; with the switch off call nothing new
-  - [ ] 59b.3 Real-Explore test: with the switch off the vibrate, tone and speak calls of a fixed trace are identical to today; deleting the switch guard turns it red
+  - [x] 59b.1 Settings switch "Corner heartbeat", OFF by default, one fixed label, state in `aria-checked` only; strings in `en`, `hi`, `gu` (checked 2026-11-17: `LabSettings.tsx` role="switch", fixed label `lab.settings.cornerHeartbeat`, default false in `drivers/storage.ts`; `heartbeat.test.ts` covers default, key parity in en, hi, gu and the 48 x 48 target)
+  - [x] 59b.2 `flow/explore.ts` and `Explore.tsx`: keep the heartbeat state, pass the engine's effects through `heartbeatStep` only when the switch is on; reset on lift, new touch, pointer promotion and scene change; with the switch off call nothing new (checked 2026-11-17: `processPointerMove` calls `heartbeatStep` only when `heartbeatCfg !== null`; `Explore.tsx` passes `DEFAULT_HEARTBEAT` only when `cornerHeartbeatSettingRef.current`, else null; `heartbeatState` is reset on scene change, lift, new touch and Guide start)
+  - [x] 59b.3 (checked 2026-11-17: `explore.wiring.guards.test.tsx` mounts the real `Explore`, shows beats with the switch on and none while Ask listens; the T65 mutation record in BUILD_LOG lists the heartbeat switch guard as killed; `heartbeat.test.ts` compares a fixed trace with the switch off against the engine's own effects) Real-Explore test: with the switch off the vibrate, tone and speak calls of a fixed trace are identical to today; deleting the switch guard turns it red
   - [ ] 59b.4 Phone test of the pattern and period on the Nord CE6 and one budget phone; only then may `tech.md` lose the "PROPOSED" mark
+  - 2026-11-17 (Kiro): the wiring of 58b and 59b landed before the owner's phone test. Both features stay OFF by default (`gt_sticky_line_enabled`, `gt_corner_heartbeat_enabled`) and are untested on a phone; 58b.3, 58b.4 and 59b.4 stay open.
   - _Requirements: 34.*_
 
 
