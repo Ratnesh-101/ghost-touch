@@ -644,3 +644,42 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 6. FOR EVERY id, `presetOf(applyPreset(id))` SHALL equal `id`. The three presets SHALL differ from one another, so the answer is never ambiguous.
 7. THE module SHALL be pure: no storage, `localStorage`, React, i18n, DOM or other import. It SHALL NOT import from `flow/` (it declares its own `'full' | 'short'` type).
 8. No tuned haptic value, storage key or stored default SHALL change. THE module is not called by the app until lane ux10.
+
+
+
+### Requirement 45: A voice command matches a whole phrase, never a word inside a question (task 71)
+> Written by Kiro on 2026-11-17 BEFORE the tests. `flow/commands.ts` `parseExploreCommand` decides help, describe, repeat, next corner, faster and slower with `includes(...)` and `startsWith(...)`, so a question that merely contains one of those words is run as a command (for example "Can you help me find AB?" opens the help list instead of being asked). The fix is for an agy lane in `flow/commands.ts`; Kiro writes the test first, red until then. No tuned value changes.
+
+**User Story:** As a blind student who asks a real question by voice, I want my question to be answered, not swallowed by a command that shares one word with it.
+
+#### Acceptance Criteria
+1. THE transcript is normalised as today (lower case, trimmed, punctuation removed, spaces collapsed). A command (help, describe, repeat, next corner, set rate) SHALL match only when ONE of these holds:
+   1. the normalised transcript equals one of that command's listed phrases (any length), or
+   2. the transcript has at most 3 words AND every word of it is a word of a listed phrase of that same command.
+2. A transcript that only contains a command word or phrase inside a longer sentence SHALL NOT match: it parses as `unknown` and goes on to Ask. This holds in English, Hindi and Gujarati (a Hindi or Gujarati phrase inside a longer sentence is not a command either).
+3. THE bare commands in the three languages ("help", "मदद", "મદદ"; "repeat", "दोहराएं", "ફરી બોલો"; "next corner", "अगला कोना", "આગળનો ખૂણો"; "describe", "वर्णन करें", "વર્ણન કરો"; "faster", "तेज़", "ઝડપી"; "slower", "धीमा", "ધીમું") SHALL still parse to the same command as before.
+4. Where am I and the Guide commands are not changed by this requirement (they are listed as a known limit: `where am i` also uses `startsWith` / `includes`; a separate requirement will decide it).
+5. Assumption recorded by Kiro: the request said "an exact phrase or a transcript of at most 3 words". Read literally, "Describe angle B" (3 words) would still match, yet it is one of the questions that must NOT. Clause 1.2 therefore adds "every word is a word of the command's own phrases", so "help me" and "repeat that" match and "describe angle B" does not. If the owner wants the literal rule, 1.2 changes and that row moves out of the table.
+
+### Requirement 46: A saved on/off setting reads back exactly, and a failed write is not lost (task 72)
+> Written by Kiro on 2026-11-17 BEFORE the tests. Seven boolean getters (`getStoredDirectionsSetting`, `getStoredFindingSoundSetting`, `getStoredStickyLineSetting`, `getStoredCornerHeartbeatSetting` in `drivers/storage.ts`; `getStoredGraphScanSetting` in `flow/explore.ts`; `getStoredGuideSetting` in `config/features.ts`; `getStoredTeacherSetting` in `flow/teach.ts`) read `stored === 'true'` whenever anything is stored, and prefer a stored value over the in-memory one. Fix is for an agy lane; no stored default and no storage key changes.
+
+#### Acceptance Criteria
+1. WHEN the stored string is exactly `'true'` THE getter SHALL return true; WHEN it is exactly `'false'` it SHALL return false. FOR ANY other stored string (empty, `'TRUE'`, `'1'`, `'yes'`, ` true`, anything) AND no in-memory value, THE getter SHALL return its documented default: directions, finding sound and graph scan true; stay on line, corner heartbeat, Guide and Teacher false. Nothing is stored: the same default.
+2. WHEN a write to storage fails (`setItem` throws, for example a full or blocked store) THEN the value just set SHALL be what the getter returns afterwards, whatever string was stored before (valid, junk or none). The in-memory value wins over a stale stored one.
+3. A write that succeeds SHALL still be what the getter returns (unchanged behaviour).
+
+### Requirement 47: Explore stays quiet when it should and buzzes when it should, over a minute of mixed use (task 73)
+> Written by Kiro on 2026-11-17 BEFORE the test. Test only. A soak on the real `Explore` screen with fake drivers and fake timers, about 60 simulated seconds of random use. It joins the guard tests of task 65 and the oracles of task 67; it does not replace them.
+
+#### Definitions
+- **Operations:** pointer down, move and up (one finger); window `blur`; `visibilitychange` to hidden; Ask start and Ask stop (a recognised phrase); Guide start (by voice) and Guide arrival (the finger reaches the target); a change of any of the six Explore switches (speech detail, directions, finding sound, graph scan, stay on line, corner heartbeat); and the passing of 0 to 300 ms between them.
+- **Lifted:** no finger is down: after a pointer up, `blur` or hidden, until the next pointer down.
+- **Settled tail:** after the random operations, Ask is stopped and Guide is ended, the finger is put on a line (moved there if down, put down there if lifted), 600 ms pass (so the 450 ms quiet window of a corner is over), then 300 ms pass with no event.
+
+#### Acceptance Criteria
+1. WHILE lifted, THE screen SHALL NOT call `vibrate` with a pattern that has a positive entry and SHALL NOT call `setTone` with a frequency. (`vibrate(0)` and `setTone(null)` are allowed: they are the stop.)
+2. WHILE Ask is listening, THE screen SHALL NOT call `setTone` with a frequency.
+3. AFTER the settled tail, a `vibrate(80)` SHALL have been called in the last 200 ms of the 300 ms (Requirements 4.1, 38.1, 38.2).
+4. THE run SHALL NOT throw, and SHALL be repeatable from its seed. A failing sequence SHALL be kept as a pinned example in the test file and reported; the invariant SHALL NOT be weakened to get a green run. A red invariant that is a known bug (task 67 oracles U1) is marked `it.fails` with its reason, and a second run that skips only that path keeps the other invariants guarded.
+5. Known limits: one finger only (promotion is covered by Requirement 4.8's own tests), two scenes (triangle and sine sample), no real speech engine or phone.
