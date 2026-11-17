@@ -808,3 +808,31 @@ A small model of what `Explore.tsx` does with pointers, written in the test (not
 | P134 | **No corner is announced twice inside the quiet window (Kiro, task 64):** within one touch, two consecutive corner announcements of the same vertex are at least `quietMs` apart. A second generator shakes the finger on and off one corner so the re-entry state is reached by construction. 300 runs each. | 36.3 |
 | P135 | **Replay is deterministic and the scene is not touched (Kiro, task 64):** running a sequence twice gives deep-equal effects; the scene deep-equals a clone taken before. 200 runs. | 36.4 |
 | P136 | **Degenerate scenes, viewports and fingers (Kiro, task 64):** P132 and P133 again over the degenerate scene family, zero-size viewports and non-finite fingers only. 300 runs. | 36.1, 36.2 |
+
+
+## Seven Explore bugs: oracles before the fix (Requirements 31.3/31.6/31.7 and 37 to 42, task 67)
+Written by Kiro before the tests. The fixes are for agy lanes ux1 (Requirement 37), ux2 (38, 40, 42, 31.7 bar rest) and ux3 (39, 41, 31.6/31.7 corner and label). Tests only in task 67: no file under `frontend/src/` changes, no tuned value, no `tech.md`. Every oracle that fails today is `it.fails` with a named reason; when a lane fixes the bug, vitest reports "expected to fail but passed", the lane removes `.fails`, and the test then guards the fix.
+
+### Contract the oracles assume (the lanes must meet it or amend the requirement first)
+- `paceSpeech` input gains an optional `label?: string`. For `source: 'bar'` in short mode, a bar that follows another within 700 ms is spoken as `input.label` exactly when it is given (else the old parse of `text`). For `source: 'corner'` in short mode `text` is returned unchanged. `text` for a bar stays the full "label, value".
+- `scanTone(scene, target, x, y)` returns `null` for `target.kind === 'vertex'`.
+- `drivers/audio.ts` may add an earcon kind for the edge cue; the oracle only requires that it is not `'back'`.
+- A lane that cancels speech on lift does it through `drivers.speech.stopSpeaking`.
+
+### Oracles
+Shared harness: `frontend/tests/support/exploreRig.tsx` (the real `Explore`, fake drivers, fake timers; same shape as `explore.wiring.guards.test.tsx`, which is not edited). File: `frontend/tests/explore.ux.bugs.test.tsx` unless stated. "Control" is a test that passes today and shows the cue exists, so a red test is not red for a missing fixture.
+
+| # | Oracle | Why it fails today | Req |
+|---|---|---|---|
+| U1 | Sine sample, Guide to the peak ("find the peak" by voice), pointer-down away from the peak, move onto the peak (arrival), 1 s with no event: at least one `vibrate(80)` after arrival. Control: the same finger on the peak with no Guide gets `vibrate(80)` within 1 s. | `handlePointerDown` on the guiding path calls `keepAliveTimer.stop()` and never `start()`; arrival does not restart it, so with no pointer event nothing ticks. | 38.1-38.3 |
+| U2 | Triangle, pointer-down on corner A with speech reported as playing, pointer-up, 400 ms: `stopSpeaking` was called. In the same test, with an Ask answer in progress (answer stub resolved, speech playing) a finger lift and 400 ms give no `stopSpeaking`. Passing guards: the Ask case alone, and a re-touch 200 ms after a lift that speaks a label gives no `stopSpeaking`. | `handlePointerLift` stops vibration and tone only; nothing calls `stopSpeaking`. The two guards pass today and must stay green after the fix. | 37.1-37.3 |
+| U3 | Triangle, down inside, move to x = -30 (outside the unit square): `playEarcon` is not called with `'back'` and `"Edge, left"` is spoken. Control: leaving Explore with the Back button still plays `'back'` (lane may keep it). | `applyMoveResult` plays `'back'` when `moveResult.pageEdge.spoken`. | 39.1-39.2 |
+| U4 | Property P137 in `frontend/tests/explore.ux.pacing.prop.test.ts` (250 runs): for any string, `paceSpeech` with `source: 'corner'` and `detail: 'short'` returns it unchanged; for any label and value string, a bar in short mode within 700 ms of an earlier bar, with `label` given, returns exactly the label. Example in the rig file: Short detail, a new touch on corner A speaks a clause "... to B". | `extractCornerLabel` cuts at `.`, `!`, `?`, danda and trims; `extractBarLabel` cuts at the first comma and trims, and `label` is ignored. `pacedAfterAnnouncements` drops the compass for every short-mode corner. | 31.3, 31.6, 31.7 |
+| U5 | Bar chart sample, Short detail: touch Q1, within 700 ms move to Q2, then 12 moves of 1 px every 50 ms: the value of Q2 ("Q2, 25") is spoken. Control: the same without the jitter (no events for 600 ms) speaks it. | `updateBarMove` sets `lastMoveTime` on every move, so a rest is zero events; the 20 px rule is missing. | 31.7 |
+| U6 | Triangle, speech driver reports speaking for the first 3 s, finger rests at a spot with no target: nothing is spoken before 3 s, and a where-am-I sentence is spoken by 4.5 s. Control: with speech not playing, the same rest speaks within 3 s (the existing T65 control). | The tick sets `spoken: true` in `checkWhereAmIDwell` before it tests `isSpeechSpeaking()`, so the dwell is consumed with no speech. | 40.1-40.2 |
+| U7 | Property P138 in the pacing prop file (250 runs): for a `function_graph` scene with a labelled point, any x in the curve's range and any y, `scanTone(scene, {kind:'vertex', id}, x, y) === null`. Rig example: the finger rests on that point: `setTone` is never called with a frequency while the target is the vertex. | `scanTone` only excludes the polyline target. | 41.1-41.2 |
+| U8 | Sine sample: pointer-down left of the y-axis, lift, Guide to the peak (right of the axis), pointer-down, move onto the peak (arrival), one more move: "y-axis" is not spoken. Control: the same finger moving from left of the axis to right within one hold speaks "y-axis". | The guiding path of `handlePointerDown` does not call `seedAxisState`; the old side `left` is still stored when the hold resumes on the right. | 42.1-42.3 |
+
+### Not covered, on purpose
+- The tick resuming after Ask listening ends (38.2) is not a separate oracle; U1 covers the Guide half. The lane adds the Ask half when it fixes U1.
+- Nothing here exercises a real speech engine or a phone; the "speech playing" state is the fake driver's `isSpeaking`.

@@ -442,7 +442,9 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 #### Acceptance Criteria
 1. THE system SHALL offer a "Speech detail" setting with two values, full and short. THE default SHALL be full, and in full mode nothing SHALL be dropped or reordered except as 2 requires.
 2. WHEN an axis word ("x-axis", "y-axis") arrives within 600 ms after a corner or bar announcement THEN it SHALL be dropped, not allowed to cut that announcement. THE same axis word SHALL NOT be repeated within 2000 ms. This extends Requirement 17.2 (no announcement is lost within one step); it applies across steps.
-3. IN short mode, a corner SHALL be spoken by its label only. A bar that follows another bar by less than 700 ms SHALL be spoken by its label only, and the value SHALL be spoken after the finger has rested on that bar for 500 ms. Requirement 6.1 (label and value) is unchanged in full mode and after the rest in short mode. Requirement 6.4 (rounding) is unchanged.
+3. IN short mode, a corner SHALL be spoken by its label only. A bar that follows another bar by less than 700 ms SHALL be spoken by its label only, and the value SHALL be spoken after the finger has rested on that bar for 500 ms. Requirement 6.1 (label and value) is unchanged in full mode and after the rest in short mode. Requirement 6.4 (rounding) is unchanged. (Amended by Kiro, task 67; criteria 6 and 7 below say exactly what "label" and "rested" mean.)
+6. (Kiro, task 67, amends 3) "Label only" SHALL mean the label exactly as the scene gives it. The pacing function SHALL NOT cut a corner or bar label at `.`, `,`, `!`, `?`, `।` or `॥`, and SHALL NOT trim it or change it in any other way. The label of a bar SHALL reach the pacing function as its own field, separate from the spoken value, so that a comma inside a label is not taken for the separator. For a corner, the text the pacing function receives is the label alone: the exits come from the corner compass of Requirement 28 and are not part of it.
+7. (Kiro, task 67, amends 3) In short mode the corner compass of Requirement 28 SHALL be spoken on the first visit to a corner (that is, whenever Requirement 28.5 does not call the visit recent), as in full mode. The 10 s rule of 28.5 and the guards of 28.7 and 28.8 are unchanged. A finger has "rested" on a bar when it has stayed within 20 CSS px of the point where the rest began for 500 ms; a move that stays inside that radius SHALL NOT restart the 500 ms, and a move farther away SHALL restart it from the new position. Pointer events that arrive during the rest (jitter, keep-alive ticks) SHALL NOT by themselves prevent the value being spoken. The value SHALL be spoken once per visit to the bar.
 4. THE pacing decision SHALL be a pure function in `flow/` with property tests (no label cut by an axis word; axis word at most twice in 3.3 s of wobble on an axis).
 5. THE setting's strings SHALL exist in `en`, `hi` and `gu`.
 
@@ -541,3 +543,64 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 3. WHILE one touch lasts, TWO consecutive corner announcements of the same vertex SHALL be at least `quietMs` apart (Requirement 4.9). Labels in the generated scenes are unique per vertex, so a repeat is the same vertex.
 4. THE same event sequence over the same scene SHALL give exactly the same effects, and the scene SHALL be unchanged afterwards.
 5. IF a sequence breaks 1 to 4 THEN its seed SHALL be kept as a pinned regression example in the test file and reported; the invariant SHALL NOT be weakened to get a green run.
+
+
+### Requirement 37: Lift means quiet (task 67; spec before code, bug from the owner's phone and `docs/reports/fable-blind-user-plan.md`)
+> Written by Kiro on 2026-11-17 BEFORE the fix. Today `handlePointerLift` stops vibration and tone when the last finger lifts but leaves the speech running, so a corner or axis sentence keeps talking over the next thing the student does. The fix is for agy lane ux1 in `screens/Explore.tsx`. No tuned haptic value changes.
+
+**User Story:** As a blind student who lifts my finger to think, I want the app to stop talking about what my finger was on, so that I can hear my screen reader or the next thing I do, and I do not want an answer I asked for to be cut off.
+
+#### Acceptance Criteria
+1. WHEN the last finger lifts (no pointer remains after promotion, Requirement 4.8; a promotion is not a lift) AND exploration speech is playing, THEN the system SHALL stop that speech within 400 ms of the lift. "Exploration speech" is speech started by finger movement or a hold: a corner label and its exits, an axis word, a bar label or value, a line name, the where-am-I rest sentence, the page-edge sentence, "Centre.".
+2. WHEN an Ask answer is in progress (from the moment the answer is handed to the speech driver until it ends), or a Guide announcement is playing, THEN a lift SHALL NOT stop it.
+3. WHEN a new touch begins within 300 ms of the lift THEN the system SHALL NOT stop speech on behalf of that earlier lift, so the label that the new touch speaks is not cut. A stop that is waiting SHALL be cancelled by the new touch. (So the stop happens between 300 and 400 ms after a lift that is not followed by a touch.)
+4. THE stop SHALL be requested through the speech driver (`stopSpeaking`) and SHALL NOT change what is spoken by the next touch.
+5. THE lift SHALL still stop vibration and tone exactly as before (Requirement 4.7); this requirement adds no effect to the engine, and `step()` is unchanged.
+
+### Requirement 38: Hold services survive Guide and Ask (task 67)
+> Written by Kiro on 2026-11-17 BEFORE the fix. Today a pointer-down while Guide is guiding stops the keep-alive timer and never restarts it, so after Guide arrives a finger that rests on a line is silent until it moves. The same holds after Ask listening ends. For agy lane ux2.
+
+**User Story:** As a blind student whose finger is still down when a guided trip ends, I want the line under my finger to keep buzzing, so that I do not have to lift and touch again to feel where I am.
+
+#### Acceptance Criteria
+1. WHILE a finger is down AND Guide is not guiding AND Ask is not active, THE hold keep-alive ticks (Requirement 4.1, 60 ms) SHALL run for the primary finger, whatever stopped them earlier in the same hold (a pointer-down while guiding, a pointer-down while Ask was listening, a Guide start, a Guide arrival or stop, the end of Ask listening).
+2. WHEN Guide ends (arrival, stop, timeout, Back) or Ask listening ends while the primary finger is still down THEN the ticks SHALL resume from the finger's last known position within 60 ms plus one tick interval, without waiting for a pointer move. A pointer-down or move that arrives while Guide or Ask holds the engine silent SHALL still record the finger position for this.
+3. A finger resting on a line after Guide arrives SHALL therefore get the line buzz of Requirement 4.1 (`vibrate(80)`) within 1 s of arrival.
+4. THE guards of Requirements 28.7, 29.6 and 30.4 (no exits, no line name, no where-am-I, no click, no scan tone while Ask listens or Guide guides) are unchanged: this requirement only makes the ticks come back when those guards open.
+5. No tuned haptic value changes; `step()` is unchanged.
+
+### Requirement 39: One sound, one meaning (task 67)
+> Written by Kiro on 2026-11-17 BEFORE the fix. `applyMoveResult` plays `playEarcon('back')` when the page-edge sentence is spoken, but 'back' is the earcon that means "leaving Explore" (`handleExit`, the Back subscription). For agy lane ux3.
+
+**User Story:** As a blind student, I want each short sound to mean one thing, so that the sound I hear when I slide off the page is not the sound that tells me I have left the diagram.
+
+#### Acceptance Criteria
+1. WHEN the finger leaves the unit square (Requirement 32.1) THEN the system SHALL speak the edge sentence (`edge.top`, `edge.bottom`, `edge.left`, `edge.right`) and SHALL NOT play the `back` earcon.
+2. ANY earcon the edge cue plays SHALL be a kind that no other event plays (a new earcon kind, or no earcon). THE `back` earcon SHALL still play when the student leaves Explore, exactly as before.
+3. THE edge cue SHALL still use no vibration (Requirement 32.1) and SHALL still fire once per exit and re-arm as in 32.1 and 32.4.
+
+### Requirement 40: Where am I on rest is never lost (task 67)
+> Written by Kiro on 2026-11-17 BEFORE the fix. In the keep-alive tick, `checkWhereAmIDwell` marks the rest as spoken (`spoken: true`) before the code checks `!isSpeechSpeaking()`, so a dwell that falls due while the overview is still playing is consumed and nothing is ever spoken for that rest. For agy lane ux2.
+
+**User Story:** As a blind student who rests on empty space while the diagram overview is still being read, I want to hear where I am once it finishes, instead of silence.
+
+#### Acceptance Criteria
+1. WHEN the rest dwell of Requirement 30.1 falls due while other speech is playing THEN it SHALL stay due, and the system SHALL speak the where-am-I sentence once that speech has ended, provided the finger is still at rest, Directions is on, Ask is not listening and Guide is not guiding. It SHALL be spoken within 1.5 s of the end of that speech.
+2. THE rest SHALL be marked as spoken only when the sentence is actually handed to the speech driver. A dwell SHALL NEVER be consumed without speech.
+3. THE once-per-rest rule, the 20 CSS px re-arm and the 1500 ms speech quiet window of Requirement 30 are unchanged.
+
+### Requirement 41: Graph scan tone never covers a corner (task 67)
+> Written by Kiro on 2026-11-17 BEFORE the fix. `scanTone` (`flow/explore.ts`) returns a curve-height tone for any target except the polyline itself, so on a `function_graph` with a labelled point the quiet scan tone starts again right after the engine stopped the tone for the corner (Requirement 4.3: `tone(null)`). For agy lane ux3.
+
+#### Acceptance Criteria
+1. WHEN the target is a vertex THEN `scanTone` SHALL return `null`, for any scene, x and y.
+2. WHILE the target is a vertex, the audio driver SHALL receive no `setTone` call with a frequency, and the scan SHALL NOT re-arm a tone that the engine stopped in the same step.
+3. Everything else about the scan (Requirement 5.6, level 0.33, off the curve only, the Graph scan switch) is unchanged.
+
+### Requirement 42: Axis side is re-seeded when a hold begins or Guide ends (task 67)
+> Written by Kiro on 2026-11-17 BEFORE the fix. `handlePointerDown` seeds the axis side only on the non-guiding path, so a hold that starts while Guide is guiding keeps the side of an earlier hold, and the first move after Guide arrives speaks a crossing ("y-axis") that the finger never made. For agy lane ux2.
+
+#### Acceptance Criteria
+1. AT the start of every hold, including a hold that starts while Guide guides or Ask listens, THE axis side SHALL be seeded silently from the finger's position (as Requirement 5.4 and the existing seed do).
+2. WHEN Guide ends while the finger is down THEN the axis side SHALL be seeded again, silently, from the finger's position at that moment, so a move after arrival speaks a crossing only if the finger crossed an axis after the seed.
+3. A crossing that the finger really makes after the seed SHALL still be spoken once (Requirement 5.4 and 17.2 are unchanged).
