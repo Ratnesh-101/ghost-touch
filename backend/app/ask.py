@@ -1030,7 +1030,10 @@ async def answer_question(
                     # Per-call cap is the chain's own call_timeout; the deadline bounds the total.
                     # C5: pass max_attempts=1 only from /ask route.
                     ai_text, used_provider = await chain.complete(
-                        prompt, deadline=start_time + total_budget, max_attempts=1
+                        prompt,
+                        deadline=start_time + total_budget,
+                        max_attempts=1,
+                        timeout=min(chain.call_timeout, total_budget * 0.55),
                     )
 
                 elapsed_ms = int((time.monotonic() - start_time) * 1000)

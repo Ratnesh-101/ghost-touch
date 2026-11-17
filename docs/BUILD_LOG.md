@@ -4633,3 +4633,22 @@ Format for each entry:
 ## 2026-11-17 — Antigravity — Lane ux8 follow-up pass 2: Gate fix
 - Fixed mismatch in `frontend/tests/locale.firstRun.test.ts` where the first-run resolution test asserted `t('lab.start.wake')` was `'शुरू करें'` instead of creature phrasing `'जीव को जगाएं'`. Added explicit assertions for both `start.begin` (`'शुरू करें'` / `'Begin'`) and `lab.start.wake` (`'जीव को जगाएं'` / `'Wake the creature'`). Kept all tests strictly meaningful with zero weakening.
 - Files touched: frontend/tests/locale.firstRun.test.ts, docs/reports/agy-ux8-report.md, docs/BUILD_LOG.md.
+## 2026-11-17 — Antigravity — Lane ux12: Ask timeout budget capping and per-provider circuit breaker
+- Implemented per-call timeout budget capping in `backend/app/ask.py`:
+  - `chain.complete` invoked with `timeout=min(chain.call_timeout, total_budget * 0.55)` to prevent a single slow provider from consuming the entire Ask deadline.
+- Implemented per-provider circuit breaker in `backend/app/vision/chain.py`:
+  - `ProviderBreaker` tracking consecutive failures, 60s open window, and half-open single-probe recovery.
+  - `is_breaker_failure` classifying qualifying failures (timeouts, 5xx, 429, network connection errors) vs non-qualifying client/schema/budget errors.
+  - All-open fallback selecting earliest `open_until` provider so requests are never rejected with "no providers configured" from breaker state alone.
+  - Clean `INFO` state logging containing provider name only with zero secrets or prompts.
+- Follow-up pass 1 gate fixes:
+  - In `backend/app/vision/chain.py` and `backend/tests/test_ux12_breaker.py`: Replaced `asyncio.TimeoutError` with builtin `TimeoutError` per Ruff UP041 rule.
+  - In `backend/tests/test_ux12_ask_timeout.py`: Fixed `ImportError` by importing `AskRequest` from `app.ask` instead of `app.schema`.
+  - Zero shell commands run; no test weakened.
+- Files touched:
+  - `backend/app/ask.py`
+  - `backend/app/vision/chain.py`
+  - `backend/tests/test_ux12_ask_timeout.py`
+  - `backend/tests/test_ux12_breaker.py`
+  - `docs/reports/agy-ux12-report.md`
+  - `docs/BUILD_LOG.md`
