@@ -95,7 +95,7 @@ export function Start({ drivers, onBegin }: StartProps): JSX.Element {
           <span className="gt-start__hint gt-start__wake">{t('lab.start.wake')}</span>
         </span>
 
-        {/* Accessible subhint: TalkBack & touch ready */}
+        {/* Accessible subhint: Touch, sound and speech */}
         <span className="gt-start__subhint">{t('lab.start.subhint')}</span>
       </span>
     </button>

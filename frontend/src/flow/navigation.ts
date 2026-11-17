@@ -168,9 +168,19 @@ export function exploreAnnouncement(
   return caveat ? joinAnnouncements([base, caveat]) : base;
 }
 
-/** Accessible label for the Explore canvas. */
+/** Pure text builder for Explore entry announcement; alias for exploreAnnouncement. */
+export const buildEntryAnnouncement = exploreAnnouncement;
+
+/** Accessible label for the Explore canvas (the text TalkBack reads). */
 export function canvasAriaLabel(scene: DiagramScene): string {
-  return `${sceneName(scene)}. ${t('explore.gestureHint')}`;
+  return `${sceneName(scene)}. ${t('explore.gestureHintTalkBack')}`;
+}
+
+/** Accessible description for the Explore canvas (the text TalkBack reads). */
+export function canvasAriaDescription(scene?: DiagramScene): string {
+  return scene
+    ? `${sceneName(scene)}. ${t('explore.gestureHintTalkBack')}`
+    : t('explore.gestureHintTalkBack');
 }
 
 /** Every screen the app can show. */

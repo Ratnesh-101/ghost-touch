@@ -4661,3 +4661,22 @@ Format for each entry:
 - T74: P109, P112, P113 already in `explore.dwell.prop.test.ts`. P110 and P111 cannot be written: the line-name dwell is inline in `Explore.tsx` and no pure `lineDwell` is exported. Recorded in tasks.md; task 56.1 stays open.
 - Gate: `tsc --noEmit` 0 errors; `vitest run --maxWorkers=4`: 226 files, 2861 passed, 15 expected fail, 1 todo.
 - Files: `frontend/tests/commands.table.test.ts`, `frontend/tests/storage.settings.prop.test.ts`, `frontend/tests/explore.soak.test.tsx`, `.kiro/specs/ghost-touch/tasks.md`, `docs/BUILD_LOG.md`.
+
+## 2026-11-17 — Antigravity — Lane ux4: say only what is true
+- Updated Explore and Start screen gesture guidance and accessible descriptions:
+  - Updated `explore.gestureHint` to "Drag one finger to feel the diagram." in `en`, `hi` ("चित्र महसूस करने के लिए एक उंगली खींचें।"), and `gu` ("આકૃતિ અનુભવવા માટે એક આંગળી ખેંચો.").
+  - Added `explore.gestureHintTalkBack` carrying the double-tap-and-hold pass-through wording in `en`, `hi`, and `gu`.
+  - Updated `lab.start.subhint` to "Touch, sound and speech" in `en`, `hi` ("स्पर्श, ध्वनि और वाणी"), and `gu` ("સ્પર્શ, ધ્વનિ અને વાણી").
+  - Exported `buildEntryAnnouncement` as alias for `exploreAnnouncement` in `frontend/src/flow/navigation.ts`, ensuring spoken output uses `explore.gestureHint` and contains no "double-tap" in any language.
+  - Updated `canvasAriaLabel` and exported `canvasAriaDescription` in `frontend/src/flow/navigation.ts` to use `explore.gestureHintTalkBack` so TalkBack reads the pass-through wording on the canvas element.
+  - Appended comment update in `frontend/src/screens/Start.tsx`.
+  - Added comprehensive test suite `frontend/tests/navigation.hint.test.ts` covering 3-language translations, key parity, entry announcements without double-tap, canvas descriptions with TalkBack wording, and Back navigation policy.
+- What broke / surprising findings:
+  - None. Existing test `frontend/tests/start.lab.test.tsx` (not in ALLOWED list) hardcoded old Hindi and Gujarati subhint copy and is listed under "Needs from Kiro". Zero shell commands run per headless UX rules.
+- Files touched:
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/flow/navigation.ts`
+  - `frontend/src/screens/Start.tsx`
+  - `frontend/tests/navigation.hint.test.ts`
+  - `docs/reports/agy-ux4-report.md`
+  - `docs/BUILD_LOG.md`

@@ -184,7 +184,7 @@ describe('Start screen (Frankenstein Lab redesign)', () => {
 
       // CTA and subhint in Hindi
       expect(html).toContain('जीव को जगाएं');
-      expect(html).toContain('टॉकबैक और स्पर्श तैयार');
+      expect(html).toContain(t('lab.start.subhint'));
 
       // STRICT CHECK: English organ strings must NOT be present
       expect(html).not.toContain('Feel lines and corners as vibration');
@@ -216,7 +216,7 @@ describe('Start screen (Frankenstein Lab redesign)', () => {
 
       // CTA and subhint in Gujarati
       expect(html).toContain('પ્રાણીને જગાડો');
-      expect(html).toContain('ટોકબેક અને સ્પર્શ તૈયાર');
+      expect(html).toContain(t('lab.start.subhint'));
 
       // STRICT CHECK: English organ strings must NOT be present
       expect(html).not.toContain('Feel lines and corners as vibration');

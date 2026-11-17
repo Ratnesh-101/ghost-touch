@@ -113,7 +113,8 @@ const en: Record<string, string> = {
     'PDF files are not supported yet. Please upload a screenshot or photo of the page.',
   'explore.noVibration':
     'No vibration on this device. You will hear a buzz instead. Use Chrome on Android to feel it.',
-  'explore.gestureHint':
+  'explore.gestureHint': 'Drag one finger to feel the diagram.',
+  'explore.gestureHintTalkBack':
     'Double-tap and hold, then drag to feel the diagram.',
   'explore.backHint': 'Press Back to leave.',
   'explore.centre': 'Centre.',
@@ -266,7 +267,7 @@ const en: Record<string, string> = {
   // Frankenstein Lab theme (Lane lab-i18n)
   'lab.start.wake': 'Wake the creature',
   'lab.start.tagline': "Feel diagrams you can't see",
-  'lab.start.subhint': 'TalkBack & touch ready',
+  'lab.start.subhint': 'Touch, sound and speech',
   'lab.organ.nerves.title': 'Nerves',
   'lab.organ.nerves.line': 'Feel lines and corners as vibration',
   'lab.organ.eyes.title': 'Eyes',
@@ -610,7 +611,8 @@ const hi: Record<string, string> = {
     'पीडीएफ फाइलें अभी समर्थित नहीं हैं। कृपया पृष्ठ का स्क्रीनशॉट या फोटो अपलोड करें।',
   'explore.noVibration':
     'इस डिवाइस पर कंपन नहीं है। इसके बजाय आपको एक बज़ सुनाई देगा। इसे महसूस करने के लिए एंड्रॉइड पर क्रोम का उपयोग करें।',
-  'explore.gestureHint':
+  'explore.gestureHint': 'चित्र महसूस करने के लिए एक उंगली खींचें।',
+  'explore.gestureHintTalkBack':
     'डबल-टैप करके दबाए रखें, फिर चित्र महसूस करने के लिए खींचें।',
   'explore.backHint': 'वापस जाने के लिए बैक दबाएं।',
   'explore.centre': 'केंद्र।',
@@ -762,7 +764,7 @@ const hi: Record<string, string> = {
   // Frankenstein Lab theme (Lane lab-i18n)
   'lab.start.wake': 'जीव को जगाएं',
   'lab.start.tagline': 'वे चित्र महसूस करें जो आप देख नहीं सकते',
-  'lab.start.subhint': 'टॉकबैक और स्पर्श तैयार',
+  'lab.start.subhint': 'स्पर्श, ध्वनि और वाणी',
   'lab.organ.nerves.title': 'तंत्रिकाएं',
   'lab.organ.nerves.line': 'रेखाओं और कोनों को कंपन के रूप में महसूस करें',
   'lab.organ.eyes.title': 'आंखें',
@@ -1109,7 +1111,8 @@ const gu: Record<string, string> = {
     'પીડીએફ ફાઇલો હજી સપોર્ટેડ નથી. કૃપા કરીને સ્ક્રીનશોટ અથવા ફોટો અપલોડ કરો.',
   'explore.noVibration':
     'આ ઉપકરણ પર વાઇબ્રેશન નથી. તેના બદલે તમને બઝ સંભળાશે. તેને અનુભવવા માટે Android પર Chrome વાપરો.',
-  'explore.gestureHint':
+  'explore.gestureHint': 'આકૃતિ અનુભવવા માટે એક આંગળી ખેંચો.',
+  'explore.gestureHintTalkBack':
     'ડબલ-ટેપ કરીને દબાવી રાખો, પછી આકૃતિ અનુભવવા માટે ખેંચો.',
   'explore.backHint': 'પાછા જવા માટે બેક દબાવો.',
   'explore.centre': 'કેન્દ્ર.',
@@ -1261,7 +1264,7 @@ const gu: Record<string, string> = {
   // Frankenstein Lab theme (Lane lab-i18n)
   'lab.start.wake': 'પ્રાણીને જગાડો',
   'lab.start.tagline': 'જે આકૃતિઓ તમે જોઈ શકતા નથી તેને સ્પર્શથી અનુભવો',
-  'lab.start.subhint': 'ટોકબેક અને સ્પર્શ તૈયાર',
+  'lab.start.subhint': 'સ્પર્શ, ધ્વનિ અને વાણી',
   'lab.organ.nerves.title': 'ચેતાઓ',
   'lab.organ.nerves.line': 'રેખાઓ અને ખૂણાઓને વાઇબ્રેશન તરીકે અનુભવો',
   'lab.organ.eyes.title': 'આંખો',

@@ -173,19 +173,14 @@ describe('i18n keys completeness and parity', () => {
   });
 
   it('explore.gestureHint has "You start at the centre." removed in all languages', () => {
-    expect(tables.en['explore.gestureHint']).toBe(
-      'Double-tap and hold, then drag to feel the diagram.',
-    );
+    for (const lang of ['en', 'hi', 'gu'] as const) {
+      const hint = tables[lang]['explore.gestureHint'];
+      expect(hint?.trim().length, `${lang} gestureHint blank`).toBeGreaterThan(0);
+      // The TalkBack hint is a separate key and keeps the double-tap-and-hold wording.
+      expect(hint).not.toBe(tables[lang]['explore.gestureHintTalkBack']);
+    }
     expect(tables.en['explore.gestureHint']).not.toContain('You start at the centre');
-
-    expect(tables.hi['explore.gestureHint']).toBe(
-      'डबल-टैप करके दबाए रखें, फिर चित्र महसूस करने के लिए खींचें।',
-    );
     expect(tables.hi['explore.gestureHint']).not.toContain('आप केंद्र से शुरू करते हैं');
-
-    expect(tables.gu['explore.gestureHint']).toBe(
-      'ડબલ-ટેપ કરીને દબાવી રાખો, પછી આકૃતિ અનુભવવા માટે ખેંચો.',
-    );
     expect(tables.gu['explore.gestureHint']).not.toContain('તમે કેન્દ્રથી શરૂ કરો છો');
   });
 });
@@ -300,7 +295,7 @@ describe('Explore entry announcement integration', () => {
 
     const overview = buildOverview(scene);
     expect(announcement.startsWith(overview)).toBe(true);
-    expect(announcement).toContain('Double-tap and hold, then drag to feel the diagram.');
+    expect(announcement).toContain(tables.en['explore.gestureHint']);
     expect(announcement).toContain('Press Back to leave.');
     // Must NOT contain double reading of title
     const occurrences = (announcement.match(/Right Triangle ABC/g) || []).length;

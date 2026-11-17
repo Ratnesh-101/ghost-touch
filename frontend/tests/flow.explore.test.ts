@@ -679,7 +679,7 @@ describe('exploreAnnouncement', () => {
     const scene: DiagramScene = { kind: 'geometry', title: 'Triangle' };
     const aiAnnounce = exploreAnnouncement(scene, 'ai');
     expect(aiAnnounce).toContain('Triangle.');
-    expect(aiAnnounce).toContain('Double-tap and hold, then drag to feel the diagram.');
+    expect(aiAnnounce).toContain(t('explore.gestureHint'));
     expect(aiAnnounce).toContain('Press Back to leave.');
 
     const rawAnnounce = exploreAnnouncement(scene, 'raw');
