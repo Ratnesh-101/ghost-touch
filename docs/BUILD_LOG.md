@@ -4512,3 +4512,16 @@ Format for each entry:
 - 	asks.md: ticked 58b.1, 58b.2, 59b.1, 59b.2, 59b.3, each with the evidence checked. Left open: 58b.3 (stickyWiring.test.ts tests processPointerMove, not the mounted Explore, and no guard mutant is recorded), 58b.4 and 59b.4 (phone tests). Added one dated line: the wiring landed before the owner's phone test and both features remain off by default.
 - 59b.3 rests partly on the T65 mutation record in this log (heartbeat switch guard killed); I did not re-run the mutant. Not run: tsc, vitest (docs only). Nothing is tested on a phone.
 - Files touched: .kiro/steering/tech.md, .kiro/specs/ghost-touch/tasks.md, docs/BUILD_LOG.md.
+
+## 2026-11-17 — Antigravity — Lane ux1 follow-up pass 1: hold-lifecycle timer test fix
+- Resolved gate failure in `frontend/tests/explore.holdLifecycle.test.tsx` (`Bug 1: createHoldKeepAliveTimer update restarts when timer === null > update restarts interval when timer === null and fires onTick on stillness`):
+  - Advanced fake timers via `vi.advanceTimersByTime(1000)` and `vi.advanceTimersByTime(100)` to synchronize fake clock `performance.now()` with simulated timestamps `1000` and `1100`, allowing `shouldKeepAlive` to fire `onTick` after stillness.
+  - Refactored `createHoldKeepAliveTimer` in `frontend/src/flow/explore.ts` to deduplicate interval creation via `startInterval()`.
+  - Zero tests weakened; all coordinate and timer assertions preserved.
+- What broke / surprising findings:
+  - In `exploreRig.tsx`, `setupRigEnv()` fakes `performance` via `vi.useFakeTimers({ toFake: ['performance', ...] })`. Because fake `performance.now()` initializes at 0, passing arbitrary future timestamps without advancing fake timers causes `performance.now() - lastMoveAt` to be negative during interval ticks. Advancing fake timers to align with test timestamps cleanly resolves the condition.
+- Files touched:
+  - `frontend/tests/explore.holdLifecycle.test.tsx`
+  - `frontend/src/flow/explore.ts`
+  - `docs/reports/agy-ux1-report.md`
+  - `docs/BUILD_LOG.md`

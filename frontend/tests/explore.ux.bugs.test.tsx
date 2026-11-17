@@ -69,7 +69,7 @@ describe('task 67: seven Explore bugs (Requirements 31.6, 31.7, 37 to 42)', () =
     // Fails today: the guiding path of `handlePointerDown` calls `keepAliveTimer.stop()` and never
     // `start()`, and arrival does not restart it, so with no pointer event nothing ticks and the
     // finger resting on the curve gets no `vibrate(80)`.
-    it.fails('after Guide arrives, a finger still on the curve gets vibrate(80) within 1 s', async () => {
+    it('after Guide arrives, a finger still on the curve gets vibrate(80) within 1 s', async () => {
       await withExplore({ scene: sine, guide: true }, async (rig) => {
         await startGuide(rig, 'find the peak');
         const peak = sinePeak();
@@ -217,7 +217,7 @@ describe('task 67: seven Explore bugs (Requirements 31.6, 31.7, 37 to 42)', () =
     // Fails today: the keep-alive tick marks the rest as spoken (`checkWhereAmIDwell` returns
     // `spoken: true`) before it tests `isSpeechSpeaking()`, so a dwell that falls due while the
     // overview plays is consumed and nothing is ever said for that rest.
-    it.fails('a dwell due during other speech is spoken within 1.5 s of that speech ending', async () => {
+    it('a dwell due during other speech is spoken within 1.5 s of that speech ending', async () => {
       await withExplore({ scene: triangle }, (rig) => {
         rig.setSpeaking(true); // the overview is still playing
         rig.clearCalls();
@@ -271,7 +271,7 @@ describe('task 67: seven Explore bugs (Requirements 31.6, 31.7, 37 to 42)', () =
     // Fails today: the guiding path of `handlePointerDown` never calls `seedAxisState`, so the
     // side `left` stored by the first hold survives, and the first move after arrival speaks a
     // crossing the finger never made.
-    it.fails('after Guide arrives, one move to the right of the axis speaks no "y-axis"', async () => {
+    it('after Guide arrives, one move to the right of the axis speaks no "y-axis"', async () => {
       await withExplore({ scene: sine, guide: true }, async (rig) => {
         rig.down(10, 300); // first hold, left of the y-axis (x = 32)
         rig.up(10, 300);
