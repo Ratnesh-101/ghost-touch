@@ -4512,3 +4512,9 @@ Format for each entry:
 - 	asks.md: ticked 58b.1, 58b.2, 59b.1, 59b.2, 59b.3, each with the evidence checked. Left open: 58b.3 (stickyWiring.test.ts tests processPointerMove, not the mounted Explore, and no guard mutant is recorded), 58b.4 and 59b.4 (phone tests). Added one dated line: the wiring landed before the owner's phone test and both features remain off by default.
 - 59b.3 rests partly on the T65 mutation record in this log (heartbeat switch guard killed); I did not re-run the mutant. Not run: tsc, vitest (docs only). Nothing is tested on a phone.
 - Files touched: .kiro/steering/tech.md, .kiro/specs/ghost-touch/tasks.md, docs/BUILD_LOG.md.
+## 2026-11-17 | Kiro | T69 core/speakable.ts (Requirement 43, P139-P142)
+- Spec first: Requirement 43, design section, task 69 (numbers 43 and 69 were free; P139-P142 follow P138).
+- `frontend/src/core/speakable.ts`: `isMachineId` (prefixed families, length over 12, underscore with a digit; non-string counts as machine-made) and `speakableName` (trimmed label, else trimmed id if speakable, else null). Pure, no imports. Not wired; `flow/` and `screens/` untouched; no tuned value changed.
+- `frontend/tests/speakable.prop.test.ts`: 300 runs each; raw_p<n> and raw_s<n> checked as machine ids.
+- Mutants: length bound, label-wins and the underscore-with-digit clause were killed. Dropping the prefix regex's optional letter survives: it is equivalent, because every such id (raw_p3) also contains an underscore and a digit. Reverted all mutants.
+- Gate: tsc 0 errors; vitest --maxWorkers=6: 216 files, 2717 passed, 12 expected fail, 1 todo.

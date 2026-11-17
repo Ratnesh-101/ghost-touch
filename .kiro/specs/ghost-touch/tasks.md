@@ -574,3 +574,14 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 67.3 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro) with each oracle and why it fails; path-scoped commits
   - [ ] 67.4 Lane ux1: Requirement 37. Lane ux2: 38, 40, 42, 31.7. Lane ux3: 39, 41, 31.6 and compass in short mode. Each removes the `.fails` of its oracles
   - _Requirements: 31.*, 37.* to 42.*_
+
+## One pure rule for "may this id be spoken" (Requirement 43; spec written before the code)
+> Core only. Do not edit `flow/`, `screens/`, `hitTest.ts`, `hapticEngine.ts` or any tuned value. Wiring is a later agy lane.
+
+- [x] 69. `core/speakable.ts`
+  - [x] 69.1 Requirement 43, design section and properties P139-P142 written before any code
+  - [x] 69.2 `frontend/src/core/speakable.ts`: `isMachineId`, `speakableName`; pure, no `any`
+  - [x] 69.3 Properties P139-P142 in `frontend/tests/speakable.prop.test.ts` (300 runs), mutation-checked
+  - [x] 69.4 Gate (`tsc --noEmit`, `vitest run --maxWorkers=6`); BUILD_LOG entry (tool = Kiro); path-scoped commit
+  - [ ] 69b. Later lane (not Kiro): use `speakableName` where Explore, Ask and the feature buttons name an element
+  - _Requirements: 43.*_

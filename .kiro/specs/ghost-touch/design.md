@@ -836,3 +836,18 @@ Shared harness: `frontend/tests/support/exploreRig.tsx` (the real `Explore`, fak
 ### Not covered, on purpose
 - The tick resuming after Ask listening ends (38.2) is not a separate oracle; U1 covers the Guide half. The lane adds the Ask half when it fixes U1.
 - Nothing here exercises a real speech engine or a phone; the "speech playing" state is the fake driver's `isSpeaking`.
+
+## Speakable names (Requirement 43, task 69)
+Written by Kiro before the code. One pure module, `frontend/src/core/speakable.ts`, named exports, no imports.
+```ts
+isMachineId(id: string): boolean
+speakableName(label: string | undefined, id: string): string | null
+```
+Rules are the ones in Requirement 43.1 and 43.2. The prefix test is `/^(raw|point|pt|seg|line|poly|bar)_[a-z]?\d+$/i`; the other two clauses are length > 12 and `_` together with a digit. Not wired: a later agy lane decides the spoken description.
+
+| # | Property | Validates |
+|---|---|---|
+| P139 | **Total (Kiro, task 69):** for any string, and junk cast through the types (numbers, null, objects), `isMachineId` and `speakableName` never throw; `isMachineId` returns a boolean and `speakableName` a string or `null`. 300 runs. | 43.5 |
+| P140 | **A label wins (Kiro, task 69):** for any non-blank label and any id, `speakableName` returns the label trimmed; a blank or missing label gives the id result. 300 runs. | 43.2 |
+| P141 | **Textbook names are speakable (Kiro, task 69):** single letters, a letter with prime marks, a letter with 1 to 2 digits (no underscore) and two or three capital letters are not machine ids, and `speakableName(undefined, id)` returns them. 300 runs. | 43.3 |
+| P142 | **Raw Mode ids are never spoken (Kiro, task 69):** for any n, `raw_p<n>` and `raw_s<n>` are machine ids and `speakableName` gives `null` without a label; the prefixed families (`point_`, `pt_`, `seg_`, `line_`, `poly_`, `bar_` plus digits) and any id over 12 characters likewise. 300 runs. | 43.1, 43.3 |

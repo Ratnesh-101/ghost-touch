@@ -604,3 +604,16 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 1. AT the start of every hold, including a hold that starts while Guide guides or Ask listens, THE axis side SHALL be seeded silently from the finger's position (as Requirement 5.4 and the existing seed do).
 2. WHEN Guide ends while the finger is down THEN the axis side SHALL be seeded again, silently, from the finger's position at that moment, so a move after arrival speaks a crossing only if the finger crossed an axis after the seed.
 3. A crossing that the finger really makes after the seed SHALL still be spoken once (Requirement 5.4 and 17.2 are unchanged).
+
+
+### Requirement 43: An element with no label is described, never named by its id, when the id is machine-made (task 69)
+> Written by Kiro on 2026-11-17 BEFORE the code. Raw Mode names its points `raw_p<n>` and segments `raw_s<n>`; speaking such an id aloud is noise. This covers the pure rule in `frontend/src/core/speakable.ts` only. Wiring it into Explore, Ask and the TalkBack labels is a later agy lane (`flow/`, `screens/` are not edited here). No tuned value changes.
+
+**User Story:** As a blind student exploring a Raw Mode or unlabelled diagram, I want the app to describe an element instead of reading me a code like "raw underscore p 17", so that what I hear means something.
+
+#### Acceptance Criteria
+1. THE core SHALL answer `isMachineId(id)`: true when the id starts with `raw_`, `point_`, `pt_`, `seg_`, `line_`, `poly_` or `bar_` (any letter case) followed by an optional single letter and then digits only; or is longer than 12 characters; or contains both an underscore and a digit. Otherwise false. A non-string SHALL count as machine-made.
+2. THE core SHALL answer `speakableName(label, id)`: the trimmed label when it is a non-blank string; otherwise the trimmed id when it is a non-blank string and not machine-made; otherwise `null`. A label always wins over its id, even when the id is speakable.
+3. Single letters and short textbook names ("A", "B'", "P1", "O", "AB") SHALL be speakable. Every id the backend Raw Mode produces (`raw_p<n>`, `raw_s<n>`) SHALL NOT be.
+4. WHEN `speakableName` returns `null` THE caller SHALL describe the element (kind, position or direction) and SHALL NOT speak the id. The wording and wiring are a later lane.
+5. Both functions SHALL be pure and total: never throw for any input, no browser API, no i18n, no import.
