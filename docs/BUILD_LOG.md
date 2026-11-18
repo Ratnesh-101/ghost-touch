@@ -4512,6 +4512,21 @@ Format for each entry:
 - 	asks.md: ticked 58b.1, 58b.2, 59b.1, 59b.2, 59b.3, each with the evidence checked. Left open: 58b.3 (stickyWiring.test.ts tests processPointerMove, not the mounted Explore, and no guard mutant is recorded), 58b.4 and 59b.4 (phone tests). Added one dated line: the wiring landed before the owner's phone test and both features remain off by default.
 - 59b.3 rests partly on the T65 mutation record in this log (heartbeat switch guard killed); I did not re-run the mutant. Not run: tsc, vitest (docs only). Nothing is tested on a phone.
 - Files touched: .kiro/steering/tech.md, .kiro/specs/ghost-touch/tasks.md, docs/BUILD_LOG.md.
+## 2026-11-17 | Kiro | T69 core/speakable.ts (Requirement 43, P139-P142)
+- Spec first: Requirement 43, design section, task 69 (numbers 43 and 69 were free; P139-P142 follow P138).
+- `frontend/src/core/speakable.ts`: `isMachineId` (prefixed families, length over 12, underscore with a digit; non-string counts as machine-made) and `speakableName` (trimmed label, else trimmed id if speakable, else null). Pure, no imports. Not wired; `flow/` and `screens/` untouched; no tuned value changed.
+- `frontend/tests/speakable.prop.test.ts`: 300 runs each; raw_p<n> and raw_s<n> checked as machine ids.
+- Mutants: length bound, label-wins and the underscore-with-digit clause were killed. Dropping the prefix regex's optional letter survives: it is equivalent, because every such id (raw_p3) also contains an underscore and a digit. Reverted all mutants.
+- Gate: tsc 0 errors; vitest --maxWorkers=6: 216 files, 2717 passed, 12 expected fail, 1 todo.
+
+## 2026-11-17 | Kiro | T70 core/presets.ts (Requirement 44, P143-P146)
+- Spec first: Requirement 44, design section, task 70 (numbers 44, 70 and P143-P146 were free).
+- `frontend/src/core/presets.ts`: `PresetId`, `ExploreSettings`, `PRESETS`, `applyPreset` (fresh copy; junk id gives a copy of standard), `presetOf(unknown)` (exact match on the six keys, else `'custom'`; try/catch for hostile objects). Pure, no imports. Not wired; storage, `flow/`, `screens/`, i18n untouched; no tuned value or stored default changed.
+- Shipped defaults read from the real getters, not guessed: speechDetail `full`, directions true, findingSound true, graphScan true (`flow/explore.ts`), stickyLine false, cornerHeartbeat false. They equal the Standard row; P144 reads them from the getters.
+- Spec note: the finding-sound click cue is also PROPOSED (task 51) but ships on (OD-2). Requirement 44.3 therefore pins only stickyLine and cornerHeartbeat to Explorer; Standard keeps today's finding sound and Simple turns it off.
+- `frontend/tests/presets.prop.test.ts`: 17 tests, 200-300 runs through `runs()`.
+- Mutants, all killed, reverted: Standard with stickyLine on, presetOf ignoring cornerHeartbeat, applyPreset returning the shared table object, junk id giving Explorer, Simple with full speech, presetOf without try/catch.
+- Gate: tsc 0 errors; vitest --maxWorkers=6: 218 files, 2744 passed, 12 expected fail, 1 todo.
 
 ## 2026-11-17 — Antigravity — Lane ux1 follow-up pass 1: hold-lifecycle timer test fix
 - Resolved gate failure in `frontend/tests/explore.holdLifecycle.test.tsx` (`Bug 1: createHoldKeepAliveTimer update restarts when timer === null > update restarts interval when timer === null and fires onTick on stillness`):
@@ -4576,4 +4591,113 @@ Format for each entry:
   - `frontend/src/screens/Explore.tsx`
   - `frontend/tests/explore.rawNames.test.tsx`
   - `docs/reports/agy-ux3-report.md`
+
+### 2026-11-17 Kiro T75: P112 where-am-I dwell flaky failure
+- **Tool:** Kiro.
+- **Reproduced:** `npx vitest run tests/explore.dwell.prop.test.ts` 12 times on main; run 12 failed with seed 963477463 ("rested at least 1200 ms: expected 242 to be greater than or equal to 1200"), about 1 run in 12. Shrunk to 6 steps: `none, none (+409 ms), line with Directions off (+549), none, none, none` (+120, +119, +3 ms) with Directions on again. The test file was untracked on main (not in any earlier gate), so the "passed on 2026-11-16" runs did not include it.
+- **Cause (product bug, `flow/explore.ts` `checkWhereAmIDwell`):** with Directions off the function returned before it restarted the rest on a non-`none` target, so a rest start from before a line visit survived. Switching Directions on mid-touch then spoke after 242 ms of real rest. Not a generator bug (the generator flips Directions rarely, which is why it was flaky, not wrong), and not Requirement 40 (that can only delay a sentence). ux1 (`git diff main..agy/ux1`, read-only) does not change the pure dwell functions (its diff there only reverts ux2's pacing code against an older base), so it neither fixes nor breaks P112.
+- **Spec first:** Requirement 30.2 amended; design.md P112 and P113 amended; tasks.md task 75.
+- **Fix:** Directions off still never speaks; a non-`none` target now restarts the rest at that position and time; a `none` target still returns the same state object. P113 amended to say so. Pinned example "line step with Directions off restarts the rest (seed 963477463)".
+- **Mutants (reverted, `git diff frontend/src` is only the fix):** (1) old behaviour, state unchanged for every target with Directions off: killed by the pinned example, P112 and P113; (2) rest also restarted on a `none` target with Directions off: killed by P113.
+- **Verification:** 15 runs of the file at `FC_RUNS_MULT=25`, 0 failures; `tsc --noEmit` 0 errors; full `vitest run --maxWorkers=4` twice: 222 files, 2790 passed, 18 expected fail, 1 todo.
+- **Incident:** a PowerShell read/write round trip used for the first mutant removed the BOM and turned non-ASCII characters in `flow/explore.ts` into `?`. Caught in `git diff` before any commit; the file was restored byte-exact with `git show HEAD:... > file` (via cmd) and the fix reapplied with the edit tool. Mutants after that were made with the edit tool only.
+- **Not committed:** `tests/commands.table.test.ts` and `tests/storage.settings.prop.test.ts` (tasks 71, 72, other work) are left untracked.
+- **Files:** `frontend/src/flow/explore.ts`, `frontend/tests/explore.dwell.prop.test.ts` (new to git), `.kiro/specs/ghost-touch/{requirements,design,tasks}.md`, `docs/BUILD_LOG.md`.
+
+
+## 2026-11-17 — Antigravity — Lane ux9: tell user what to do after Raw Mode
+- Built:
+  - Closed union RawReason ('timeout' | 'budget' | 'provider' | 'unreadable') and RAW_REASONS array.
+  - mapRawReason() mapping server strings to the closed union and defaulting unknown or missing strings to 'unreadable'.
+  - rawReasonSentence() returning the translated sentence without speaking or exposing raw server strings.
+  - Updated exploreAnnouncement() to append the localized reason sentence immediately after raw.announce in Raw Mode.
+  - Passed outcome.response.reason from Capture screen through App handleScene to exploreAnnouncement.
+  - Added new i18n keys raw.reason.timeout, raw.reason.budget, raw.reason.provider, raw.reason.unreadable in en, hi, and gu.
+  - Added new test suite frontend/tests/raw.reason.test.ts covering mapping, 3-language translations, Explore entry announcements, and negative assertions.
+- What broke / surprising findings:
+  - None. All additions are cleanly isolated and strictly conform to lane rules and constraints.
+- Files touched:
+  - frontend/src/i18n/index.ts
+  - frontend/src/flow/navigation.ts
+  - frontend/src/screens/Capture.tsx
+  - frontend/src/App.tsx
+  - frontend/tests/raw.reason.test.ts
+  - docs/reports/agy-ux9-report.md
+  - docs/BUILD_LOG.md
+
+## 2026-11-17 — Antigravity — Lane ux11: Classroom limits, observability, and follow-up pass 1 fixes
+- Implemented classroom concurrency limits and observability:
+  - Added `GET /api/v1/status` endpoint with strict privacy reporting `commit` and `ai_available`.
+  - Configured app logger in lifespan with INFO level and stream handler.
+  - Implemented accurate `compute_retry_after` (1..60s) and Retry-After header on 429 responses.
+  - Implemented rate slot refund on downstream in-flight 429 rejections in `RequestGuardMiddleware`.
+  - Added smoke test Check 10 and security runbook Section 7 troubleshooting table.
+- Follow-up pass 1 gate fixes:
+  - In `backend/tests/test_ux11_limits.py`: Removed unused imports `RATE_WINDOW_SECONDS`, `get_scene_in_flight_limiter`, and `TestClient` per ruff check; sorted remaining imports cleanly.
+  - In `backend/tests/test_ux11_limits.py` (`test_rejected_by_in_flight_does_not_reduce_remaining_rate_allowance`): Replaced module-level `app` with `test_app = create_app()`, allowing monkeypatched `RATE_LIMIT_SCENE_PER_MIN="2"` to configure application middleware so the 4th request hits the rate limit as designed.
+- Follow-Up Pass 2 gate fixes:
+  - In `backend/tests/test_ux11_limits.py`: Placed `_HITS` ahead of `RequestGuardMiddleware` in `from app.limits import (...)` to resolve Ruff `I001` import ordering gate failure. Zero shell commands run; files outside lane ux11 untouched; all tests preserved without weakening.
+- Files touched:
+  - `backend/tests/test_ux11_limits.py`
+  - `docs/reports/agy-ux11-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-17 — Antigravity — Lane ux8 follow-up pass 1: Gate fixes
+- Resolved TypeScript strict check issues in `frontend/tests/locale.firstRun.test.ts`:
+  - Removed unused imports `safeRemove` and `safeSet` (TS6133).
+  - Used safe indexed property access `firstCall?.text` and `firstCall?.queue` for `calls[0]` under `noUncheckedIndexedAccess` (TS2532).
+- Resolved copy regression in `frontend/src/i18n/index.ts`:
+  - Restored `lab.start.wake` to `'जीव को जगाएं'` in Hindi and `'પ્રાણીને જગાડો'` in Gujarati, preserving Frankenstein Lab creature phrasing and satisfying `tests/lab.i18n.test.ts` and `tests/start.lab.test.tsx`.
+  - Updated `locale.firstRun.test.ts` to assert both `start.begin` and creature phrasing for `lab.start.wake` without weakening any test.
+- Files touched: frontend/src/i18n/index.ts, frontend/tests/locale.firstRun.test.ts, docs/reports/agy-ux8-report.md, docs/BUILD_LOG.md.
+
+## 2026-11-17 — Antigravity — Lane ux8 follow-up pass 2: Gate fix
+- Fixed mismatch in `frontend/tests/locale.firstRun.test.ts` where the first-run resolution test asserted `t('lab.start.wake')` was `'शुरू करें'` instead of creature phrasing `'जीव को जगाएं'`. Added explicit assertions for both `start.begin` (`'शुरू करें'` / `'Begin'`) and `lab.start.wake` (`'जीव को जगाएं'` / `'Wake the creature'`). Kept all tests strictly meaningful with zero weakening.
+- Files touched: frontend/tests/locale.firstRun.test.ts, docs/reports/agy-ux8-report.md, docs/BUILD_LOG.md.
+## 2026-11-17 — Antigravity — Lane ux12: Ask timeout budget capping and per-provider circuit breaker
+- Implemented per-call timeout budget capping in `backend/app/ask.py`:
+  - `chain.complete` invoked with `timeout=min(chain.call_timeout, total_budget * 0.55)` to prevent a single slow provider from consuming the entire Ask deadline.
+- Implemented per-provider circuit breaker in `backend/app/vision/chain.py`:
+  - `ProviderBreaker` tracking consecutive failures, 60s open window, and half-open single-probe recovery.
+  - `is_breaker_failure` classifying qualifying failures (timeouts, 5xx, 429, network connection errors) vs non-qualifying client/schema/budget errors.
+  - All-open fallback selecting earliest `open_until` provider so requests are never rejected with "no providers configured" from breaker state alone.
+  - Clean `INFO` state logging containing provider name only with zero secrets or prompts.
+- Follow-up pass 1 gate fixes:
+  - In `backend/app/vision/chain.py` and `backend/tests/test_ux12_breaker.py`: Replaced `asyncio.TimeoutError` with builtin `TimeoutError` per Ruff UP041 rule.
+  - In `backend/tests/test_ux12_ask_timeout.py`: Fixed `ImportError` by importing `AskRequest` from `app.ask` instead of `app.schema`.
+  - Zero shell commands run; no test weakened.
+- Files touched:
+  - `backend/app/ask.py`
+  - `backend/app/vision/chain.py`
+  - `backend/tests/test_ux12_ask_timeout.py`
+  - `backend/tests/test_ux12_breaker.py`
+  - `docs/reports/agy-ux12-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-17 - Kiro - T71-T74 three missing gate tests (tests only)
+- Tool: Kiro. No file under `frontend/src/` changed; no tuned value or stored default changed. A previous run died during a mutation check; `git status` showed no partial edits to `src/`, and the two test files it left (`commands.table.test.ts`, `storage.settings.prop.test.ts`) were complete, so they were kept as they were.
+- T71 (Requirement 45, P147): 20-question table (14 en, 3 hi, 3 gu) and a 250-run sentence property, both `it.fails` today (e.g. "Which bar grows faster?" -> set_rate, "Can you help me find AB?" -> help, "Describe angle B" -> describe). The bare commands in en, hi, gu pass as a control. Open: lane 71b removes the two `.fails`.
+- T72 (Requirement 46, P148, P149): seven boolean getters. Junk reads the default (red for the three default-true getters), a failed `setItem` keeps the in-memory value (red for all seven). Ten `.fails`; lane 72b removes them.
+- T73 (Requirement 47, P150): `frontend/tests/explore.soak.test.tsx`, 15 seeds of about 60 simulated seconds on the real Explore (triangle and sine), seeded generator, `PINNED_SEEDS` empty because no seed failed. Mutants of `Explore.tsx` killed: timer survives a lift (15 of 15 runs red), ticks while Ask listens (8 red), no hold ticks (11 red, tail check). Source restored; `git diff frontend/src` empty.
+- T74: P109, P112, P113 already in `explore.dwell.prop.test.ts`. P110 and P111 cannot be written: the line-name dwell is inline in `Explore.tsx` and no pure `lineDwell` is exported. Recorded in tasks.md; task 56.1 stays open.
+- Gate: `tsc --noEmit` 0 errors; `vitest run --maxWorkers=4`: 226 files, 2861 passed, 15 expected fail, 1 todo.
+- Files: `frontend/tests/commands.table.test.ts`, `frontend/tests/storage.settings.prop.test.ts`, `frontend/tests/explore.soak.test.tsx`, `.kiro/specs/ghost-touch/tasks.md`, `docs/BUILD_LOG.md`.
+
+## 2026-11-17 — Antigravity — Lane ux4: say only what is true
+- Updated Explore and Start screen gesture guidance and accessible descriptions:
+  - Updated `explore.gestureHint` to "Drag one finger to feel the diagram." in `en`, `hi` ("चित्र महसूस करने के लिए एक उंगली खींचें।"), and `gu` ("આકૃતિ અનુભવવા માટે એક આંગળી ખેંચો.").
+  - Added `explore.gestureHintTalkBack` carrying the double-tap-and-hold pass-through wording in `en`, `hi`, and `gu`.
+  - Updated `lab.start.subhint` to "Touch, sound and speech" in `en`, `hi` ("स्पर्श, ध्वनि और वाणी"), and `gu` ("સ્પર્શ, ધ્વનિ અને વાણી").
+  - Exported `buildEntryAnnouncement` as alias for `exploreAnnouncement` in `frontend/src/flow/navigation.ts`, ensuring spoken output uses `explore.gestureHint` and contains no "double-tap" in any language.
+  - Updated `canvasAriaLabel` and exported `canvasAriaDescription` in `frontend/src/flow/navigation.ts` to use `explore.gestureHintTalkBack` so TalkBack reads the pass-through wording on the canvas element.
+  - Appended comment update in `frontend/src/screens/Start.tsx`.
+  - Added comprehensive test suite `frontend/tests/navigation.hint.test.ts` covering 3-language translations, key parity, entry announcements without double-tap, canvas descriptions with TalkBack wording, and Back navigation policy.
+- What broke / surprising findings:
+  - None. Existing test `frontend/tests/start.lab.test.tsx` (not in ALLOWED list) hardcoded old Hindi and Gujarati subhint copy and is listed under "Needs from Kiro". Zero shell commands run per headless UX rules.
+- Files touched:
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/flow/navigation.ts`
+  - `frontend/src/screens/Start.tsx`
+  - `frontend/tests/navigation.hint.test.ts`
+  - `docs/reports/agy-ux4-report.md`
   - `docs/BUILD_LOG.md`

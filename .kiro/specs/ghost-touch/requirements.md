@@ -428,7 +428,7 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 
 #### Acceptance Criteria
 1. WHEN the finger rests (Requirement 29 definition) for 1200 ms on a position where `hitTest` returns no target THEN, IF Directions is on, the system SHALL speak where the finger is: the coarse position, then the nearest element, a distance word (touching, close, far) and the side it is on. It SHALL speak this once per rest. The rest re-arms after the finger moves 20 CSS px or lifts.
-2. THE automatic dwell SHALL NOT run WHEN Directions is off. The switch SHALL cover corners, line names and this dwell, and its visible and spoken label SHALL say so. Its label SHALL be fixed and the state SHALL be carried by `aria-checked` only, so a screen reader does not read the state twice (review L7).
+2. THE automatic dwell SHALL NOT run WHEN Directions is off. (Kiro, task 75) "Not run" means it never asks for speech and starts no sentence; it does not mean the rest clock is frozen. A step whose target is a vertex, line or bar SHALL restart the rest at that position and time whether Directions is on or off, so that switching Directions on during a touch never counts a rest that began before the finger last left a target. A step on a `none` target with Directions off SHALL change nothing. The switch SHALL cover corners, line names and this dwell, and its visible and spoken label SHALL say so. Its label SHALL be fixed and the state SHALL be carried by `aria-checked` only, so a screen reader does not read the state twice (review L7).
 3. THE "Where am I" button and the voice command are explicit requests. THEY SHALL work whether Directions is on or off.
 4. THE dwell SHALL NOT fire within the speech quiet window of Requirement 29, WHILE Ask is listening, or WHILE Guide is guiding. "Speech started" SHALL include every utterance the app starts (move speech, line names, Ask answers, Guide arrival, overview, earcon speech), not only some of them (review L3).
 5. WHEN the finger is inside a bar THE answer SHALL name that bar, from the `hitTest` result, before `nearestElement` is used (review L2). `nearestElement` SHALL be used only when `hitTest` reports no target (design.md, Requirement 26 "Not built here").
@@ -605,3 +605,82 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 1. AT the start of every hold, including a hold that starts while Guide guides or Ask listens, THE axis side SHALL be seeded silently from the finger's position (as Requirement 5.4 and the existing seed do).
 2. WHEN Guide ends while the finger is down THEN the axis side SHALL be seeded again, silently, from the finger's position at that moment, so a move after arrival speaks a crossing only if the finger crossed an axis after the seed.
 3. A crossing that the finger really makes after the seed SHALL still be spoken once (Requirement 5.4 and 17.2 are unchanged).
+
+
+### Requirement 43: An element with no label is described, never named by its id, when the id is machine-made (task 69)
+> Written by Kiro on 2026-11-17 BEFORE the code. Raw Mode names its points `raw_p<n>` and segments `raw_s<n>`; speaking such an id aloud is noise. This covers the pure rule in `frontend/src/core/speakable.ts` only. Wiring it into Explore, Ask and the TalkBack labels is a later agy lane (`flow/`, `screens/` are not edited here). No tuned value changes.
+
+**User Story:** As a blind student exploring a Raw Mode or unlabelled diagram, I want the app to describe an element instead of reading me a code like "raw underscore p 17", so that what I hear means something.
+
+#### Acceptance Criteria
+1. THE core SHALL answer `isMachineId(id)`: true when the id starts with `raw_`, `point_`, `pt_`, `seg_`, `line_`, `poly_` or `bar_` (any letter case) followed by an optional single letter and then digits only; or is longer than 12 characters; or contains both an underscore and a digit. Otherwise false. A non-string SHALL count as machine-made.
+2. THE core SHALL answer `speakableName(label, id)`: the trimmed label when it is a non-blank string; otherwise the trimmed id when it is a non-blank string and not machine-made; otherwise `null`. A label always wins over its id, even when the id is speakable.
+3. Single letters and short textbook names ("A", "B'", "P1", "O", "AB") SHALL be speakable. Every id the backend Raw Mode produces (`raw_p<n>`, `raw_s<n>`) SHALL NOT be.
+4. WHEN `speakableName` returns `null` THE caller SHALL describe the element (kind, position or direction) and SHALL NOT speak the id. The wording and wiring are a later lane.
+5. Both functions SHALL be pure and total: never throw for any input, no browser API, no i18n, no import.
+
+
+### Requirement 44: Three presets set every Explore switch at once (core half; task 70)
+> Written by Kiro on 2026-11-17 BEFORE the code. This requirement covers the pure data module `frontend/src/core/presets.ts` only. Reading and writing storage, the Settings UI, spoken text and strings are lane ux10. No tuned value changes and no stored default changes.
+
+**User Story:** As a blind student (or the person helping me), I want to pick one of three named settings instead of six switches, so that I get a sensible set without having to understand each one.
+
+#### Definitions
+- **Explore settings:** speech detail (`full` or `short`) and five switches: directions, finding sound, graph scan, stay on line (`stickyLine`), corner heartbeat (`cornerHeartbeat`).
+- **PROPOSED feature:** one whose values `tech.md` marks "PROPOSED, pending owner approval, not phone-tested" and that ships OFF: stay on line (Requirement 33) and corner heartbeat (Requirement 34).
+
+#### Acceptance Criteria
+1. THE core SHALL export three presets, `simple`, `standard` and `explorer`, each giving a value for every Explore setting:
+
+   | Preset | speechDetail | directions | findingSound | graphScan | stickyLine | cornerHeartbeat |
+   |---|---|---|---|---|---|---|
+   | simple | short | on | off | off | off | off |
+   | standard | full | on | on | on | off | off |
+   | explorer | full | on | on | on | on | on |
+
+2. THE `standard` preset SHALL equal the defaults the app ships today, which are the documented defaults of the storage getters (`getStoredSpeechDetailSetting`, `getStoredDirectionsSetting`, `getStoredFindingSoundSetting`, `getStoredGraphScanSetting`, `getStoredStickyLineSetting`, `getStoredCornerHeartbeatSetting`) when nothing is stored. A test SHALL read them from those getters, so the two cannot drift.
+3. A preset SHALL NOT turn on a PROPOSED feature (stay on line, corner heartbeat) unless it is `explorer`. Only `explorer` has either on. (Finding sound is also still PROPOSED, task 51, but it ships on today, owner decision OD-2; `standard` keeps today's value and does not change it. `simple` turns it off.)
+4. `applyPreset(id)` SHALL return the settings of that preset as a new object each call, so a caller cannot change the preset table by editing the result. IF `id` is not one of the three (junk from storage) THEN it SHALL return a copy of `standard`.
+5. `presetOf(settings)` SHALL return the id of the preset whose six values all equal `settings`, and `'custom'` for every other value, including a missing or mistyped field, extra fields with the right six values being ignored, `null`, `undefined` and any non-object. It SHALL never throw.
+6. FOR EVERY id, `presetOf(applyPreset(id))` SHALL equal `id`. The three presets SHALL differ from one another, so the answer is never ambiguous.
+7. THE module SHALL be pure: no storage, `localStorage`, React, i18n, DOM or other import. It SHALL NOT import from `flow/` (it declares its own `'full' | 'short'` type).
+8. No tuned haptic value, storage key or stored default SHALL change. THE module is not called by the app until lane ux10.
+
+
+
+### Requirement 45: A voice command matches a whole phrase, never a word inside a question (task 71)
+> Written by Kiro on 2026-11-17 BEFORE the tests. `flow/commands.ts` `parseExploreCommand` decides help, describe, repeat, next corner, faster and slower with `includes(...)` and `startsWith(...)`, so a question that merely contains one of those words is run as a command (for example "Can you help me find AB?" opens the help list instead of being asked). The fix is for an agy lane in `flow/commands.ts`; Kiro writes the test first, red until then. No tuned value changes.
+
+**User Story:** As a blind student who asks a real question by voice, I want my question to be answered, not swallowed by a command that shares one word with it.
+
+#### Acceptance Criteria
+1. THE transcript is normalised as today (lower case, trimmed, punctuation removed, spaces collapsed). A command (help, describe, repeat, next corner, set rate) SHALL match only when ONE of these holds:
+   1. the normalised transcript equals one of that command's listed phrases (any length), or
+   2. the transcript has at most 3 words AND every word of it is a word of a listed phrase of that same command.
+2. A transcript that only contains a command word or phrase inside a longer sentence SHALL NOT match: it parses as `unknown` and goes on to Ask. This holds in English, Hindi and Gujarati (a Hindi or Gujarati phrase inside a longer sentence is not a command either).
+3. THE bare commands in the three languages ("help", "मदद", "મદદ"; "repeat", "दोहराएं", "ફરી બોલો"; "next corner", "अगला कोना", "આગળનો ખૂણો"; "describe", "वर्णन करें", "વર્ણન કરો"; "faster", "तेज़", "ઝડપી"; "slower", "धीमा", "ધીમું") SHALL still parse to the same command as before.
+4. Where am I and the Guide commands are not changed by this requirement (they are listed as a known limit: `where am i` also uses `startsWith` / `includes`; a separate requirement will decide it).
+5. Assumption recorded by Kiro: the request said "an exact phrase or a transcript of at most 3 words". Read literally, "Describe angle B" (3 words) would still match, yet it is one of the questions that must NOT. Clause 1.2 therefore adds "every word is a word of the command's own phrases", so "help me" and "repeat that" match and "describe angle B" does not. If the owner wants the literal rule, 1.2 changes and that row moves out of the table.
+
+### Requirement 46: A saved on/off setting reads back exactly, and a failed write is not lost (task 72)
+> Written by Kiro on 2026-11-17 BEFORE the tests. Seven boolean getters (`getStoredDirectionsSetting`, `getStoredFindingSoundSetting`, `getStoredStickyLineSetting`, `getStoredCornerHeartbeatSetting` in `drivers/storage.ts`; `getStoredGraphScanSetting` in `flow/explore.ts`; `getStoredGuideSetting` in `config/features.ts`; `getStoredTeacherSetting` in `flow/teach.ts`) read `stored === 'true'` whenever anything is stored, and prefer a stored value over the in-memory one. Fix is for an agy lane; no stored default and no storage key changes.
+
+#### Acceptance Criteria
+1. WHEN the stored string is exactly `'true'` THE getter SHALL return true; WHEN it is exactly `'false'` it SHALL return false. FOR ANY other stored string (empty, `'TRUE'`, `'1'`, `'yes'`, ` true`, anything) AND no in-memory value, THE getter SHALL return its documented default: directions, finding sound and graph scan true; stay on line, corner heartbeat, Guide and Teacher false. Nothing is stored: the same default.
+2. WHEN a write to storage fails (`setItem` throws, for example a full or blocked store) THEN the value just set SHALL be what the getter returns afterwards, whatever string was stored before (valid, junk or none). The in-memory value wins over a stale stored one.
+3. A write that succeeds SHALL still be what the getter returns (unchanged behaviour).
+
+### Requirement 47: Explore stays quiet when it should and buzzes when it should, over a minute of mixed use (task 73)
+> Written by Kiro on 2026-11-17 BEFORE the test. Test only. A soak on the real `Explore` screen with fake drivers and fake timers, about 60 simulated seconds of random use. It joins the guard tests of task 65 and the oracles of task 67; it does not replace them.
+
+#### Definitions
+- **Operations:** pointer down, move and up (one finger); window `blur`; `visibilitychange` to hidden; Ask start and Ask stop (a recognised phrase); Guide start (by voice) and Guide arrival (the finger reaches the target); a change of any of the six Explore switches (speech detail, directions, finding sound, graph scan, stay on line, corner heartbeat); and the passing of 0 to 300 ms between them.
+- **Lifted:** no finger is down: after a pointer up, `blur` or hidden, until the next pointer down.
+- **Settled tail:** after the random operations, Ask is stopped and Guide is ended, the finger is put on a line (moved there if down, put down there if lifted), 600 ms pass (so the 450 ms quiet window of a corner is over), then 300 ms pass with no event.
+
+#### Acceptance Criteria
+1. WHILE lifted, THE screen SHALL NOT call `vibrate` with a pattern that has a positive entry and SHALL NOT call `setTone` with a frequency. (`vibrate(0)` and `setTone(null)` are allowed: they are the stop.)
+2. WHILE Ask is listening, THE screen SHALL NOT call `setTone` with a frequency.
+3. AFTER the settled tail, a `vibrate(80)` SHALL have been called in the last 200 ms of the 300 ms (Requirements 4.1, 38.1, 38.2).
+4. THE run SHALL NOT throw, and SHALL be repeatable from its seed. A failing sequence SHALL be kept as a pinned example in the test file and reported; the invariant SHALL NOT be weakened to get a green run. A red invariant that is a known bug (task 67 oracles U1) is marked `it.fails` with its reason, and a second run that skips only that path keeps the other invariants guarded.
+5. Known limits: one finger only (promotion is covered by Requirement 4.8's own tests), two scenes (triangle and sine sample), no real speech engine or phone.

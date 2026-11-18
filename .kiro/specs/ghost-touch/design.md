@@ -687,8 +687,8 @@ Deleting each guard in `Explore.tsx` must turn one of these red. The existing te
 | P109 | **Corner text is complete and omits only the arrival edge (Kiro, task 56):** for random scenes, `cornerCompass` with no arrival edge names every exit of `vertexExits`, with an arrival edge names every exit except that segment, gives a count for more than 4 exits, gives `''` when `visitedRecently`, and no clause is longer than 12 words. | 28.1, 28.3, 28.4, 28.5 |
 | P110 | **A rest is needed for a line name (Kiro, task 56):** for any sequence of positions and times, `lineDwell` never says a name while the finger has moved more than the rest radius from the anchor within the last 800 ms. A trace along a side at any speed above the rest radius per 800 ms never names it. | 29.1, 29.2 |
 | P111 | **A name never cuts speech and comes once per visit (Kiro, task 56):** `lineDwell` never says a name when speech started less than 1500 ms ago or a guard is set; for one continuous visit it says it at most once; leaving the line or a lift re-arms it. | 29.3, 29.4, 29.6 |
-| P112 | **Where-am-I dwell timing (Kiro, task 56):** `whereAmIDwell` speaks only after 1200 ms of rest on a `none` target, once per rest, re-arms after 20 CSS px or a lift, and never speaks inside the speech quiet window or with a guard set. | 30.1, 30.4 |
-| P113 | **The Directions switch gates the automatic cues only (Kiro, task 56):** with Directions off, the three pure functions never ask for speech; with it on and every guard clear, the same traces do. The explicit button command is not an input to them. | 28.8, 29.6, 30.2, 30.3 |
+| P112 | **Where-am-I dwell timing (Kiro, task 56):** `whereAmIDwell` speaks only after 1200 ms of rest on a `none` target, once per rest, re-arms after 20 CSS px or a lift, and never speaks inside the speech quiet window or with a guard set. (Task 75: the rest start is also restarted by any non-`none` step while Directions is off, so a Directions switch turned on mid-touch never counts a rest that began before the finger left a target. Found by P112 at seed 963477463: line step with Directions off, then three `none` steps with it on spoke after 242 ms. Pinned as an example. The 1200 ms is measured from the rest start, and Requirement 40 can only make a sentence later than that, never earlier.) | 30.1, 30.2, 30.4 |
+| P113 | **The Directions switch gates the automatic cues only (Kiro, task 56):** with Directions off, the three pure functions never ask for speech (task 75: `checkWhereAmIDwell` with Directions off returns the same state object for a `none` target, and for any other target the same state with only the rest restarted at that position and time); with it on and every guard clear, the same traces do. The explicit button command is not an input to them. | 28.8, 29.6, 30.2, 30.3 |
 
 ## Owner decisions raised in task 55
 The click cue and Directions defaults (review M4) are not decided in this spec. They are recorded as OD-2 and OD-3 in `docs/reviews/kiro-owner-decisions.md`, each with what the code does today. No default changes in task 55.
@@ -837,3 +837,56 @@ Shared harness: `frontend/tests/support/exploreRig.tsx` (the real `Explore`, fak
 ### Not covered, on purpose
 - The tick resuming after Ask listening ends (38.2) is not a separate oracle; U1 covers the Guide half. The lane adds the Ask half when it fixes U1.
 - Nothing here exercises a real speech engine or a phone; the "speech playing" state is the fake driver's `isSpeaking`.
+
+## Speakable names (Requirement 43, task 69)
+Written by Kiro before the code. One pure module, `frontend/src/core/speakable.ts`, named exports, no imports.
+```ts
+isMachineId(id: string): boolean
+speakableName(label: string | undefined, id: string): string | null
+```
+Rules are the ones in Requirement 43.1 and 43.2. The prefix test is `/^(raw|point|pt|seg|line|poly|bar)_[a-z]?\d+$/i`; the other two clauses are length > 12 and `_` together with a digit. Not wired: a later agy lane decides the spoken description.
+
+| # | Property | Validates |
+|---|---|---|
+| P139 | **Total (Kiro, task 69):** for any string, and junk cast through the types (numbers, null, objects), `isMachineId` and `speakableName` never throw; `isMachineId` returns a boolean and `speakableName` a string or `null`. 300 runs. | 43.5 |
+| P140 | **A label wins (Kiro, task 69):** for any non-blank label and any id, `speakableName` returns the label trimmed; a blank or missing label gives the id result. 300 runs. | 43.2 |
+| P141 | **Textbook names are speakable (Kiro, task 69):** single letters, a letter with prime marks, a letter with 1 to 2 digits (no underscore) and two or three capital letters are not machine ids, and `speakableName(undefined, id)` returns them. 300 runs. | 43.3 |
+| P142 | **Raw Mode ids are never spoken (Kiro, task 69):** for any n, `raw_p<n>` and `raw_s<n>` are machine ids and `speakableName` gives `null` without a label; the prefixed families (`point_`, `pt_`, `seg_`, `line_`, `poly_`, `bar_` plus digits) and any id over 12 characters likewise. 300 runs. | 43.1, 43.3 |
+
+
+## Presets as pure data (Requirement 44, task 70)
+Written by Kiro before the code. One pure module, `frontend/src/core/presets.ts`, named exports, no imports.
+```ts
+type PresetId = 'simple' | 'standard' | 'explorer'
+interface ExploreSettings { speechDetail: 'full' | 'short'; directions: boolean; findingSound: boolean;
+                            graphScan: boolean; stickyLine: boolean; cornerHeartbeat: boolean }
+const PRESETS: Record<PresetId, ExploreSettings>    // table in Requirement 44.1
+applyPreset(id: PresetId): ExploreSettings          // fresh copy; junk id gives a copy of standard
+presetOf(settings: unknown): PresetId | 'custom'    // exact match on the six values, else 'custom'; total
+```
+`presetOf` takes `unknown` so junk read from storage needs no cast; a typed `ExploreSettings` still fits. Fields are compared with `===` on the six keys only. Lane ux10 owns reading the six storage getters into an `ExploreSettings`, writing the six setters from `applyPreset`, the UI and the strings.
+
+| # | Property | Validates |
+|---|---|---|
+| P143 | **Round trip (Kiro, task 70):** for each id, `presetOf(applyPreset(id)) === id`; the three presets are pairwise different; `applyPreset` returns a new object each call and editing it does not change `PRESETS`. Example test over the three ids plus a fast-check property over `fc.constantFrom(...)` (200+ runs). | 44.4, 44.6 |
+| P144 | **Standard is today's shipped default (Kiro, task 70):** after resetting storage, the six getters (`getStoredSpeechDetailSetting`, `getStoredDirectionsSetting`, `getStoredFindingSoundSetting`, `getStoredGraphScanSetting`, `getStoredStickyLineSetting`, `getStoredCornerHeartbeatSetting`) read into an `ExploreSettings` deep-equal `PRESETS.standard`. Example test, not fast-check. | 44.2 |
+| P145 | **Only Explorer has a PROPOSED feature on (Kiro, task 70):** for every id, `stickyLine` and `cornerHeartbeat` are true exactly when the id is `explorer`; `applyPreset` of a junk id (any JSON value) has both off. 200+ runs. | 44.3, 44.4 |
+| P146 | **`presetOf` is total and exact (Kiro, task 70):** for any JSON value, any object with random fields of random types, and any preset with one field flipped or mistyped, it returns a string and never throws; flipping any one of the six fields of a preset gives `'custom'`; extra fields do not change the answer. 300 runs. | 44.5 |
+
+
+
+## Three gate tests that were missing (Requirements 45 to 47, tasks 71 to 74)
+Written by Kiro before the tests. Tests only: no file under `frontend/src/` changes, no tuned value, no stored default. Each oracle that is red today is `it.fails` with its reason; a lane that fixes the bug removes `.fails`, and the test then guards the fix.
+
+| # | Property | Validates |
+|---|---|---|
+| P147 | **A command matches a whole phrase (Kiro, task 71):** a table of 20 real questions (14 English, 3 Hindi, 3 Gujarati) each containing help, describe, repeat, next corner, faster or slower parses as `unknown`; the bare commands in en, hi and gu parse to the same type (and rate) as before. Plus a fast-check property (250 runs): any English sentence of 4 or more words built from non-command words with one command word or phrase inserted, and which is not itself a listed phrase, parses as `unknown`. The question rows are one `it.fails` (a single list of the rows that still match, so the message names them); the bare commands are a passing test. | 45.1-45.3 |
+| P148 | **Stored strings read back exactly (Kiro, task 72):** for each of the seven boolean getters and any stored string (random strings plus `''`, `'TRUE'`, `'1'`, `'yes'`, `' true'`), with no in-memory value: `'true'` gives true, `'false'` gives false, anything else gives the documented default; nothing stored gives the default. 250 runs per getter. Red today for the getters whose default is true (directions, finding sound, graph scan). | 46.1 |
+| P149 | **A failed write is not lost (Kiro, task 72):** for each getter, any prior stored string (or none), any new value and `localStorage.setItem` throwing: after the setter, the getter returns the new value. 250 runs per getter. Red today for all seven: a stored valid or junk string beats the in-memory value. A write that succeeds still reads back (control). | 46.2, 46.3 |
+| P150 | **Soak on the real Explore screen (Kiro, task 73):** about 60 simulated seconds of random pointer down/move/up, `blur`, `visibilitychange` to hidden, Ask start and stop, Guide start and arrival, and changes of the six switches, on the triangle and the sine sample (one finger). Invariants: no positive `vibrate` and no `setTone` with a frequency while lifted; no `setTone` with a frequency while Ask listens; after a settled tail with the finger on a line, a `vibrate(80)` in the last 200 ms of 300 ms. 15 runs of 60 s each (a run mounts the real screen); failing seeds pinned in the file. | 47.1-47.3 |
+
+### Where P109 to P113 stand (task 74)
+- **P109** is written against `cornerCompass` (`flow/explore.ts`): it is exported and pure.
+- **P112** is written against `updateWhereAmIDwellOnMove` and `checkWhereAmIDwell`, the pure where-am-I dwell, with an independent rest oracle.
+- **P113** is written for the one switch the pure functions carry (`checkWhereAmIDwell` with `isDirectionsEnabled: false`). `cornerCompass` takes no switch (Explore tests `directionsSettingRef` before it calls) and no line-dwell function exists, so the full "three functions" statement cannot be a property; the switch guards are checked through the real screen in `explore.wiring.guards.test.tsx` (task 65).
+- **P110 and P111 cannot be written today.** The line-name dwell (rest radius, 800 ms, 1500 ms speech window, once per visit) is inline in `screens/Explore.tsx` (`lineDwellRef`, about lines 1505 to 1545) and is not exported. Requirement 29.7 asks for a pure function in `flow/`; the lane that extracts `lineDwell(state, input)` makes P110 and P111 writable. Until then they are specified in this file and not tested.

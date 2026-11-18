@@ -43,7 +43,9 @@ import { capturePrompt } from './flow/start';
 import {
   exploreAnnouncement,
   leaveByBack,
+  mapRawReason,
   verifyCaveatForScene,
+  type RawReason,
   type ScreenName,
 } from './flow/navigation';
 import { buildOverview } from './flow/overview';
@@ -611,12 +613,20 @@ export function App({ watcher }: AppProps = {}): JSX.Element {
     mode: SceneMode,
     photo?: string,
     source?: 'camera' | 'file' | 'sample',
+    rawReason?: RawReason,
   ): void => {
     updatePhotoUrl(photo ?? null);
     lastExploreScene.current = scene;
     lastSavedDiagramId.current = null;
     const verifyMode: VerifyMode = source === 'sample' ? 'sample' : mode;
-    const baseAnnounced = exploreAnnouncement(scene, mode, verifyMode);
+    const resolvedRawReason = mode === 'raw' ? mapRawReason(rawReason) : undefined;
+    const baseAnnounced = exploreAnnouncement(
+      scene,
+      mode,
+      verifyMode,
+      undefined,
+      resolvedRawReason,
+    );
     drivers.speech.speak(baseAnnounced, LANG_BCP47[currentLang]);
     setView({
       screen: 'explore',

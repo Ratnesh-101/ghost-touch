@@ -17,7 +17,7 @@ import { Mascot } from '../components/Mascot';
 import { Seam } from '../components/lab/Seam';
 import { OrganTiles, type OrganItem } from '../components/start/OrganTiles';
 import type { Drivers } from '../drivers';
-import { handleStartTap, speakIntro } from '../flow/start';
+import { handleStartTap, speakIntro, speakLangOffer } from '../flow/start';
 import { t } from '../i18n';
 
 interface StartProps {
@@ -32,6 +32,7 @@ export function Start({ drivers, onBegin }: StartProps): JSX.Element {
   useEffect(() => {
     // Chrome may refuse to speak before the first tap; the tap speaks again.
     speakIntro(drivers);
+    speakLangOffer(drivers);
     surface.current?.focus();
   }, [drivers]);
 
@@ -94,7 +95,7 @@ export function Start({ drivers, onBegin }: StartProps): JSX.Element {
           <span className="gt-start__hint gt-start__wake">{t('lab.start.wake')}</span>
         </span>
 
-        {/* Accessible subhint: TalkBack & touch ready */}
+        {/* Accessible subhint: Touch, sound and speech */}
         <span className="gt-start__subhint">{t('lab.start.subhint')}</span>
       </span>
     </button>

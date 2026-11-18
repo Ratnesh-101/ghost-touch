@@ -104,7 +104,7 @@ describe('A11Y-01: Explore canvas accessible name', () => {
     expect(html).toContain('role="img"');
     expect(html).toContain(`aria-label="${canvasAriaLabel(triangleScene)}"`);
     expect(html).toContain('Right Triangle ABC');
-    expect(html).toContain(t('explore.gestureHint'));
+    expect(html).toContain(t('explore.gestureHintTalkBack'));
   });
 
   it('renders localized canvas aria-label in Hindi', () => {
@@ -121,7 +121,7 @@ describe('A11Y-01: Explore canvas accessible name', () => {
 
     expect(html).toContain('role="img"');
     expect(html).toContain('डबल-टैप करके दबाए रखें');
-    expect(html).toContain(t('explore.gestureHint'));
+    expect(html).toContain(t('explore.gestureHintTalkBack'));
   });
 
   it('renders localized canvas aria-label in Gujarati', () => {
@@ -138,7 +138,7 @@ describe('A11Y-01: Explore canvas accessible name', () => {
 
     expect(html).toContain('role="img"');
     expect(html).toContain('ડબલ-ટેપ કરીને દબાવી રાખો');
-    expect(html).toContain(t('explore.gestureHint'));
+    expect(html).toContain(t('explore.gestureHintTalkBack'));
   });
 
   it('renders canvas element with component real aria-label matching canvasAriaLabel', () => {

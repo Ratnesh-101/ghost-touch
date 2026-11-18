@@ -32,7 +32,7 @@ import { caveatForQuestion, AskManager } from '../src/flow/ask';
 import { Explore } from '../src/screens/Explore';
 import { ShareError, shareErrorMessage } from '../src/screens/ShareError';
 import { encodeShare, type SharePayload } from '../src/share';
-import { getLang, setLang, type Lang } from '../src/i18n';
+import { getLang, setLang, tables, type Lang } from '../src/i18n';
 
 // Mock Capture and PDF driver modules so App-level imports do not load pdfjs worker URL in jsdom
 vi.mock('../src/screens/Capture', () => ({
@@ -146,7 +146,7 @@ describe('Lane q2-frontend-round5 Verification Suite', () => {
 
       const initialEnAnnouncement = exploreAnnouncement(testTriangleScene, 'ai');
       expect(initialEnAnnouncement).toContain('Right Triangle ABC');
-      expect(initialEnAnnouncement).toContain('Double-tap and hold');
+      expect(initialEnAnnouncement).toContain(tables.en['explore.gestureHint']);
 
       await act(async () => {
         root.render(
@@ -163,7 +163,7 @@ describe('Lane q2-frontend-round5 Verification Suite', () => {
       const statusEl = container.querySelector('.gt-explore__status');
       expect(statusEl).not.toBeNull();
       expect(statusEl?.textContent).toContain('Right Triangle ABC');
-      expect(statusEl?.textContent).toContain('Double-tap and hold');
+      expect(statusEl?.textContent).toContain(tables.en['explore.gestureHint']);
 
       // 2. Switch language to Hindi mid-session
       await act(async () => {
@@ -172,9 +172,9 @@ describe('Lane q2-frontend-round5 Verification Suite', () => {
 
       // Status text must be dynamically rebuilt in Hindi
       expect(statusEl?.textContent).toContain('Right Triangle ABC');
-      expect(statusEl?.textContent).toContain('डबल-टैप करके दबाए रखें');
+      expect(statusEl?.textContent).toContain(tables.hi['explore.gestureHint']);
       expect(statusEl?.textContent).toContain('तथ्य और चित्र');
-      expect(statusEl?.textContent).not.toContain('Double-tap and hold');
+      expect(statusEl?.textContent).not.toContain(tables.en['explore.gestureHint']);
       expect(statusEl?.textContent).not.toContain('Facts and drawing disagree');
 
       // 3. Trigger voice repeat command ("repeat" / "दोहराएं") via Ask button
@@ -190,9 +190,9 @@ describe('Lane q2-frontend-round5 Verification Suite', () => {
       const lastSpoken = drivers.spokenUtterances[drivers.spokenUtterances.length - 1];
       expect(lastSpoken).toBeDefined();
       expect(lastSpoken?.lang).toBe('hi-IN');
-      expect(lastSpoken?.text).toContain('डबल-टैप करके दबाए रखें');
+      expect(lastSpoken?.text).toContain(tables.hi['explore.gestureHint']);
       expect(lastSpoken?.text).toContain('तथ्य और चित्र');
-      expect(lastSpoken?.text).not.toContain('Double-tap and hold');
+      expect(lastSpoken?.text).not.toContain(tables.en['explore.gestureHint']);
       expect(lastSpoken?.text).not.toContain('Facts and drawing disagree');
 
       // Cleanup

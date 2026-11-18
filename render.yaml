@@ -67,6 +67,11 @@ services:
         value: "2"
       - key: SCENE_QUEUE_WAIT_SECONDS
         value: "6.0"
+      # Classroom profile: cap per-client concurrent scene/ask requests so one device cannot monopolize workers
+      - key: SCENE_CLIENT_MAX_CONCURRENCY
+        value: "2"
+      - key: ASK_CLIENT_MAX_CONCURRENCY
+        value: "2"
       # Global daily paid AI model call budget and per-client cap (both are owner decisions)
       - key: PAID_CALLS_PER_DAY
         value: "2000"

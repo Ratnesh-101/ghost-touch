@@ -5,10 +5,37 @@
  * allow audio, vibration and speech to start after a user gesture.
  */
 import type { Drivers } from '../drivers';
+import { safeGet, safeRemove, safeSet } from '../drivers/storage';
 import { getLang, LANG_BCP47, t } from '../i18n';
 
 /** Short confirmation pulse on the first tap (Requirement 1.2). */
 export const CONFIRM_VIBRATION_MS = 50;
+
+/** Storage key to track whether the language offer has been spoken (once per install). */
+export const STORAGE_KEY_LANG_OFFER = 'gt_lang_offer_spoken';
+
+export function hasSpokenLangOffer(): boolean {
+  return safeGet(STORAGE_KEY_LANG_OFFER) === 'true';
+}
+
+export function setSpokenLangOffer(spoken: boolean = true): void {
+  if (spoken) {
+    safeSet(STORAGE_KEY_LANG_OFFER, 'true');
+  } else {
+    safeRemove(STORAGE_KEY_LANG_OFFER);
+  }
+}
+
+/**
+ * After the intro, speak one line once per install naming the other two languages
+ * and where to change them (Requirement UX8).
+ */
+export function speakLangOffer(drivers: Drivers, lang: string = LANG_BCP47[getLang()]): boolean {
+  if (hasSpokenLangOffer()) return false;
+  setSpokenLangOffer(true);
+  drivers.speech.speak(t('start.langOffer'), lang, { queue: true });
+  return true;
+}
 
 /** What the user hears when the Capture screen opens. */
 export function capturePrompt(vibrationSupported: boolean): string {
@@ -18,8 +45,15 @@ export function capturePrompt(vibrationSupported: boolean): string {
 }
 
 /** Speak the opening line when the app loads (Chrome may block it until a tap). */
-export function speakIntro(drivers: Drivers, lang: string = LANG_BCP47[getLang()]): void {
+export function speakIntro(
+  drivers: Drivers,
+  lang: string = LANG_BCP47[getLang()],
+  options?: { offerLang?: boolean },
+): void {
   drivers.speech.speak(t('start.intro'), lang);
+  if (options?.offerLang) {
+    speakLangOffer(drivers, lang);
+  }
 }
 
 /**

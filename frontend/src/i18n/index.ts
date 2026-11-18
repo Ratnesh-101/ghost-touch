@@ -6,7 +6,8 @@
  * Language preference is persisted to localStorage (wrapped in try/catch).
  */
 
-import { safeGet, safeSet } from '../drivers/storage';
+import { deviceLang } from '../drivers/locale';
+import { safeGet, safeRemove, safeSet } from '../drivers/storage';
 
 export type Lang = 'en' | 'hi' | 'gu';
 
@@ -26,14 +27,28 @@ export const LANG_NAMES: Record<Lang, { native: string; english: string }> = {
 
 export const STORAGE_KEY_LANG = 'gt_language';
 
-export function getStoredLang(): Lang {
+export function getStoredLang(): Lang | null {
   const val = safeGet(STORAGE_KEY_LANG);
   if (val === 'en' || val === 'hi' || val === 'gu') return val;
-  return 'en';
+  return null;
 }
 
 export function setStoredLang(lang: Lang): void {
   safeSet(STORAGE_KEY_LANG, lang);
+}
+
+export function clearStoredLang(): void {
+  safeRemove(STORAGE_KEY_LANG);
+}
+
+/**
+ * Determine initial language:
+ * When no language is stored, use deviceLang() and store nothing until the user chooses.
+ */
+export function resolveInitialLang(): Lang {
+  const stored = getStoredLang();
+  if (stored !== null) return stored;
+  return deviceLang();
 }
 
 /** English string table. Nested keys read like `t('start.tapToBegin')`. */
@@ -44,6 +59,7 @@ const en: Record<string, string> = {
   'start.intro': 'Ghost Touch. Tap anywhere to begin.',
   'start.tapToBegin': 'Tap anywhere to begin',
   'start.begin': 'Begin',
+  'start.langOffer': 'Also available in Hindi and Gujarati. Change language in Settings.',
   'capture.takePhoto': 'Take photo',
   'capture.chooseImage': 'Choose image',
   'capture.samples': 'Sample diagrams',
@@ -65,6 +81,10 @@ const en: Record<string, string> = {
   'ask.errorUnsupported': 'Speech recognition is not supported. You can type your question.',
   'ask.errorEmpty': 'Please enter a question.',
   'raw.announce': "I couldn't fully read this diagram. You can still feel its outlines.",
+  'raw.reason.timeout': 'The reader was slow. Try once more.',
+  'raw.reason.budget': "Today's AI limit is used up. Saved diagrams still work. Try again tomorrow.",
+  'raw.reason.provider': 'The reader is not available right now. Try again in a minute.',
+  'raw.reason.unreadable': 'Try again with the page flat, closer, and in more light.',
   'common.vibrationUnsupported': 'Vibration is not supported. Use Chrome on Android for full haptics.',
   'start.noVibration':
     'Vibration is not supported on this device. Please use Chrome on Android. Audio-only mode.',
@@ -74,6 +94,7 @@ const en: Record<string, string> = {
   'capture.sampleBarchart': 'Sample: bar chart',
   'capture.error': 'Something went wrong. Please try again, or pick a sample.',
   'capture.errorBusy': 'The server is busy right now. Please try again in a moment.',
+  'capture.waking': 'The server is waking up. One moment.',
   'capture.wakingUp': 'Waking up the server…',
   'capture.errorGateway': 'The server is waking up. Please try again in a few seconds.',
   'capture.errorTimeout': 'The server took too long; please try again.',
@@ -92,7 +113,8 @@ const en: Record<string, string> = {
     'PDF files are not supported yet. Please upload a screenshot or photo of the page.',
   'explore.noVibration':
     'No vibration on this device. You will hear a buzz instead. Use Chrome on Android to feel it.',
-  'explore.gestureHint':
+  'explore.gestureHint': 'Drag one finger to feel the diagram.',
+  'explore.gestureHintTalkBack':
     'Double-tap and hold, then drag to feel the diagram.',
   'explore.backHint': 'Press Back to leave.',
   'explore.centre': 'Centre.',
@@ -247,7 +269,7 @@ const en: Record<string, string> = {
   // Frankenstein Lab theme (Lane lab-i18n)
   'lab.start.wake': 'Wake the creature',
   'lab.start.tagline': "Feel diagrams you can't see",
-  'lab.start.subhint': 'TalkBack & touch ready',
+  'lab.start.subhint': 'Touch, sound and speech',
   'lab.organ.nerves.title': 'Nerves',
   'lab.organ.nerves.line': 'Feel lines and corners as vibration',
   'lab.organ.eyes.title': 'Eyes',
@@ -537,6 +559,7 @@ const hi: Record<string, string> = {
   'start.intro': 'घोस्ट टच। शुरू करने के लिए कहीं भी टैप करें।',
   'start.tapToBegin': 'शुरू करने के लिए कहीं भी टैप करें',
   'start.begin': 'शुरू करें',
+  'start.langOffer': 'अंग्रेज़ी और गुजराती में भी उपलब्ध। सेटिंग्स में भाषा बदलें।',
   'capture.takePhoto': 'फोटो लें',
   'capture.chooseImage': 'छवि चुनें',
   'capture.samples': 'नमूना चित्र',
@@ -558,6 +581,10 @@ const hi: Record<string, string> = {
   'ask.errorUnsupported': 'वाणी पहचान समर्थित नहीं है। आप अपना प्रश्न टाइप कर सकते हैं।',
   'ask.errorEmpty': 'कृपया एक प्रश्न दर्ज करें।',
   'raw.announce': 'मैं इस चित्र को पूरी तरह नहीं पढ़ सका। आप अभी भी इसकी रूपरेखा महसूस कर सकते हैं।',
+  'raw.reason.timeout': 'रीडर धीमा था। एक बार फिर प्रयास करें।',
+  'raw.reason.budget': 'आज की एआई सीमा समाप्त हो गई है। सहेजे गए आरेख अभी भी काम करते हैं। कल पुनः प्रयास करें।',
+  'raw.reason.provider': 'रीडर अभी उपलब्ध नहीं है। एक मिनट में पुनः प्रयास करें।',
+  'raw.reason.unreadable': 'पृष्ठ को सीधा, पास और अधिक प्रकाश में रखकर पुनः प्रयास करें।',
   'common.vibrationUnsupported': 'कंपन समर्थित नहीं है। पूर्ण हैप्टिक्स के लिए एंड्रॉइड पर क्रोम का उपयोग करें।',
   'start.noVibration':
     'इस डिवाइस पर कंपन समर्थित नहीं है। कृपया एंड्रॉइड पर क्रोम का उपयोग करें। केवल ऑडियो मोड।',
@@ -567,6 +594,7 @@ const hi: Record<string, string> = {
   'capture.sampleBarchart': 'नमूना: बार चार्ट',
   'capture.error': 'कुछ गलत हो गया। कृपया पुन: प्रयास करें, या कोई नमूना चुनें।',
   'capture.errorBusy': 'सर्वर अभी व्यस्त है। कृपया थोड़ी देर में पुन: प्रयास करें।',
+  'capture.waking': 'सर्वर चालू हो रहा है। एक क्षण।',
   'capture.wakingUp': 'सर्वर चालू किया जा रहा है…',
   'capture.errorGateway': 'सर्वर चालू हो रहा है। कृपया कुछ सेकंड में पुनः प्रयास करें।',
   'capture.errorTimeout': 'सर्वर ने बहुत लंबा समय लिया; कृपया पुनः प्रयास करें।',
@@ -585,7 +613,8 @@ const hi: Record<string, string> = {
     'पीडीएफ फाइलें अभी समर्थित नहीं हैं। कृपया पृष्ठ का स्क्रीनशॉट या फोटो अपलोड करें।',
   'explore.noVibration':
     'इस डिवाइस पर कंपन नहीं है। इसके बजाय आपको एक बज़ सुनाई देगा। इसे महसूस करने के लिए एंड्रॉइड पर क्रोम का उपयोग करें।',
-  'explore.gestureHint':
+  'explore.gestureHint': 'चित्र महसूस करने के लिए एक उंगली खींचें।',
+  'explore.gestureHintTalkBack':
     'डबल-टैप करके दबाए रखें, फिर चित्र महसूस करने के लिए खींचें।',
   'explore.backHint': 'वापस जाने के लिए बैक दबाएं।',
   'explore.centre': 'केंद्र।',
@@ -739,7 +768,7 @@ const hi: Record<string, string> = {
   // Frankenstein Lab theme (Lane lab-i18n)
   'lab.start.wake': 'जीव को जगाएं',
   'lab.start.tagline': 'वे चित्र महसूस करें जो आप देख नहीं सकते',
-  'lab.start.subhint': 'टॉकबैक और स्पर्श तैयार',
+  'lab.start.subhint': 'स्पर्श, ध्वनि और वाणी',
   'lab.organ.nerves.title': 'तंत्रिकाएं',
   'lab.organ.nerves.line': 'रेखाओं और कोनों को कंपन के रूप में महसूस करें',
   'lab.organ.eyes.title': 'आंखें',
@@ -1032,6 +1061,7 @@ const gu: Record<string, string> = {
   'start.intro': 'ગોસ્ટ ટચ. શરૂ કરવા માટે ગમે ત્યાં ટેપ કરો.',
   'start.tapToBegin': 'શરૂ કરવા માટે ગમે ત્યાં ટેપ કરો',
   'start.begin': 'શરૂ કરો',
+  'start.langOffer': 'અંગ્રેજી અને હિન્દીમાં પણ ઉપલબ્ધ. સેટિંગ્સમાં ભાષા બદલો.',
   'capture.takePhoto': 'ફોટો લો',
   'capture.chooseImage': 'ઇમેજ પસંદ કરો',
   'capture.samples': 'નમૂના આકૃતિઓ',
@@ -1053,6 +1083,10 @@ const gu: Record<string, string> = {
   'ask.errorUnsupported': 'વાણી ઓળખ સપોર્ટેડ નથી. તમે તમારો પ્રશ્ન લખી શકો છો.',
   'ask.errorEmpty': 'કૃપા કરીને પ્રશ્ન દાખલ કરો.',
   'raw.announce': 'હું આ આકૃતિ સંપૂર્ણ રીતે વાંચી શક્યો નથી. તમે હજી પણ તેની રૂપરેખા અનુભવી શકો છો.',
+  'raw.reason.timeout': 'રીડર ધીમું હતું. ફરી એકવાર પ્રયાસ કરો.',
+  'raw.reason.budget': 'આજની AI મર્યાદા સમાપ્ત થઈ ગઈ છે. સેવ કરેલી આકૃતિઓ હજી પણ કામ કરે છે. આવતીકાલે ફરી પ્રયાસ કરો.',
+  'raw.reason.provider': 'રીડર અત્યારે ઉપલબ્ધ નથી. એક મિનિટમાં ફરી પ્રયાસ કરો.',
+  'raw.reason.unreadable': 'પેજને સપાટ, નજીક અને વધુ પ્રકાશમાં રાખીને ફરી પ્રયાસ કરો.',
   'common.vibrationUnsupported': 'વાઇબ્રેશન સપોર્ટેડ નથી. સંપૂર્ણ હેપ્ટિક્સ માટે Android પર Chrome વાપરો.',
   'start.noVibration':
     'આ ઉપકરણ પર વાઇબ્રેશન સપોર્ટેડ નથી. કૃપા કરીને Android પર Chrome વાપરો. માત્ર ઓડિયો મોડ.',
@@ -1062,6 +1096,7 @@ const gu: Record<string, string> = {
   'capture.sampleBarchart': 'નમૂનો: સ્તંભ આલેખ',
   'capture.error': 'કંઈક ખોટું થયું. કૃપા કરીને ફરી પ્રયાસ કરો, અથવા નમૂનો પસંદ કરો.',
   'capture.errorBusy': 'સર્વર અત્યારે વ્યસ્ત છે. કૃપા કરીને થોડીવારમાં ફરી પ્રયાસ કરો.',
+  'capture.waking': 'સર્વર શરૂ થઈ રહ્યું છે. એક ક્ષણ.',
   'capture.wakingUp': 'સર્વર શરૂ થઈ રહ્યું છે…',
   'capture.errorGateway': 'સર્વર શરૂ થઈ રહ્યું છે. કૃપા કરીને થોડી સેકંડમાં ફરી પ્રયાસ કરો.',
   'capture.errorTimeout': 'સર્વરે ઘણો સમય લીધો; કૃપા કરીને ફરી પ્રયાસ કરો.',
@@ -1080,7 +1115,8 @@ const gu: Record<string, string> = {
     'પીડીએફ ફાઇલો હજી સપોર્ટેડ નથી. કૃપા કરીને સ્ક્રીનશોટ અથવા ફોટો અપલોડ કરો.',
   'explore.noVibration':
     'આ ઉપકરણ પર વાઇબ્રેશન નથી. તેના બદલે તમને બઝ સંભળાશે. તેને અનુભવવા માટે Android પર Chrome વાપરો.',
-  'explore.gestureHint':
+  'explore.gestureHint': 'આકૃતિ અનુભવવા માટે એક આંગળી ખેંચો.',
+  'explore.gestureHintTalkBack':
     'ડબલ-ટેપ કરીને દબાવી રાખો, પછી આકૃતિ અનુભવવા માટે ખેંચો.',
   'explore.backHint': 'પાછા જવા માટે બેક દબાવો.',
   'explore.centre': 'કેન્દ્ર.',
@@ -1234,7 +1270,7 @@ const gu: Record<string, string> = {
   // Frankenstein Lab theme (Lane lab-i18n)
   'lab.start.wake': 'પ્રાણીને જગાડો',
   'lab.start.tagline': 'જે આકૃતિઓ તમે જોઈ શકતા નથી તેને સ્પર્શથી અનુભવો',
-  'lab.start.subhint': 'ટોકબેક અને સ્પર્શ તૈયાર',
+  'lab.start.subhint': 'સ્પર્શ, ધ્વનિ અને વાણી',
   'lab.organ.nerves.title': 'ચેતાઓ',
   'lab.organ.nerves.line': 'રેખાઓ અને ખૂણાઓને વાઇબ્રેશન તરીકે અનુભવો',
   'lab.organ.eyes.title': 'આંખો',
@@ -1548,8 +1584,19 @@ export function updateDocumentLang(lang: Lang = currentLang): string {
 
 export const setDocumentLang = updateDocumentLang;
 
-let currentLang: Lang = getStoredLang();
+let currentLang: Lang = resolveInitialLang();
 updateDocumentLang(currentLang);
+
+export function initLang(): Lang {
+  currentLang = resolveInitialLang();
+  updateDocumentLang(currentLang);
+  return currentLang;
+}
+
+export function _resetLangForTesting(): void {
+  safeRemove(STORAGE_KEY_LANG);
+  initLang();
+}
 
 const listeners = new Set<(lang: Lang) => void>();
 

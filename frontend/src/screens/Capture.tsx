@@ -29,6 +29,7 @@ declare module 'react' {
   }
 }
 import { loadSample, type SampleId, type SceneMode } from '../api/scene';
+import { warmBackend } from '../api/health';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { LabLoading } from '../components/loading/LabLoading';
 import { LabSettings, describeSettings } from '../components/LabSettings';
@@ -40,6 +41,7 @@ import type { Drivers, SpeechRateSetting } from '../drivers';
 import { ACCEPTED_IMAGE_TYPES, MAX_IMAGE_SIDE, prepareImage } from '../drivers/camera';
 import { defaultPdfLoader, renderFirstPage } from '../drivers/pdf';
 import { processImageFile, type FileSource } from '../flow/capture';
+import { mapRawReason, type RawReason } from '../flow/navigation';
 import { getLang, LANG_BCP47, subscribeLang, t } from '../i18n';
 
 interface CaptureProps {
@@ -51,6 +53,7 @@ interface CaptureProps {
     mode: SceneMode,
     photoUrl?: string,
     source?: 'camera' | 'file' | 'sample',
+    rawReason?: RawReason,
   ) => void;
   /** Opens the saved-diagrams list. */
   onSavedDiagrams?: () => void;
@@ -107,6 +110,7 @@ export function Capture({
   const activeRate = drivers.speech.getRate ? drivers.speech.getRate() : currentRate;
 
   useEffect(() => {
+    void warmBackend();
     takeButton.current?.focus();
     const controller = new AbortController();
     lifetime.current = controller;
@@ -146,7 +150,10 @@ export function Capture({
   // Do not open a picker while an upload is running; say why instead of ignoring the tap.
   const openPicker = (picker: RefObject<HTMLInputElement | null>): void => {
     if (busy || busyRef.current) say(t('capture.busy'));
-    else picker.current?.click();
+    else {
+      void warmBackend();
+      picker.current?.click();
+    }
   };
 
   const handleCancel = (): void => {
@@ -164,6 +171,7 @@ export function Capture({
     event: ChangeEvent<HTMLInputElement>,
     source: FileSource,
   ): Promise<void> => {
+    void warmBackend();
     const input = event.target;
     const file = input.files?.[0];
     input.value = ''; // lets the same file be chosen again
@@ -223,7 +231,11 @@ export function Capture({
       }
       activePhotoUrlRef.current = photoUrl ?? null;
       handedOffRef.current = true;
-      onScene(outcome.response.scene, outcome.response.mode, photoUrl, source);
+      const rawReason =
+        outcome.response.mode === 'raw'
+          ? mapRawReason(outcome.response.reason)
+          : undefined;
+      onScene(outcome.response.scene, outcome.response.mode, photoUrl, source, rawReason);
     } else if (outcome.kind !== 'cancelled') {
       drivers.audio.playEarcon?.('error');
       takeButton.current?.focus();

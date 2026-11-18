@@ -575,6 +575,57 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [ ] 67.4 Lane ux1: Requirement 37. Lane ux2: 38, 40, 42, 31.7. Lane ux3: 39, 41, 31.6 and compass in short mode. Each removes the `.fails` of its oracles
   - _Requirements: 31.*, 37.* to 42.*_
 
+## One pure rule for "may this id be spoken" (Requirement 43; spec written before the code)
+> Core only. Do not edit `flow/`, `screens/`, `hitTest.ts`, `hapticEngine.ts` or any tuned value. Wiring is a later agy lane.
+
+- [x] 69. `core/speakable.ts`
+  - [x] 69.1 Requirement 43, design section and properties P139-P142 written before any code
+  - [x] 69.2 `frontend/src/core/speakable.ts`: `isMachineId`, `speakableName`; pure, no `any`
+  - [x] 69.3 Properties P139-P142 in `frontend/tests/speakable.prop.test.ts` (300 runs), mutation-checked
+  - [x] 69.4 Gate (`tsc --noEmit`, `vitest run --maxWorkers=6`); BUILD_LOG entry (tool = Kiro); path-scoped commit
+  - [ ] 69b. Later lane (not Kiro): use `speakableName` where Explore, Ask and the feature buttons name an element
+  - _Requirements: 43.*_
+
+## Presets as pure data (Requirement 44; spec written before the code)
+> Core only. Do not edit `drivers/storage.ts`, `flow/`, `screens/`, `components/`, `i18n/` or any tuned value or stored default. The UI is agy lane ux10.
+
+- [x] 70. `core/presets.ts`
+  - [x] 70.1 Requirement 44, design section and properties P143-P146 written before any code
+  - [x] 70.2 `frontend/src/core/presets.ts`: `PresetId`, `ExploreSettings`, `PRESETS`, `applyPreset`, `presetOf`; pure, no `any`, no imports
+  - [x] 70.3 Properties P143-P146 in `frontend/tests/presets.prop.test.ts` (200-300 runs through `runs()`), mutation-checked
+  - [x] 70.4 Gate (`tsc --noEmit`, `vitest run --maxWorkers=6`); BUILD_LOG entry (tool = Kiro); path-scoped commit
+  - [ ] 70b. Lane ux10 (not Kiro): read the six getters, write the six setters from `applyPreset`, show the active preset or "custom", strings in `en`, `hi`, `gu`
+  - _Requirements: 44.*_
+
+
+
+## Three gate tests that were missing (Requirements 45 to 47; spec written before the tests)
+> Tests only. Do not edit `frontend/src/`, `tech.md`, any tuned value or stored default. Each red oracle is `it.fails` with its reason; the agy lane that fixes the bug removes `.fails`.
+
+- [x] 71. Voice command table (Requirement 45, P147): `frontend/tests/commands.table.test.ts`
+  - [x] 71.1 Requirement 45, design row P147 written before the test
+  - [x] 71.2 20 real questions (14 en, 3 hi, 3 gu) parse as `unknown` (`it.fails`, rows still matching listed in the message); bare commands in en, hi, gu keep their type and rate (passing); fast-check sentence property (250 runs)
+  - [x] 71.3 Gate; BUILD_LOG; path-scoped commit
+  - [ ] 71b. Lane (not Kiro): `flow/commands.ts` whole-phrase rule of Requirement 45.1; removes the two `.fails` in `commands.table.test.ts`
+- [x] 72. Storage getters (Requirement 46, P148, P149): `frontend/tests/storage.settings.prop.test.ts`
+  - [x] 72.1 Requirement 46, design rows P148 and P149 written before the test
+  - [x] 72.2 P148 per getter (junk reads the default; `'true'` and `'false'` read exactly), P149 per getter (failed `setItem`, in-memory value wins); rows red today are `it.fails`
+  - [x] 72.3 Gate; BUILD_LOG; path-scoped commit
+  - [ ] 72b. Lane (not Kiro): the seven getters of Requirement 46; removes the ten `.fails` in `storage.settings.prop.test.ts`
+- [x] 73. Explore soak (Requirement 47, P150): `frontend/tests/explore.soak.test.tsx`
+  - [x] 73.1 Requirement 47, design row P150 written before the test
+  - [x] 73.2 Soak on the real `Explore` with the task 67 rig; 15 seeds, no failing seed so far (`PINNED_SEEDS` is empty); three mutants of `Explore.tsx` killed (timer survives a lift, ticks while Ask listens, no hold ticks), source restored
+  - [x] 73.3 Gate; BUILD_LOG; path-scoped commit
+- [x] 74. Close task 56.2 (P109 to P113): P109, P112 and P113 (pure part) are in `tests/explore.dwell.prop.test.ts` (committed in T75). P110 and P111 cannot be written: the line-name dwell is inline in `screens/Explore.tsx` (`lineDwellRef`, `checkLineDwell`) and no pure `lineDwell` is exported, so there is nothing to call without copying the logic into the test. They become writable when the lane extracts `lineDwell(state, input)` (Requirement 29.7); task 56.1 stays open for that. See design.md "Where P109 to P113 stand"
+
+## P112 flaky failure (task 75; spec first)
+- [x] 75. `checkWhereAmIDwell` restarts the rest on a non-none target even with Directions off (Requirement 30.2 amended, P112 and P113 notes in design.md)
+  - [x] 75.1 Reproduce: seed 963477463 (about 1 run in 12), shrunk to 6 steps; recorded in BUILD_LOG
+  - [x] 75.2 Decide: product bug in `flow/explore.ts`, not a generator bug and not Requirement 40 (which only delays); lane ux1 does not touch the pure dwell functions
+  - [x] 75.3 Fix in `flow/explore.ts`; pinned example, P113 amended; two mutants
+  - [x] 75.4 Gate (`tsc --noEmit`, `vitest run --maxWorkers=4` twice); path-scoped commit
+  - _Requirements: 30.1, 30.2, 30.4_
+
 ## Reconcile P51 with Requirement 43 (task 76; spec written before the code)
 > Lane gt-lane-ux3. Source: `tests/vertexSpeech.prop.test.ts` failed because the shell says "Corner" for a machine-id corner while P51's generator expects "Point {id}". No tuned value, no `core/` file and no engine effect changes.
 
