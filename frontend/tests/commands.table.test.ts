@@ -85,7 +85,7 @@ describe('P147 a voice command matches a whole phrase (Requirement 45, task 71)'
 
   // Red today: `includes` and `startsWith` match a command word anywhere in the sentence. The
   // single assertion lists every row that still matches, so the failure names them.
-  it.fails('twenty real questions parse as unknown, so they reach Ask', () => {
+  it('twenty real questions parse as unknown, so they reach Ask', () => {
     const swallowed = QUESTIONS.flatMap((q) => {
       const parsed = parseExploreCommand(q.text);
       return parsed.type === 'unknown' ? [] : [`${q.lang} "${q.text}" -> ${parsed.type}`];
@@ -95,7 +95,7 @@ describe('P147 a voice command matches a whole phrase (Requirement 45, task 71)'
 
   // Red today for the same reason. Filler words are none of the command words, and a sentence
   // of 4 or more words that is not itself a listed phrase can never be a command (45.1).
-  it.fails('any sentence of 4+ words with a command word inserted parses as unknown', () => {
+  it('any sentence of 4+ words with a command word inserted parses as unknown', () => {
     const filler = fc.constantFrom(
       'which', 'bar', 'grows', 'angle', 'side', 'the', 'of', 'ab', 'curve', 'how',
       'long', 'does', 'a', 'b', 'line', 'after', 'peak', 'than', 'triangle', 'value',

@@ -127,12 +127,169 @@ export function extractGuideTargetLabel(norm: string): string | null {
   return null;
 }
 
+interface CommandPhraseSpec {
+  readonly phraseSet: ReadonlySet<string>;
+  readonly wordSet: ReadonlySet<string>;
+}
+
+function makePhraseSpec(phrases: readonly string[]): CommandPhraseSpec {
+  const normPhrases = phrases.map(normalizeInput);
+  const phraseSet = new Set(normPhrases);
+  const wordSet = new Set(normPhrases.flatMap((p) => p.split(' ').filter(Boolean)));
+  return { phraseSet, wordSet };
+}
+
+function matchesCommand(
+  norm: string,
+  words: readonly string[],
+  spec: CommandPhraseSpec,
+): boolean {
+  if (spec.phraseSet.has(norm)) {
+    return true;
+  }
+  if (words.length > 0 && words.length <= 3) {
+    return words.every((w) => spec.wordSet.has(w));
+  }
+  return false;
+}
+
+const REPEAT_PHRASES: readonly string[] = [
+  // English
+  'repeat',
+  'say again',
+  'repeat that',
+  'what did you say',
+  'again',
+  'repeat last',
+  // Hindi
+  'दोहराएं',
+  'फिर से बोलो',
+  'फिर बोलो',
+  'क्या कहा',
+  'दोबारा',
+  'phir se bolo',
+  'dohrayen',
+  // Gujarati
+  'ફરી બોલો',
+  'ફરીથી બોલો',
+  'દોહરાવો',
+  'શું કહ્યું',
+  'fari bolo',
+];
+
+const NEXT_CORNER_PHRASES: readonly string[] = [
+  // English
+  'next corner',
+  'next vertex',
+  'next point',
+  'corner',
+  'go to next corner',
+  'advance corner',
+  // Hindi
+  'अगला कोना',
+  'अगला शीर्ष',
+  'अगला बिंदु',
+  'कोना',
+  'agla kona',
+  // Gujarati
+  'આગળનો ખૂણો',
+  'આગળનો પોઇન્ટ',
+  'ખૂણો',
+  'aagal no khuno',
+];
+
+const DESCRIBE_PHRASES: readonly string[] = [
+  // English
+  'describe',
+  'describe diagram',
+  'what is this',
+  "what's this",
+  'read scene',
+  'diagram facts',
+  'facts',
+  'summary',
+  // Hindi
+  'वर्णन करें',
+  'चित्र का वर्णन',
+  'यह क्या है',
+  'तथ्य',
+  'वर्णन',
+  'varnan',
+  // Gujarati
+  'વર્ણન કરો',
+  'આ શું છે',
+  'માહિતી',
+  'વિગત',
+  'varnan',
+];
+
+const HELP_PHRASES: readonly string[] = [
+  // English
+  'help',
+  'commands',
+  'what can i say',
+  'list commands',
+  'help me',
+  // Hindi
+  'मदद',
+  'सहायता',
+  'कमांड्स',
+  'मैं क्या बोल सकता हूँ',
+  'madad',
+  // Gujarati
+  'મદદ',
+  'સહાય',
+  'હું શું કહી શકું',
+  'કમાન્ડ',
+  'sahay',
+];
+
+const RATE_FAST_PHRASES: readonly string[] = [
+  'faster',
+  'speed up',
+  'speak faster',
+  'fast speech',
+  'तेज़',
+  'गति बढ़ाएं',
+  'ઝડપી',
+  'ઝડપ વધારો',
+];
+
+const RATE_SLOW_PHRASES: readonly string[] = [
+  'slower',
+  'slow down',
+  'speak slower',
+  'slow speech',
+  'धीमा',
+  'धीमी गति',
+  'ધીમું',
+  'ધીમી ગતિ',
+];
+
+const RATE_NORMAL_PHRASES: readonly string[] = [
+  'normal speed',
+  'reset speed',
+  'regular speed',
+  'normal rate',
+  'सामान्य गति',
+  'સામાન્ય ગતિ',
+];
+
+const REPEAT_SPEC = makePhraseSpec(REPEAT_PHRASES);
+const NEXT_CORNER_SPEC = makePhraseSpec(NEXT_CORNER_PHRASES);
+const DESCRIBE_SPEC = makePhraseSpec(DESCRIBE_PHRASES);
+const HELP_SPEC = makePhraseSpec(HELP_PHRASES);
+const RATE_FAST_SPEC = makePhraseSpec(RATE_FAST_PHRASES);
+const RATE_SLOW_SPEC = makePhraseSpec(RATE_SLOW_PHRASES);
+const RATE_NORMAL_SPEC = makePhraseSpec(RATE_NORMAL_PHRASES);
+
 /** Pure parser for voice commands supporting English, Hindi, and Gujarati. */
 export function parseExploreCommand(
   transcript: string,
   guideActiveOrOptions: boolean | { isGuideActive?: boolean } = false,
 ): ParsedCommand {
   const norm = normalizeInput(transcript);
+  const words = norm.length > 0 ? norm.split(' ') : [];
   const isGuide =
     typeof guideActiveOrOptions === 'boolean'
       ? guideActiveOrOptions
@@ -224,158 +381,35 @@ export function parseExploreCommand(
   }
 
   // 2. Repeat
-  if (
-    // English
-    norm === 'repeat' ||
-    norm === 'say again' ||
-    norm === 'repeat that' ||
-    norm === 'what did you say' ||
-    norm === 'again' ||
-    norm === 'repeat last' ||
-    norm.startsWith('repeat') ||
-    // Hindi
-    norm === 'दोहराएं' ||
-    norm === 'फिर से बोलो' ||
-    norm === 'फिर बोलो' ||
-    norm === 'क्या कहा' ||
-    norm === 'दोबारा' ||
-    norm.includes('दोहराएं') ||
-    norm.includes('phir se bolo') ||
-    norm.includes('dohrayen') ||
-    // Gujarati
-    norm === 'ફરી બોલો' ||
-    norm === 'ફરીથી બોલો' ||
-    norm === 'દોહરાવો' ||
-    norm === 'શું કહ્યું' ||
-    norm.includes('ફરી બોલો') ||
-    norm.includes('fari bolo')
-  ) {
+  if (matchesCommand(norm, words, REPEAT_SPEC)) {
     return { type: 'repeat', raw: transcript };
   }
 
   // 3. Next corner
-  if (
-    // English
-    norm === 'next corner' ||
-    norm === 'next vertex' ||
-    norm === 'next point' ||
-    norm === 'corner' ||
-    norm === 'go to next corner' ||
-    norm === 'advance corner' ||
-    norm.includes('next corner') ||
-    norm.includes('next vertex') ||
-    // Hindi
-    norm === 'अगला कोना' ||
-    norm === 'अगला शीर्ष' ||
-    norm === 'अगला बिंदु' ||
-    norm === 'कोना' ||
-    norm.includes('अगला कोना') ||
-    norm.includes('agla kona') ||
-    // Gujarati
-    norm === 'આગળનો ખૂણો' ||
-    norm === 'આગળનો પોઇન્ટ' ||
-    norm === 'ખૂણો' ||
-    norm.includes('આગળનો ખૂણો') ||
-    norm.includes('aagal no khuno')
-  ) {
+  if (matchesCommand(norm, words, NEXT_CORNER_SPEC)) {
     return { type: 'next_corner', raw: transcript };
   }
 
   // 4. Describe
-  if (
-    // English
-    norm === 'describe' ||
-    norm === 'describe diagram' ||
-    norm === 'what is this' ||
-    norm === "what's this" ||
-    norm === 'read scene' ||
-    norm === 'diagram facts' ||
-    norm === 'facts' ||
-    norm === 'summary' ||
-    norm.startsWith('describe') ||
-    // Hindi
-    norm === 'वर्णन करें' ||
-    norm === 'चित्र का वर्णन' ||
-    norm === 'यह क्या है' ||
-    norm === 'तथ्य' ||
-    norm === 'वर्णन' ||
-    norm.includes('वर्णन') ||
-    norm.includes('varnan') ||
-    // Gujarati
-    norm === 'વર્ણન કરો' ||
-    norm === 'આ શું છે' ||
-    norm === 'માહિતી' ||
-    norm === 'વિગત' ||
-    norm.includes('વર્ણન') ||
-    norm.includes('varnan')
-  ) {
+  if (matchesCommand(norm, words, DESCRIBE_SPEC)) {
     return { type: 'describe', raw: transcript };
   }
 
   // 5. Help
-  if (
-    // English
-    norm === 'help' ||
-    norm === 'commands' ||
-    norm === 'what can i say' ||
-    norm === 'list commands' ||
-    norm === 'help me' ||
-    norm.includes('help') ||
-    // Hindi
-    norm === 'मदद' ||
-    norm === 'सहायता' ||
-    norm === 'कमांड्स' ||
-    norm === 'मैं क्या बोल सकता हूँ' ||
-    norm.includes('मदद') ||
-    norm.includes('madad') ||
-    // Gujarati
-    norm === 'મદદ' ||
-    norm === 'સહાય' ||
-    norm === 'હું શું કહી શકું' ||
-    norm === 'કમાન્ડ' ||
-    norm.includes('મદદ') ||
-    norm.includes('sahay')
-  ) {
+  if (matchesCommand(norm, words, HELP_SPEC)) {
     return { type: 'help', raw: transcript };
   }
 
   // 6. Speech rate commands
-  if (
-    norm === 'faster' ||
-    norm === 'speed up' ||
-    norm === 'speak faster' ||
-    norm === 'fast speech' ||
-    norm === 'तेज़' ||
-    norm === 'गति बढ़ाएं' ||
-    norm === 'ઝડપી' ||
-    norm === 'ઝડપ વધારો' ||
-    norm.includes('faster')
-  ) {
+  if (matchesCommand(norm, words, RATE_FAST_SPEC)) {
     return { type: 'set_rate', rateSetting: 'fast', raw: transcript };
   }
 
-  if (
-    norm === 'slower' ||
-    norm === 'slow down' ||
-    norm === 'speak slower' ||
-    norm === 'slow speech' ||
-    norm === 'धीमा' ||
-    norm === 'धीमी गति' ||
-    norm === 'ધીમું' ||
-    norm === 'ધીમી ગતિ' ||
-    norm.includes('slower')
-  ) {
+  if (matchesCommand(norm, words, RATE_SLOW_SPEC)) {
     return { type: 'set_rate', rateSetting: 'slow', raw: transcript };
   }
 
-  if (
-    norm === 'normal speed' ||
-    norm === 'reset speed' ||
-    norm === 'regular speed' ||
-    norm === 'normal rate' ||
-    norm === 'सामान्य गति' ||
-    norm === 'સામાન્ય ગતિ'
-  ) {
+  if (matchesCommand(norm, words, RATE_NORMAL_SPEC)) {
     return { type: 'set_rate', rateSetting: 'normal', raw: transcript };
   }
 
