@@ -37,7 +37,10 @@ export default defineConfig({
     },
   ],
   webServer: {
+    // Requirement 48: Correct is offered only with Teacher tools on.
+    // The env flag is set through webServer.env below.
     command: 'npm run build && npm run preview -- --port 4173 --strictPort',
+    env: { VITE_FEATURE_SHARE: '1' },
     url: 'http://localhost:4173',
     reuseExistingServer: true,
     timeout: 180_000,

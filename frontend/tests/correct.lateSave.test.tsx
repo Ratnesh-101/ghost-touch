@@ -18,6 +18,7 @@ import type { DiagramScene } from '../src/core/scene';
 import { Correct, executeCorrectSave } from '../src/screens/Correct';
 import { ValidateRequestError, type ValidateResponse } from '../src/api/validate';
 import { MemoryDiagramStore, type Drivers } from '../src/drivers';
+import { _resetTeacherSettingForTesting, setStoredTeacherSetting } from '../src/flow/teach';
 import { setLang, t } from '../src/i18n';
 
 const sampleScene: DiagramScene = {
@@ -122,6 +123,9 @@ describe('FLOW-01: Late Save Protection', () => {
   let restoreContext: () => void;
 
   beforeEach(() => {
+    // Requirement 48: the Correct button needs Teacher tools on.
+    vi.stubEnv('VITE_FEATURE_SHARE', '1');
+    setStoredTeacherSetting(true);
     setLang('en');
     deferredValidateResolve = null;
     observed.store = new MemoryDiagramStore();
@@ -170,6 +174,8 @@ describe('FLOW-01: Late Save Protection', () => {
   });
 
   afterEach(async () => {
+    vi.unstubAllEnvs();
+    _resetTeacherSettingForTesting();
     restoreRect();
     restoreContext();
     if (root && container) {

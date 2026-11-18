@@ -635,3 +635,13 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 76.3 `tests/vertexSpeech.prop.test.ts`: original P51 claims over non-machine ids; P51b with the `raw_p17` example; mutation-checked
   - [x] 76.4 Gate (`tsc --noEmit`, `vitest run --maxWorkers=3`) green twice; not committed (lane instruction)
   - _Requirements: 4.3, 10.1, 43_
+
+## Correct button only with Teacher tools (Requirement 48; owner decision D6; spec written before the code)
+> `App.tsx` only for the code. Do not edit `core/`, Teacher tools' gating or any tuned value.
+
+- [x] 79. Offer Correct in Explore only when `isTeacherActive()`
+  - [x] 79.1 Requirement 48 and design note written before any code
+  - [x] 79.2 `App.tsx`: `onCorrect={isTeacherActive() ? handleCorrect : undefined}`; Explore already renders the button only when `onCorrect` is set (footer has no placeholder)
+  - [x] 79.3 Tests: App-level Explore has no Correct with Teacher tools off, has it with on; existing App-level tests that expected Correct turn Teacher tools on; e2e specs build with `VITE_FEATURE_SHARE=1` and set `gt_teacher_enabled`
+  - [x] 79.4 Gate (`tsc --noEmit`, `vitest run --maxWorkers=3` twice, `npx playwright test` once); path-scoped commit
+  - _Requirements: 48.*, 25.4_

@@ -22,6 +22,7 @@ import { handleAppHashBack, leaveByBack, type HashBackActions } from '../src/flo
 import { Correct, executeCorrectLeave } from '../src/screens/Correct';
 import { MemoryDiagramStore, type Drivers } from '../src/drivers';
 import { setLang, t } from '../src/i18n';
+import { _resetTeacherSettingForTesting, setStoredTeacherSetting } from '../src/flow/teach';
 
 const sampleScene: DiagramScene = {
   version: 1,
@@ -94,6 +95,9 @@ describe('Lane o1-leavebyback: Back from Correct', () => {
   let restoreContext: () => void;
 
   beforeEach(() => {
+    // Requirement 48: the Correct button needs Teacher tools on.
+    vi.stubEnv('VITE_FEATURE_SHARE', '1');
+    setStoredTeacherSetting(true);
     setLang('en');
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -139,6 +143,8 @@ describe('Lane o1-leavebyback: Back from Correct', () => {
   });
 
   afterEach(async () => {
+    vi.unstubAllEnvs();
+    _resetTeacherSettingForTesting();
     restoreRect();
     restoreContext();
     if (root && container) {

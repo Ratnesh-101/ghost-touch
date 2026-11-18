@@ -65,6 +65,10 @@ interface ExploreControls {
  * Uses getByRole with accessible names per requirement 1.
  */
 async function navigateToExploreWithTriangle(page: Page): Promise<ExploreControls> {
+  // Requirement 48: Correct is offered only with Teacher tools on.
+  await page.addInitScript(() => {
+    window.localStorage.setItem('gt_teacher_enabled', 'true');
+  });
   await page.goto('/');
 
   // 1. Start screen: single full-screen button with accessible name

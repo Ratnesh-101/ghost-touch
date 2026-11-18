@@ -684,3 +684,17 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 3. AFTER the settled tail, a `vibrate(80)` SHALL have been called in the last 200 ms of the 300 ms (Requirements 4.1, 38.1, 38.2).
 4. THE run SHALL NOT throw, and SHALL be repeatable from its seed. A failing sequence SHALL be kept as a pinned example in the test file and reported; the invariant SHALL NOT be weakened to get a green run. A red invariant that is a known bug (task 67 oracles U1) is marked `it.fails` with its reason, and a second run that skips only that path keeps the other invariants guarded.
 5. Known limits: one finger only (promotion is covered by Requirement 4.8's own tests), two scenes (triangle and sine sample), no real speech engine or phone.
+
+
+### Requirement 48: The Correct button is offered only when Teacher tools is on (task 79)
+> Written by Kiro on 2026-11-18 BEFORE the code, from owner decision D6 (`docs/reports/opus-owner-decisions-2026-11-18.md`). Reason: a blind student who lands in an editor they cannot see could overwrite the teacher's corrections. Teacher tools' own gating (`VITE_FEATURE_SHARE` and the Settings switch, `isTeacherActive()` in `flow/teach.ts`) is not changed.
+
+**User Story:** As a blind student, I want the Explore screen to offer only controls I can use, so that I never open a visual editor by accident and change a diagram my teacher corrected.
+
+#### Acceptance Criteria
+1. WHEN `isTeacherActive()` is false THEN `App` SHALL NOT pass `onCorrect` to `Explore`, and Explore SHALL render no Correct button: no element, no accessible name "Correct", no focus stop.
+2. WHEN `isTeacherActive()` is true THEN `App` SHALL pass `onCorrect` and Explore SHALL show the Correct button as before (accessible name, at least 48 x 48 CSS px).
+3. WHILE the button is absent THE footer SHALL leave no empty slot or gap and the other controls (Where am I, Ask, Back, Guide me when on) SHALL stay inside the viewport and at least 48 x 48 CSS px. Requirement 25 holds unchanged: the canvas box and the fixed-height status area do not depend on the button.
+4. THE decision SHALL be read each time Explore is rendered from `App`, so turning Teacher tools on in Settings shows the button the next time Explore opens.
+5. THE Correct screen, its Back policy (Requirement 24.1), the `#/teach` route and the gating of Teacher tools SHALL NOT change. A saved or shared link that is already open on the Correct screen is not affected by this criterion.
+6. No new string. No tuned haptic value changes.

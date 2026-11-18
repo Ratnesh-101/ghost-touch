@@ -17,6 +17,7 @@ import type { DiagramScene } from '../src/core/scene';
 import { encodeShare, type SharePayload } from '../src/share';
 import { setLang } from '../src/i18n';
 import { MemoryDiagramStore } from '../src/drivers';
+import { _resetTeacherSettingForTesting, setStoredTeacherSetting } from '../src/flow/teach';
 
 const capturedScene: DiagramScene = {
   version: 1,
@@ -123,6 +124,9 @@ describe('FLOW-04: Reset on shared diagram open', () => {
   let root: Root | null = null;
 
   beforeEach(() => {
+    // Requirement 48: the Correct button needs Teacher tools on.
+    vi.stubEnv('VITE_FEATURE_SHARE', '1');
+    setStoredTeacherSetting(true);
     setLang('en');
     lastCorrectPhotoUrl = 'not-called';
     observed.store = new MemoryDiagramStore();
@@ -132,6 +136,8 @@ describe('FLOW-04: Reset on shared diagram open', () => {
   });
 
   afterEach(async () => {
+    vi.unstubAllEnvs();
+    _resetTeacherSettingForTesting();
     if (root && container) {
       await act(async () => {
         root?.unmount();

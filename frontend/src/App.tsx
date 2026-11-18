@@ -776,7 +776,7 @@ export function App({ watcher }: AppProps = {}): JSX.Element {
           announced={view.announced}
           drivers={drivers}
           onBack={handleBack}
-          onCorrect={handleCorrect}
+          onCorrect={isTeacherActive() ? handleCorrect : undefined}
           verified={view.verified}
         />
       );
