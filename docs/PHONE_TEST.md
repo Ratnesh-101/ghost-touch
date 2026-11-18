@@ -313,3 +313,10 @@ FAILURE / ANOMALY DATA (fill in if any step failed or behaved strangely):
 - Network state:            <Wi-Fi / 5G / Airplane Mode>
 ======================================================
 ```
+
+## Budget-phone check: worst-case share link (only if Share is turned on)
+
+Tester: ____  Phone model: ____  Android / Chrome: ____  Date: ____
+
+- [ ] Open the worst-case share link from docs/reports (the 12,000-character link that decompresses to about 19 million characters, produced by frontend/tests/share.decodeBound.test.ts). The app must show the 'too large' message without freezing, restarting or running out of memory. Result: ____
+- If it freezes or crashes, or if Share is turned on by default for students, switch task 63.4 to GO (bounded decoder).
