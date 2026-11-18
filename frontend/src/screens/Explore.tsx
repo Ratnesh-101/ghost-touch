@@ -24,6 +24,7 @@ import {
 import type { DiagramScene } from '../core/scene';
 import type { Target } from '../core/hitTest';
 import type { Effect } from '../core/hapticEngine';
+import { speakableName } from '../core/speakable';
 import { FallbackHapticDriver, runEffects, runProximityEffects, type Drivers } from '../drivers';
 import type { PulseKind } from '../drivers/haptics';
 import { leaveExploreEntry, onBack as subscribeBack, pushExploreEntry } from '../drivers/navigation';
@@ -1182,7 +1183,8 @@ export function Explore({
       lang: LANG_BCP47[getLang()] ?? 'en-IN',
       onArrived: (target) => {
         setIsGuiding(false);
-        const msg = t('guide.arrived').replace('{label}', target.label);
+        const resolvedLabel = speakableName(target.label, target.label) ?? t('vertex.unnamed');
+        const msg = t('guide.arrived').replace('{label}', resolvedLabel);
         setStatusMessage(msg);
         lastSpokenRef.current = msg;
         markSpeechStart();
@@ -1418,13 +1420,17 @@ export function Explore({
           ? 'bar'
           : 'other';
 
+      const cornerLabel = vertexTarget
+        ? (speakableName(vertexTarget.label, vertexTarget.id) ?? t('vertex.unnamed'))
+        : undefined;
+
       const paced = paceSpeech(speechPacingState.current, {
         t: now,
         text: words,
         source,
         detail,
         barId: barTarget ? barTarget.id : null,
-        label: barTarget ? barTarget.label : (vertexTarget?.label ?? undefined),
+        label: barTarget ? barTarget.label : cornerLabel,
         value: barTarget ? barTarget.value : undefined,
         coords: effectiveCoords,
       });
@@ -1482,36 +1488,46 @@ export function Explore({
     }
 
     // Graph scan tone (Lane A6)
+    const engineEmittedToneNullForVertex =
+      moveResult.target.kind === 'vertex' &&
+      moveResult.effects.some((e) => e.kind === 'tone' && e.hz === null);
+
     if (
       graphScanSettingRef.current &&
       !askActive.current &&
       !guideController.current?.isGuiding()
     ) {
-      const scan = scanTone(
-        sceneRef.current,
-        moveResult.target,
-        moveResult.xNorm,
-        moveResult.yNorm,
-      );
-      if (scan !== null) {
-        drivers.audio.setTone(scan.hz, scan.level);
-        playingScanToneRef.current = true;
-      } else if (playingScanToneRef.current) {
+      if (engineEmittedToneNullForVertex) {
         playingScanToneRef.current = false;
+      } else {
+        const scan = scanTone(
+          sceneRef.current,
+          moveResult.target,
+          moveResult.xNorm,
+          moveResult.yNorm,
+        );
+        if (scan !== null) {
+          drivers.audio.setTone(scan.hz, scan.level);
+          playingScanToneRef.current = true;
+        } else if (playingScanToneRef.current) {
+          playingScanToneRef.current = false;
+          const isPolyline =
+            moveResult.target.kind === 'line' && moveResult.target.elementKind === 'polyline';
+          const isBar = moveResult.target.kind === 'bar';
+          if (!isPolyline && !isBar) {
+            drivers.audio.setTone(null);
+          }
+        }
+      }
+    } else if (playingScanToneRef.current) {
+      playingScanToneRef.current = false;
+      if (!engineEmittedToneNullForVertex) {
         const isPolyline =
           moveResult.target.kind === 'line' && moveResult.target.elementKind === 'polyline';
         const isBar = moveResult.target.kind === 'bar';
         if (!isPolyline && !isBar) {
           drivers.audio.setTone(null);
         }
-      }
-    } else if (playingScanToneRef.current) {
-      playingScanToneRef.current = false;
-      const isPolyline =
-        moveResult.target.kind === 'line' && moveResult.target.elementKind === 'polyline';
-      const isBar = moveResult.target.kind === 'bar';
-      if (!isPolyline && !isBar) {
-        drivers.audio.setTone(null);
       }
     }
   };
@@ -2142,12 +2158,19 @@ export function Explore({
       yNorm: feature.yNorm,
     });
     a11yEngine.current = state;
-    const speak = effects.find((e) => e.kind === 'speak');
+    const mappedEffects = effects.map((e) => {
+      if (e.kind === 'speakKey') {
+        const text = speechText(e);
+        return text ? ({ kind: 'speak', text } as Effect) : e;
+      }
+      return e;
+    });
+    const speak = mappedEffects.find((e) => e.kind === 'speak');
     if (speak?.kind === 'speak') {
       lastSpokenRef.current = speak.text;
       markSpeechStart();
     }
-    runEffects(effects, drivers, lang);
+    runEffects(mappedEffects, drivers, lang);
   };
 
   const handleFeatureBlur = (): void => {

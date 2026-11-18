@@ -4570,6 +4570,27 @@ Format for each entry:
   - `docs/reports/agy-ux2-report.md`
   - `docs/BUILD_LOG.md`
 
+## 2026-11-17 — Antigravity — Lane ux3: never speak a machine id; scan tone respects corners
+- Integrated `speakableName` and `isMachineId` from `frontend/src/core/speakable.ts` across all speech and status text paths:
+  - In `frontend/src/flow/explore.ts`: `speechText` falls back to `t('vertex.unnamed')` when `speakableName(undefined, effect.params.id)` is null; `cornerCompass` says direction only when exit target has no speakable name; `lineName` uses `speakableName` for polylines, bars, segments and segment endpoints (falling back to `t('line.unnamed')` and direction words).
+  - In `frontend/src/flow/commands.ts`: `whereAmI` and `next_corner` use `speakableName` with `t('vertex.unnamed')` and `t('line.unnamed')` fallbacks.
+  - In `frontend/src/flow/overview.ts`: `getPointLabel` and `buildBarChartOverview` filter machine IDs via `speakableName`.
+  - In `frontend/src/screens/Explore.tsx`: `applyMoveResult`, `handleFeatureFocus`, and `GuideController.onArrived` resolve element names via `speakableName` with fallback to `t('vertex.unnamed')`.
+- Added i18n keys `'vertex.unnamed'` ("Corner" / "कोना" / "ખૂણો") and `'line.unnamed'` ("Line" / "रेखा" / "રેખા") across English, Hindi, and Gujarati in `frontend/src/i18n/index.ts`.
+- Updated `scanTone` in `frontend/src/flow/explore.ts` to return `null` when `target.kind === 'vertex'`. In `frontend/src/screens/Explore.tsx`, suppressed calling `setTone` from the scan branch on moves where engine emitted `tone(null)` for a vertex.
+- Created test suite `frontend/tests/explore.rawNames.test.tsx` verifying:
+  - 300-segment raw scene traced for 30 seconds speaks no string matching `/raw_|point_|pt_/i`.
+  - Triangle sample speaks exact snapshot of speak calls on fixed trace.
+  - Scan tone is completely silent on labelled graph point P.
+  - Pure helpers (`isMachineId`, `speakableName`, `scanTone`, `cornerCompass`, `lineName`, `whereAmI`, `buildOverview`).
+- Files touched:
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/flow/explore.ts`
+  - `frontend/src/flow/commands.ts`
+  - `frontend/src/flow/overview.ts`
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/tests/explore.rawNames.test.tsx`
+  - `docs/reports/agy-ux3-report.md`
 
 ### 2026-11-17 Kiro T75: P112 where-am-I dwell flaky failure
 - **Tool:** Kiro.

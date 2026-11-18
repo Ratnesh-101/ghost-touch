@@ -14,6 +14,7 @@ import { toNorm, type ScreenPoint, type Viewport } from '../core/geometry';
 import type { DiagramScene } from '../core/scene';
 import { curveYAtX } from '../core/curve';
 import { lineEnds, nearestElement, vertexExits, type Compass8, type NearestElement } from '../core/compass';
+import { speakableName } from '../core/speakable';
 import {
   DEFAULT_PROXIMITY,
   initialProximityState,
@@ -61,6 +62,7 @@ import {
   type HapticConfig,
 } from '../core/hapticEngine';
 import { pitchForY } from '../core/pitch';
+import { speakKeyWords } from '../drivers';
 import { t, tf } from '../i18n';
 
 export const STORAGE_KEY_GRAPH_SCAN = 'gt_graph_scan_enabled';
@@ -127,6 +129,7 @@ export function scanTone(
   yNorm: number,
 ): { hz: number; level: number } | null {
   if (scene.kind !== 'function_graph') return null;
+  if (target.kind === 'vertex') return null;
   if (target.kind === 'line' && target.elementKind === 'polyline') {
     return null;
   }
@@ -306,7 +309,7 @@ export function joinAnnouncements(parts: readonly string[]): string {
 /** The words of a speech effect: literal text, or the keyed sentence in the active language. */
 export function speechText(effect: Effect): string | null {
   if (effect.kind === 'speak') return effect.text;
-  if (effect.kind === 'speakKey') return tf(effect.textKey, effect.params);
+  if (effect.kind === 'speakKey') return speakKeyWords(effect.textKey, effect.params);
   return null;
 }
 
@@ -828,8 +831,11 @@ export function cornerCompass(
   if (exits.length === 0) return '';
 
   const clauses = exits.map((exit) => {
-    const target = exit.toLabel || exit.toId;
+    const target = speakableName(exit.toLabel, exit.toId);
     const dirWord = t(`compass.dir.${exit.dir}`);
+    if (target === null) {
+      return `${capitalize(dirWord)}.`;
+    }
     const clause = tf('compass.toTarget', { dir: dirWord, target });
     return `${capitalize(clause)}.`;
   });
@@ -860,32 +866,38 @@ export function lineName(scene: DiagramScene, lineId: string): string {
   // Check polylines: label only
   const poly = scene.polylines?.find((p) => p.id === lineId);
   if (poly) {
-    return poly.label?.trim() || poly.id;
+    const name = speakableName(poly.label ?? undefined, poly.id);
+    return name ?? t('line.unnamed');
   }
 
   // Check bar edges: label only
   const bar = scene.bars?.find((b) => b.id === lineId);
   if (bar) {
-    return bar.label?.trim() || bar.id;
+    const name = speakableName(bar.label, bar.id);
+    return name ?? t('line.unnamed');
   }
 
   // Check segments
   const seg = scene.segments?.find((s) => s.id === lineId);
   if (seg) {
-    const sideName = seg.label?.trim() || seg.id;
-    const sidePart = tf('compass.side', { name: sideName });
+    const sideName = speakableName(seg.label ?? undefined, seg.id);
+    const sidePart = sideName !== null ? tf('compass.side', { name: sideName }) : t('line.unnamed');
     const ends = lineEnds(scene, lineId);
     if (!ends) {
       return `${sidePart}.`;
     }
     const pointA = scene.points?.find((p) => p.id === ends.aId);
     const pointB = scene.points?.find((p) => p.id === ends.bId);
-    const labelA = pointA?.label?.trim() || ends.aId;
-    const labelB = pointB?.label?.trim() || ends.bId;
+    const labelA = speakableName(pointA?.label ?? undefined, ends.aId);
+    const labelB = speakableName(pointB?.label ?? undefined, ends.bId);
     const dirA = t(`compass.dir.${ends.dirToA}`);
     const dirB = t(`compass.dir.${ends.dirToB}`);
-    const clauseA = capitalize(tf('compass.toTarget', { dir: dirA, target: labelA }));
-    const clauseB = tf('compass.toTarget', { dir: dirB, target: labelB });
+    const clauseA = labelA !== null
+      ? capitalize(tf('compass.toTarget', { dir: dirA, target: labelA }))
+      : capitalize(dirA);
+    const clauseB = labelB !== null
+      ? tf('compass.toTarget', { dir: dirB, target: labelB })
+      : dirB;
     const endsPart = tf('compass.lineEnds', { clauseA, clauseB });
     return `${sidePart}. ${endsPart}.`;
   }
