@@ -124,7 +124,7 @@ describe('P138 the scan tone is null on a vertex (U7, Requirement 41.1)', () => 
   });
 
   // Fails today: `scanTone` only excludes the polyline target, so a vertex gets a curve-height tone.
-  it.fails('a vertex target gets no scan tone, for any x in the curve range and any y', () => {
+  it('a vertex target gets no scan tone, for any x in the curve range and any y', () => {
     fc.assert(
       fc.property(
         fc.double({ min: xMin, max: xMax, noNaN: true }),

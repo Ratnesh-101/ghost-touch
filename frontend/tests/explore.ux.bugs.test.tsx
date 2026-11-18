@@ -248,7 +248,7 @@ describe('task 67: seven Explore bugs (Requirements 31.6, 31.7, 37 to 42)', () =
 
     // Fails today: `scanTone` only excludes the polyline target, so the scan starts a tone again
     // right after the engine stopped it for the corner. The pure property is P138.
-    it.fails('a finger resting on the point P gets no tone with a frequency', async () => {
+    it('a finger resting on the point P gets no tone with a frequency', async () => {
       await withExplore({ scene: sineWithPoint }, (rig) => {
         rig.down(POINT_P.x, POINT_P.y);
         rig.advance(500);

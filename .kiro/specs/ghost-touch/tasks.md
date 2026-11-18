@@ -574,3 +574,13 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 67.3 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro) with each oracle and why it fails; path-scoped commits
   - [ ] 67.4 Lane ux1: Requirement 37. Lane ux2: 38, 40, 42, 31.7. Lane ux3: 39, 41, 31.6 and compass in short mode. Each removes the `.fails` of its oracles
   - _Requirements: 31.*, 37.* to 42.*_
+
+## Reconcile P51 with Requirement 43 (task 76; spec written before the code)
+> Lane gt-lane-ux3. Source: `tests/vertexSpeech.prop.test.ts` failed because the shell says "Corner" for a machine-id corner while P51's generator expects "Point {id}". No tuned value, no `core/` file and no engine effect changes.
+
+- [x] 76. One wording for a machine-id corner in every speech path
+  - [x] 76.1 P51 amended, P51b and Requirement 4.3 criterion 10 written before any code
+  - [x] 76.2 `drivers/index.ts` `speakKeyWords` (reuses `core/speakable.ts`); `runEffects` and `flow/explore.ts` `speechText` both call it
+  - [x] 76.3 `tests/vertexSpeech.prop.test.ts`: original P51 claims over non-machine ids; P51b with the `raw_p17` example; mutation-checked
+  - [x] 76.4 Gate (`tsc --noEmit`, `vitest run --maxWorkers=3`) green twice; not committed (lane instruction)
+  - _Requirements: 4.3, 10.1, 43_

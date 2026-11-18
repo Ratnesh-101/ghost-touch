@@ -24,6 +24,7 @@ import {
 } from '../guide';
 import { directionOf, nearestElement, type NearestElement } from '../core/compass';
 import { DEFAULT_RADII, hitTest } from '../core/hitTest';
+import { speakableName } from '../core/speakable';
 import { joinAnnouncements } from './explore';
 import { buildOverview } from './overview';
 import { t, tf } from '../i18n';
@@ -484,14 +485,14 @@ export function whereAmI(
   switch (nearest.elementKind) {
     case 'vertex': {
       const p = scene.points?.find((pt) => pt.id === nearest.id);
-      const label = p?.label?.trim() || p?.id || nearest.id;
-      elemName = tf('whereAmI.corner', { name: label });
+      const name = speakableName(p?.label ?? undefined, nearest.id);
+      elemName = name !== null ? tf('whereAmI.corner', { name }) : t('vertex.unnamed');
       break;
     }
     case 'segment': {
       const s = scene.segments?.find((seg) => seg.id === nearest.id);
-      const label = s?.label?.trim() || s?.id || nearest.id;
-      elemName = tf('whereAmI.side', { name: label });
+      const name = speakableName(s?.label ?? undefined, nearest.id);
+      elemName = name !== null ? tf('whereAmI.side', { name }) : t('line.unnamed');
       break;
     }
     case 'polyline': {
@@ -504,8 +505,8 @@ export function whereAmI(
     }
     case 'bar-edge': {
       const b = scene.bars?.find((bar) => bar.id === nearest.id);
-      const label = b?.label?.trim() || b?.id || nearest.id;
-      elemName = tf('whereAmI.bar', { name: label });
+      const name = speakableName(b?.label, nearest.id);
+      elemName = name !== null ? tf('whereAmI.bar', { name }) : t('line.unnamed');
       break;
     }
   }
@@ -753,7 +754,7 @@ export function executeExploreCommand(
         return { speech: t('commands.noPoints'), earcon: 'error' };
       }
       const ptCoarse = getCoarsePosition({ x: pt.x, y: pt.y });
-      const label = pt.label ?? pt.id;
+      const label = speakableName(pt.label ?? undefined, pt.id) ?? t('vertex.unnamed');
       const nextCursor = toScreen(pt, view);
 
       if (ctx.isGuideActive) {

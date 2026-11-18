@@ -13,6 +13,7 @@
  */
 
 import type { DiagramScene, Point } from '../core/scene';
+import { speakableName } from '../core/speakable';
 import { getCoarsePosition } from './commands';
 import { joinAnnouncements } from './explore';
 import { localizedSceneKind } from './navigation';
@@ -30,18 +31,7 @@ function resolveTitle(scene: DiagramScene, titleOverride?: string): string {
 }
 
 function getPointLabel(p: Point): string | null {
-  if (typeof p.label === 'string' && p.label.trim() !== '') {
-    return p.label.trim();
-  }
-  if (
-    typeof p.id === 'string' &&
-    p.id.trim() !== '' &&
-    !p.id.startsWith('point_') &&
-    !p.id.startsWith('pt_')
-  ) {
-    return p.id.trim();
-  }
-  return null;
+  return speakableName(p.label ?? undefined, p.id);
 }
 
 function buildGeometryOverview(scene: DiagramScene, title: string): string {
@@ -134,8 +124,8 @@ function buildBarChartOverview(scene: DiagramScene, title: string): string {
   const sorted = [...bars].sort((a, b) => a.x0 - b.x0);
   const top8 = sorted.slice(0, 8);
   const labels = top8
-    .map((b) => (typeof b.label === 'string' && b.label.trim() !== '' ? b.label.trim() : b.id))
-    .filter(Boolean);
+    .map((b) => speakableName(b.label, b.id))
+    .filter((l): l is string => Boolean(l));
 
   let barsStr = '';
   if (labels.length > 0) {

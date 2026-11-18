@@ -7,6 +7,7 @@
 
 import { DEFAULT_HAPTICS, type Effect } from '../core/hapticEngine';
 import type { ProximityEffect } from '../core/proximity';
+import { speakableName } from '../core/speakable';
 import type { DiagramScene } from '../core/scene';
 import type { GuideEffect } from '../guide';
 import { t, tf } from '../i18n';
@@ -177,6 +178,22 @@ function assertUnreachable(_effect: never): void {
   // it here fails `tsc`. At runtime an unknown effect is ignored.
 }
 
+/**
+ * The words of a keyed speech effect in the active language. A corner whose id is machine-made
+ * (for example `raw_p17`) is spoken as the unnamed corner, never by its id (Requirement 43).
+ * Used by `runEffects` and by `speechText` in `flow/explore.ts`, so every path words it alike.
+ */
+export function speakKeyWords(
+  textKey: Extract<Effect, { kind: 'speakKey' }>['textKey'],
+  params: Extract<Effect, { kind: 'speakKey' }>['params'],
+): string {
+  if (textKey === 'vertex.unlabelled') {
+    const name = speakableName(undefined, params.id);
+    return name === null ? t('vertex.unnamed') : tf('vertex.unlabelled', { id: name });
+  }
+  return tf(textKey, params);
+}
+
 export function runEffects(
   effects: readonly Effect[],
   drivers: Drivers,
@@ -192,7 +209,7 @@ export function runEffects(
         break;
       case 'speakKey':
         // The engine has no language; the words come from the active i18n table.
-        drivers.speech.speak(tf(effect.textKey, effect.params), lang);
+        drivers.speech.speak(speakKeyWords(effect.textKey, effect.params), lang);
         break;
       case 'tone':
         drivers.audio.setTone(effect.hz);
