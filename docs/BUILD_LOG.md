@@ -4748,3 +4748,9 @@ Format for each entry:
   - `frontend/tests/explore.askListeningCorner.test.tsx`
   - `docs/reports/agy-ux14-report.md`
   - `docs/BUILD_LOG.md`
+
+
+## 2026-11-18 - Claude Code (orchestrator) - T63 share-decode decision (Opus 5.5 review)
+- Asked Opus 5.5 (read-only subagent) whether to build the bounded share decoder (task 63.4 option c). Verdict: NO-GO for now. Reasons: the measured worst case is about 38 MB for about 10 ms before a clean ShareError too-large; share is behind VITE_FEATURE_SHARE (off by default, not phone-tested); a hand-vendored decoder on the path that opens every share link risks breaking real teacher links; a worker or a precheck does not stop the spike; changing the format breaks sent links; lowering maxHashChars refuses real scenes.
+- Done instead: Kiro T78 marks 63.4 deferred in tasks.md; known-limitation sentence in README; one budget-phone step in docs/PHONE_TEST.md; share.decodeBound.test.ts unchanged (it pins today's 20M-char ceiling and keeps the it.todo).
+- Switch to GO if a budget-phone test of the worst-case link freezes or crashes, or if share is turned on by default for students.
