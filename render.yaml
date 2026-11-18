@@ -40,7 +40,7 @@ services:
         value: https://api.tokenfactory.nebius.com/v1
       # Order of fallback: OpenAI first, then Gemini, then Nebius (last). Providers without a key are skipped.
       - key: VISION_PROVIDERS
-        value: openai,gemini,nebius
+        value: gemini,openai,nebius
       - key: PROVIDER_TIMEOUT_SECONDS
         value: "12.0"
       # Number of immediate retries on a transient provider error (429, 503) before falling through
