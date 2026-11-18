@@ -45,16 +45,16 @@ The repository root contains `render.yaml`, an infrastructure-as-code Blueprint 
    - `NEBIUS_MODEL`: `openbmb/MiniCPM-V-4_5`
    - `NEBIUS_TEXT_MODEL`: `nvidia/Nemotron-3-Ultra-550b-a55b` (text-only, used for Ask answers)
    - `NEBIUS_BASE_URL`: `https://api.tokenfactory.nebius.com/v1`
-   - `VISION_PROVIDERS`: `openai,gemini,nebius`
-   - `PROVIDER_TIMEOUT_SECONDS`: `12.0`
+   - `VISION_PROVIDERS`: `gemini,openai,nebius`
+   - `PROVIDER_TIMEOUT_SECONDS`: `10.0`
    - `PROVIDER_RETRIES`: `1` (number of immediate retries on transient 429/5xx errors before fallback)
    - `PROVIDER_RETRY_BACKOFF_SECONDS`: `0.8` (backoff delay in seconds before retrying the same provider)
    - `SCENE_TIMEOUT_SECONDS`: `25.0`
    - `ASK_TIMEOUT_SECONDS`: `10.0`
    - `SCENE_CACHE_SIZE`: `64`
    - `SCENE_CACHE_TTL_SECONDS`: `21600`
-   - `RATE_LIMIT_ASK_PER_MIN`: `40`
-   - `RATE_LIMIT_SCENE_PER_MIN`: `20`
+   - `RATE_LIMIT_ASK_PER_MIN`: `90` (a class of 30 behind one router shares one key)
+   - `RATE_LIMIT_SCENE_PER_MIN`: `60` (a class of 30 behind one router shares one key)
    - `RATE_LIMIT_VALIDATE_PER_MIN`: `40` (per-minute rate limit for teacher validate endpoint)
    - `SCENE_MAX_CONCURRENCY`: `2` (maximum concurrent heavy scene processing operations)
    - `SCENE_QUEUE_WAIT_SECONDS`: `6.0` (maximum queue wait time before returning HTTP 503 Retry-After)

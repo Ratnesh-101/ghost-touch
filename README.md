@@ -141,7 +141,7 @@ uvicorn app.main:app --app-dir backend --reload --port 8000
 | `GEMINI_API_KEY` | Backend | Google Gemini vision API key (codebase default primary) |
 | `OPENAI_API_KEY` | Backend | OpenAI vision API key (Render production primary, fallback in code) |
 | `NEBIUS_API_KEY` | Backend | Nebius Token Factory fallback vision API key |
-| `VISION_PROVIDERS` | Backend | Provider fallback order (codebase default: `gemini,openai,nebius`; Render production: `openai,gemini,nebius`) |
+| `VISION_PROVIDERS` | Backend | Provider fallback order (codebase default: `gemini,openai,nebius`; Render production: `gemini,openai,nebius`) |
 | `GEMINI_MODEL` | Backend | Model name (default: `gemini-3.5-flash-lite`) |
 | `GEMINI_THINKING` | Backend | Thinking level budget (default: `minimal`) |
 | `ALLOWED_ORIGINS` | Backend | CORS allowed frontend URLs |
