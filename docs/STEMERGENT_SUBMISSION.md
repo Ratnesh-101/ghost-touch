@@ -1,4 +1,4 @@
-# STEMergent submission (draft for the owner to edit in your own words)
+# STEMergent submission (repository copy last edited 2026-11-17, after the Nov 16 09:00 IST deadline; if an entry was already submitted, its numbers may be older than this copy; draft for the owner to edit in your own words)
 
 **Before submitting:** the only `[FILL]` markers left are in section "Links and team" and the one line about a school session. They need information only the owner has; do not guess them. The long technical detail (tools, property tests, status tables) is in `docs/STEMERGENT_APPENDIX.md`. Submit on **Nov 14** (hard stop Nov 16, 09:00 IST).
 
