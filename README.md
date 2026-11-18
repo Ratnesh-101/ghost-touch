@@ -47,6 +47,8 @@ Haptic and auditory feedback is tuned to keep tactile sensations distinct:
 
 Experimental, off by default or awaiting a phone test: corner compass, where-am-I, near-line click, graph scan, stay on line, corner heartbeat, short speech detail, page-edge cue, settings presets. Their values are proposals, not tuned.
 
+Known limitation: A share link is capped at 12,000 characters and 200,000 decompressed characters. The decompressed cap is checked after decompression, so a crafted link can briefly use about 38 MB (about 10 ms on a laptop) before it is cleanly rejected with a too-large message. A bounded streaming decoder is planned (task 63.4, option c) and deferred until after the Kiroween submission. Teacher sharing is off by default (VITE_FEATURE_SHARE).
+
 ### Tuned haptic vocabulary
 
 | Sensation | Physical Pattern | Sound & Speech | Tuned Purpose |
