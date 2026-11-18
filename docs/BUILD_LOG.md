@@ -4698,3 +4698,12 @@ Format for each entry:
   - `frontend/tests/settings.presets.test.tsx`
   - `docs/reports/agy-ux10-report.md`
   - `docs/BUILD_LOG.md`
+
+
+## 2026-11-18 - Claude Code (orchestrator) - improvement plan lanes, Kiro takeover after the agy quota, docs refresh
+- Tool = Claude Code (supervision, gates, small test-only fixes, README and this entry). Fable 5.2 wrote the six persona reviews and the synthesis report (docs/reports/fable-persona-*.md, fable-project-improvement-report.md); Kiro and agy did the feature work; agy ran out of quota on 2026-11-17 around 22:10 IST (resets about 2026-11-22), so Kiro (gt-fixer in lane worktrees) finished the remaining lanes.
+- Landed from the improvement plan: docs truth pass (ux6), Kiro write-up refresh (ux7), backend warm-up from Capture (ux5), language on first run (ux8), Raw Mode reason spoken (ux9), settings presets UI (ux10, with Kiro T70), classroom limits and service status (ux11), Ask fallback and provider breaker (ux12), true hint and honest Start copy (ux4), the Explore P0 fixes (ux1 hold lifecycle, ux2 quiet speech; ux3 Raw Mode names and scan tone if listed as merged in drive.log). Kiro: T67 oracles, T68 steering truth, T69 speakable names, T70 presets core, T71 to T74 gate tests and spec, T75 dwell timing bug (P112), T76 P51 reconciled, T77 ux3 merge conflicts.
+- Real findings: P112 found that the where-am-I dwell spoke after only 877 ms of rest when a non-none target was entered with Directions off (fixed in T75); T72 storage oracles documented getter bugs that ux10 fixed for directions, finding sound, sticky line and corner heartbeat (graph scan and guide remain it.fails); the first Playwright run of bu11/T66 earlier caught a Requirement 25.4 regression the lane gates could not.
+- Gate at the end of this entry: tsc 0 errors, vitest 228 files, 2906 passed | 9 expected fail | 1 todo (2916), backend 931 passed, Playwright 22 passed (59.7s), build ok (gate green: yes).
+- Process: the machine slept for hours three times; tracked monitors were reaped by memory pressure again; all long chains now run as detached scripts (supervisor.sh, finish2.sh, final-run.sh) so they survive both. Skipped or open items are listed in drive.log.
+- Not done: phone tests of every new cue, the video, hook evidence, [FILL] slots (owner), the graph scan and guide storage getters, T63 share-decode fix, agy-era lanes still to re-run after the quota resets.
