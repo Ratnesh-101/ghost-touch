@@ -107,7 +107,7 @@ ghost-touch/
 
 ## Built with Kiro, Antigravity and Claude Code
 
-Ghost Touch was built collaboratively using three agent tools. Git log history shows 931 commits (of which 97 carry the kiro: prefix) authored under the repository owner's identity, so commit authorship does not reflect individual tool contributions. See [docs/KIRO_WRITEUP.md](docs/KIRO_WRITEUP.md), [docs/kiro-evidence/round2.md](docs/kiro-evidence/round2.md), and [docs/BUILD_LOG.md](docs/BUILD_LOG.md) for complete verifiable evidence.
+Ghost Touch was built collaboratively using three agent tools. Git log history shows 941 commits (of which 98 carry the kiro: prefix) authored under the repository owner's identity, so commit authorship does not reflect individual tool contributions. See [docs/KIRO_WRITEUP.md](docs/KIRO_WRITEUP.md), [docs/kiro-evidence/round2.md](docs/kiro-evidence/round2.md), and [docs/BUILD_LOG.md](docs/BUILD_LOG.md) for complete verifiable evidence.
 
 | Tool | Role & Contributions | Evidence / Key Files |
 |---|---|---|
@@ -151,7 +151,7 @@ uvicorn app.main:app --app-dir backend --reload --port 8000
 
 ## Tests
 
-Current test suite status: On 2026-11-18 (at main 682bea8): frontend tests 2,999 passed (plus 1 todo) in 232 files; backend tests 931 passed; Playwright 22 passed; requirements 47; properties numbered to P150 (P109 to P113 specified, not yet tested); tasks 76; commits 931, of which 97 carry the kiro: prefix.
+Current test suite status: On 2026-11-18 (at main 7eb5e7c): frontend tests 3,002 passed (plus 1 todo) in 233 files; backend tests 931 passed; Playwright 22 passed; requirements 48; properties numbered to P150 (P109 to P113 specified, not yet tested); tasks 79; commits 941, of which 98 carry the kiro: prefix.
 
 ```bash
 # Frontend: Vitest and fast-check property tests
