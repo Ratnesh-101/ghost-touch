@@ -45,7 +45,7 @@ Haptic and auditory feedback is tuned to keep tactile sensations distinct:
 - **Teacher verify & share (Off by default in Settings):** Guide and Share ship in the live app but stay off until the user turns them on in Settings; neither has been tested on a phone. Sighted teachers can review, adjust, and stamp diagrams with their name and note at `#/teach`. Diagrams are compressed into URL fragment hashes (`#s=...`) using `lz-string` and shared via direct link or on-screen QR code. Students open shared diagrams offline via an accessible tap-to-open gate, greeted by an honest "Shared by [Name], not checked" banner and speech announcement with zero server round-trips. Names and titles are stripped of spoofed badges and checkmarks. (Requires `VITE_FEATURE_SHARE=1` and Settings toggle).
   > **Note on verification:** Ghost Touch does not verify shared diagrams: a shared link is announced as "Shared by <name>, not checked". Shared links live in the URL fragment and never reach our server.
 
-Experimental, off by default or awaiting a phone test: corner compass, where-am-I, near-line click, graph scan, stay on line, corner heartbeat. Their values are proposals, not tuned.
+Experimental, off by default or awaiting a phone test: corner compass, where-am-I, near-line click, graph scan, stay on line, corner heartbeat, short speech detail, page-edge cue, settings presets. Their values are proposals, not tuned.
 
 ### Tuned haptic vocabulary
 
@@ -105,7 +105,7 @@ ghost-touch/
 
 ## Built with Kiro, Antigravity and Claude Code
 
-Ghost Touch was built collaboratively using three agent tools. Git log history shows 898 commits (of which 88 carry the kiro: prefix) authored under the repository owner's identity, so commit authorship does not reflect individual tool contributions. See [docs/KIRO_WRITEUP.md](docs/KIRO_WRITEUP.md), [docs/kiro-evidence/round2.md](docs/kiro-evidence/round2.md), and [docs/BUILD_LOG.md](docs/BUILD_LOG.md) for complete verifiable evidence.
+Ghost Touch was built collaboratively using three agent tools. Git log history shows 918 commits (of which 96 carry the kiro: prefix) authored under the repository owner's identity, so commit authorship does not reflect individual tool contributions. See [docs/KIRO_WRITEUP.md](docs/KIRO_WRITEUP.md), [docs/kiro-evidence/round2.md](docs/kiro-evidence/round2.md), and [docs/BUILD_LOG.md](docs/BUILD_LOG.md) for complete verifiable evidence.
 
 | Tool | Role & Contributions | Evidence / Key Files |
 |---|---|---|
@@ -149,7 +149,7 @@ uvicorn app.main:app --app-dir backend --reload --port 8000
 
 ## Tests
 
-Current test suite status: On 2026-11-17 (at main 8eda0ac): frontend tests 2,700 passed (plus 1 expected fail and 1 todo) in 213 files; backend tests 908 passed; Playwright 22 passed; requirements 36; properties numbered to P136 (P109 to P113 specified, not yet tested); tasks 66; commits 898, of which 88 carry the kiro: prefix.
+Current test suite status: On 2026-11-18 (at main 3c8112e): frontend 2906 passed | 9 expected fail | 1 todo (2916) in 228 files; backend 931 passed; Playwright 22 passed (59.7s); requirements 47; properties numbered to P150 (P109 to P113 specified, not yet tested); tasks 75; commits 918, of which 96 carry the kiro: prefix.
 
 ```bash
 # Frontend: Vitest and fast-check property tests
