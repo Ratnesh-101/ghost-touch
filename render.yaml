@@ -38,11 +38,11 @@ services:
         value: nvidia/Nemotron-3-Ultra-550b-a55b
       - key: NEBIUS_BASE_URL
         value: https://api.tokenfactory.nebius.com/v1
-      # Order of fallback: OpenAI first, then Gemini, then Nebius (last). Providers without a key are skipped.
+      # Order of fallback: Gemini first (free tier), then OpenAI, then Nebius (last). Providers without a key are skipped.
       - key: VISION_PROVIDERS
         value: gemini,openai,nebius
       - key: PROVIDER_TIMEOUT_SECONDS
-        value: "12.0"
+        value: "10.0"
       # Number of immediate retries on a transient provider error (429, 503) before falling through
       - key: PROVIDER_RETRIES
         value: "1"
@@ -58,9 +58,9 @@ services:
       - key: SCENE_CACHE_TTL_SECONDS
         value: "21600"
       - key: RATE_LIMIT_ASK_PER_MIN
-        value: "40"
+        value: "90"
       - key: RATE_LIMIT_SCENE_PER_MIN
-        value: "20"
+        value: "60"
       - key: RATE_LIMIT_VALIDATE_PER_MIN
         value: "40"
       - key: SCENE_MAX_CONCURRENCY
@@ -69,14 +69,14 @@ services:
         value: "6.0"
       # Classroom profile: cap per-client concurrent scene/ask requests so one device cannot monopolize workers
       - key: SCENE_CLIENT_MAX_CONCURRENCY
-        value: "2"
+        value: "4"
       - key: ASK_CLIENT_MAX_CONCURRENCY
-        value: "2"
+        value: "6"
       # Global daily paid AI model call budget and per-client cap (both are owner decisions)
       - key: PAID_CALLS_PER_DAY
         value: "2000"
       - key: PAID_CALLS_PER_CLIENT_PER_DAY
-        value: "500"
+        value: "800"
       - key: ENVIRONMENT
         value: production
       # Replace this with the deployed Vercel frontend URL (no trailing slash)
