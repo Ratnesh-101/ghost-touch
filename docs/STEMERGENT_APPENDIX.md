@@ -1,6 +1,6 @@
 # STEMergent submission, appendix (full technical detail; the main text is STEMERGENT_SUBMISSION.md)
 
-> Note: repository copy last edited 2026-11-17, after the Nov 16 09:00 IST deadline; if an entry was already submitted, its numbers may be older than this copy.
+> Note: the STEMergent entry was submitted before the 2026-11-16 09:00 IST deadline; this repository copy was edited on 2026-11-17, so its numbers are newer than the entry's.
 
 Drafted by Claude Code on 2026-11-01 from the repository, `docs/WIN_PLAN.md` and updated by Antigravity on 2026-11-07 to reflect verifiable facts from the codebase. **Everything marked `[FILL]` is information only the owner has, or a result that does not exist yet. Do not submit with a `[FILL]` left in, and do not replace one with a guess.** Test counts from the gate run on 2026-11-17 (at main 8eda0ac): frontend tests 2,700 passed (plus 1 expected fail and 1 todo) in 213 files; backend tests 908 passed; Playwright 22 passed; requirements 36; properties numbered to P136 (P109 to P113 specified, not yet tested); tasks 66; commits 898, of which 88 carry the kiro: prefix. Submit on **Nov 14** (hard stop Nov 16, 09:00 IST).
 
