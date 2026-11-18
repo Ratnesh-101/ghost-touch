@@ -180,6 +180,10 @@ backend/.venv/Scripts/python -m ruff format --check backend
 
 See [docs/DEPLOY.md](docs/DEPLOY.md) for production deployment instructions on Render and Vercel.
 
+## Acknowledgements
+
+The TalkBack guide started from an outside contribution (PR #36 by drv653); we adopted and corrected it in lane bu10.
+
 ## License
 
 MIT
