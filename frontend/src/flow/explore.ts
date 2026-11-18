@@ -70,11 +70,17 @@ export const STORAGE_KEY_GRAPH_SCAN = 'gt_graph_scan_enabled';
 let inMemoryGraphScanSetting: boolean | null = null;
 
 export function getStoredGraphScanSetting(): boolean {
-  const stored = safeGet(STORAGE_KEY_GRAPH_SCAN);
-  if (stored !== null) {
-    return stored === 'true';
+  if (inMemoryGraphScanSetting !== null) {
+    return inMemoryGraphScanSetting;
   }
-  return inMemoryGraphScanSetting ?? true;
+  const stored = safeGet(STORAGE_KEY_GRAPH_SCAN);
+  if (stored === 'true') {
+    return true;
+  }
+  if (stored === 'false') {
+    return false;
+  }
+  return true;
 }
 
 export function setStoredGraphScanSetting(enabled: boolean): void {

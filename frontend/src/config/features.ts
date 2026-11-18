@@ -4,23 +4,34 @@
  * Each feature is active only when the env flag AND the user's settings toggle are both on
  * (the settings toggle is handled by the feature's own lane).
  */
-import { safeGet, safeSet } from '../drivers/storage';
+import { safeGet, safeRemove, safeSet } from '../drivers/storage';
 
 export const STORAGE_KEY_GUIDE = 'gt_guide_enabled';
 
 let inMemoryGuideSetting: boolean | null = null;
 
 export function getStoredGuideSetting(): boolean {
-  const stored = safeGet(STORAGE_KEY_GUIDE);
-  if (stored !== null) {
-    return stored === 'true';
+  if (inMemoryGuideSetting !== null) {
+    return inMemoryGuideSetting;
   }
-  return inMemoryGuideSetting ?? false;
+  const stored = safeGet(STORAGE_KEY_GUIDE);
+  if (stored === 'true') {
+    return true;
+  }
+  if (stored === 'false') {
+    return false;
+  }
+  return false;
 }
 
 export function setStoredGuideSetting(enabled: boolean): void {
   safeSet(STORAGE_KEY_GUIDE, enabled ? 'true' : 'false');
   inMemoryGuideSetting = enabled;
+}
+
+export function _resetGuideSettingForTesting(): void {
+  inMemoryGuideSetting = null;
+  safeRemove(STORAGE_KEY_GUIDE);
 }
 
 export function isGuideEnvOn(): boolean {

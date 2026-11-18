@@ -27,7 +27,7 @@ import {
   type HistoryState,
 } from '../core/correct';
 import type { DiagramScene, Point } from '../core/scene';
-import { safeGet, safeSet } from '../drivers/storage';
+import { safeGet, safeRemove, safeSet } from '../drivers/storage';
 import { isShareEnvOn } from '../config/features';
 import {
   decodeShare,
@@ -44,16 +44,27 @@ export const STORAGE_KEY_TEACHER = 'gt_teacher_enabled';
 let inMemoryTeacherSetting: boolean | null = null;
 
 export function getStoredTeacherSetting(): boolean {
-  const stored = safeGet(STORAGE_KEY_TEACHER);
-  if (stored !== null) {
-    return stored === 'true';
+  if (inMemoryTeacherSetting !== null) {
+    return inMemoryTeacherSetting;
   }
-  return inMemoryTeacherSetting ?? false;
+  const stored = safeGet(STORAGE_KEY_TEACHER);
+  if (stored === 'true') {
+    return true;
+  }
+  if (stored === 'false') {
+    return false;
+  }
+  return false;
 }
 
 export function setStoredTeacherSetting(enabled: boolean): void {
   safeSet(STORAGE_KEY_TEACHER, enabled ? 'true' : 'false');
   inMemoryTeacherSetting = enabled;
+}
+
+export function _resetTeacherSettingForTesting(): void {
+  inMemoryTeacherSetting = null;
+  safeRemove(STORAGE_KEY_TEACHER);
 }
 
 /** Active = env flag on AND the user's teacher setting on. */

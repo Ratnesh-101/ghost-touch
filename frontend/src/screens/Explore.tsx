@@ -2082,7 +2082,9 @@ export function Explore({
             stickyRadiusPx: STICKY_RADIUS_PX,
           },
         );
-        const compassAnnouncements = checkVertexCompass(moveResult.target, now);
+        const compassAnnouncements = !askActive.current
+          ? checkVertexCompass(moveResult.target, now)
+          : [];
         checkLineDwell(moveResult.target, promotedCoords, now, lang);
         // Promotion of surviving pointer
         applyMoveResult(moveResult, lang, [], compassAnnouncements, false, promotedCoords);

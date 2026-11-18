@@ -392,7 +392,7 @@ describe('T65 Explore wiring guards (review M3)', () => {
     // listens. Explore.tsx is not Kiro's to change in this task; the fix is for an agy lane.
     // `it.fails` keeps the suite honest: it goes red the moment the bug is fixed, and then this
     // must become a plain `it`.
-    it.fails('Ask listening: promoting a finger onto corner A speaks no exits (28.7)', async () => {
+    it('Ask listening: promoting a finger onto corner A speaks no exits (28.7)', async () => {
       await withExplore({}, (rig) => {
         openAsk(rig);
         rig.down(130, 220, 1);

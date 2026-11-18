@@ -4728,3 +4728,23 @@ Format for each entry:
 - Gate at the end of this entry: tsc 0 errors, vitest 228 files, 2906 passed | 9 expected fail | 1 todo (2916), backend 931 passed, Playwright 22 passed (59.7s), build ok (gate green: yes).
 - Process: the machine slept for hours three times; tracked monitors were reaped by memory pressure again; all long chains now run as detached scripts (supervisor.sh, finish2.sh, final-run.sh) so they survive both. Skipped or open items are listed in drive.log.
 - Not done: phone tests of every new cue, the video, hook evidence, [FILL] slots (owner), the graph scan and guide storage getters, T63 share-decode fix, agy-era lanes still to re-run after the quota resets.
+
+## 2026-11-18 — Antigravity — Lane ux14: Storage Getters, Ask Listening Corner Exit Guard, and Follow-Up Pass 1
+- Implemented storage getters with in-memory precedence and strict boolean parsing (Requirement 46, P148 & P149):
+  - Updated `getStoredGraphScanSetting` in `frontend/src/flow/explore.ts` and `getStoredGuideSetting` in `frontend/src/config/features.ts`.
+  - Added unit test suite in `frontend/tests/settings.getters.test.ts`.
+- Guarded corner compass exit announcements during surviving pointer promotion while Ask is listening (Requirement 28.7) in `frontend/src/screens/Explore.tsx`.
+  - Added test in `frontend/tests/explore.askListeningCorner.test.tsx`.
+- Follow-up pass 1 gate fix:
+  - Fixed `getStoredTeacherSetting` in `frontend/src/flow/teach.ts` to prioritize in-memory value (`inMemoryTeacherSetting`) over stored string when writes fail (P149), and parse strict booleans with documented default `false` (P148).
+  - Exported `_resetTeacherSettingForTesting` and added `teacher` coverage in `frontend/tests/settings.getters.test.ts`.
+  - Zero shell commands run; no test weakened.
+- Files touched:
+  - `frontend/src/flow/explore.ts`
+  - `frontend/src/config/features.ts`
+  - `frontend/src/flow/teach.ts`
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/tests/settings.getters.test.ts`
+  - `frontend/tests/explore.askListeningCorner.test.tsx`
+  - `docs/reports/agy-ux14-report.md`
+  - `docs/BUILD_LOG.md`
