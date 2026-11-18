@@ -134,7 +134,7 @@ describe('P148 stored strings read back exactly (Requirement 46.1, task 72)', ()
     const g = used[index];
     if (g === undefined) throw new Error('getter table is incomplete');
     // Default-true getters are red today: junk reads `false`. Default-false getters pass.
-    const test = g.def ? it.fails : it;
+    const test = g.def && g.name === 'graph scan' ? it.fails : it; // ux10 fixed directions and finding sound; graph scan still open
     test(`${g.name}: any other stored string reads the default (${g.def})`, () => {
       const c = clean[index];
       if (c === undefined) throw new Error('clean getter table is incomplete');
@@ -171,7 +171,7 @@ describe('P149 a failed write is not lost (Requirement 46.2 and 46.3, task 72)',
     });
 
     // Red today for all seven: a stored string (valid or junk) beats the in-memory value.
-    it.fails(`${g.name}: after a failed write the in-memory value wins`, () => {
+    (['directions', 'finding sound', 'sticky line', 'corner heartbeat'].includes(g.name) ? it : it.fails)(`${g.name}: after a failed write the in-memory value wins`, () => {
       fc.assert(
         fc.property(prior, fc.boolean(), (before, value) => {
           localStorage.clear();
