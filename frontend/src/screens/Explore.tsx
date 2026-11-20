@@ -1071,11 +1071,18 @@ export function Explore({
 
     // Vertex dots and labels
     ctx.shadowBlur = 0;
-    ctx.fillStyle = '#e8ffe8';
     ctx.font = '16px system-ui, sans-serif';
     if (scene.points) {
       for (const p of scene.points) {
         const sp = toScreen(p, view);
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(sp.x, sp.y, 6, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#e8ffe8';
         ctx.beginPath();
         ctx.arc(sp.x, sp.y, 6, 0, Math.PI * 2);
         ctx.fill();
@@ -1102,6 +1109,13 @@ export function Explore({
 
     // Cursor indicator for sighted observers
     if (cursor !== null) {
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(cursor.x, cursor.y, 5, 0, Math.PI * 2);
+      ctx.stroke();
+
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.arc(cursor.x, cursor.y, 5, 0, Math.PI * 2);
@@ -1112,6 +1126,13 @@ export function Explore({
     const guideTarget = guideController.current?.getTarget();
     if (isGuiding && guideTarget) {
       const sp = toScreen(guideTarget, view);
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, 14, 0, Math.PI * 2);
+      ctx.stroke();
+
       ctx.strokeStyle = '#00f0ff';
       ctx.lineWidth = 2;
       ctx.beginPath();

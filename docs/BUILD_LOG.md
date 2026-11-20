@@ -4769,3 +4769,29 @@ Format for each entry:
 - Owner answers: STEMergent was submitted (banners on docs/STEMERGENT_SUBMISSION.md and STEMERGENT_APPENDIX.md now say so, dated); the teammate has the phone-test brief (docs/TEAM_PHONE_TEST_PROMPT.md), results pending; the video is pending; the owner wants the OpenAI monthly cap at about USD 3 (to be set in the OpenAI console).
 - Gemini terms checked (fetched https://aistudio.google.com/docs/terms on 2026-11-19, not legal advice): unpaid services: content is used to improve Google products and human reviewers may read input and output; paid services: not used to improve products. The terms also require users to be 18 or older, say the Services must not be used in a service directed to or likely to be accessed by people under 18, and say not to submit sensitive or personal information to the unpaid services. This is recorded in docs/PRIVACY.md as an unresolved owner decision (enable billing, provider order for a student-facing app, advice).
 - Handoff written: docs/handoffs/SESSION-2026-11-18.md. Render /api/v1/status reported commit 7eb5e7c (auto-deploy works); the Render dashboard environment is still unchecked.
+
+## 2026-11-20 — Antigravity — Lane hi1: Low-vision outlines (I29a)
+- Implemented low-vision dark outlines across Explore canvas drawing routines (DRAW-ONLY change):
+  - Vertex dots in `renderStaticScene`: dark stroke radius 6 with lineWidth 3 stroke drawn before existing fill (#e8ffe8) with shadowBlur reset to 0.
+  - Cursor dot in `draw`: dark stroke radius 5 with lineWidth 3 stroke drawn before existing fill (#ffffff) with shadowBlur reset to 0.
+  - Guide target ring in `draw`: dark stroke radius 14 with lineWidth 5 stroke drawn under cyan stroke lineWidth 2 (#00f0ff) with shadowBlur reset to 0.
+  - Zero haptic, audio, hit-test, or speech changes.
+- Updated `frontend/src/styles/explore.css`:
+  - Canvas border (`.gt-explore__canvas` and `.gt-lab-specimen-table` / `.gt-explore__canvas-container`) set to 2px solid green (`#39ff88`, contrast ratio ~14.9:1 against `#0b0e0c`).
+  - Status card border (`.gt-explore__status-card` and `.gt-lab-status-card`) set to 2px solid green (`#39ff88`).
+  - Respects `prefers-contrast: more` with 3px solid borders.
+  - Element sizes preserved (`box-sizing: border-box`, `height: 5rem`, status line height `calc(3 * 1.45em)` intact per Requirement 25.4).
+  - No texture or gradient added inside the canvas.
+- Added comprehensive test suite in `frontend/tests/explore.outlines.test.tsx`:
+  - Mocked Canvas 2D context tracking all stroke/fill/arc calls, lineWidth, strokeStyle, fillStyle, and shadowBlur.
+  - Verifies dark stroke precedes fill for vertex dots and cursor dot.
+  - Verifies dark stroke lineWidth 5 precedes cyan stroke lineWidth 2 for guide ring.
+  - Verifies 3 sample traces (Triangle, Sine, Barchart) produce no extraneous vibrate, tone, or speech calls.
+  - Verifies CSS border rules, contrast ratios, and element size preservation (reads explore.css directly from disk via fs.readFileSync to ensure CSS content is preserved in vitest).
+- Files touched:
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/styles/explore.css`
+  - `frontend/tests/explore.outlines.test.tsx`
+  - `docs/reports/agy-hi1-report.md`
+  - `docs/BUILD_LOG.md`
+
