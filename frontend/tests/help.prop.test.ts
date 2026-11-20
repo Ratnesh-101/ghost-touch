@@ -117,7 +117,7 @@ describe('P158 the Help strings are complete and honest (it.fails until task 81.
     expect(tf(key, {}).length).toBeGreaterThan(0);
   }
 
-  it.fails('every key exists in en, hi and gu, is not blank, differs from English, makes no claim of checking', () => {
+  it('every key exists in en, hi and gu, is not blank, differs from English, makes no claim of checking', () => {
     expect(HELP_I18N_KEYS).toContain(HELP_BUTTON_KEY);
     for (const lang of LANGS) for (const key of HELP_I18N_KEYS) check(lang, key);
     fc.assert(

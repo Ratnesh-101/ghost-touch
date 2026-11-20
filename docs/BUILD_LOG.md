@@ -4795,3 +4795,25 @@ Format for each entry:
   - `docs/reports/agy-hi1-report.md`
   - `docs/BUILD_LOG.md`
 
+
+## 2026-11-20 — Antigravity — Lane hi4: Explore Help button (I20, Requirement 50)
+- Implemented the Explore Help button (Requirement 50):
+  - Added 7 i18n keys (`explore.help`, `help.touch`, `help.back`, `help.ask`, `help.guide`, `help.stop`, `help.raw`) in `en`, `hi`, and `gu` in `frontend/src/i18n/index.ts`. All Hindi and Gujarati translations are distinct, natural phrasing, and free of banned claim words (`verified`, `correct`, `checked`, `approved`).
+  - Added Help button (`<AccessibleButton className="gt-control gt-explore__help">`) in the footer action row alongside Ask, Where am I, and Back in `frontend/src/screens/Explore.tsx`.
+  - Sized Help button to at least 48x48 CSS px touch target with styling in `frontend/src/styles/explore.css` and inline styles, supporting flex wrapping without breaking status-line height or overflowing at 320 px width.
+  - Wired Help press handler to speak once using `joinAnnouncements(helpSentences({ raw: isRaw === true, guideOn: isGuideActive(), askOn: true }).map((k) => t(k)))`, without vibration, tone, mode change, or navigation, functioning with a finger down and Directions off.
+  - Added all 7 string entries to `docs/user-test/translation-review.csv` and `docs/user-test/translation-review.md`.
+  - Promoted oracles E1 to E5 in `frontend/tests/explore.help.oracle.test.tsx` and P158 in `frontend/tests/help.prop.test.ts` from `it.fails` to `it`.
+  - Added unit test suite in `frontend/tests/explore.helpButton.test.tsx`.
+- Files touched:
+  - `frontend/src/i18n/index.ts`
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/styles/explore.css`
+  - `frontend/tests/explore.helpButton.test.tsx`
+  - `frontend/tests/explore.help.oracle.test.tsx`
+  - `frontend/tests/help.prop.test.ts`
+  - `docs/user-test/translation-review.csv`
+  - `docs/user-test/translation-review.md`
+  - `docs/reports/agy-hi4-report.md`
+  - `docs/BUILD_LOG.md`
+

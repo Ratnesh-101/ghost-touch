@@ -71,7 +71,7 @@ describe('task 80.3: Requirement 50 oracles (lane 81.2)', () => {
     });
   });
 
-  it.fails('E1 a Help button is in the footer with a non-empty accessible name from explore.help (50.3)', async () => {
+  it('E1 a Help button is in the footer with a non-empty accessible name from explore.help (50.3)', async () => {
     await withExplore({ scene: triangle }, (rig) => {
       const b = helpButton(rig);
       const name = (b.getAttribute('aria-label') ?? b.textContent ?? '').trim();
@@ -81,7 +81,7 @@ describe('task 80.3: Requirement 50 oracles (lane 81.2)', () => {
     });
   });
 
-  it.fails('E2 pressing Help speaks the keys of helpSentences, in order, as one utterance (50.4)', async () => {
+  it('E2 pressing Help speaks the keys of helpSentences, in order, as one utterance (50.4)', async () => {
     await withExplore({ scene: triangle }, (rig) => {
       rig.clearCalls();
       press(rig);
@@ -90,7 +90,7 @@ describe('task 80.3: Requirement 50 oracles (lane 81.2)', () => {
     });
   });
 
-  it.fails('E3 a Raw Mode scene adds the raw sentence, and the screen passes raw: true to the helper (50.1, 50.4)', async () => {
+  it('E3 a Raw Mode scene adds the raw sentence, and the screen passes raw: true to the helper (50.1, 50.4)', async () => {
     await withExplore({ scene: triangle, isRaw: true }, (rig) => {
       rig.clearCalls();
       press(rig);
@@ -99,7 +99,7 @@ describe('task 80.3: Requirement 50 oracles (lane 81.2)', () => {
     });
   });
 
-  it.fails('E4 with Guide switched on the guide and stop sentences are spoken; with it off they are not (50.1)', async () => {
+  it('E4 with Guide switched on the guide and stop sentences are spoken; with it off they are not (50.1)', async () => {
     await withExplore({ scene: triangle, guide: true }, (rig) => {
       rig.clearCalls();
       press(rig);
@@ -115,7 +115,7 @@ describe('task 80.3: Requirement 50 oracles (lane 81.2)', () => {
     });
   });
 
-  it.fails('E5 Help is an explicit request: it speaks with a finger down and adds no vibration, tone or Guide (50.5, 50.6)', async () => {
+  it('E5 Help is an explicit request: it speaks with a finger down and adds no vibration, tone or Guide (50.5, 50.6)', async () => {
     await withExplore({ scene: triangle }, (rig) => {
       rig.down(100, 340); // corner C
       rig.advance(600);

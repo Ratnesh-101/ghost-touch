@@ -565,6 +565,15 @@ const en: Record<string, string> = {
   'edge.bottom': 'Edge, bottom',
   'edge.left': 'Edge, left',
   'edge.right': 'Edge, right',
+
+  // Explore Help button (Requirement 50, Lane hi4)
+  'explore.help': 'Help',
+  'help.touch': 'Drag one finger to feel the diagram.',
+  'help.back': 'Swipe down with two fingers, or press Back, to leave.',
+  'help.ask': 'Press and hold with two fingers, or use the Ask button, to ask a question.',
+  'help.guide': 'Say take me to, then a corner name, or say find the peak, to be guided.',
+  'help.stop': 'Say stop to end guiding.',
+  'help.raw': 'This diagram is only rough outlines. Labels may be missing.',
 };
 
 // TODO-REVIEW: machine-translated strings for Hindi
@@ -1083,6 +1092,15 @@ const hi: Record<string, string> = {
   'edge.bottom': 'किनारा, नीचे',
   'edge.left': 'किनारा, बाएँ',
   'edge.right': 'किनारा, दाएँ',
+
+  // Explore Help button (Requirement 50, Lane hi4)
+  'explore.help': 'मदद',
+  'help.touch': 'चित्र महसूस करने के लिए एक उंगली खींचें।',
+  'help.back': 'बाहर निकलने के लिए दो उंगलियों से नीचे स्वाइप करें, या बैक दबाएं।',
+  'help.ask': 'प्रश्न पूछने के लिए दो उंगलियों से दबाकर रखें, या पूछें बटन का उपयोग करें।',
+  'help.guide': 'मार्गदर्शन पाने के लिए बोलें ले चलो और कोने का नाम, या बोलें चोटी ढूंढो।',
+  'help.stop': 'मार्गदर्शन समाप्त करने के लिए बोलें रुकें।',
+  'help.raw': 'यह चित्र केवल कच्ची रूपरेखा है। लेबल गायब हो सकते हैं।',
 };
 
 // TODO-REVIEW: machine-translated strings for Gujarati
@@ -1602,6 +1620,15 @@ const gu: Record<string, string> = {
   'edge.bottom': 'કિનારો, નીચે',
   'edge.left': 'કિનારો, ડાબે',
   'edge.right': 'કિનારો, જમણે',
+
+  // Explore Help button (Requirement 50, Lane hi4)
+  'explore.help': 'મદદ',
+  'help.touch': 'આકૃતિ અનુભવવા માટે એક આંગળી ખેંચો.',
+  'help.back': 'બહાર નીકળવા માટે બે આંગળીઓથી નીચે સ્વાઇપ કરો, અથવા બેક દબાવો.',
+  'help.ask': 'પ્રશ્ન પૂછવા માટે બે આંગળીઓથી દબાવી રાખો, અથવા પૂછો બટન વાપરો.',
+  'help.guide': 'માર્ગદર્શન મેળવવા માટે બોલો લઈ જાઓ અને ખૂણાનું નામ, અથવા બોલો શિખર શોધો.',
+  'help.stop': 'માર્ગદર્શન સમાપ્ત કરવા માટે બોલો રોકો.',
+  'help.raw': 'આ આકૃતિ માત્ર કાચી રૂપરેખા છે. લેબલ ખૂટતા હોઈ શકે છે.',
 };
 
 export const tables: Record<Lang, Record<string, string>> = { en, hi, gu };

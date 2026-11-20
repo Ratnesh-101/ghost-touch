@@ -24,6 +24,7 @@ import {
 import type { DiagramScene } from '../core/scene';
 import type { Target } from '../core/hitTest';
 import type { Effect } from '../core/hapticEngine';
+import { helpSentences } from '../core/help';
 import { speakableName } from '../core/speakable';
 import { FallbackHapticDriver, runEffects, runProximityEffects, type Drivers } from '../drivers';
 import type { PulseKind } from '../drivers/haptics';
@@ -66,6 +67,7 @@ import {
   KEEP_ALIVE_INTERVAL_MS,
   LINE_DWELL_MS,
   lineName,
+  joinAnnouncements,
   mergeAnnouncements,
   paceSpeech,
   processPointerMove,
@@ -2227,6 +2229,26 @@ export function Explore({
     setStatusMessage(text);
   };
 
+  const handleHelpClick = (): void => {
+    if (leaving.current) return;
+    try {
+      drivers.audio.unlock();
+    } catch {
+      // best-effort
+    }
+    const sentences = helpSentences({
+      raw: isRaw === true,
+      guideOn: isGuideActive(),
+      askOn: true,
+    });
+    const text = joinAnnouncements(sentences.map((k) => t(k)));
+    const lang = LANG_BCP47[getLang()] ?? 'en-IN';
+    drivers.speech.speak(text, lang);
+    markSpeechStart();
+    lastSpokenRef.current = text;
+    setStatusMessage(text);
+  };
+
   const renderA11yTree = (): JSX.Element => {
     const view = makeViewport(canvasSize.w, canvasSize.h);
     return (
@@ -2427,6 +2449,14 @@ export function Explore({
             disabled={isBusy}
           >
             {t('ask.button')}
+          </AccessibleButton>
+          <AccessibleButton
+            className="gt-control gt-explore__help"
+            onClick={handleHelpClick}
+            aria-label={t('explore.help')}
+            style={{ minWidth: '48px', minHeight: '48px' }}
+          >
+            {t('explore.help')}
           </AccessibleButton>
           {onCorrect && (
             <AccessibleButton
