@@ -46,17 +46,25 @@ function expectedSentences(ctx: HelpContext): string[] {
   });
 }
 
-/** Every sentence appears once, in order, inside the single utterance the screen spoke. */
+/**
+ * Exactly the expected sentences, once each, in order, as the only content of one utterance.
+ * Whatever is left after removing them may only be joiners (spaces, full stops, danda), so an
+ * extra sentence (for example help.raw on a scene that is not raw) fails here.
+ */
 function expectOneUtterance(rig: Rig, sentences: string[]): void {
   const spoken = rig.spoken();
   expect(spoken).toHaveLength(1);
-  let from = 0;
+  let rest = spoken[0] ?? '';
   for (const s of sentences) {
-    const at = (spoken[0] ?? '').indexOf(s, from);
+    const at = rest.indexOf(s);
     expect(at, `"${s}" in order`).toBeGreaterThanOrEqual(0);
-    from = at + s.length;
+    expect(rest.slice(0, at), `nothing extra before "${s}"`).toMatch(JOINERS);
+    rest = rest.slice(at + s.length);
   }
+  expect(rest, 'nothing extra after the last sentence').toMatch(JOINERS);
 }
+
+const JOINERS = /^[\s.\u0964\u0965]*$/;
 
 describe('task 80.3: Requirement 50 oracles (lane 81.2)', () => {
   beforeEach(() => {
@@ -86,7 +94,10 @@ describe('task 80.3: Requirement 50 oracles (lane 81.2)', () => {
       rig.clearCalls();
       press(rig);
       expect(helpSpy).toHaveBeenCalled();
+      expect(helpSpy).toHaveBeenLastCalledWith({ raw: false, guideOn: false, askOn: true });
       expectOneUtterance(rig, expectedSentences({ raw: false, guideOn: false, askOn: true }));
+      // Kills the mutant `raw: true`: the raw sentence must not be spoken for a scene that is not raw.
+      expect(rig.spoken().join(' ')).not.toContain(tables.en['help.raw'] ?? '\u0000');
     });
   });
 
@@ -112,6 +123,19 @@ describe('task 80.3: Requirement 50 oracles (lane 81.2)', () => {
       expect(helpSpy).toHaveBeenLastCalledWith(expect.objectContaining({ guideOn: false }));
       const text = rig.spoken().join(' ');
       expect(text).not.toContain(tables.en['help.guide'] ?? '\u0000');
+    });
+  });
+
+  // E6: red today. Explore passes `raw: isRaw === true` (the prop), but App.tsx never passes the
+  // prop; the screen's own decision `isRawScene` (prop, or kind unknown, or the raw announcement)
+  // is what Requirement 50.4 (amended, task 81.2 follow-up) asks for. Lane hi6 flips this.
+  it.fails('E6 a Raw Mode scene rendered WITHOUT the isRaw prop (as App does) speaks help.raw (50.4 amended)', async () => {
+    const rawScene = { ...triangle, kind: 'unknown' } as DiagramScene;
+    await withExplore({ scene: rawScene }, (rig) => {
+      rig.clearCalls();
+      press(rig);
+      expect(helpSpy).toHaveBeenLastCalledWith({ raw: true, guideOn: false, askOn: true });
+      expectOneUtterance(rig, expectedSentences({ raw: true, guideOn: false, askOn: true }));
     });
   });
 

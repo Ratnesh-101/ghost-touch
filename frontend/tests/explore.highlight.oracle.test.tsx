@@ -87,6 +87,15 @@ describe('task 80.3: Requirement 49 oracles (lane 81.1)', () => {
     });
   });
 
+  it('H6 a scene change while the finger is down clears the highlight (49.5; review issue 6)', async () => {
+    await withExplore({ scene: triangle }, async (rig) => {
+      rig.down(100, 100);
+      expect(highlightAttr(rig)).toBe('vertex:A'); // meaningful only if it was set first
+      await rig.rerender({ ...triangle, title: 'Another diagram' } as DiagramScene);
+      expect(highlightAttr(rig)).toBe('none');
+    });
+  });
+
   it('H5 draw-only: the vibrate, tone, speak, stop and earcon calls of a fixed trace are pinned (49.6)', async () => {
     await withExplore({ scene: triangle }, (rig) => {
       rig.down(100, 100);

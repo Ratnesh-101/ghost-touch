@@ -47,3 +47,22 @@ Issues 1, 2, 5 (code and strings), and issue 4 for hi3. Kiro owns the oracle cha
 ## Not tested here
 
 Drawing on a real canvas, the highlight's look, Help on a phone with TalkBack, and the native-speaker quality of the Hindi and Gujarati.
+
+
+## Addendum: second independent run (2026-11-20, after 4e7186d)
+
+A second Kiro run repeated the checks on a copy of `frontend/` outside the repository (no source edit in the working tree). It reproduced the results above: full Vitest 3059 passed, `tsc` clean, Playwright 22 passed, mutant A killed, mutant B (`raw: true`) survived, and `isRaw` is never passed by `App.tsx`. `parseExploreCommand` output confirms issue 2 ("ले चलो B" and "લઈ જાઓ B" give `unknown`; "चोटी ढूंढो" gives `guide_to`, not the peak). The Guide path in issue 4 is confirmed at `Explore.tsx:2128-2135` (move) and `:2236-2242` (lift).
+
+Two more mutants survive, both in hi3. They are oracle gaps, not code bugs today:
+
+| # | Severity | File:line | Problem | Fix |
+|---|---|---|---|---|
+| 9 | Medium | `tests/explore.highlight.oracle.test.tsx` H3; `screens/Explore.tsx:2337` | Deleting `scheduleDraw(viewportRef.current, null)` after the last lift passes all 20 highlight tests. `clearHighlight()` sets `data-highlight` itself, so H3 sees `none` even when the canvas is never redrawn and the old highlight stays visible. 49.5 asks for "redrawn without it". | Kiro: in H3, spy on the canvas mock's `drawImage` or `clearRect` and require one call after the lift, or set `data-highlight` only inside `draw()`. |
+| 10 | Low | `tests/explore.highlight.test.tsx`; `screens/Explore.tsx:1293` | Replacing the `renderHighlightElement(...)` call in `draw()` with a no-op passes all 20 highlight tests. The unit tests call `renderHighlightElement` directly, and the screen tests read only the attribute, so nothing checks that the screen draws the highlight. | Add one screen test: finger on side AB, then require a mock-context `stroke` with `lineWidth >= 8` after the redraw. |
+
+These do not change the ticks: 81.1 stays ticked, and 81.2 stays open for issues 1, 2 and 3.
+
+
+## Kiro follow-up
+
+Done 2026-11-20, tests and spec text only; nothing under `screens/`, `flow/` or `i18n/` changed, and 81.2 stays unticked. For issue 1 I amended Requirement 50.4 and the Help section of design.md so the Help `raw` flag is the screen's own `isRawScene` (prop, or scene kind `unknown`, or the raw announcement), not the `isRaw` prop alone. For issue 3, E2 in `explore.help.oracle.test.tsx` now asserts the exact `helpSentences` arguments (`raw: false`), that `help.raw` is not spoken, and that nothing but joiners surrounds the expected sentences (the old check accepted extra sentences). I added oracle E6, `it.fails`: a scene of kind `unknown` rendered without the `isRaw` prop, as `App.tsx` does, must speak `help.raw`. I ran it with `.fails` removed and it fails for the intended reason (`raw: false` received, `true` expected), so lane hi6 flips it. I did not re-run mutant B (`raw: true`) because that needs a source edit; E2 should kill it, since it asserts `raw: false`, but this is reasoned, not measured. For issue 6, I added H6 to `explore.highlight.oracle.test.tsx`: a rerender with a new scene while the finger is down must give `data-highlight="none"`. It passes today, so it is a plain `it`. I did not mutation-check it either (it would need deleting `clearHighlight()` at `Explore.tsx` ~676), so whether H6 would catch that deletion is unverified. To support H6 I added `rerender(scene)` and an `announced` option to `tests/support/exploreRig.tsx`, with the default behaviour unchanged. Issues 2, 4, 5, 9 and 10 are still open.

@@ -42,9 +42,13 @@ export interface RigSettings {
   askAnswer?: string;
   /** Mount Explore with `isRaw` (a Raw Mode scene). Default false. */
   isRaw?: boolean;
+  /** The entry announcement passed to Explore. Default 'Diagram'. */
+  announced?: string;
 }
 
 export interface Rig {
+  /** Re-render the mounted Explore with a new scene (same props otherwise), as App does on a scene change. */
+  rerender: (scene: DiagramScene) => Promise<void>;
   speak: ReturnType<typeof vi.fn>;
   stopSpeaking: ReturnType<typeof vi.fn>;
   playEarcon: ReturnType<typeof vi.fn>;
@@ -198,21 +202,24 @@ export async function withExplore(
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
-  await act(async () => {
-    root.render(
-      createElement(Explore, {
-        scene: settings.scene,
-        announced: 'Diagram',
-        drivers,
-        onBack,
-        ...(settings.isRaw === true ? { isRaw: true } : {}),
-      }),
-    );
-  });
+  const renderScene = (scene: DiagramScene): Promise<void> =>
+    act(async () => {
+      root.render(
+        createElement(Explore, {
+          scene,
+          announced: settings.announced ?? 'Diagram',
+          drivers,
+          onBack,
+          ...(settings.isRaw === true ? { isRaw: true } : {}),
+        }),
+      );
+    });
+  await renderScene(settings.scene);
   const canvas = container.querySelector('canvas');
   if (!canvas) throw new Error('Explore did not render a canvas');
 
   const rig: Rig = {
+    rerender: renderScene,
     speak,
     stopSpeaking,
     playEarcon,
