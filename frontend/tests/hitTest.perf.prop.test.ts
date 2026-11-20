@@ -166,7 +166,10 @@ describe('P52 — optimised hitTest equals the previous implementation (PERF-01)
       }),
       { numRuns: runs(200) },
     );
-  });
+    // Each run compares against the slow oracle on a 2000-point curve (about 70 ms a run on a
+    // laptop, more on a CI runner). Vitest's default 5000 ms timed out the nightly soak
+    // (FC_RUNS_MULT scales the runs), so the budget scales with the run count: 600 ms a run.
+  }, Math.max(120_000, runs(200) * 600));
 
   it('same target for fingers far outside the canvas and with the default radii (200 runs)', () => {
     fc.assert(
