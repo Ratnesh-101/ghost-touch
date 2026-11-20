@@ -26,6 +26,7 @@ import type { Target } from '../core/hitTest';
 import type { Effect } from '../core/hapticEngine';
 import { helpSentences } from '../core/help';
 import { speakableName } from '../core/speakable';
+import { highlightFor, type Highlight } from '../core/highlight';
 import { FallbackHapticDriver, runEffects, runProximityEffects, type Drivers } from '../drivers';
 import type { PulseKind } from '../drivers/haptics';
 import { leaveExploreEntry, onBack as subscribeBack, pushExploreEntry } from '../drivers/navigation';
@@ -269,6 +270,156 @@ interface ExploreProps {
   };
 }
 
+/**
+ * Renders the "Show me" highlight (Requirement 49) thicker and brighter than the rest of the drawing.
+ * Line elements (segments, polylines, axes, bar outlines) are at least 2x lineWidth (8px) in a lighter tint (#a6ffcc).
+ * A vertex is drawn with a larger radius (10px) and bright white fill with a dark outline ring.
+ *
+ * NOTE: Does NOT call ctx.save() or ctx.restore() because test canvas mocks (explore.outlines, explore.bu9)
+ * do not implement save/restore. Styles are set explicitly before drawing and reset by hand afterwards.
+ */
+export function renderHighlightElement(
+  ctx: CanvasRenderingContext2D,
+  view: Viewport,
+  scene: DiagramScene,
+  hl: Highlight,
+): void {
+  if (hl.kind === 'vertex') {
+    const p = scene.points?.find((pt) => pt.id === hl.id);
+    if (!p) return;
+    const sp = toScreen(p, view);
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = '#000000';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(sp.x, sp.y, 10, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.shadowColor = '#a6ffcc';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(sp.x, sp.y, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (p.label) {
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = '#000000';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 16px system-ui, sans-serif';
+      ctx.fillText(p.label, sp.x + 14, sp.y - 12);
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = '#000000';
+    ctx.strokeStyle = '#000000';
+    ctx.fillStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.font = '10px sans-serif';
+  } else if (hl.kind === 'segment') {
+    const seg = scene.segments?.find((s) => s.id === hl.id);
+    if (!seg) return;
+    const pointMap = new Map<string, { x: number; y: number }>();
+    if (scene.points) {
+      for (const pt of scene.points) {
+        pointMap.set(pt.id, pt);
+      }
+    }
+    const a = pointMap.get(seg.a);
+    const b = pointMap.get(seg.b);
+    if (!a || !b) return;
+    const sa = toScreen(a, view);
+    const sb = toScreen(b, view);
+    ctx.strokeStyle = '#a6ffcc';
+    ctx.lineWidth = 8;
+    ctx.shadowColor = '#a6ffcc';
+    ctx.shadowBlur = 16;
+    ctx.beginPath();
+    ctx.moveTo(sa.x, sa.y);
+    ctx.lineTo(sb.x, sb.y);
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = '#000000';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+  } else if (hl.kind === 'polyline') {
+    const poly = scene.polylines?.find((pl) => pl.id === hl.id);
+    if (!poly || !poly.points || poly.points.length < 2) return;
+    const first = poly.points[0];
+    if (!first) return;
+    ctx.strokeStyle = '#a6ffcc';
+    ctx.lineWidth = 8;
+    ctx.shadowColor = '#a6ffcc';
+    ctx.shadowBlur = 16;
+    ctx.beginPath();
+    const start = toScreen({ x: Number(first[0]), y: Number(first[1]) }, view);
+    ctx.moveTo(start.x, start.y);
+    for (let i = 1; i < poly.points.length; i++) {
+      const pt = poly.points[i];
+      if (pt) {
+        const sp = toScreen({ x: Number(pt[0]), y: Number(pt[1]) }, view);
+        ctx.lineTo(sp.x, sp.y);
+      }
+    }
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = '#000000';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+  } else if (hl.kind === 'bar') {
+    const b = scene.bars?.find((bar) => bar.id === hl.id);
+    if (!b) return;
+    const topLeft = toScreen(
+      { x: Math.min(b.x0, b.x1), y: Math.min(b.y_top, b.y_base) },
+      view,
+    );
+    const bottomRight = toScreen(
+      { x: Math.max(b.x0, b.x1), y: Math.max(b.y_top, b.y_base) },
+      view,
+    );
+    const bw = bottomRight.x - topLeft.x;
+    const bh = bottomRight.y - topLeft.y;
+    ctx.strokeStyle = '#a6ffcc';
+    ctx.lineWidth = 8;
+    ctx.shadowColor = '#a6ffcc';
+    ctx.shadowBlur = 16;
+    ctx.strokeRect(topLeft.x, topLeft.y, bw, bh);
+
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = '#000000';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+  } else if (hl.kind === 'axis') {
+    ctx.strokeStyle = '#a6ffcc';
+    ctx.lineWidth = 8;
+    ctx.shadowColor = '#a6ffcc';
+    ctx.shadowBlur = 16;
+    if (hl.id === 'x-axis' && scene.axes?.x_axis_y != null) {
+      const p1 = toScreen({ x: 0, y: scene.axes.x_axis_y }, view);
+      const p2 = toScreen({ x: 1, y: scene.axes.x_axis_y }, view);
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+    } else if (hl.id === 'y-axis' && scene.axes?.y_axis_x != null) {
+      const p1 = toScreen({ x: scene.axes.y_axis_x, y: 0 }, view);
+      const p2 = toScreen({ x: scene.axes.y_axis_x, y: 1 }, view);
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = '#000000';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+  }
+}
+
 export function Explore({
   scene,
   announced,
@@ -280,6 +431,27 @@ export function Explore({
 }: ExploreProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasRectCache = useRef<CanvasRectCache>(createCanvasRectCache());
+  const highlightRef = useRef<Highlight>({ kind: 'none', id: null });
+
+  const updateHighlightCanvasAttr = (hl: Highlight): void => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const attr = hl.kind === 'none' || !hl.id ? 'none' : `${hl.kind}:${hl.id}`;
+    canvas.setAttribute('data-highlight', attr);
+  };
+
+  const applyHighlight = (hit: Target | null | undefined): void => {
+    const hl = highlightFor(hit, sceneRef.current);
+    highlightRef.current = hl;
+    updateHighlightCanvasAttr(hl);
+  };
+
+  const clearHighlight = (): void => {
+    const hl: Highlight = { kind: 'none', id: null };
+    highlightRef.current = hl;
+    updateHighlightCanvasAttr(hl);
+  };
+
   const askButtonRef = useRef<HTMLButtonElement>(null);
   const backButtonRef = useRef<HTMLButtonElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
@@ -501,6 +673,8 @@ export function Explore({
       playingScanToneRef.current = false;
       engineState.current = initialState();
       heartbeatState.current = initialHeartbeatState();
+      clearHighlight();
+      scheduleDraw(viewportRef.current, null);
       if (shouldPlayAlive(scene)) {
         markAlivePlayed(scene);
         setIsAlive(true);
@@ -640,6 +814,7 @@ export function Explore({
     prevTargetRef.current = { kind: 'none' };
     stickyHoldRef.current = resetStickyHoldOnLift();
     heartbeatState.current = initialHeartbeatState();
+    clearHighlight();
     leaveExploreEntry();
     onBack();
   };
@@ -1098,6 +1273,9 @@ export function Explore({
   const draw = (view: Viewport, cursor: ScreenPoint | null): void => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    updateHighlightCanvasAttr(highlightRef.current);
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -1107,6 +1285,12 @@ export function Explore({
     const offscreen = offscreenCanvasRef.current;
     if (offscreen) {
       ctx.drawImage(offscreen, 0, 0, w, h);
+    }
+
+    // "Show me" highlight (Requirement 49, task 81)
+    const hl = highlightRef.current;
+    if (hl.kind !== 'none' && hl.id !== null) {
+      renderHighlightElement(ctx, view, sceneRef.current, hl);
     }
 
     // Cursor indicator for sighted observers
@@ -1250,6 +1434,7 @@ export function Explore({
       prevTargetRef.current = { kind: 'none' };
       stickyHoldRef.current = resetStickyHoldOnLift();
       heartbeatState.current = initialHeartbeatState();
+      clearHighlight();
       onBackRef.current();
     });
 
@@ -1274,9 +1459,11 @@ export function Explore({
         prevTargetRef.current = { kind: 'none' };
         stickyHoldRef.current = resetStickyHoldOnLift();
         heartbeatState.current = initialHeartbeatState();
+        clearHighlight();
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
         engineState.current = state;
         runEffects(effects, drivers);
+        scheduleDraw(viewportRef.current, null);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -1299,9 +1486,11 @@ export function Explore({
       prevTargetRef.current = { kind: 'none' };
       stickyHoldRef.current = resetStickyHoldOnLift();
       heartbeatState.current = initialHeartbeatState();
+      clearHighlight();
       const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
       engineState.current = state;
       runEffects(effects, drivers);
+      scheduleDraw(viewportRef.current, null);
     };
     window.addEventListener('blur', handleWindowBlur);
 
@@ -1356,6 +1545,7 @@ export function Explore({
       prevTargetRef.current = { kind: 'none' };
       stickyHoldRef.current = resetStickyHoldOnLift();
       heartbeatState.current = initialHeartbeatState();
+      clearHighlight();
       const { effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
       runEffects(effects, drivers);
       sendProximityLift(performance.now());
@@ -1697,6 +1887,7 @@ export function Explore({
           now,
         );
         prevTargetRef.current = moveResult.target;
+        applyHighlight(moveResult.target);
         scheduleDraw(view, coords);
 
         if (moveResult.target.kind === 'bar') {
@@ -1848,6 +2039,7 @@ export function Explore({
         now,
       );
       prevTargetRef.current = moveResult.target;
+      applyHighlight(moveResult.target);
       scheduleDraw(view, coords);
       return;
     }
@@ -1893,6 +2085,7 @@ export function Explore({
       now,
     );
     prevTargetRef.current = moveResult.target;
+    applyHighlight(moveResult.target);
     scheduleDraw(view, coords);
     keepAliveTimer.current?.start(coords, now);
   };
@@ -1982,6 +2175,7 @@ export function Explore({
         now,
       );
       prevTargetRef.current = moveResult.target;
+      applyHighlight(moveResult.target);
       scheduleDraw(view, coords);
       return;
     }
@@ -2017,6 +2211,7 @@ export function Explore({
       now,
     );
     prevTargetRef.current = moveResult.target;
+    applyHighlight(moveResult.target);
     scheduleDraw(view, coords);
     keepAliveTimer.current?.update(coords, now);
 
@@ -2117,6 +2312,7 @@ export function Explore({
           now,
         );
         prevTargetRef.current = moveResult.target;
+        applyHighlight(moveResult.target);
         scheduleDraw(view, promotedCoords);
         if (!guideController.current?.isGuiding() && !askActive.current) {
           keepAliveTimer.current?.start(promotedCoords, now);
@@ -2132,6 +2328,7 @@ export function Explore({
         prevTargetRef.current = { kind: 'none' };
         stickyHoldRef.current = resetStickyHoldOnLift();
         heartbeatState.current = initialHeartbeatState();
+        clearHighlight();
         const { state, effects } = step(engineState.current, { kind: 'lift', t: performance.now() });
         engineState.current = state;
         runEffects(effects, drivers);
@@ -2370,6 +2567,7 @@ export function Explore({
         <canvas
           ref={canvasRef}
           className="gt-explore__canvas"
+          data-highlight="none"
           tabIndex={0}
           role="img"
           aria-label={canvasAriaLabel(scene)}

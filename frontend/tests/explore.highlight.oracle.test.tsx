@@ -50,7 +50,7 @@ describe('task 80.3: Requirement 49 oracles (lane 81.1)', () => {
     });
   });
 
-  it.fails('H1 a finger on corner A: the screen asks highlightFor about vertex A and marks the canvas vertex:A (49.1, 49.11; today the screen never calls it)', async () => {
+  it('H1 a finger on corner A: the screen asks highlightFor about vertex A and marks the canvas vertex:A (49.1, 49.11; today the screen never calls it)', async () => {
     await withExplore({ scene: triangle }, (rig) => {
       rig.down(100, 100);
       const hits = spy.mock.calls.map((c) => c[0]);
@@ -59,7 +59,7 @@ describe('task 80.3: Requirement 49 oracles (lane 81.1)', () => {
     });
   });
 
-  it.fails('H2 a finger on side AB (away from the corners) marks the canvas segment:AB (49.1, 49.11)', async () => {
+  it('H2 a finger on side AB (away from the corners) marks the canvas segment:AB (49.1, 49.11)', async () => {
     await withExplore({ scene: triangle }, (rig) => {
       rig.down(100, 100);
       rig.advance(600); // past the corner quiet window
@@ -68,7 +68,7 @@ describe('task 80.3: Requirement 49 oracles (lane 81.1)', () => {
     });
   });
 
-  it.fails('H3 the highlight clears on lift and is redrawn without it (49.5, 49.11)', async () => {
+  it('H3 the highlight clears on lift and is redrawn without it (49.5, 49.11)', async () => {
     await withExplore({ scene: triangle }, (rig) => {
       rig.down(100, 100);
       expect(highlightAttr(rig)).toBe('vertex:A'); // meaningful only if it was set first
@@ -77,7 +77,7 @@ describe('task 80.3: Requirement 49 oracles (lane 81.1)', () => {
     });
   });
 
-  it.fails('H4 moving to empty space makes it none while the finger stays down (49.5)', async () => {
+  it('H4 moving to empty space makes it none while the finger stays down (49.5)', async () => {
     await withExplore({ scene: triangle }, (rig) => {
       rig.down(100, 100);
       expect(highlightAttr(rig)).toBe('vertex:A');

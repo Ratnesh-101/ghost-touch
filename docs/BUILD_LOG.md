@@ -4842,3 +4842,20 @@ Format for each entry:
 
 
 
+
+## 2026-11-20 — Antigravity — Lane hi3: "Show me" highlight (Requirement 49, Task 81.1)
+- Implemented the "show me" visual highlight of the touched element on Explore canvas (draw-only, Requirement 49):
+  - Added pure `highlightFor` integration tracking `target` from `step()`.
+  - Added dynamic `data-highlight` attribute on canvas updating on every redraw and clearing to `none` on finger lifts, window blur, visibilitychange (hidden), and scene transitions.
+  - Implemented `renderHighlightElement` drawing thicker (lineWidth 8, at least 2x) strokes in lighter tint (#a6ffcc) with glow for segments, polylines, bar outlines, and coordinate axes; larger white dot (radius 10) with dark outline ring for vertices.
+  - Converted oracles H1–H4 from `it.fails` to `it` in `frontend/tests/explore.highlight.oracle.test.tsx` (all passing).
+  - Added unit and integration test suite in `frontend/tests/explore.highlight.test.tsx`.
+- Follow-up:
+  - Resolved `tsc` compilation error (`Cannot redeclare exported variable 'renderHighlightElement'`) by removing duplicate export identifier from line 125 `export { ... }` block in `frontend/src/screens/Explore.tsx`, retaining the single canonical `export function renderHighlightElement` declaration.
+  - Verified that all downstream test suites (`explore.highlight`, `explore.ux.bugs`, `explore.wiring.guards`, `explorePacing`) load cleanly.
+- Files touched:
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/tests/explore.highlight.test.tsx`
+  - `frontend/tests/explore.highlight.oracle.test.tsx`
+  - `docs/reports/agy-hi3-report.md`
+  - `docs/BUILD_LOG.md`
