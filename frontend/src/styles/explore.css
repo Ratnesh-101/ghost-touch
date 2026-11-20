@@ -154,9 +154,7 @@
   align-self: stretch;
   touch-action: none;
   background-color: var(--gt-bg, #0b0e0c);
-  border: 2px solid var(--gt-line, #39ff88);
   border-radius: var(--gt-radius-sm, 8px);
-  box-sizing: border-box;
   outline: none;
   cursor: crosshair;
 }
@@ -810,7 +808,6 @@
     background: transparent;
   }
 
-  .gt-explore__canvas,
   .gt-lab-specimen-table,
   .gt-explore__canvas-container,
   .gt-explore__status-card,

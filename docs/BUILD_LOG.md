@@ -4817,3 +4817,28 @@ Format for each entry:
   - `docs/reports/agy-hi4-report.md`
   - `docs/BUILD_LOG.md`
 
+## 2026-11-20 — Antigravity — Lane hi5: Fix CSS rule finder & outline test assertions in explore.outlines.test.tsx
+- Fixed CSS test failures in `frontend/tests/explore.outlines.test.tsx`:
+  - Normalized CRLF `\r\n` to `\n` in `readStyleFile` and `stripComments` to ensure consistent newline handling regardless of Windows line endings.
+  - Implemented robust `parseCssRules` parser handling CSS rules, selector lists, at-rules (`@keyframes`, `@media`), and brace depth.
+  - Replaced the single-match `findRuleBlock` regex finder with `findRuleBlocks` to collect ALL rule blocks whose selector list contains exactly the targeted class (and all blocks inside the named `@media` if specified).
+  - Updated all 4 CSS tests to assert that at least one matching block declares the required property (`border: 2px solid`, `height: 5rem`, `border-width: 3px`).
+  - Verified across all blocks that the canvas element itself (`.gt-explore__canvas`) has no border, border-width, or box-sizing change, and is completely excluded from `prefers-contrast: more`.
+  - Maintained assertion rigor ensuring every assertion can fail if properties are omitted or violated.
+- Files touched:
+  - `frontend/tests/explore.outlines.test.tsx`
+  - `docs/reports/agy-hi5-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-20 — Antigravity — Lane hi5 follow-up 2: Fix TS6133 & prefers-contrast rule filtering in explore.outlines.test.tsx
+- In `frontend/tests/explore.outlines.test.tsx`:
+  - Removed unused helper declaration `const findRuleBlock = findRuleBlocks;` (resolves TS6133).
+  - Evaluated `frontend/src/styles/explore.css` and verified the CSS correctly does not give `.gt-explore__canvas` any border in either normal rules or `prefers-contrast: more` (only container/table and status card receive 3px borders).
+  - Fixed media query filtering in `findRuleBlocks`: when `mediaQuerySubstring` is provided, rules with `rule.media === undefined` now correctly return `false` instead of falling through to `true`. This resolves the `expected 1 to be +0` failure where top-level canvas rules were falsely included in `canvasMediaBlocks`.
+- Files touched:
+  - `frontend/tests/explore.outlines.test.tsx`
+  - `docs/reports/agy-hi5-report.md`
+  - `docs/BUILD_LOG.md`
+
+
+

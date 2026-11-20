@@ -48,14 +48,24 @@ import path from 'node:path';
 
 // @ts-expect-error Node global, no @types/node in this project
 const cwd: string = process.cwd();
-const cssContent = fs.readFileSync(path.resolve(cwd, 'src/styles/explore.css'), 'utf-8') as string;
+
+function readStyleFile(relPath: string): string {
+  const p1 = path.resolve(cwd, relPath);
+  if (fs.existsSync(p1)) return fs.readFileSync(p1, 'utf-8').replace(/\r\n/g, '\n');
+  const p2 = path.resolve(cwd, 'frontend', relPath);
+  if (fs.existsSync(p2)) return fs.readFileSync(p2, 'utf-8').replace(/\r\n/g, '\n');
+  throw new Error(`File not found: ${relPath}`);
+}
+
+const cssContent = readStyleFile('src/styles/explore.css');
+const tokensContent = readStyleFile('src/styles/tokens.css');
 
 const SIZE = 400;
 const triangle = triangleJson as unknown as DiagramScene;
 const sine = sineJson as unknown as DiagramScene;
 const barchart = barchartJson as unknown as DiagramScene;
 
-export function hexToRgb(hex: string): [number, number, number] {
+function hexToRgb(hex: string): [number, number, number] {
   const clean = hex.replace('#', '').trim();
   if (clean.length === 3) {
     const chars = clean.split('');
@@ -71,7 +81,7 @@ export function hexToRgb(hex: string): [number, number, number] {
   return [(num >> 16) & 0xff, (num >> 8) & 0xff, num & 0xff];
 }
 
-export function relativeLuminance(rgb: [number, number, number]): number {
+function relativeLuminance(rgb: [number, number, number]): number {
   const toLinear = (c: number): number => {
     const s = c / 255;
     return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
@@ -82,12 +92,173 @@ export function relativeLuminance(rgb: [number, number, number]): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-export function contrastRatio(hex1: string, hex2: string): number {
+function contrastRatio(hex1: string, hex2: string): number {
   const l1 = relativeLuminance(hexToRgb(hex1));
   const l2 = relativeLuminance(hexToRgb(hex2));
   const lighter = Math.max(l1, l2);
   const darker = Math.min(l1, l2);
   return (lighter + 0.05) / (darker + 0.05);
+}
+
+function extractCssToken(css: string, tokenName: string): string {
+  const match = css.match(new RegExp(`${tokenName}\\s*:\\s*([^;]+);`));
+  if (!match || !match[1]) {
+    throw new Error(`Token ${tokenName} not found`);
+  }
+  return match[1].trim();
+}
+
+function stripComments(css: string): string {
+  return css.replace(/\r\n/g, '\n').replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+function stripMediaBlocks(css: string): string {
+  let clean = stripComments(css);
+  let mediaIdx: number;
+  while ((mediaIdx = clean.search(/@media\b/)) !== -1) {
+    const openBrace = clean.indexOf('{', mediaIdx);
+    if (openBrace === -1) break;
+    let depth = 1;
+    let j = openBrace + 1;
+    while (j < clean.length && depth > 0) {
+      if (clean[j] === '{') depth++;
+      else if (clean[j] === '}') depth--;
+      j++;
+    }
+    clean = clean.slice(0, mediaIdx) + clean.slice(j);
+  }
+  return clean;
+}
+
+function getMediaBlock(css: string, mediaQuerySubstring: string): string {
+  const clean = stripComments(css);
+  const mediaIdx = clean.indexOf(mediaQuerySubstring);
+  if (mediaIdx === -1) {
+    throw new Error(`Media query containing "${mediaQuerySubstring}" not found`);
+  }
+  const openBrace = clean.indexOf('{', mediaIdx);
+  if (openBrace === -1) {
+    throw new Error(`Open brace not found for media query`);
+  }
+  let depth = 1;
+  let j = openBrace + 1;
+  while (j < clean.length && depth > 0) {
+    if (clean[j] === '{') depth++;
+    else if (clean[j] === '}') depth--;
+    j++;
+  }
+  return clean.slice(openBrace + 1, j - 1);
+}
+
+interface ParsedRule {
+  selectors: string[];
+  body: string;
+  media?: string;
+}
+
+function parseCssRules(css: string): ParsedRule[] {
+  const clean = stripComments(css);
+  const rules: ParsedRule[] = [];
+  let i = 0;
+  const len = clean.length;
+
+  while (i < len) {
+    while (i < len && /\s/.test(clean[i]!)) i++;
+    if (i >= len) break;
+
+    // Check for at-rules
+    if (clean[i] === '@') {
+      let j = i + 1;
+      while (j < len && clean[j] !== ';' && clean[j] !== '{') {
+        j++;
+      }
+      if (j >= len) break;
+
+      if (clean[j] === ';') {
+        i = j + 1;
+        continue;
+      }
+
+      const preamble = clean.slice(i, j).trim();
+      const openBrace = j;
+
+      let depth = 1;
+      let k = openBrace + 1;
+      while (k < len && depth > 0) {
+        if (clean[k] === '{') depth++;
+        else if (clean[k] === '}') depth--;
+        k++;
+      }
+      const atBlockBody = clean.slice(openBrace + 1, k - 1);
+      i = k;
+
+      if (preamble.startsWith('@media')) {
+        const mediaQuery = preamble.slice(6).trim();
+        const nestedRules = parseCssRules(atBlockBody);
+        for (const nr of nestedRules) {
+          rules.push({
+            selectors: nr.selectors,
+            body: nr.body,
+            media: nr.media ? `${mediaQuery} and ${nr.media}` : mediaQuery,
+          });
+        }
+      }
+      continue;
+    }
+
+    // Regular CSS rule
+    const openBrace = clean.indexOf('{', i);
+    if (openBrace === -1) break;
+
+    const selectorListStr = clean.slice(i, openBrace).trim();
+
+    let depth = 1;
+    let k = openBrace + 1;
+    while (k < len && depth > 0) {
+      if (clean[k] === '{') depth++;
+      else if (clean[k] === '}') depth--;
+      k++;
+    }
+    const declarations = clean.slice(openBrace + 1, k - 1);
+    i = k;
+
+    if (selectorListStr) {
+      const selectors = selectorListStr
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      rules.push({
+        selectors,
+        body: declarations,
+      });
+    }
+  }
+
+  return rules;
+}
+
+function findRuleBlocks(
+  css: string,
+  className: string,
+  mediaQuerySubstring?: string,
+): string[] {
+  const targetClass = className.startsWith('.') ? className : `.${className}`;
+  const allRules = parseCssRules(css);
+
+  const matched = allRules.filter((rule) => {
+    // 1. Selector list must contain exactly the target class
+    const hasExactClass = rule.selectors.some((sel) => sel === targetClass);
+    if (!hasExactClass) return false;
+
+    // 2. If mediaQuerySubstring is specified, the rule must be inside that media query
+    if (mediaQuerySubstring) {
+      return rule.media !== undefined ? rule.media.includes(mediaQuerySubstring) : false;
+    }
+
+    return true;
+  });
+
+  return matched.map((r) => r.body);
 }
 
 interface DrawCall {
@@ -659,30 +830,132 @@ describe('Lane hi1: low-vision outlines (I29a)', () => {
     });
   });
 
-  describe('explore.css styles: high contrast canvas and status card borders', () => {
-    it('canvas border is at least 2px solid with contrast ratio >= 3:1 against #0b0e0c', () => {
-      expect(cssContent).toMatch(/\.gt-explore__canvas\b[^{]*{[^}]*border:\s*2px solid/);
-      expect(cssContent).toMatch(/\.gt-lab-specimen-table\b[^{]*{[^}]*border:\s*2px solid/);
+  describe('explore.css styles: high contrast canvas container and status card borders', () => {
+    it('canvas container border is at least 2px solid with contrast >= 3:1 from tokens, while canvas has no border or box-sizing change', () => {
+      const topLevelCss = stripMediaBlocks(cssContent);
 
-      // Contrast of #39ff88 against background #0b0e0c
-      const ratio = contrastRatio('#39ff88', '#0b0e0c');
+      // Container has 2px solid border referencing --gt-line
+      const containerBlocks = findRuleBlocks(topLevelCss, 'gt-explore__canvas-container');
+      expect(containerBlocks.length).toBeGreaterThan(0);
+      expect(
+        containerBlocks.some(
+          (b) => /border:\s*2px solid/.test(b) && /var\(--gt-line/.test(b),
+        ),
+      ).toBe(true);
+
+      // Specimen table has 2px solid border
+      const tableBlocks = findRuleBlocks(topLevelCss, 'gt-lab-specimen-table');
+      expect(tableBlocks.length).toBeGreaterThan(0);
+      expect(tableBlocks.some((b) => /border:\s*2px solid/.test(b))).toBe(true);
+
+      // Canvas element itself has NO border and NO box-sizing change across all its blocks (content box = border box)
+      const canvasBlocks = findRuleBlocks(topLevelCss, 'gt-explore__canvas');
+      expect(canvasBlocks.length).toBeGreaterThan(0);
+      for (const block of canvasBlocks) {
+        expect(block).not.toMatch(/\bborder\s*:/);
+        expect(block).not.toMatch(/\bborder-width\s*:/);
+        expect(block).not.toMatch(/box-sizing:\s*border-box/);
+      }
+
+      // Assert across all canvas blocks in the full stylesheet (including media queries)
+      const allCanvasBlocks = findRuleBlocks(cssContent, 'gt-explore__canvas');
+      expect(allCanvasBlocks.length).toBeGreaterThan(0);
+      for (const block of allCanvasBlocks) {
+        expect(block).not.toMatch(/\bborder\s*:/);
+        expect(block).not.toMatch(/\bborder-width\s*:/);
+        expect(block).not.toMatch(/box-sizing:\s*border-box/);
+      }
+
+      // Contrast ratio calculated dynamically from tokens.css
+      const lineToken = extractCssToken(tokensContent, '--gt-line');
+      const bgToken = extractCssToken(tokensContent, '--gt-bg');
+      const ratio = contrastRatio(lineToken, bgToken);
       expect(ratio).toBeGreaterThanOrEqual(3.0);
     });
 
     it('status card border is at least 2px solid with contrast ratio >= 3:1 against surrounding background', () => {
-      expect(cssContent).toMatch(/\.gt-lab-status-card\b[^{]*{[^}]*border:\s*2px solid/);
-      const ratio = contrastRatio('#39ff88', '#0b0e0c');
-      expect(ratio).toBeGreaterThanOrEqual(3.0);
+      const topLevelCss = stripMediaBlocks(cssContent);
+
+      // Status card has 2px solid border referencing --gt-line
+      const statusCardBlocks = findRuleBlocks(topLevelCss, 'gt-lab-status-card');
+      expect(statusCardBlocks.length).toBeGreaterThan(0);
+      expect(
+        statusCardBlocks.some(
+          (b) => /border:\s*2px solid/.test(b) && /var\(--gt-line/.test(b),
+        ),
+      ).toBe(true);
+
+      // Contrast against status card surface or background from tokens.css
+      const lineToken = extractCssToken(tokensContent, '--gt-line');
+      const surfaceCardToken = extractCssToken(tokensContent, '--gt-surface-card');
+      const bgToken = extractCssToken(tokensContent, '--gt-bg');
+      expect(contrastRatio(lineToken, surfaceCardToken)).toBeGreaterThanOrEqual(3.0);
+      expect(contrastRatio(lineToken, bgToken)).toBeGreaterThanOrEqual(3.0);
     });
 
-    it('respects prefers-contrast: more with 3px borders', () => {
-      expect(cssContent).toMatch(/prefers-contrast:\s*more/);
-      expect(cssContent).toMatch(/border-width:\s*3px/);
+    it('respects prefers-contrast: more with 3px borders anchored in media query and excludes canvas', () => {
+      const contrastMedia = getMediaBlock(cssContent, 'prefers-contrast: more');
+
+      // Containers and status card get 3px border in high contrast mode
+      const containerContrastBlocks = findRuleBlocks(
+        contrastMedia,
+        'gt-explore__canvas-container',
+      );
+      expect(containerContrastBlocks.length).toBeGreaterThan(0);
+      expect(containerContrastBlocks.some((b) => /border-width:\s*3px/.test(b))).toBe(true);
+
+      const statusCardContrastBlocks = findRuleBlocks(
+        contrastMedia,
+        'gt-lab-status-card',
+      );
+      expect(statusCardContrastBlocks.length).toBeGreaterThan(0);
+      expect(statusCardContrastBlocks.some((b) => /border-width:\s*3px/.test(b))).toBe(true);
+
+      // Also verify using the media query parameter on the full stylesheet
+      const containerMediaBlocks = findRuleBlocks(
+        cssContent,
+        'gt-explore__canvas-container',
+        'prefers-contrast: more',
+      );
+      expect(containerMediaBlocks.length).toBeGreaterThan(0);
+      expect(containerMediaBlocks.some((b) => /border-width:\s*3px/.test(b))).toBe(true);
+
+      const statusCardMediaBlocks = findRuleBlocks(
+        cssContent,
+        'gt-lab-status-card',
+        'prefers-contrast: more',
+      );
+      expect(statusCardMediaBlocks.length).toBeGreaterThan(0);
+      expect(statusCardMediaBlocks.some((b) => /border-width:\s*3px/.test(b))).toBe(true);
+
+      // Canvas element must NOT be present in prefers-contrast rule list
+      const canvasContrastBlocks = findRuleBlocks(contrastMedia, 'gt-explore__canvas');
+      expect(canvasContrastBlocks.length).toBe(0);
+      const canvasMediaBlocks = findRuleBlocks(
+        cssContent,
+        'gt-explore__canvas',
+        'prefers-contrast: more',
+      );
+      expect(canvasMediaBlocks.length).toBe(0);
+      const canvasInContrast = /(^|[\s,}])\.gt-explore__canvas\s*[,{]/.test(contrastMedia);
+      expect(canvasInContrast).toBe(false);
     });
 
-    it('preserves status line height (Requirement 25.4)', () => {
-      expect(cssContent).toMatch(/height:\s*5rem/);
-      expect(cssContent).toMatch(/min-height:\s*calc\(3\s*\*\s*1\.45em\)/);
+    it('preserves status line height anchored in status card and status text rules (Requirement 25.4)', () => {
+      const topLevelCss = stripMediaBlocks(cssContent);
+
+      // Outer status card height 5rem and border-box sizing
+      const statusCardBlocks = findRuleBlocks(topLevelCss, 'gt-lab-status-card');
+      expect(statusCardBlocks.length).toBeGreaterThan(0);
+      expect(statusCardBlocks.some((b) => /height:\s*5rem/.test(b))).toBe(true);
+      expect(statusCardBlocks.some((b) => /box-sizing:\s*border-box/.test(b))).toBe(true);
+
+      // Inner status text 3-line min-height calc
+      const statusTextBlocks = findRuleBlocks(topLevelCss, 'gt-explore__status');
+      expect(statusTextBlocks.length).toBeGreaterThan(0);
+      expect(
+        statusTextBlocks.some((b) => /min-height:\s*calc\(3\s*\*\s*1\.45em\)/.test(b)),
+      ).toBe(true);
     });
   });
 });
