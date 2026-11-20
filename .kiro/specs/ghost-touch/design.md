@@ -894,3 +894,24 @@ Written by Kiro before the tests. Tests only: no file under `frontend/src/` chan
 
 ## Correct button only with Teacher tools (Requirement 48, task 79)
 Written by Kiro before the code. `App.tsx` renders `<Explore onCorrect={isTeacherActive() ? handleCorrect : undefined} />`. `Explore.tsx` already renders `{onCorrect && <AccessibleButton ... />}` inside a flex footer row, so an undefined handler removes the element, its name and its focus stop, and no placeholder keeps a slot; nothing else changes. The status card and the canvas container have fixed or flex sizes that do not depend on the footer buttons (Requirement 25), and the footer row wraps, so the other buttons reflow without a gap. Tests are examples, not properties: an App-level render with Teacher tools off and on, and the two e2e specs, which now build with `VITE_FEATURE_SHARE=1` and set `gt_teacher_enabled` to `true` before load so their button list still includes Correct. The e2e list therefore describes the teacher view; the student view (no Correct) is covered by the App test.
+
+
+
+## "Show me" highlight (Requirement 49, task 80.1)
+Written by Kiro before the code. One pure module, `frontend/src/core/highlight.ts`, named exports, type imports only.
+```ts
+type HighlightKind = 'vertex' | 'segment' | 'polyline' | 'axis' | 'bar' | 'none';
+interface Highlight { kind: HighlightKind; id: string | null }
+highlightFor(hit: Target | null | undefined, scene: DiagramScene): Highlight
+```
+### Rules
+- `vertex` needs a point with that id; `line` + `segment` a segment; `line` + `polyline` a polyline; `line` + `axis` the id `x-axis` with `axes.x_axis_y` a number or `y-axis` with `axes.y_axis_x` a number (the ids `hitTest` offers); `line` + `bar-edge` and `bar` a bar. A line whose `elementKind` does not match the list that holds its id is `none`.
+- Lookups are `Array.isArray` guarded plain loops (no object keyed by id, so `__proto__` is just a string). The result is always a fresh object.
+- The screen (task 81) calls it with the same target it passes to `step()`, stores the result in a ref, draws from the ref, and sets `data-highlight` on the canvas.
+
+| # | Property | Validates |
+|---|---|---|
+| P151 | **No invented id (Kiro, task 80.1):** for random scenes (including missing arrays, duplicate ids, `__proto__` ids) and any hit, including junk, the result is `none` with id `null`, or its id is the id of an element of the matching kind in the scene (axes: `x-axis` / `y-axis` with the axis set). 250 runs. | 49.1, 49.2 |
+| P152 | **A hit on X returns X (Kiro, task 80.1):** for random valid scenes and a hit built on every point, segment, polyline, bar (as a `bar` hit and as a `bar-edge` hit) and each set axis, the result names exactly that kind and id; a hit built on an id not in the scene gives `none`. 250 runs. | 49.1 |
+| P153 | **Deterministic, copy-equal, pure (Kiro, task 80.1):** the same call twice, and a call with a structured clone of the hit and of the scene, give deep-equal results; results are distinct objects; deep-frozen inputs are not mutated. 250 runs. | 49.3 |
+| P154 | **Total (Kiro, task 80.1):** `null`, `undefined`, primitives, arrays, objects with random fields and getters-free junk as the hit, and scenes cast from junk (`null`, numbers, missing or mistyped arrays, `axes` of any type) never throw and give a Highlight whose kind is one of the six and whose id is a string exactly when the kind is not `none`. 300 runs. | 49.2 |

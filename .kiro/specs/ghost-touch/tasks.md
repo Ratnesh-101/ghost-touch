@@ -645,3 +645,19 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 79.3 Tests: App-level Explore has no Correct with Teacher tools off, has it with on; existing App-level tests that expected Correct turn Teacher tools on; e2e specs build with `VITE_FEATURE_SHARE=1` and set `gt_teacher_enabled`
   - [x] 79.4 Gate (`tsc --noEmit`, `vitest run --maxWorkers=3` twice, `npx playwright test` once); path-scoped commit
   - _Requirements: 48.*, 25.4_
+
+
+
+## "Show me" highlight and the Explore Help button (Requirements 49 and 50; spec written before the code)
+> Core helpers, tests and oracles only (task 80). Do not edit `screens/`, `flow/`, `App.tsx`, `hitTest.ts`, `hapticEngine.ts`, `i18n/` or any tuned value. The screen and string work is the agy lane of task 81. Sources: `docs/reports/fable-project-improvement-report.md` I29 and I20, owner decision D9.
+
+- [ ] 80. Pure helpers, property tests and screen oracles for Requirements 49 and 50
+  - [x] 80.1 Requirement 49, design section and P151-P154 written before any code; `core/highlight.ts`; `tests/highlight.prop.test.ts` (250-300 runs), mutation-checked (four mutants killed: vertex id not checked, axis not checked as set, bar edge reported as segment, shared result object)
+  - [ ] 80.2 Requirement 50, design section and P155-P158 written before any code; `flow`-free `core/help.ts`; `tests/help.prop.test.ts`; the i18n completeness test as `it.fails`
+  - [ ] 80.3 Screen oracles as `it.fails` (`tests/explore.highlight.oracle.test.tsx`, `tests/explore.help.oracle.test.tsx`); `docs/reviews/kiro-review-hi.md`; gate
+  - _Requirements: 49.*, 50.*_
+
+- [ ] 81. Screen lanes (agy, not Kiro; starts after task 80 is committed)
+  - [ ] 81.1 Highlight in `screens/Explore.tsx` (Requirement 49.4 to 49.11); removes `.fails` from `explore.highlight.oracle.test.tsx`; due Nov 28 or withdrawn (D9)
+  - [ ] 81.2 Help button, strings in `en`, `hi`, `gu`, rows in `docs/user-test/translation-review.csv` and `.md` (Requirement 50.2 to 50.9); removes `.fails` from `explore.help.oracle.test.tsx` and `help.prop.test.ts`
+  - _Requirements: 49.4-49.11, 50.2-50.9_

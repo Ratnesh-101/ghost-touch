@@ -698,3 +698,28 @@ Ghost Touch turns a photo of a STEM diagram into something a blind or low-vision
 4. THE decision SHALL be read each time Explore is rendered from `App`, so turning Teacher tools on in Settings shows the button the next time Explore opens.
 5. THE Correct screen, its Back policy (Requirement 24.1), the `#/teach` route and the gating of Teacher tools SHALL NOT change. A saved or shared link that is already open on the Correct screen is not affected by this criterion.
 6. No new string. No tuned haptic value changes.
+
+
+
+### Requirement 49: "Show me" highlight of the touched element (core half; task 80.1)
+> Written by Kiro on 2026-11-20 BEFORE the code, from `docs/reports/fable-project-improvement-report.md` item I29 and owner decision D9 (`docs/reports/opus-owner-decisions-2026-11-18.md`): on by default, no switch; dropped if not merged by Nov 28. This requirement covers the pure helper `frontend/src/core/highlight.ts` and states what the screen lane (task 81) must do. `screens/`, `flow/`, `App.tsx`, `hitTest.ts`, `hapticEngine.ts` and every tuned haptic value are NOT changed by task 80.
+
+**User Story:** As a low-vision student, or a sighted teacher watching over my shoulder, I want the part of the diagram my finger is on to light up, so that what I feel and what I see agree.
+
+#### Definitions
+- **Hit:** the `Target` that `hitTest` (or `followTarget`, when Stay on line is on) reports for the primary finger.
+- **Highlight:** `{ kind: 'vertex' | 'segment' | 'polyline' | 'axis' | 'bar' | 'none', id: string | null }`.
+
+#### Acceptance Criteria
+1. THE core SHALL export `highlightFor(hit, scene)` returning a Highlight. A `vertex` hit gives `vertex` with that id when a point with that id exists. A `line` hit gives `segment`, `polyline` or `axis` by its `elementKind` when a segment or polyline with that id exists, or (axis) when the id is `x-axis` and `axes.x_axis_y` is a number, or the id is `y-axis` and `axes.y_axis_x` is a number. A `line` hit with `elementKind` `bar-edge`, and a `bar` hit, give `bar` with that id when a bar with that id exists.
+2. IN every other case, including a `none` hit, `null`, `undefined`, a hit of an unknown kind, a hit whose id is not in the scene or is not a string, or a scene with missing arrays, THE result SHALL be `{ kind: 'none', id: null }`. THE helper SHALL NEVER return an id that is not an id of an element of that kind in the scene, and SHALL NEVER throw.
+3. THE helper SHALL be pure and deterministic: the same hit and scene give deep-equal results, a hit and a copy of it give the same answer, it returns a new object on each call, and it mutates neither input. It SHALL NOT read the viewport, the finger or the time, and SHALL import only types.
+4. (Screen lane, task 81) WHILE a finger is down AND the highlight is not `none`, THE Explore canvas SHALL draw that element thicker and brighter than the rest of the drawing. Proposed: stroke at least twice as wide, in a lighter tint of the existing line colour, pending the owner's look on a phone. A vertex SHALL be drawn with a larger, brighter dot. A bar SHALL have its outline thicker and brighter; its fill is not changed.
+5. (Screen lane) THE highlight SHALL clear, and the canvas SHALL be redrawn without it, on lift (last pointer up or cancelled, `blur`, page hidden), on a scene change, and when the target becomes `none`. A promotion of a second finger (Requirement 4.8) SHALL follow the new primary finger's target.
+6. (Screen lane) THE highlight SHALL be draw-only. For every recorded trace the `vibrate`, `setTone`, `speak`, `stopSpeaking` and `playEarcon` calls with the highlight SHALL be identical to those of the build without it. No new speech, earcon, vibration or tone.
+7. (Screen lane) THE highlight SHALL NOT change the layout: the canvas box, the status card and the status line keep the sizes of Requirement 25. It is drawn inside the canvas bitmap, so no element is added to the flow.
+8. (Screen lane) THE highlight SHALL NOT animate, pulse or flash (Requirement 14.5, WCAG 2.3.1); under `prefers-reduced-motion` nothing differs, because there is nothing to disable. It is a static redraw.
+9. (Screen lane) Requirement 14.6 (tactile canvas purity) stands: the highlight changes the weight and tint of an existing stroke. It adds no texture, grid, stitch, rivet or glow region to the canvas.
+10. (Screen lane) THE highlight SHALL be on by default with no Settings switch (decision D9). IF the screen lane is not merged by Nov 28 THEN this requirement is withdrawn, not shipped half-done.
+11. (Screen lane) FOR testability, THE canvas element SHALL carry `data-highlight` with the value `none` or `<kind>:<id>` (for example `vertex:A`), updated with every redraw. It is not read by assistive technology (it is a data attribute, not a label) and changes no layout.
+12. THE helper SHALL add no tuned value and no user-facing string.
