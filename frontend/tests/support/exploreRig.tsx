@@ -40,6 +40,8 @@ export interface RigSettings {
   graphScan?: boolean;
   /** When set, `fetch` answers every request with this Ask answer. */
   askAnswer?: string;
+  /** Mount Explore with `isRaw` (a Raw Mode scene). Default false. */
+  isRaw?: boolean;
 }
 
 export interface Rig {
@@ -203,6 +205,7 @@ export async function withExplore(
         announced: 'Diagram',
         drivers,
         onBack,
+        ...(settings.isRaw === true ? { isRaw: true } : {}),
       }),
     );
   });
