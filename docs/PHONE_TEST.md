@@ -210,9 +210,12 @@
 
 ## Step 11: Teacher Correct Mode (1.5 min)
 
+> [!NOTE]
+> **Prerequisites:** "Teacher tools" (`lab.settings.teacher`) must be set to **ON** in Lab Settings (and `VITE_FEATURE_SHARE=1`), otherwise the **Correct** button is hidden on Explore (Requirement 48).
+
 | # | Do this | Expected | Result (pass / fail / notes) |
 |---|---|---|---|
-| 11.1 | In Explore on a captured photo diagram, tap the **Correct** button (`explore.correct`). | Teacher Correction screen opens. Speaks: *"Correction mode. Tap elements to select, drag points to adjust, and save when done."* (`correct.intro`). | |
+| 11.1 | Ensure Teacher tools is ON in Settings. In Explore on a captured photo diagram, tap the **Correct** button (`explore.correct`). | Teacher Correction screen opens. Speaks: *"Correction mode. Tap elements to select, drag points to adjust, and save when done."* (`correct.intro`). | |
 | 11.2 | Inspect the screen. | Original photo is underlaid with a 40% dark contrast scrim; diagram points and line segments are overlaid in high-contrast green. | |
 | 11.3 | Touch any vertex point handle (circle) and drag it 2–3 cm across the glass. | Point follows finger smoothly in real-time. On release, speaks: *"Moved point: <id>"* (`correct.pointMoved`). | |
 | 11.4 | Tap **Undo** button (`correct.undo`), then tap **Redo** button (`correct.redo`). | - Undo returns point to prior position; speaks *"Undo"*. - Redo restores the dragged position; speaks *"Redo"*. | |

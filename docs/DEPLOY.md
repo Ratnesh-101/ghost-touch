@@ -88,9 +88,9 @@ The frontend is a Vite + React 19 Progressive Web App configured via `frontend/v
    - **Key**: `VITE_SITE_URL` *(Optional on initial deployment; configure in Step 3 once your production domain is established)*
    - **Value**: Your frontend URL (e.g., `https://ghost-touch-iota.vercel.app`, **strictly without trailing slash**).
    - **Key**: `VITE_FEATURE_GUIDE` *(Optional; default unset/0)*
-   - **Value**: Set to `1` to enable the "Guide my finger" directional audio/haptic guidance feature (ships off until toggled in Settings).
+   - **Value**: `1` — enables the "Guide my finger" directional audio and haptic guidance feature (ships off until toggled in Settings).
    - **Key**: `VITE_FEATURE_SHARE` *(Optional; default unset/0)*
-   - **Value**: Set to `1` to enable Teacher verify & share. Teacher tools are hidden without this flag.
+   - **Value**: `1` — enables Teacher tools, diagram verification, and sharing (Teacher tools and the Correct button remain hidden without this flag; ships off until toggled in Settings).
 6. Click **Deploy**.
 7. Wait ~60 seconds for the build to complete.
 8. Copy your production frontend URL:

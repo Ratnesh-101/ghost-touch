@@ -179,6 +179,7 @@ backend/.venv/Scripts/python -m ruff format --check backend
 ## Deployment
 
 See [docs/DEPLOY.md](docs/DEPLOY.md) for production deployment instructions on Render and Vercel.
+See [docs/TEACHER_GUIDE.md](docs/TEACHER_GUIDE.md) for the three-step teacher guide to preparing, correcting, and sharing diagrams.
 
 ## Acknowledgements
 
