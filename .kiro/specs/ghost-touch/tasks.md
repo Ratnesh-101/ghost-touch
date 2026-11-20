@@ -653,7 +653,7 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 
 - [ ] 80. Pure helpers, property tests and screen oracles for Requirements 49 and 50
   - [x] 80.1 Requirement 49, design section and P151-P154 written before any code; `core/highlight.ts`; `tests/highlight.prop.test.ts` (250-300 runs), mutation-checked (four mutants killed: vertex id not checked, axis not checked as set, bar edge reported as segment, shared result object)
-  - [ ] 80.2 Requirement 50, design section and P155-P158 written before any code; `flow`-free `core/help.ts`; `tests/help.prop.test.ts`; the i18n completeness test as `it.fails`
+  - [x] 80.2 Requirement 50, design section and P155-P158 written before any code; `flow`-free `core/help.ts`; `tests/help.prop.test.ts`; the i18n completeness test as `it.fails` (two mutants killed: guide without stop, truthy instead of `=== true`)
   - [ ] 80.3 Screen oracles as `it.fails` (`tests/explore.highlight.oracle.test.tsx`, `tests/explore.help.oracle.test.tsx`); `docs/reviews/kiro-review-hi.md`; gate
   - _Requirements: 49.*, 50.*_
 

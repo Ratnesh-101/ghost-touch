@@ -915,3 +915,27 @@ highlightFor(hit: Target | null | undefined, scene: DiagramScene): Highlight
 | P152 | **A hit on X returns X (Kiro, task 80.1):** for random valid scenes and a hit built on every point, segment, polyline, bar (as a `bar` hit and as a `bar-edge` hit) and each set axis, the result names exactly that kind and id; a hit built on an id not in the scene gives `none`. 250 runs. | 49.1 |
 | P153 | **Deterministic, copy-equal, pure (Kiro, task 80.1):** the same call twice, and a call with a structured clone of the hit and of the scene, give deep-equal results; results are distinct objects; deep-frozen inputs are not mutated. 250 runs. | 49.3 |
 | P154 | **Total (Kiro, task 80.1):** `null`, `undefined`, primitives, arrays, objects with random fields and getters-free junk as the hit, and scenes cast from junk (`null`, numbers, missing or mistyped arrays, `axes` of any type) never throw and give a Highlight whose kind is one of the six and whose id is a string exactly when the kind is not `none`. 300 runs. | 49.2 |
+
+
+
+## Explore Help button (Requirement 50, task 80.2)
+Written by Kiro before the code. One pure module, `frontend/src/core/help.ts`, named exports, no imports (the wording is the screen lane's, through `t()`).
+```ts
+const HELP_KEYS = ['help.touch','help.back','help.ask','help.guide','help.stop','help.raw'] as const;
+type HelpKey = (typeof HELP_KEYS)[number];
+const HELP_BUTTON_KEY = 'explore.help';
+const HELP_I18N_KEYS: readonly string[]   // [HELP_BUTTON_KEY, ...HELP_KEYS]
+interface HelpContext { raw: boolean; guideOn: boolean; askOn: boolean }
+helpSentences(ctx: HelpContext): HelpKey[]
+```
+### Rules
+- Always `help.touch`, `help.back`. `askOn === true` adds `help.ask`; `guideOn === true` adds `help.guide` and `help.stop`; `raw === true` adds `help.raw`. Anything not exactly `true` is off. The result is `HELP_KEYS` filtered by those rules, so the order is the declared one and duplicates are impossible.
+- Suggested English for the lane (the lane may reword, the meaning stays): `explore.help` "Help"; `help.touch` "Drag one finger to feel the diagram."; `help.back` "Swipe down with two fingers, or press Back, to leave."; `help.ask` "Press and hold with two fingers, or use the Ask button, to ask a question."; `help.guide` "Say take me to, then a corner name, or say find the peak, to be guided."; `help.stop` "Say stop to end guiding."; `help.raw` "This diagram is only rough outlines. Labels may be missing."
+- The screen speaks the sentences as one utterance in this order; the helper has no part in speech.
+
+| # | Property | Validates |
+|---|---|---|
+| P155 | **Keys come only from the declared list, in order, never empty (Kiro, task 80.2):** for any context, including junk, the result is a subset of `HELP_KEYS`, has no duplicates, is in declared order, is never empty and always starts with `help.touch`, `help.back`. 300 runs. | 50.1, 50.2 |
+| P156 | **Each flag adds exactly its keys (Kiro, task 80.2):** for any context, flipping `raw` adds or removes exactly `help.raw`; flipping `guideOn` exactly `help.guide` and `help.stop`; flipping `askOn` exactly `help.ask`; the other keys are unchanged. 300 runs. | 50.1 |
+| P157 | **Pure, stable and total (Kiro, task 80.2):** the same context gives an equal array and a new array; a frozen context is not mutated; any junk (`null`, `undefined`, primitives, fields of any type, a field `'true'` or `1`) never throws and counts as off. 300 runs. | 50.2 |
+| P158 | **Strings are complete and honest (Kiro, task 80.2; `it.fails` until the string lane lands):** every key in `HELP_I18N_KEYS` exists in `en`, `hi` and `gu`, is not blank, has Hindi and Gujarati values that differ from English, and contains none of "verified", "correct", "checked", "approved" (any case). Every (language, key) pair is run as an explicit example, then 200 random pairs. | 50.7 |
