@@ -4859,3 +4859,13 @@ Format for each entry:
   - `frontend/tests/explore.highlight.oracle.test.tsx`
   - `docs/reports/agy-hi3-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-20 to 2026-11-21 (Claude Code orchestrator, with agy and Kiro lanes): held Explore features and CI repair
+- Owner instruction 2026-11-20: assume the teammate's phone pass passed and build the held features. NOTHING below has been tried on a real phone; the pass is assumed, not observed.
+- Claude Code: committed the untracked Fable reports and Kiro reviews (9 commits); orchestrated lanes, gates, merges; fixed small gate issues (tsc type in a test, E6 oracle flip). Gate on main da4cd5d: tsc 0, vitest 242 files / 3,075 passed (1 todo), build ok, Playwright 22/22, backend pytest 931 collected and passing, ruff clean.
+- Kiro (gt-fixer, gt-reviewer, gt-writer): T80 Requirements 49 and 50, `core/highlight.ts`, `core/help.ts`, P151 to P158, six mutants, `it.fails` oracles; review of lane hi1 (FIX FIRST: border on the canvas element shifted touch against picture, a real bug agy had introduced); review of hi3/hi4 (FIX FIRST: Help raw flag never reached the live app, Hindi/Gujarati guide phrases the parser rejects, highlight frozen under Guide, a mutant that survived); T81 oracle gaps (E2 exact list, E6, H6); T82 P52 timeout; T83 verification and tick of 81.2; write-up for tasks 79 to 81.
+- agy: hi1 outlines (I29a) plus hi5 fix of the canvas-border bug; hi2 teacher guide (I21 remainder); hi3 show-me highlight (I29b); hi4 Help button (I20); hi6 fixes for the hi3/hi4 review; hi7 CI pin. Several lanes needed 1 to 2 fix passes (test environment issues, a regression of the guide keep-alive caught by existing tests).
+- Real findings: the two Kiro "FIX FIRST" reviews above; CI on main was red since `ubuntu-latest` became Ubuntu 26.04 with no Python 3.11.10 (Backend and Schema Drift jobs): Python jobs pinned to `ubuntu-24.04`; the nightly soak failure was P52 timing out at the 5 s default on a slow runner (14.6 s), not a counterexample: timeout now scales with soak runs, property unchanged.
+- Dependabot PRs 37 to 40 (jsdom, Playwright, Vite, plugin-react, dev dependencies): merged together after tsc, vitest, build and Playwright all passed on the combined tree.
+- I28 (exit guard) was NOT built: the phone result that would justify it does not exist. I30, I31 and the other P2 items remain after Dec 5.
+- Not verified: the look of the highlight and outlines on a phone, Help with TalkBack, Guide under a real finger, Hindi/Gujarati wording (machine translated), CI result of the pin until GitHub runs it.

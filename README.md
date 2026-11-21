@@ -151,7 +151,7 @@ uvicorn app.main:app --app-dir backend --reload --port 8000
 
 ## Tests
 
-Current test suite status: On 2026-11-18 (at main 7eb5e7c): frontend tests 3,002 passed (plus 1 todo) in 233 files; backend tests 931 passed; Playwright 22 passed; requirements 48; properties numbered to P150 (P109 to P113 specified, not yet tested); tasks 79; commits 941, of which 98 carry the kiro: prefix.
+Current test suite status: On 2026-11-21 (at main da4cd5d): frontend tests 3,075 passed (plus 1 todo) in 242 files; backend tests 931 passed; Playwright 22 passed; requirements 50; properties numbered to P158 (P109 to P113 specified, not yet tested); tasks 83; commits 979, of which 107 carry the kiro: prefix.
 
 ```bash
 # Frontend: Vitest and fast-check property tests
