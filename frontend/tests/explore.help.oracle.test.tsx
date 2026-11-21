@@ -129,7 +129,7 @@ describe('task 80.3: Requirement 50 oracles (lane 81.2)', () => {
   // E6: red today. Explore passes `raw: isRaw === true` (the prop), but App.tsx never passes the
   // prop; the screen's own decision `isRawScene` (prop, or kind unknown, or the raw announcement)
   // is what Requirement 50.4 (amended, task 81.2 follow-up) asks for. Lane hi6 flips this.
-  it.fails('E6 a Raw Mode scene rendered WITHOUT the isRaw prop (as App does) speaks help.raw (50.4 amended)', async () => {
+  it('E6 a Raw Mode scene rendered WITHOUT the isRaw prop (as App does) speaks help.raw (50.4 amended)', async () => {
     const rawScene = { ...triangle, kind: 'unknown' } as DiagramScene;
     await withExplore({ scene: rawScene }, (rig) => {
       rig.clearCalls();
