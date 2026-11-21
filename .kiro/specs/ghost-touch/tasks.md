@@ -659,5 +659,5 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 
 - [ ] 81. Screen lanes (agy, not Kiro; starts after task 80 is committed)
   - [x] 81.1 Highlight in `screens/Explore.tsx` (Requirement 49.4 to 49.11); removes `.fails` from `explore.highlight.oracle.test.tsx`; due Nov 28 or withdrawn (D9)
-  - [ ] 81.2 Help button, strings in `en`, `hi`, `gu`, rows in `docs/user-test/translation-review.csv` and `.md` (Requirement 50.2 to 50.9); removes `.fails` from `explore.help.oracle.test.tsx` and `help.prop.test.ts`
+  - [x] 81.2 Help button, strings in `en`, `hi`, `gu`, rows in `docs/user-test/translation-review.csv` and `.md` (Requirement 50.2 to 50.9); removes `.fails` from `explore.help.oracle.test.tsx` and `help.prop.test.ts`
   - _Requirements: 49.4-49.11, 50.2-50.9_
