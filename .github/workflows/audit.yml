@@ -17,7 +17,8 @@ concurrency:
 jobs:
   audit:
     name: Dependency Audit
-    runs-on: ubuntu-latest
+    # ubuntu-latest is 26.04 and has no Python 3.11 build
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7

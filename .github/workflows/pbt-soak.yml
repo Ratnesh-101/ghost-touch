@@ -68,7 +68,8 @@ jobs:
 
   backend-pbt-soak:
     name: Backend PBT Soak (Python 3.11)
-    runs-on: ubuntu-latest
+    # ubuntu-latest is 26.04 and has no Python 3.11 build
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     defaults:
       run:
