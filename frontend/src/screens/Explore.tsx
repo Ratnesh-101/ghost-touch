@@ -35,7 +35,7 @@ import type { GuideTarget } from '../api/ask';
 import { isGuideActive } from '../config/features';
 import { cappedDpr, reconcileCanvasBox, type CanvasBox } from '../flow/canvasSize';
 import { GuideController } from '../flow/guide';
-import { resolveTarget } from '../guide';
+import { resolveTarget, type ResolvedTarget } from '../guide';
 import { executeExploreCommand, parseExploreCommand, whereAmI } from '../flow/commands';
 import {
   CENTRE_TICK_MS,
@@ -441,6 +441,10 @@ export function Explore({
   };
 
   const applyHighlight = (hit: Target | null | undefined): void => {
+    if (guideController.current?.isGuiding() || isGuiding) {
+      clearHighlight();
+      return;
+    }
     const hl = highlightFor(hit, sceneRef.current);
     highlightRef.current = hl;
     updateHighlightCanvasAttr(hl);
@@ -760,23 +764,29 @@ export function Explore({
     proximityState.current = state;
   };
 
+  const startGuide = (target: ResolvedTarget): void => {
+    keepAliveTimer.current?.stop();
+    sendProximityLift();
+    drivers.haptics.stop();
+    drivers.audio.setTone(null);
+    playingScanToneRef.current = false;
+    engineState.current = initialState();
+    prevTargetRef.current = { kind: 'none' };
+    stickyHoldRef.current = resetStickyHoldOnLift();
+    heartbeatState.current = initialHeartbeatState();
+    clearHighlight();
+    guideController.current?.start(target);
+    setIsGuiding(true);
+    scheduleDraw(viewportRef.current, pendingCursor.current);
+  };
+
   const handleStartGuideFromOffer = (): void => {
     if (!offeredTarget) return;
     const resolved = resolveTarget(sceneRef.current, offeredTarget);
     if (resolved && guideController.current) {
-      keepAliveTimer.current?.stop();
-      sendProximityLift();
       setOfferedTarget(null);
       drivers.audio.unlock();
-      drivers.haptics.stop();
-      drivers.audio.setTone(null);
-      playingScanToneRef.current = false;
-      engineState.current = initialState();
-      prevTargetRef.current = { kind: 'none' };
-      stickyHoldRef.current = resetStickyHoldOnLift();
-      heartbeatState.current = initialHeartbeatState();
-      guideController.current.start(resolved);
-      setIsGuiding(true);
+      startGuide(resolved);
       const msg = t('guide.start').replace('{label}', resolved.label);
       setStatusMessage(msg);
       lastSpokenRef.current = msg;
@@ -926,16 +936,7 @@ export function Explore({
         if (result.stopGuide) {
           guideController.current?.stop('voice');
         } else if (result.guideTarget) {
-          keepAliveTimer.current?.stop();
-          sendProximityLift();
-          drivers.haptics.stop();
-          drivers.audio.setTone(null);
-          engineState.current = initialState();
-          prevTargetRef.current = { kind: 'none' };
-          stickyHoldRef.current = resetStickyHoldOnLift();
-          heartbeatState.current = initialHeartbeatState();
-          guideController.current?.start(result.guideTarget);
-          setIsGuiding(true);
+          startGuide(result.guideTarget);
         }
 
         if (result.nextCornerIndex !== undefined) {
@@ -1310,7 +1311,8 @@ export function Explore({
 
     // Guide target indicator for sighted observers
     const guideTarget = guideController.current?.getTarget();
-    if (isGuiding && guideTarget) {
+    const isGuidingNow = Boolean(guideController.current?.isGuiding() || isGuiding);
+    if (isGuidingNow && guideTarget) {
       const sp = toScreen(guideTarget, view);
       ctx.shadowBlur = 0;
       ctx.strokeStyle = '#000';
@@ -1332,7 +1334,7 @@ export function Explore({
     if (rafId.current === null && typeof requestAnimationFrame !== 'undefined') {
       rafId.current = requestAnimationFrame(() => {
         rafId.current = null;
-        draw(view, pendingCursor.current);
+        draw(viewportRef.current ?? view, pendingCursor.current);
       });
     } else if (typeof requestAnimationFrame === 'undefined') {
       draw(view, cursor);
@@ -1948,6 +1950,7 @@ export function Explore({
     }
 
     if (guideController.current?.isGuiding()) {
+      clearHighlight();
       keepAliveTimer.current?.stop();
       primaryPointerId.current = e.pointerId;
       const norm = toNorm(coords, view);
@@ -2126,6 +2129,7 @@ export function Explore({
     }
 
     if (guideController.current?.isGuiding()) {
+      clearHighlight();
       const norm = toNorm(coords, view);
       guideController.current.move(norm, now);
       scheduleDraw(view, coords);
@@ -2234,6 +2238,7 @@ export function Explore({
     }
 
     if (guideController.current?.isGuiding()) {
+      clearHighlight();
       if (isPrimaryLift) {
         keepAliveTimer.current?.stop();
         primaryPointerId.current = promotedPointerId;
@@ -2245,6 +2250,8 @@ export function Explore({
           guideController.current.move(norm, performance.now());
           scheduleDraw(viewportRef.current, promotedCoords);
         }
+      } else {
+        scheduleDraw(viewportRef.current, pendingCursor.current);
       }
       return;
     }
@@ -2434,7 +2441,7 @@ export function Explore({
       // best-effort
     }
     const sentences = helpSentences({
-      raw: isRaw === true,
+      raw: isRawScene,
       guideOn: isGuideActive(),
       askOn: true,
     });
