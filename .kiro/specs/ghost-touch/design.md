@@ -971,3 +971,77 @@ Written by Kiro on 2026-11-22 before the code, from `docs/reports/opus-playwrigh
 | N6 | `buttonSpecs` lists Help (`required: true`) and the Help test checks `y + height <= viewport.height`. | e2e (agy) | red (Help is not measured) |
 
 jsdom cannot show N4 or N5 (no layout), so no vitest oracle exists for them and none is committed as `it.fails`. N1 and N3 could be written in the vitest rig with synthetic `pointerup` events; that is task 84.2, not done in this spec commit.
+
+
+
+
+## Planchette: a guided "Walk me through" (Requirement 51, task 85)
+Written by Kiro before the code. Two new pure modules, `frontend/src/core/walkAnchor.ts` and `frontend/src/core/walk.ts`, named exports only. They import `hitTest` types and `hitTest`, `geometry`, `scene`, `sceneGuard`, `speakable`, and (walk only) `verify` and `walkAnchor`. No i18n, no `guide/`, no browser API. The core holds i18n KEYS and parameters, never wording; the lane words them with `t()` / `tf()`. Template walks only: no AI, no backend, no new vibration, tone or earcon.
+
+### `core/walkAnchor.ts`
+```ts
+type SpotName = 'origin' | 'peak' | 'trough';
+const ANCHOR_RADIUS_PX = DEFAULT_RADII.vertex;     // 22, copied, no new value
+const REACH_SCALES = [200, 360, 600];              // PROPOSED
+interface SpotAnchor { name: SpotName; elementId: string; acceptIds: string[]; x: number; y: number }
+anchorPoint(scene, name): SpotAnchor | null        // structural: function_graph, a real element, a point on it
+isAnchorReachable(scene, anchor, scales?): boolean // hitTest at the spot's own screen position, at every scale
+spotReached(anchor, target, finger, view): boolean // line target in acceptIds AND finger within 22 px of the spot
+```
+- `peak` is the polyline sample with the smallest y, `trough` the largest y, first in scene order on a tie, over polyline points that are finite and in [0, 1] (polylines with fewer than two such points are skipped). Equal peak and trough y gives `null` for both. `origin` is `(axes.y_axis_x, axes.x_axis_y)` when both are finite. `acceptIds` is `[polylineId]` for peak and trough, and `['x-axis', 'y-axis', ...every polyline id]` for the origin (a polyline beats an axis inside the line radius, Requirement 5.5).
+- Reachability is a real `hitTest` call, so a vertex, segment or bar that sits within 22 px of the spot and steals the hit makes the spot unreachable and the curve walk disappears. That is the intended failure: the walk never promises a spot the finger cannot get.
+
+### `core/walk.ts`
+```ts
+type WalkAnchor = { kind: 'vertex'|'segment'|'bar'; id: string } | { kind: 'spot'; spot: SpotAnchor };
+interface WalkLine { key: WalkKey; params: Record<string, string | number> }
+type NumberSource = { kind: 'fact'; fact: string; elementId: string } | { kind: 'bar'; barId: string }
+                  | { kind: 'calc'; op: 'square'|'sum'|'sqrt'|'difference'; of: string[] };
+interface WalkNumber { name: string; value: number; source: NumberSource }
+interface WalkStep { find: WalkLine; say: WalkLine; anchor: WalkAnchor; numbers: WalkNumber[] }
+interface WalkTurn { prompt: WalkLine; name: string; anchor: WalkAnchor }
+interface Walk { kind: 'pythagoras'|'barDifference'|'longestSide'|'curveShape'; steps: WalkStep[]; turn?: WalkTurn;
+                 conclusion?: { numberName: string; elementId?: string } }
+
+templateWalk(scene, opts?: { raw?: boolean }): Walk | null
+validateWalk(scene, walk): { ok: true } | { ok: false; reason: WalkReason }
+startWalk(scene, walk, t): { state: WalkState; effects: WalkEffect[] }   // validates; invalid gives idle and no effects
+walkStep(state, input): { state: WalkState; effects: WalkEffect[] }       // the reducer
+anchorReached(anchor, target, finger, view): boolean
+walkCommandOf(transcript, phrases): 'start' | 'next' | null
+WALK_KEYS, WALK_UNITS, WALK_MAX_STEPS = 6, WALK_TRY_DWELL_MS = 500, WALK_IDLE_MS = 120000, WALK_TURN_MISSES = 2
+```
+- **Order and guards (51.3).** `templateWalk` runs the guards first (renderable, not raw, kind not `unknown`, no `raw_` id, no `Grid:` fact line, `verifyScene` not `disagree`), then tries Pythagoras, bar difference, longest side, curve shape; the first that builds wins. Each builder returns a walk that `validateWalk` accepts; `templateWalk` itself returns `null` when the built walk fails validation (a safety net, tested by P162).
+- **Numbers (51.2).** Lengths are the value of one printed length fact that maps to exactly one segment (target equals the segment id, its label, or its two endpoint ids or labels, in either order, ignoring case; a fact that fits two segments, or two facts for one segment with different values, count as missing). Bar numbers are `round2(bar.value)`. Calculations are `round2`: `square(x)`, `sum(...)`, `sqrt(x)`, `difference(a, b)` = a minus b. A step's `numbers` list gives every numeric parameter of its `say` line a source; a parameter may also name a number defined in an EARLIER step. Parameters of find and Your-turn prompts are strings only.
+- **Self-premise (51.2).** `conclusion.elementId` names the element whose value the walk derives. A `fact` number about that element makes the walk invalid. Pythagoras sets `{ numberName: 'c', elementId: hypotenuse }`; a printed hypotenuse is never a source and must agree with `c` within max(0.05, 1% of `c`) or there is no walk. Bar difference sets `{ numberName: 'diff' }` and is refused when any fact contains the difference as a standalone number. Longest side is refused when a fact that is not a printed length names the longest side together with "longest", "largest", "biggest" or "hypotenuse".
+- **Names (51.2).** Every `name`-like string parameter is a trimmed label or a speakable id (`speakableName`, Requirement 43). A segment without a speakable label or id is named by its two endpoints' speakable names joined; any name that stays `null` means no walk.
+- **Reducer.** States: `idle`, `find` (index), `said` (index), `turn` (misses, the wrong element being rested on, revealed), `done`; each non-idle state keeps `lastActivity`. Inputs: `touch` (time, target, finger, view), `next`, `repeat`, `guideMe`, `stop` (optional `silent`), `tick`. Effects: `{ kind: 'speak'; line: WalkLine }` and `{ kind: 'guideTo'; anchor: WalkAnchor }` and nothing else.
+  - `find`: a touch that reaches the anchor gives `speak(say)` and moves to `said`; on the last step with no Your turn it also speaks `walk.done` and moves to `done`. Any other touch changes nothing. `next` and `repeat` speak the find prompt again. `guideMe` gives `guideTo(anchor)`.
+  - `said`: touches change nothing; `next` moves to the next step and speaks its find prompt, or after the last step speaks the Your-turn prompt; `repeat` speaks the sentence.
+  - `turn`: the anchor reached gives `speak(walk.turn.right)` then `speak(walk.done)` and `done`, always. Resting on another element for `WALK_TRY_DWELL_MS` counts one wrong try (a new element restarts the rest; leaving every element re-arms it). The second try speaks `walk.turn.answer` and emits `guideTo`, once. `repeat` speaks the prompt; `next` repeats it.
+  - `stop` goes to `idle` and speaks `walk.stopped` unless `silent` (used when Guide's own stop line is spoken) or already idle. `tick` with `t - lastActivity >= WALK_IDLE_MS` goes to `idle` with no effect. Non-finite times are ignored; a time earlier than `lastActivity` never shortens the idle clock.
+- **Commands (Requirement 45.6).** `walkCommandOf(transcript, { start, next })` normalises like `flow/commands.ts` (lower case, trim, punctuation and danda removed, spaces collapsed) and answers only on EQUALITY with a listed, normalised phrase of at most 3 words. A phrase of more than 3 words in the list is ignored. No word-subset rule.
+
+### Reachability decision for the sine (51.5)
+`final1-B.md` section 2 is adopted as written, with one change: reachability is tested for the walk's own scale set instead of one canvas, because 22 px is a fixed number of pixels and a scene with a vertex near the spot is reachable at one size and not at another. On the shipped sine (a polyline and two axes, no points) P170 shows the three spots reachable at every scale, so the sine has a walk.
+
+### Properties
+| # | Property | Validates |
+|---|---|---|
+| P159 | **Every anchor is a scene element (Kiro, task 85):** every walk `templateWalk` returns over random valid geometry, bar and graph scenes passes `validateWalk`, and each of its anchors names an existing point, segment (with existing ends) or bar, or a spot that `anchorPoint` returns; a copy of the walk whose anchor id is replaced by an unknown id, or whose anchor kind names an element of another kind, is refused with reason `anchor`. 250 runs. | 51.1, 51.5 |
+| P160 | **Pythagoras is exact and needs every premise (Kiro, task 85):** for 3-4-5 and 5-12-13 scaled by any k = m/10 (m from 1 to 500) and any known unit or none, the hypotenuse step speaks the exact squares, sum and root, `c` equals the true hypotenuse, and its number sources validate; with any one of the two leg facts, or the right angle (fact and drawing), removed, with the leg units different or unknown, or with a printed hypotenuse that is 5% off, the result is `null`. A printed hypotenuse that agrees is never a source. 250 runs. | 51.1.1, 51.2 |
+| P161 | **Bar difference is highest minus lowest (Kiro, task 85):** for random bars the walk exists exactly when at least two bars have finite values with a unique highest and a unique lowest, no fact contains the difference as a number and the labels are speakable; its `diff` is `round2(highest - lowest)`, its two steps anchor the highest then the lowest bar, and a bar with a non-finite value is ignored. 250 runs. | 51.1.2, 51.2 |
+| P162 | **A forged number is refused (Kiro, task 85):** for any walk `templateWalk` returns, changing the value of any number, naming a bar or fact that is not in the scene, changing a calculation's operation or inputs, adding a numeric parameter with no source, or putting a number into a find or Your-turn prompt gives `validateWalk` `ok: false`; the unmodified walk is accepted. 250 runs. | 51.2 |
+| P163 | **No walk uses its own conclusion as a premise (Kiro, task 85):** a Pythagoras walk with a `fact` source about the hypotenuse is refused with reason `selfPremise`; a bar-difference scene with a fact that states the difference, a longest-side scene with a fact that names the longest side, and a Pythagoras scene whose printed hypotenuse disagrees give `null`; with a printed hypotenuse that agrees the walk exists and none of its sources is about the hypotenuse. 250 runs. | 51.2 |
+| P164 | **Where a walk never exists (Kiro, task 85):** `templateWalk` returns `null` for `raw: true`, kind `unknown`, any `raw_` element id, a fact line starting `Grid:` in any case and at any index among the facts, a scene `verifyScene` flags, a scene `isRenderableScene` rejects, and junk (null, numbers, missing arrays); it never throws and never mutates a deep-frozen scene. The same scenes without the cause give a walk. 250 runs (400 for junk). | 51.3, 51.10 |
+| P165 | **A step is spoken only after its anchor is reached (Kiro, task 85):** over random sequences of touches (reaching, not reaching, none), `next`, `repeat` and `tick`, a step's sentence is emitted only by a touch that reaches that step's anchor while that step is the current one, at most once per step unless `repeat` came between, and `next` never moves past an unreached step. Checked against an independent model of the order. 300 runs. | 51.4 |
+| P166 | **The reducer emits only speech and guidance (Kiro, task 85):** for any input, including junk, every effect has kind `speak` (with a `walk.` key from `WALK_KEYS` and string or finite number parameters) or `guideTo` (with an anchor of the walk); no effect has kind `vibrate`, `tone`, `earcon` or `speakKey`; the state and the walk are not mutated (deep-frozen inputs). 300 runs. | 51.4, 51.10 |
+| P167 | **Stop, idle timeout and time (Kiro, task 85):** from any reachable state `stop` gives `idle`; after it no input except `start` produces an effect; a silent stop gives no effect; `tick` after 120 000 ms without activity gives `idle` with no effect and a touch before that resets the clock; NaN, infinite and backwards times never end a walk early and never throw. 300 runs. | 51.7 |
+| P168 | **Your turn (Kiro, task 85):** a touch that reaches the turn's anchor always ends the walk with the success and closing lines, after any number of wrong tries; a wrong element, however many times it is touched, never advances; the answer and `guideTo` are emitted exactly once, at the second wrong try, where a try needs 500 ms of rest on one element and a new element restarts the rest; passing over elements faster than that counts nothing; tries after the answer are silent. 300 runs. | 51.6 |
+| P169 | **A command is a whole phrase (Kiro, task 85):** `walkCommandOf` answers `start` or `next` only when the normalised transcript equals a listed phrase of at most 3 words; a transcript of more than 3 words, a listed phrase inside a longer sentence, "next" alone, "walk" alone and "walk through" give `null`; case, punctuation (including danda) and extra spaces do not change the answer; a list phrase of more than 3 words is ignored; junk input gives `null`. 300 runs. | 51.7, 45.6 |
+| P170 | **Spots lie on a real element and the finger can reach them (Kiro, task 85):** for random `function_graph` scenes (sine, parabola, line, several curves) with both axes and nothing else, `anchorPoint` returns a peak that is a sample of its polyline with the least y and a trough with the greatest y, and `isAnchorReachable` holds: at each scale in {200, 360, 600}, `hitTest` at the spot returns a line whose id the anchor accepts, and `spotReached` is true there and false 23 px away from the spot; the shipped sine gives three reachable spots and a curve walk. Adding a point within 22 px of the peak makes the peak unreachable and the curve walk `null`. The answers are the same under uniform scaling and translation of the curve, and `null` without a polyline or without axes. 250 runs. | 51.5 |
+
+Mutants run for these properties are listed in `docs/BUILD_LOG.md` (task 85).
+
+### Explore oracles for the lane (written as `it.fails` in task 85)
+`frontend/tests/explore.walk.oracle.test.tsx` mounts the real `Explore` with the task 67 rig. W1: the button named "Walk me through" is present on the triangle, bar and sine samples. W2: it is absent on a Raw Mode scene (passes today, guards the lane). W3: after Start, a step sentence is spoken only after the anchor is touched, a wrong touch speaks no step, and the sentence is in the same utterance as the engine's own announcement. W4: a lift does not call `stopSpeaking` while a walk step is playing, and still does for a corner label. W5: the vibrate and tone calls of a fixed trace are identical with and without a started walk. W6: "stop" while a walk is active ends it, with one spoken line and no earcon. W7: `walk.*` keys are complete and honest in `en`, `hi`, `gu` (the P61 pattern). `frontend/tests/walk.commands.table.test.ts` has the Requirement 45.6 rows against `parseExploreCommand` (`walk_start`, `walk_next`).
