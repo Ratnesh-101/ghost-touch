@@ -179,7 +179,7 @@ describe('task 86: Requirement 52 oracles (lanes C-screen, C-wire, C-hand-in)', 
   });
 
   describe('B1 and B2: the form and its disabled states (52.3, 52.8)', () => {
-    it.fails('B1 two named sliders with aria-valuetext, and the five buttons', async () => {
+    it('B1 two named sliders with aria-valuetext, and the five buttons', async () => {
       await withBuild((rig) => {
         const s = sliders(rig);
         expect(s).toHaveLength(2);
@@ -199,7 +199,7 @@ describe('task 86: Requirement 52 oracles (lanes C-screen, C-wire, C-hand-in)', 
       });
     });
 
-    it.fails('B2 Feel and Hand in are disabled with no pin and enabled after one', async () => {
+    it('B2 Feel and Hand in are disabled with no pin and enabled after one', async () => {
       await withBuild((rig) => {
         expect(isDisabled(button(rig, t('build.feel')))).toBe(true);
         expect(isDisabled(button(rig, t('build.handIn')))).toBe(true);
@@ -214,7 +214,7 @@ describe('task 86: Requirement 52 oracles (lanes C-screen, C-wire, C-hand-in)', 
   });
 
   describe('B3 and B4: pin, refuse, stitch, undo (52.4, 52.6, 52.7)', () => {
-    it.fails('B3 a pin is spoken, the same crossing again adds nothing and says why', async () => {
+    it('B3 a pin is spoken, the same crossing again adds nothing and says why', async () => {
       await withBuild((rig) => {
         pinAt(rig, 2, 5);
         expect(rig.spoken().at(-1)).toBe(tf('build.pinned', { id: 'A', label: 'x 2 y 5' }));
@@ -224,7 +224,7 @@ describe('task 86: Requirement 52 oracles (lanes C-screen, C-wire, C-hand-in)', 
       });
     });
 
-    it.fails('B4 Stitch makes n - 1 segments in one step and Undo takes them back in one step', async () => {
+    it('B4 Stitch makes n - 1 segments in one step and Undo takes them back in one step', async () => {
       await withBuild((rig) => {
         pinAt(rig, 0, 1);
         pinAt(rig, 1, 3);
@@ -241,7 +241,7 @@ describe('task 86: Requirement 52 oracles (lanes C-screen, C-wire, C-hand-in)', 
   });
 
   describe('B5: Feel mounts the real Explore and Back keeps the pins (52.8)', () => {
-    it.fails('Feel shows the Explore canvas, a pin speaks its label, Back returns to the form with the pins', async () => {
+    it('Feel shows the Explore canvas, a pin speaks its label, Back returns to the form with the pins', async () => {
       await withBuild((rig) => {
         pinAt(rig, 3, 4);
         pinAt(rig, 6, 8);
@@ -260,7 +260,7 @@ describe('task 86: Requirement 52 oracles (lanes C-screen, C-wire, C-hand-in)', 
   });
 
   describe('B6: the form adds no vibration, tone or earcon (52.16)', () => {
-    it.fails('pinning, stitching and undoing call no vibrate, setTone or playEarcon', async () => {
+    it('pinning, stitching and undoing call no vibrate, setTone or playEarcon', async () => {
       await withBuild((rig) => {
         pinAt(rig, 1, 1);
         pinAt(rig, 4, 6);

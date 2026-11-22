@@ -46,7 +46,7 @@ describe('P181 control: the key list covers what the core emits', () => {
 });
 
 describe('P181 the Build strings are complete and honest (it.fails until lane C-wire)', () => {
-  it.fails('every key exists in en, hi and gu, differs from English, keeps its placeholders, makes no claim of checking', () => {
+  it('every key exists in en, hi and gu, differs from English, keeps its placeholders, makes no claim of checking', () => {
     for (const lang of LANGS) for (const key of BUILD_I18N_KEYS) check(lang, key);
     fc.assert(
       fc.property(fc.constantFrom(...LANGS), fc.constantFrom(...BUILD_I18N_KEYS), (lang, key) => {
