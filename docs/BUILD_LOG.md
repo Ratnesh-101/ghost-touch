@@ -5007,3 +5007,9 @@ Format for each entry:
   - `frontend/e2e/explore.walk-speech.spec.ts` (new)
   - `docs/reports/agy-hi16-report.md` (new)
   - `docs/BUILD_LOG.md`
+
+### 2026-11-22 (Kiro, task 87): P170 transform property intermittent failure
+- Tool: Kiro. Reproduced with explicit seeds (4 of 400 failed on c2aa9fe code): ulp-level ties on symmetric curves break differently after scale and translation. Real counterexample, not load.
+- Spec first: Requirement 51.5, design.md and tasks.md (task 87) amended. Fix in frontend/src/core/walkAnchor.ts: SPOT_TIE_EPS = 1e-9, two-pass extreme, first sample within the tolerance.
+- Tests: pinned example (fails on old code), P170 oracle amended, edge band 0.4e-9 to 2.5e-9 excluded from the transform property (documented). Two mutants killed. tsc 0 errors; full suite twice under load: 256 files, 3268 passed, 1 expected fail, 1 todo.
+- Files: frontend/src/core/walkAnchor.ts, frontend/tests/walkAnchor.prop.test.ts, .kiro/specs/ghost-touch/{requirements,design,tasks}.md, docs/reviews/kiro-review-planchette-spec.md, docs/BUILD_LOG.md.

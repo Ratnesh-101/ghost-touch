@@ -707,3 +707,12 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 86.5 `docs/reviews/kiro-review-ghosthand-spec.md`: exports, `build.*` keys, three lane briefs, owner decisions, what Kiro did; gate; BUILD_LOG
   - [ ] 86b. Lanes (not Kiro): C-screen (`flow/build.ts`, `screens/Build.tsx`, CSS), C-wire (`'build'` in navigation, route in `App.tsx`, Capture button, i18n `build.*`), C-hand-in (share link and point list); remove the `.fails` of the oracles
   - _Requirements: 52.*_
+
+## P170 intermittent failure (task 87; spec written before the code)
+> Found by one failure in a full-suite run on c2aa9fe. Only `core/walkAnchor.ts` and tests change. No tuned value.
+
+- [x] 87. Peak and trough ties are stable under rounding
+  - [x] 87.1 Hunt: 400 explicit seeds over the transform property; 4 failing seeds found (45, 163, 284, 325), all ulp-level ties on a symmetric curve. Requirement 51.5 and design.md amended before any code
+  - [x] 87.2 `core/walkAnchor.ts`: `SPOT_TIE_EPS`, two-pass extreme; pinned example from seed 45; P170 oracle amended in the same way; mutant run
+  - [x] 87.3 Gate; finding written in `docs/reviews/kiro-review-planchette-spec.md`; BUILD_LOG; path-scoped commit
+  - _Requirements: 51.5_

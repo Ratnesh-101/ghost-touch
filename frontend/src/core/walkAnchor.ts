@@ -52,15 +52,25 @@ function polylineIds(scene: DiagramScene): string[] {
   return out;
 }
 
-/** The least-y (peak) or greatest-y (trough) usable sample over all polylines, first in scene order on a tie. */
+/**
+ * Two samples whose y differs by no more than this (normalised units, 6e-7 px at scale 600) are one
+ * height. Samples of a symmetric curve tie mathematically but differ by an ulp in the data, and a
+ * scale or translation rounds them differently, so an exact comparison is not stable (task 87).
+ */
+export const SPOT_TIE_EPS = 1e-9;
+
+/**
+ * The least-y (peak) or greatest-y (trough) usable sample over all polylines: the first, in scene
+ * order, within `SPOT_TIE_EPS` of the exact extreme.
+ */
 function extremeSample(
   scene: DiagramScene,
   pick: 'min' | 'max',
 ): { id: string; x: number; y: number; lo: number; hi: number } | null {
   if (!Array.isArray(scene.polylines)) return null;
-  let best: { id: string; x: number; y: number } | null = null;
   let lo = Infinity;
   let hi = -Infinity;
+  const usablePolys: { id: string; points: unknown[] }[] = [];
   for (const poly of scene.polylines) {
     if (poly === null || typeof poly !== 'object' || typeof poly.id !== 'string') continue;
     if (!Array.isArray(poly.points)) continue;
@@ -69,16 +79,23 @@ function extremeSample(
       if (Array.isArray(pt) && isUnit(pt[0]) && isUnit(pt[1])) usable++;
     }
     if (usable < 2) continue;
+    usablePolys.push({ id: poly.id, points: poly.points });
     for (const pt of poly.points) {
       if (!Array.isArray(pt) || !isUnit(pt[0]) || !isUnit(pt[1])) continue;
       const y = pt[1];
       if (y < lo) lo = y;
       if (y > hi) hi = y;
-      const better = best === null || (pick === 'min' ? y < best.y : y > best.y);
-      if (better) best = { id: poly.id, x: pt[0], y };
     }
   }
-  return best === null ? null : { ...best, lo, hi };
+  for (const poly of usablePolys) {
+    for (const pt of poly.points) {
+      if (!Array.isArray(pt) || !isUnit(pt[0]) || !isUnit(pt[1])) continue;
+      const y = pt[1];
+      const tied = pick === 'min' ? y <= lo + SPOT_TIE_EPS : y >= hi - SPOT_TIE_EPS;
+      if (tied) return { id: poly.id, x: pt[0], y, lo, hi };
+    }
+  }
+  return null;
 }
 
 /**
@@ -98,7 +115,7 @@ export function anchorPoint(scene: DiagramScene, name: SpotName): SpotAnchor | n
   }
   if (name !== 'peak' && name !== 'trough') return null;
   const found = extremeSample(scene, name === 'peak' ? 'min' : 'max');
-  if (found === null || found.lo === found.hi) return null;
+  if (found === null || found.hi - found.lo <= SPOT_TIE_EPS) return null;
   return { name, elementId: found.id, acceptIds: [found.id], x: found.x, y: found.y };
 }
 

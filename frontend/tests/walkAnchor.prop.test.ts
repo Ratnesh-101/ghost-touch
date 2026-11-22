@@ -33,15 +33,14 @@ describe('P170: spot anchors (walkAnchor)', () => {
       fc.property(fc.array(curveArb, { minLength: 1, maxLength: 2 }), axesArb, (curves, axes) => {
         const scene = graphScene(curves, axes);
         const all = curves.flatMap((pts, ci) => pts.map((p, i) => ({ p, ci, i })));
-        let lo = all[0]!;
-        let hi = all[0]!;
-        for (const s of all) {
-          if (s.p[1] < lo.p[1]) lo = s;
-          if (s.p[1] > hi.p[1]) hi = s;
-        }
+        // Independent oracle (task 87): the extreme y, then the FIRST sample within 1e-9 of it.
+        const minY = Math.min(...all.map((s) => s.p[1]));
+        const maxY = Math.max(...all.map((s) => s.p[1]));
+        const lo = all.find((s) => s.p[1] <= minY + 1e-9)!;
+        const hi = all.find((s) => s.p[1] >= maxY - 1e-9)!;
         const peak = anchorPoint(scene, 'peak');
         const trough = anchorPoint(scene, 'trough');
-        if (lo.p[1] === hi.p[1]) {
+        if (maxY - minY <= 1e-9) {
           expect(peak).toBeNull();
           expect(trough).toBeNull();
           return;
@@ -144,6 +143,17 @@ describe('P170: spot anchors (walkAnchor)', () => {
         (curve, axes, sx, sy, ux, uy) => {
           const tx = ux * (1 - sx);
           const ty = uy * (1 - sy);
+          // A tolerance has an edge (task 87). A sample whose gap to the extreme is within a factor of
+          // 2.5 of 1e-9 can be inside the tie band before a scale of 0.5 and outside it after (found
+          // by the hunt at seed 1500: gap 1.0000000e-9). Such a draw says nothing about ulp ties.
+          const ys = curve.map((c) => c[1]);
+          const minY = Math.min(...ys);
+          const maxY = Math.max(...ys);
+          const onEdge = ys.some((y) => {
+            const g = Math.min(y - minY, maxY - y);
+            return g > 0 && g >= 0.4e-9 && g <= 2.5e-9;
+          });
+          if (onEdge) return;
           const moved = curve.map(([x, y]) => [sx * x + tx, sy * y + ty] as [number, number]);
           const movedAxes = { x_axis_y: sy * axes.x_axis_y + ty, y_axis_x: sx * axes.y_axis_x + tx };
           const a = graphScene([curve], axes);
@@ -162,6 +172,27 @@ describe('P170: spot anchors (walkAnchor)', () => {
       ),
       { numRuns: runs(250) },
     );
+  });
+
+  it('pinned (task 87, seed 45 of the hunt): two samples one ulp apart are a tie, the first wins', () => {
+    // 0.3749401429200965 and 0.3749401429200964 are the same height to the eye and to 1e-9. The exact
+    // minimum is the later one, so a strict comparison picked x = 0.4 and, after a scale and
+    // translation rounded them differently, a different sample. The rule is: first within 1e-9.
+    const scene = graphScene(
+      [[[0.1, 0.6], [0.2, 0.3749401429200965], [0.3, 0.5], [0.4, 0.3749401429200964], [0.5, 0.6]]],
+      { x_axis_y: 0.9, y_axis_x: 0.05 },
+    );
+    expect(anchorPoint(scene, 'peak')!.x).toBe(0.2);
+    const flipped = graphScene(
+      [[[0.1, 0.4], [0.2, 0.7549571566237878], [0.3, 0.5], [0.4, 0.7549571566237879], [0.5, 0.4]]],
+      { x_axis_y: 0.95, y_axis_x: 0.05 },
+    );
+    expect(anchorPoint(flipped, 'trough')!.x).toBe(0.2);
+    // within the tolerance of flat, there is no peak; a real height difference still gives one
+    const nearFlat = graphScene([[[0.1, 0.5], [0.5, 0.5 + 1e-12], [0.9, 0.5]]], { x_axis_y: 0.8, y_axis_x: 0.1 });
+    expect(anchorPoint(nearFlat, 'peak')).toBeNull();
+    const notFlat = graphScene([[[0.1, 0.5], [0.5, 0.5 + 1e-6], [0.9, 0.5]]], { x_axis_y: 0.8, y_axis_x: 0.1 });
+    expect(anchorPoint(notFlat, 'trough')).not.toBeNull();
   });
 
   it('is null without a polyline (peak, trough), without both axes (origin) and for another kind', () => {

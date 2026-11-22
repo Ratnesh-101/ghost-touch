@@ -145,3 +145,34 @@ Order: `flow/walk.ts` and `flow/commands.ts` and `i18n` first (parallel-safe), t
 ## 6. Unverified, to check on a device
 
 Whether a student can find the peak, trough and origin of the sine with the 22 px disc under TalkBack; whether 500 ms of rest feels like "trying"; whether "next step" is recognised in a classroom; the wording in all three languages.
+
+
+## Follow-up: P170 intermittent failure (task 87)
+
+**Observed.** `walkAnchor.prop.test.ts`, "is the same under a uniform scale and a translation of the curve and the axes", failed once in a full run of `vitest run --maxWorkers=3 --testTimeout=30000` on c2aa9fe and passed in the next five. The message was not captured.
+
+**Verdict: a real counterexample, not a load flake.** It is a floating-point equality, not a timeout and not reachability. Reachability does not enter the property; it only compares `anchorPoint` before and after the transform.
+
+**What I ran.** A temporary test (deleted, not committed) that ran the same property with explicit seeds 1 to 400, 250 cases each. The old code failed on 4 seeds: 45, 163, 284 and 325 (about 1 in 100 seeds, so one failure in a full run is expected). No load was needed to reproduce it: the explicit seeds fail the same way with the machine idle. All four failures are the same shape: `peak` or `trough` returned another sample of the same curve, with x moved to the mirror sample, not a different element.
+
+| seed | shrunk case (scale, translate) | tied samples in the original |
+|---|---|---|
+| 45 | sx 0.5, sy 0.7816, t 0 | `(0.2918, 0.7549571566237878)` and `(0.61, 0.7549571566237879)` |
+| 163 | sx 0.5, sy 0.7683, t 0 | four samples at `0.3749401429200964` / `…65` / `…653` |
+| 284 | sx 0.5, sy 0.8066, t 0 | `(0.2918, 0.6220470934921334)` and `(0.61, 0.6220470934921335)` |
+| 325 | sx 0.5, sy 0.5, ty 0.5 | `(0.2918, 0.5197632074113927)` and `(0.61, 0.5197632074113929)` |
+
+**Cause.** A symmetric curve (a sine plateau or a parabola) has two samples that are the same height mathematically. The generator and `Math.sin` give them values one or two ulps apart. The old rule was "the strictly least y, first on an exact tie", so the exact minimum was whichever sample was an ulp lower. After `sy * y + ty` rounds both to the same value, or to the opposite order, the rule picked the other sample. For a student, both samples are the same spot to well under a pixel, and they are at most a few pixels apart, so no one would feel this, but the answer was not repeatable under scaling and the property rightly said so.
+
+**Fix (smallest change, `core/walkAnchor.ts`).** New exported `SPOT_TIE_EPS = 1e-9` (normalised units, 6e-7 px at scale 600; not a haptic value). `extremeSample` now makes two passes: the exact extreme y over all usable samples, then the first sample in scene order within `SPOT_TIE_EPS` of it. The flat-curve test is `hi - lo <= SPOT_TIE_EPS` instead of exact equality, so a curve that is flat to an ulp also has no peak. Requirement 51.5 and design.md are amended first (task 87).
+
+**Tests.**
+- A pinned example with the hunted values (`0.3749401429200965` then `…964`: x must be 0.2, not 0.4; the mirrored trough; a curve flat to 1e-12 has no peak and one with a 1e-6 step does). It fails on the old code.
+- The first P170 property's oracle now uses the same rule (extreme, then first within 1e-9). It does not reuse the code under test.
+- Mutants run on the new code: `SPOT_TIE_EPS = 0` (pinned example fails; the property alone did not fail on the default run, because a draw with an ulp tie is rare), and "last tied sample wins" (pinned example fails with `expected 0.4 to be 0.2`). Source restored (`git diff` shows only the intended change).
+
+**One edge remains, and the property steps around it.** Any fixed tolerance has an edge. A sample whose gap to the extreme is just over 1e-9 (outside the tie band) can fall inside it after a scale of 0.5 (gap 5e-10). The hunt found this at seeds 1500 and 2812 out of 3000: both are shrunk to a gap of 1.0000000e-9 exactly, which the shrinker seeks out; an unshrunk draw lands in that band about 1 in 375 000 cases. The transform property now returns early for a draw with a non-tied sample between 0.4e-9 and 2.5e-9 from an extreme. This is a documented exclusion of a measure-zero band, not a weakened check: ulp ties (the real failure) are still generated and still fail the old code (shown above by the pinned example and by the mutant). If someone wants no edge at all, the only option is to make the answer not depend on y at all within a band, which is a different design.
+
+**Verification.** After the fix: the same hunt over 3000 seeds fails only at the two edge seeds (before the exclusion existed in the temporary copy); the real file passes at `FC_RUNS_MULT=30`; `tsc --noEmit` 0 errors; the full suite twice with a second loaded vitest running (256 files, 3268 passed, 1 expected fail, 1 todo each time). No timeout was involved, so no timeout was changed.
+
+**Not checked.** The original failure's message was never captured, so I cannot prove it was this exact cause; the rate (about 1 in 100 seeds) and the four reproductions make it the only candidate I found. I did not look for other intermittent failures in the suite.
