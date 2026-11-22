@@ -397,6 +397,8 @@
 "walk.intro (spoken)","I will walk you through this in {count} steps. Say next step to move on.","मैं आपको {count} चरणों में समझाऊंगा। आगे बढ़ने के लिए अगला कदम कहें।","હું તમને આ {count} પગલાંમાં સમજાવીશ. આગળ વધવા માટે આગળનું પગલું બોલો.","","","","keep {count}; Lane hi10 (Requirement 51)"
 "walk.stopped (spoken)","Walk ended.","वॉक समाप्त हुआ।","વૉક સમાપ્ત થયું.","","","","Lane hi10 (Requirement 51)"
 "walk.done (spoken)","That is why. Say walk me through to hear it again.","यही कारण है। इसे फिर से सुनने के लिए मुझे समझाएं कहें।","તેથી જ. ફરીથી સાંભળવા માટે મને સમજાવો બોલો.","","","","Lane hi10 (Requirement 51)"
+"walk.none (spoken)","There is no walk for this diagram.","इस चित्र के लिए कोई वॉक नहीं है।","આ આકૃતિ માટે કોઈ વૉક નથી.","","","","Lane hi16 (Planchette follow-up)"
+"walk.notRunning (spoken)","No walk is running. Say walk me through to start one.","कोई वॉक नहीं चल रहा है। शुरू करने के लिए मुझे समझाएं कहें।","કોઈ વૉક ચાલી રહ્યું નથી. શરૂ કરવા માટે મને સમજાવો બોલો.","","","","Lane hi16 (Planchette follow-up)"
 "walk.find.segment (spoken)","Find side {name}.","भुजा {name} ढूंढें।","બાજુ {name} શોધો.","","","","keep {name}; Lane hi10 (Requirement 51)"
 "walk.find.vertex (spoken)","Find corner {name}.","कोना {name} ढूंढें।","ખૂણો {name} શોધો.","","","","keep {name}; Lane hi10 (Requirement 51)"
 "walk.find.bar (spoken)","Find the bar {name}.","बार {name} ढूंढें।","સ્તંભ {name} શોધો.","","","","keep {name}; Lane hi10 (Requirement 51)"

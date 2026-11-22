@@ -613,6 +613,44 @@ export function Explore({
   const walkRef = useRef<WalkState>(initialWalkState());
   const walkPhaseRef = useRef<WalkState['phase']>('idle');
   const [walkPhase, setWalkPhase] = useState<WalkState['phase']>('idle');
+  const walkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearWalkInterval = useCallback((): void => {
+    if (walkIntervalRef.current !== null) {
+      clearInterval(walkIntervalRef.current);
+      walkIntervalRef.current = null;
+    }
+  }, []);
+
+  const syncWalkPhase = useCallback((newPhase: WalkState['phase']): void => {
+    if (walkPhaseRef.current !== newPhase) {
+      walkPhaseRef.current = newPhase;
+      setWalkPhase(newPhase);
+    }
+  }, []);
+
+  const startWalkInterval = useCallback((): void => {
+    clearWalkInterval();
+    walkIntervalRef.current = setInterval(() => {
+      if (walkRef.current.phase === 'idle' || walkRef.current.phase === 'done') {
+        clearWalkInterval();
+        return;
+      }
+      const now = performance.now();
+      const tickRes = walkStep(walkRef.current, { kind: 'tick', t: now });
+      walkRef.current = tickRes.state;
+      syncWalkPhase(tickRes.state.phase);
+      if (tickRes.state.phase === 'idle' || tickRes.state.phase === 'done') {
+        clearWalkInterval();
+      }
+    }, 5000);
+  }, [clearWalkInterval, syncWalkPhase]);
+
+  useEffect(() => {
+    return () => {
+      clearWalkInterval();
+    };
+  }, [clearWalkInterval]);
 
   const clearLiftSpeechQuietTimer = (): void => {
     if (liftSpeechQuietTimer.current !== null) {
@@ -778,6 +816,7 @@ export function Explore({
       engineState.current = initialState();
       heartbeatState.current = initialHeartbeatState();
       clearHighlight();
+      clearWalkInterval();
       walkRef.current = initialWalkState();
       walkSpeechRef.current = false;
       walkPhaseRef.current = 'idle';
@@ -936,11 +975,17 @@ export function Explore({
     onBack();
   };
 
-  const syncWalkPhase = (newPhase: WalkState['phase']): void => {
-    if (walkPhaseRef.current !== newPhase) {
-      walkPhaseRef.current = newPhase;
-      setWalkPhase(newPhase);
-    }
+  const speakWalkKey = (
+    key: 'walk.stopped' | 'walk.none' | 'walk.notRunning',
+    now = performance.now(),
+  ): void => {
+    const lang = LANG_BCP47[getLang()] ?? 'en-IN';
+    const text = t(key);
+    walkSpeechRef.current = true;
+    drivers.speech.speak(text, lang);
+    markSpeechStart(now);
+    lastSpokenRef.current = text;
+    setStatusMessage(text);
   };
 
   const runWalkEffects = (effects: readonly WalkEffect[], now = performance.now()): void => {
@@ -966,37 +1011,91 @@ export function Explore({
   };
 
   const handleStartWalk = (now = performance.now()): void => {
-    if (!walk) return;
+    if (!walk) {
+      speakWalkKey('walk.none', now);
+      return;
+    }
+    clearWalkInterval();
     const { state, effects } = startWalk(sceneRef.current, walk, now);
     walkRef.current = state;
     syncWalkPhase(state.phase);
     runWalkEffects(effects, now);
+    if (state.phase !== 'idle' && state.phase !== 'done') {
+      startWalkInterval();
+    }
   };
 
   const handleWalkNext = (now = performance.now()): void => {
-    if (walk === null || walkRef.current.phase === 'idle') return;
+    if (walk === null) {
+      speakWalkKey('walk.none', now);
+      return;
+    }
+    const wasRunning = walkRef.current.phase !== 'idle' && walkRef.current.phase !== 'done';
+    if (!wasRunning) {
+      speakWalkKey('walk.notRunning', now);
+      return;
+    }
+    const tickRes = walkStep(walkRef.current, { kind: 'tick', t: now });
+    walkRef.current = tickRes.state;
+    syncWalkPhase(tickRes.state.phase);
+    if (tickRes.state.phase === 'idle' || tickRes.state.phase === 'done') {
+      clearWalkInterval();
+      speakWalkKey('walk.stopped', now);
+      return;
+    }
     const { state, effects } = walkStep(walkRef.current, { kind: 'next', t: now });
     walkRef.current = state;
     syncWalkPhase(state.phase);
     runWalkEffects(effects, now);
+    if (state.phase === 'idle' || state.phase === 'done') {
+      clearWalkInterval();
+    }
   };
 
   const handleWalkRepeat = (now = performance.now()): void => {
-    if (walk === null || walkRef.current.phase === 'idle') return;
+    if (walk === null) {
+      speakWalkKey('walk.none', now);
+      return;
+    }
+    const wasRunning = walkRef.current.phase !== 'idle' && walkRef.current.phase !== 'done';
+    if (!wasRunning) {
+      speakWalkKey('walk.notRunning', now);
+      return;
+    }
+    const tickRes = walkStep(walkRef.current, { kind: 'tick', t: now });
+    walkRef.current = tickRes.state;
+    syncWalkPhase(tickRes.state.phase);
+    if (tickRes.state.phase === 'idle' || tickRes.state.phase === 'done') {
+      clearWalkInterval();
+      speakWalkKey('walk.stopped', now);
+      return;
+    }
     const { state, effects } = walkStep(walkRef.current, { kind: 'repeat', t: now });
     walkRef.current = state;
     syncWalkPhase(state.phase);
     runWalkEffects(effects, now);
+    if (state.phase === 'idle' || state.phase === 'done') {
+      clearWalkInterval();
+    }
   };
 
   const handleWalkClick = (): void => {
     if (isBusy || leaving.current || !walk) return;
     drivers.audio.unlock();
     const now = performance.now();
-    if (walkRef.current.phase === 'idle' || walkRef.current.phase === 'done') {
-      handleStartWalk(now);
-    } else {
+    const wasRunning = walkRef.current.phase !== 'idle' && walkRef.current.phase !== 'done';
+    if (wasRunning) {
+      const tickRes = walkStep(walkRef.current, { kind: 'tick', t: now });
+      walkRef.current = tickRes.state;
+      syncWalkPhase(tickRes.state.phase);
+      if (tickRes.state.phase === 'idle' || tickRes.state.phase === 'done') {
+        clearWalkInterval();
+        speakWalkKey('walk.stopped', now);
+        return;
+      }
       handleWalkNext(now);
+    } else {
+      handleStartWalk(now);
     }
   };
 
@@ -1021,6 +1120,9 @@ export function Explore({
     });
     walkRef.current = touchRes.state;
     syncWalkPhase(touchRes.state.phase);
+    if (touchRes.state.phase === 'done' || touchRes.state.phase === 'idle') {
+      clearWalkInterval();
+    }
     const lines: string[] = [];
     for (const eff of touchRes.effects) {
       if (eff.kind === 'speak') {
@@ -1127,11 +1229,17 @@ export function Explore({
       if (cmd.type === 'walk_start') {
         if (walk !== null) {
           handleStartWalk(performance.now());
+        } else {
+          speakWalkKey('walk.none');
         }
         return;
       }
       if (cmd.type === 'walk_next') {
-        if (walk !== null && isWalk) {
+        if (walk === null) {
+          speakWalkKey('walk.none');
+        } else if (!isWalk) {
+          speakWalkKey('walk.notRunning');
+        } else {
           handleWalkNext(performance.now());
         }
         return;
@@ -1159,6 +1267,7 @@ export function Explore({
         }
 
         if (result.stopWalk) {
+          clearWalkInterval();
           walkRef.current = initialWalkState();
           walkSpeechRef.current = false;
           syncWalkPhase('idle');
@@ -1668,6 +1777,7 @@ export function Explore({
       stickyHoldRef.current = resetStickyHoldOnLift();
       heartbeatState.current = initialHeartbeatState();
       clearHighlight();
+      clearWalkInterval();
       walkRef.current = initialWalkState();
       walkSpeechRef.current = false;
       walkPhaseRef.current = 'idle';
@@ -2125,6 +2235,9 @@ export function Explore({
           const tickRes = walkStep(walkRef.current, { kind: 'tick', t: now });
           walkRef.current = tickRes.state;
           syncWalkPhase(tickRes.state.phase);
+          if (tickRes.state.phase === 'idle' || tickRes.state.phase === 'done') {
+            clearWalkInterval();
+          }
         }
         applyMoveResult(
           moveResult,

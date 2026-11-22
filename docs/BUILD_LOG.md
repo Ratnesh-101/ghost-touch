@@ -4984,3 +4984,26 @@ Format for each entry:
   - `frontend/src/screens/Build.tsx`
   - `docs/reports/agy-hi13-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-22 — Antigravity — Lane hi16: Planchette follow-up fixes in Explore
+- Fixed 120 s idle timeout with finger up in `frontend/src/screens/Explore.tsx`:
+  - Added low-rate 5 s interval timer feeding `walkStep(state, { kind: 'tick', t })` while walk is running, allowing the idle timeout to trigger and revert button label to "Walk me through" without requiring a finger down.
+  - In `handleWalkClick`, `handleWalkNext`, and `handleWalkRepeat`, first run `walkStep(state, { kind: 'tick', t })` and sync label state; if the walk had ended, speak `walk.stopped` (or start a fresh walk if pressed on "Walk me through" label) so the main control is never silent.
+  - Cleaned up low-rate interval timer on unmount, Back, scene change, and stop.
+- Fixed voice command handling when walk is null or not running:
+  - Added `walk.none` ("There is no walk for this diagram.") and `walk.notRunning` ("No walk is running. Say walk me through to start one.") to `frontend/src/i18n/index.ts` across `en`, `hi`, and `gu`.
+  - Added translation review entries in `docs/user-test/translation-review.csv` and `docs/user-test/translation-review.md`.
+  - In `handleVoiceAsk`, spoke `walk.none` for `walk_start` when `walk === null` (Raw Mode), `walk.none` for `walk_next` when `walk === null`, and `walk.notRunning` when no walk is active. Ensured `handleWalkNext` and `handleWalkRepeat` never hit a silent bare return.
+- Fixed E2E lift speech test hollow assertions:
+  - Created `frontend/e2e/explore.walk-speech.spec.ts` spying on `speechSynthesis.cancel` and `speak` via `page.addInitScript`.
+  - Verified 0 cancel calls 400 ms after `touchEnd` on bar chart walk steps, asserted absence of '22' after 300 ms wait on wrong bar touch, and asserted corner label speech on triangle sample is cancelled by lift (control).
+- Added unit tests in `frontend/tests/explore.walkFixes.test.tsx` covering fake timers idle timeout (130 s then press) and voice command fallbacks.
+- Files touched:
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/src/i18n/index.ts`
+  - `docs/user-test/translation-review.csv`
+  - `docs/user-test/translation-review.md`
+  - `frontend/tests/explore.walkFixes.test.tsx` (new)
+  - `frontend/e2e/explore.walk-speech.spec.ts` (new)
+  - `docs/reports/agy-hi16-report.md` (new)
+  - `docs/BUILD_LOG.md`
