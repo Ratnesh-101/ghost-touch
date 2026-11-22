@@ -25,6 +25,7 @@ export default defineConfig({
     isMobile: true,
     hasTouch: true,
     locale: 'en-US',
+    bypassCSP: true,
   },
   projects: [
     {
@@ -40,9 +41,13 @@ export default defineConfig({
     // Requirement 48: Correct is offered only with Teacher tools on.
     // The env flag is set through webServer.env below.
     command: 'npm run build && npm run preview -- --port 4173 --strictPort',
-    env: { VITE_FEATURE_SHARE: '1' },
+    env: {
+      VITE_FEATURE_SHARE: '1',
+      VITE_FEATURE_GUIDE: '1',
+      VITE_API_URL: '',
+    },
     url: 'http://localhost:4173',
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.PW_REUSE,
     timeout: 180_000,
   },
 });

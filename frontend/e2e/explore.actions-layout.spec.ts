@@ -40,6 +40,7 @@ interface ExploreControls {
   readonly whereAmIBtn: Locator;
   readonly askBtn: Locator;
   readonly correctBtn: Locator;
+  readonly helpBtn: Locator;
   readonly guideMeBtn: Locator;
   readonly statusLine: Locator;
 }
@@ -58,24 +59,28 @@ interface ActionButtonSpec {
 /**
  * Navigates from Start screen to Explore screen with the bundled offline "Right triangle" sample.
  * Uses getByRole with accessible names matching existing spec helpers.
+ * Optionally configures language via localStorage gt_language (e.g. 'gu' for Gujarati layout test).
  */
-async function navigateToExploreWithTriangle(page: Page): Promise<ExploreControls> {
+async function navigateToExploreWithTriangle(page: Page, lang?: string): Promise<ExploreControls> {
   // Requirement 48: Correct is offered only with Teacher tools on.
-  await page.addInitScript(() => {
+  await page.addInitScript((language) => {
     window.localStorage.setItem('gt_teacher_enabled', 'true');
-  });
+    if (language) {
+      window.localStorage.setItem('gt_language', language);
+    }
+  }, lang);
   await page.goto('/');
 
-  // 1. Start screen: single full-screen button with accessible name
+  // 1. Start screen: single full-screen button with accessible name (en: Ghost Touch / begin, gu: ગોસ્ટ ટચ / શરૂ)
   const startButton = page.getByRole('button', {
-    name: /Ghost Touch.*begin/i,
+    name: /Ghost Touch.*begin|ગોસ્ટ ટચ|શરૂ/i,
   });
   await expect(startButton).toBeVisible();
   await startButton.click();
 
-  // 2. Capture screen: sample diagram button for Right triangle
+  // 2. Capture screen: sample diagram button for Right triangle (en: triangle, gu: ત્રિકોણ)
   const triangleButton = page.getByRole('button', {
-    name: /triangle/i,
+    name: /triangle|ત્રિકોણ/i,
   });
   await expect(triangleButton).toBeVisible();
   await triangleButton.click();
@@ -84,25 +89,40 @@ async function navigateToExploreWithTriangle(page: Page): Promise<ExploreControl
   const canvas = page.locator('canvas.gt-explore__canvas');
   await expect(canvas).toBeVisible();
 
-  // Action buttons: accessible names per requirement 12.1
-  const backBtn = page.getByRole('button', { name: 'Back', exact: true });
-  const whereAmIBtn = page.getByRole('button', { name: 'Where am I', exact: true });
-  const askBtn = page.getByRole('button', { name: 'Ask', exact: true });
-  const correctBtn = page.getByRole('button', { name: 'Correct', exact: true });
-  const guideMeBtn = page.getByRole('button', { name: 'Guide me', exact: true });
+  // Action buttons: accessible names per requirement 12.1 and localized strings
+  const isGu = lang === 'gu';
+  const backBtn = isGu
+    ? page.getByRole('button', { name: 'પાછા', exact: true })
+    : page.getByRole('button', { name: 'Back', exact: true });
+  const whereAmIBtn = isGu
+    ? page.getByRole('button', { name: 'હું ક્યાં છું', exact: true })
+    : page.getByRole('button', { name: 'Where am I', exact: true });
+  const askBtn = isGu
+    ? page.getByRole('button', { name: 'પૂછો', exact: true })
+    : page.getByRole('button', { name: 'Ask', exact: true });
+  const helpBtn = isGu
+    ? page.getByRole('button', { name: 'મદદ', exact: true })
+    : page.getByRole('button', { name: 'Help', exact: true });
+  const correctBtn = isGu
+    ? page.getByRole('button', { name: 'સુધારો', exact: true })
+    : page.getByRole('button', { name: 'Correct', exact: true });
+  const guideMeBtn = isGu
+    ? page.getByRole('button', { name: 'માર્ગદર્શન આપો', exact: true })
+    : page.getByRole('button', { name: 'Guide me', exact: true });
   const statusLine = page.locator('.gt-explore__status');
 
   // Verify core controls are present and visible
   await expect(backBtn).toBeVisible();
   await expect(whereAmIBtn).toBeVisible();
   await expect(askBtn).toBeVisible();
+  await expect(helpBtn).toBeVisible();
   await expect(correctBtn).toBeVisible();
   await expect(statusLine).toBeVisible();
 
   // Allow initial rendering and layout to settle
   await page.waitForTimeout(200);
 
-  return { canvas, backBtn, whereAmIBtn, askBtn, correctBtn, guideMeBtn, statusLine };
+  return { canvas, backBtn, whereAmIBtn, askBtn, correctBtn, helpBtn, guideMeBtn, statusLine };
 }
 
 /**
@@ -157,6 +177,7 @@ async function assertActionButtonsBounds(
     { name: 'Back', locator: controls.backBtn, required: true },
     { name: 'Where am I', locator: controls.whereAmIBtn, required: true },
     { name: 'Ask', locator: controls.askBtn, required: true },
+    { name: 'Help', locator: controls.helpBtn, required: true },
     { name: 'Correct', locator: controls.correctBtn, required: true },
     { name: 'Guide me', locator: controls.guideMeBtn, required: false },
   ];
@@ -356,6 +377,7 @@ test.describe('Explore action buttons layout, viewport containment, and canvas s
     expect(checkedButtons).toContain('Back');
     expect(checkedButtons).toContain('Where am I');
     expect(checkedButtons).toContain('Ask');
+    expect(checkedButtons).toContain('Help');
     expect(checkedButtons).toContain('Correct');
 
     // 3. Canvas height >= 40% of viewport and remains stable across 3 s hold
@@ -386,6 +408,7 @@ test.describe('Explore action buttons layout, viewport containment, and canvas s
     expect(checkedButtons).toContain('Back');
     expect(checkedButtons).toContain('Where am I');
     expect(checkedButtons).toContain('Ask');
+    expect(checkedButtons).toContain('Help');
     expect(checkedButtons).toContain('Correct');
 
     // 3. Canvas height >= 40% (256px on 640px height) and unchanged after 3s hold
@@ -415,6 +438,7 @@ test.describe('Explore action buttons layout, viewport containment, and canvas s
     expect(checkedButtons).toContain('Back');
     expect(checkedButtons).toContain('Where am I');
     expect(checkedButtons).toContain('Ask');
+    expect(checkedButtons).toContain('Help');
     expect(checkedButtons).toContain('Correct');
 
     // 3. Canvas height >= 40% (337.6px on 844px height) and unchanged after 3s hold
@@ -438,7 +462,7 @@ test.describe('Explore action buttons layout, viewport containment, and canvas s
 
     await assertNoHorizontalScroll(page, '384x832 initial');
     const { checkedButtons } = await assertActionButtonsBounds(controls, viewport, '384x832 initial');
-    expect(checkedButtons.length).toBeGreaterThanOrEqual(4);
+    expect(checkedButtons.length).toBeGreaterThanOrEqual(5);
 
     await assertCanvasStabilityAfter3sHold(page, controls, viewport, '384x832 3s hold');
     await assertActionButtonsBounds(controls, viewport, '384x832 post-hold');
@@ -458,7 +482,7 @@ test.describe('Explore action buttons layout, viewport containment, and canvas s
 
     await assertNoHorizontalScroll(page, '412x915 initial');
     const { checkedButtons } = await assertActionButtonsBounds(controls, viewport, '412x915 initial');
-    expect(checkedButtons.length).toBeGreaterThanOrEqual(4);
+    expect(checkedButtons.length).toBeGreaterThanOrEqual(5);
 
     await assertCanvasStabilityAfter3sHold(page, controls, viewport, '412x915 3s hold');
     await assertActionButtonsBounds(controls, viewport, '412x915 post-hold');
@@ -466,10 +490,10 @@ test.describe('Explore action buttons layout, viewport containment, and canvas s
   });
 
   /**
-   * Action row layout when Guide me button is present alongside Back, Where am I, Ask, Correct.
-   * Verifies that all 5 buttons wrap cleanly without breaking horizontal boundaries or collapsing canvas.
+   * Action row layout when Guide me button is present alongside Back, Where am I, Ask, Help, Correct.
+   * Verifies that all 6 buttons wrap cleanly without breaking horizontal boundaries or collapsing canvas.
    */
-  test('5 action buttons layout (including Guide me when present): bounds, containment, and no horizontal scroll', async ({
+  test('6 action buttons layout (including Guide me when present): bounds, containment, and no horizontal scroll', async ({
     page,
   }) => {
     const viewport: ViewportDimensions = { width: 360, height: 640 };
@@ -478,7 +502,7 @@ test.describe('Explore action buttons layout, viewport containment, and canvas s
     const controls = await navigateToExploreWithTriangle(page);
 
     // If Guide me is not already rendered (e.g. guide offer not active), inject the exact Guide me button
-    // element into .gt-explore__actions to verify 5-button flex-wrap behavior on compact viewport
+    // element into .gt-explore__actions to verify 6-button flex-wrap behavior on compact viewport
     const guideMeBtn = page.getByRole('button', { name: 'Guide me', exact: true });
     const isAlreadyPresent = await guideMeBtn.isVisible();
 
@@ -501,18 +525,19 @@ test.describe('Explore action buttons layout, viewport containment, and canvas s
       await expect(guideMeBtn).toBeVisible();
     }
 
-    // 1. Verify no horizontal scroll with 5 buttons
-    await assertNoHorizontalScroll(page, '5-button 360x640 layout');
+    // 1. Verify no horizontal scroll with 6 buttons
+    await assertNoHorizontalScroll(page, '6-button 360x640 layout');
 
-    // 2. Verify all 5 buttons meet 48x48 touch target and lie inside viewport
+    // 2. Verify all 6 buttons meet 48x48 touch target and lie inside viewport
     const { checkedButtons, boxes } = await assertActionButtonsBounds(
       controls,
       viewport,
-      '5-button 360x640 layout',
+      '6-button 360x640 layout',
     );
     expect(checkedButtons).toContain('Guide me');
     expect(checkedButtons).toContain('Where am I');
     expect(checkedButtons).toContain('Ask');
+    expect(checkedButtons).toContain('Help');
     expect(checkedButtons).toContain('Correct');
     expect(checkedButtons).toContain('Back');
 
@@ -527,18 +552,48 @@ test.describe('Explore action buttons layout, viewport containment, and canvas s
       expect(guideMeBox.y + guideMeBox.height).toBeLessThanOrEqual(viewport.height + 0.5);
     }
 
-    // 3. Canvas height with the fifth button. The 40% figure was a guess: with five buttons the
-    // action row wraps to two rows (149px) and the canvas measures 237px (37% of 640). The same 237px
-    // was measured at 3a6fc78, before the Where am I row, so nothing regressed. Threshold is the
-    // measured baseline minus a small margin (230px), not a percentage.
+    // 3. Canvas height with the sixth button. Sized buttons wrap cleanly without collapsing canvas.
     const canvasBox = await controls.canvas.boundingBox();
     expect(canvasBox).not.toBeNull();
     if (canvasBox) {
       expect(canvasBox.height).toBeGreaterThanOrEqual(230);
     }
 
-    // 4. Canvas stability after 3 s hold with 5 buttons present
-    await assertCanvasStabilityAfter3sHold(page, controls, viewport, '5-button 3s hold', 230);
-    await assertNoHorizontalScroll(page, '5-button post-hold');
+    // 4. Canvas stability after 3 s hold with 6 buttons present
+    await assertCanvasStabilityAfter3sHold(page, controls, viewport, '6-button 3s hold', 230);
+    await assertNoHorizontalScroll(page, '6-button post-hold');
+  });
+
+  /**
+   * Layout check in Gujarati via localStorage gt_language (Item 10).
+   * Verifies that when footer labels wrap across multiple lines in Gujarati (e.g. 'હું ક્યાં છું'),
+   * all action buttons remain >= 48px, within viewport bounds, with zero horizontal overflow,
+   * and canvas remains stable.
+   */
+  test('Gujarati layout (gt_language = gu): action buttons >= 48px, containment, no horizontal scroll', async ({
+    page,
+  }) => {
+    const viewport: ViewportDimensions = { width: 384, height: 832 };
+    await page.setViewportSize(viewport);
+
+    const controls = await navigateToExploreWithTriangle(page, 'gu');
+
+    // 1. Verify zero horizontal scroll
+    await assertNoHorizontalScroll(page, 'Gujarati initial');
+
+    // 2. Action buttons bounding boxes and viewport containment
+    const { checkedButtons } = await assertActionButtonsBounds(controls, viewport, 'Gujarati initial');
+    expect(checkedButtons).toContain('Back');
+    expect(checkedButtons).toContain('Where am I');
+    expect(checkedButtons).toContain('Ask');
+    expect(checkedButtons).toContain('Help');
+    expect(checkedButtons).toContain('Correct');
+
+    // 3. Canvas stability after 3s hold in Gujarati
+    await assertCanvasStabilityAfter3sHold(page, controls, viewport, 'Gujarati 3s hold');
+
+    // 4. Post-hold assertions
+    await assertActionButtonsBounds(controls, viewport, 'Gujarati post-hold');
+    await assertNoHorizontalScroll(page, 'Gujarati post-hold');
   });
 });
