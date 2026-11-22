@@ -275,7 +275,7 @@ describe('task 86: Requirement 52 oracles (lanes C-screen, C-wire, C-hand-in)', 
   });
 
   describe('B7: Hand in shows the point list and a link that decodes to the draft (52.14)', () => {
-    it.fails('the list has every pin, the text says not checked, the link decodes to the scene', async () => {
+    it('the list has every pin, the text says not checked, the link decodes to the scene', async () => {
       await withBuild((rig) => {
         pinAt(rig, 0, 1);
         pinAt(rig, 1, 3);

@@ -14,8 +14,18 @@
   background-color: var(--gt-bg, #0b0e0c);
   color: var(--gt-text, #eafff5);
   font-family: 'Atkinson Hyperlegible', system-ui, -apple-system, sans-serif;
-  padding: 16px;
   overflow-x: hidden;
+}
+
+.gt-build[data-mode="form"] {
+  padding: 16px;
+}
+
+.gt-build[data-mode="feel"] {
+  padding: 0;
+  min-height: 0;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .gt-build__header {
@@ -193,9 +203,65 @@
 
 /* Explore feel mode container */
 .gt-build__feel-container {
+  display: contents;
+}
+
+/* Hand-in panel */
+.gt-build__handin-panel {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  height: 100%;
-  flex: 1;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 16px;
+  background-color: var(--gt-surface, #141c17);
+  border: 1px solid var(--gt-border, rgba(57, 255, 136, 0.22));
+  border-radius: 8px;
+}
+
+.gt-build__handin-link {
+  display: block;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: var(--gt-green, #39ff88);
+  word-break: break-all;
+  text-decoration: underline;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.gt-build__handin-link:focus-visible {
+  outline: 3px solid var(--gt-green, #39ff88);
+  outline-offset: 2px;
+}
+
+.gt-build__handin-text {
+  padding: 12px;
+  background-color: var(--gt-bg, #0b0e0c);
+  border: 1px solid var(--gt-border, rgba(57, 255, 136, 0.15));
+  border-radius: 6px;
+  color: var(--gt-bone, #ded6c4);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.gt-build__handin-text:focus-visible {
+  outline: 2px solid var(--gt-green, #39ff88);
+  outline-offset: 2px;
+}
+
+.gt-build__handin-heading {
+  font-weight: 700;
+  color: var(--gt-copper, #c88a4b);
+  margin-bottom: 6px;
+}
+
+.gt-build__handin-row {
+  font-family: monospace;
+  font-size: 0.95rem;
+}
+
+.gt-build__copy-btn {
+  align-self: flex-start;
+  min-height: 48px;
+  min-width: 48px;
 }

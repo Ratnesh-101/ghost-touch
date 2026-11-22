@@ -130,6 +130,19 @@ export function pressStitch(history: HistoryState): BuildActionResult {
     };
   }
   const nextScene = stitchInOrder(history.present);
+  if (
+    nextScene === history.present ||
+    JSON.stringify(nextScene) === JSON.stringify(history.present)
+  ) {
+    const segmentCount = history.present.segments?.length ?? 0;
+    return {
+      history,
+      speech: {
+        key: 'build.stitched',
+        params: { count: segmentCount },
+      },
+    };
+  }
   const nextHistory = applyEdit(history, nextScene);
   const segmentCount = nextScene.segments?.length ?? 0;
   return {

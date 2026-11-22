@@ -458,3 +458,5 @@
 "build.handin.copy","Copy link and list","लिंक और सूची कॉपी करें","લિંક અને સૂચિ કૉપિ કરો","","","","Lane hi12 (Requirement 52)"
 "build.handin.copied (spoken)","Copied.","कॉपी किया गया।","કૉપિ કર્યું.","","","","Lane hi12 (Requirement 52)"
 "build.handin.soon (spoken)","Hand-in coming soon.","जमा करने की सुविधा जल्द आ रही है।","સબમિટ કરવાની સુવિધા ટૂંક સમયમાં આવી રહી છે.","","","","Lane hi12 (Requirement 52)"
+"build.xValue","x {n}","x {n}","x {n}","","","","keep {n}; Lane hi14 (Requirement 52); slider visible text and valuetext"
+"build.yValue","y {n}","y {n}","y {n}","","","","keep {n}; Lane hi14 (Requirement 52); slider visible text and valuetext"
