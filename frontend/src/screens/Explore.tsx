@@ -7,7 +7,7 @@
  * Pure decisions live in `flow/explore.ts`, `flow/ask.ts`, and `flow/commands.ts`;
  * browser APIs live in `drivers/` (navigation history, canvas context & DOM events here).
  */
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type JSX, type MouseEvent, type PointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type JSX, type MouseEvent, type PointerEvent } from 'react';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { Spark } from '../components/lab/Spark';
 import { SettingsLauncher } from '../components/SettingsLauncher';
@@ -37,6 +37,30 @@ import { cappedDpr, reconcileCanvasBox, type CanvasBox } from '../flow/canvasSiz
 import { GuideController } from '../flow/guide';
 import { resolveTarget, type ResolvedTarget } from '../guide';
 import { executeExploreCommand, parseExploreCommand, whereAmI } from '../flow/commands';
+import {
+  templateWalk,
+  startWalk,
+  walkStep,
+  initialWalkState,
+  type WalkAnchor,
+  type WalkEffect,
+  type WalkState,
+} from '../core/walk';
+import { walkLineText } from '../flow/walk';
+
+function resolveWalkAnchor(scene: DiagramScene, anchor: WalkAnchor): ResolvedTarget | null {
+  if (anchor.kind === 'vertex' || anchor.kind === 'segment' || anchor.kind === 'bar') {
+    return resolveTarget(scene, { kind: 'element', elementId: anchor.id });
+  }
+  if (anchor.kind === 'spot') {
+    return {
+      x: anchor.spot.x,
+      y: anchor.spot.y,
+      label: anchor.spot.name,
+    };
+  }
+  return null;
+}
 import {
   CENTRE_TICK_MS,
   checkBarRest,
@@ -584,6 +608,11 @@ export function Explore({
   const playingScanToneRef = useRef(false);
   const liftSpeechQuietTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const askAnswerSpeakingRef = useRef<boolean>(false);
+  const walkSpeechRef = useRef<boolean>(false);
+  const walkTouchSpokenRef = useRef<boolean>(false);
+  const walkRef = useRef<WalkState>(initialWalkState());
+  const walkPhaseRef = useRef<WalkState['phase']>('idle');
+  const [walkPhase, setWalkPhase] = useState<WalkState['phase']>('idle');
 
   const clearLiftSpeechQuietTimer = (): void => {
     if (liftSpeechQuietTimer.current !== null) {
@@ -609,9 +638,10 @@ export function Explore({
   }, [drivers.speech]);
 
   const isAskAnswerSpeaking = (): boolean => {
-    if (!askAnswerSpeakingRef.current) return false;
+    if (!askAnswerSpeakingRef.current && !walkSpeechRef.current) return false;
     if (!isSpeechSpeaking()) {
       askAnswerSpeakingRef.current = false;
+      walkSpeechRef.current = false;
       return false;
     }
     return true;
@@ -635,17 +665,19 @@ export function Explore({
     }
   }, [isHelpActive, isHelpDisplayed]);
 
+  const isRawScene = isRaw ?? (scene.kind === 'unknown' || announced.includes(t('raw.announce')));
+  const walk = useMemo(() => templateWalk(scene, { raw: isRawScene }), [scene, isRawScene]);
+  const isWalkRunning = walkPhase !== 'idle' && walkPhase !== 'done';
+
   const deriveAnnouncement = useCallback((): string => {
-    const isRawMode =
-      isRaw ?? (scene.kind === 'unknown' || announced.includes(t('raw.announce')));
-    const mode = isRawMode ? 'raw' : verified ? 'shared' : 'ai';
+    const mode = isRawScene ? 'raw' : verified ? 'shared' : 'ai';
     return exploreAnnouncement(
       scene,
       mode,
       undefined,
       verified ? { honestTitle: true } : undefined,
     );
-  }, [scene, isRaw, announced, verified]);
+  }, [scene, isRawScene, verified]);
 
   const prevLangRef = useRef<Lang>(currentLang);
   useEffect(() => {
@@ -746,6 +778,10 @@ export function Explore({
       engineState.current = initialState();
       heartbeatState.current = initialHeartbeatState();
       clearHighlight();
+      walkRef.current = initialWalkState();
+      walkSpeechRef.current = false;
+      walkPhaseRef.current = 'idle';
+      setWalkPhase('idle');
       scheduleDraw(viewportRef.current, null);
       if (shouldPlayAlive(scene)) {
         markAlivePlayed(scene);
@@ -789,7 +825,6 @@ export function Explore({
     markReturningFromCorrect();
     onCorrect?.();
   };
-  const isRawScene = isRaw ?? (scene.kind === 'unknown' || announced.includes(t('raw.announce')));
   const rawNoticeTranslation = t('lab.raw.notice');
   const rawNoticeText =
     rawNoticeTranslation !== 'lab.raw.notice'
@@ -893,8 +928,111 @@ export function Explore({
     stickyHoldRef.current = resetStickyHoldOnLift();
     heartbeatState.current = initialHeartbeatState();
     clearHighlight();
+    walkRef.current = initialWalkState();
+    walkSpeechRef.current = false;
+    walkPhaseRef.current = 'idle';
+    setWalkPhase('idle');
     leaveExploreEntry();
     onBack();
+  };
+
+  const syncWalkPhase = (newPhase: WalkState['phase']): void => {
+    if (walkPhaseRef.current !== newPhase) {
+      walkPhaseRef.current = newPhase;
+      setWalkPhase(newPhase);
+    }
+  };
+
+  const runWalkEffects = (effects: readonly WalkEffect[], now = performance.now()): void => {
+    const lang = LANG_BCP47[getLang()] ?? 'en-IN';
+    const lines: string[] = [];
+    for (const eff of effects) {
+      if (eff.kind === 'speak') {
+        const text = walkLineText(eff.line);
+        if (text) lines.push(text);
+      } else if (eff.kind === 'guideTo' && isGuideActive()) {
+        const resolved = resolveWalkAnchor(sceneRef.current, eff.anchor);
+        if (resolved) startGuide(resolved);
+      }
+    }
+    if (lines.length > 0) {
+      const text = joinAnnouncements(lines);
+      walkSpeechRef.current = true;
+      drivers.speech.speak(text, lang);
+      markSpeechStart(now);
+      lastSpokenRef.current = text;
+      setStatusMessage(text);
+    }
+  };
+
+  const handleStartWalk = (now = performance.now()): void => {
+    if (!walk) return;
+    const { state, effects } = startWalk(sceneRef.current, walk, now);
+    walkRef.current = state;
+    syncWalkPhase(state.phase);
+    runWalkEffects(effects, now);
+  };
+
+  const handleWalkNext = (now = performance.now()): void => {
+    if (walk === null || walkRef.current.phase === 'idle') return;
+    const { state, effects } = walkStep(walkRef.current, { kind: 'next', t: now });
+    walkRef.current = state;
+    syncWalkPhase(state.phase);
+    runWalkEffects(effects, now);
+  };
+
+  const handleWalkRepeat = (now = performance.now()): void => {
+    if (walk === null || walkRef.current.phase === 'idle') return;
+    const { state, effects } = walkStep(walkRef.current, { kind: 'repeat', t: now });
+    walkRef.current = state;
+    syncWalkPhase(state.phase);
+    runWalkEffects(effects, now);
+  };
+
+  const handleWalkClick = (): void => {
+    if (isBusy || leaving.current || !walk) return;
+    drivers.audio.unlock();
+    const now = performance.now();
+    if (walkRef.current.phase === 'idle' || walkRef.current.phase === 'done') {
+      handleStartWalk(now);
+    } else {
+      handleWalkNext(now);
+    }
+  };
+
+  const walkTap = useTouchTap(handleWalkClick);
+
+  const stepWalkTouch = (
+    target: Target,
+    finger: ScreenPoint,
+    view: Viewport,
+    now: number,
+  ): string[] => {
+    if (walk === null || walkRef.current.phase === 'idle') {
+      walkTouchSpokenRef.current = false;
+      return [];
+    }
+    const touchRes = walkStep(walkRef.current, {
+      kind: 'touch',
+      t: now,
+      target,
+      finger,
+      view,
+    });
+    walkRef.current = touchRes.state;
+    syncWalkPhase(touchRes.state.phase);
+    const lines: string[] = [];
+    for (const eff of touchRes.effects) {
+      if (eff.kind === 'speak') {
+        const text = walkLineText(eff.line);
+        if (text) lines.push(text);
+      } else if (eff.kind === 'guideTo' && isGuideActive()) {
+        const resolved = resolveWalkAnchor(sceneRef.current, eff.anchor);
+        if (resolved) startGuide(resolved);
+      }
+    }
+    walkTouchSpokenRef.current = lines.length > 0;
+    return lines;
   };
 
   const handleVoiceAsk = async (): Promise<void> => {
@@ -983,8 +1121,21 @@ export function Explore({
       if (leaving.current) return;
 
       const isGuide = isGuideActive();
+      const isWalk = walk !== null && walkRef.current.phase !== 'idle' && walkRef.current.phase !== 'done';
       // Check if recognized phrase is an Explore voice command
-      const cmd = parseExploreCommand(transcript, isGuide);
+      const cmd = parseExploreCommand(transcript, { isGuideActive: isGuide, isWalkActive: isWalk });
+      if (cmd.type === 'walk_start') {
+        if (walk !== null) {
+          handleStartWalk(performance.now());
+        }
+        return;
+      }
+      if (cmd.type === 'walk_next') {
+        if (walk !== null && isWalk) {
+          handleWalkNext(performance.now());
+        }
+        return;
+      }
       if (cmd.type !== 'unknown') {
         const currentNorm = pendingCursor.current
           ? toNorm(pendingCursor.current, viewportRef.current)
@@ -999,7 +1150,19 @@ export function Explore({
           currentRate,
           isGuiding: guideController.current?.isGuiding(),
           isGuideActive: isGuide,
+          isWalkActive: isWalk,
         });
+
+        if (result.walkRepeat) {
+          handleWalkRepeat(performance.now());
+          return;
+        }
+
+        if (result.stopWalk) {
+          walkRef.current = initialWalkState();
+          walkSpeechRef.current = false;
+          syncWalkPhase('idle');
+        }
 
         if (result.stopGuide) {
           guideController.current?.stop('voice');
@@ -1505,6 +1668,10 @@ export function Explore({
       stickyHoldRef.current = resetStickyHoldOnLift();
       heartbeatState.current = initialHeartbeatState();
       clearHighlight();
+      walkRef.current = initialWalkState();
+      walkSpeechRef.current = false;
+      walkPhaseRef.current = 'idle';
+      setWalkPhase('idle');
       onBackRef.current();
     });
 
@@ -1634,7 +1801,7 @@ export function Explore({
     moveResult: ReturnType<typeof processPointerMove>,
     lang: string,
     extraAnnouncements: readonly string[] = [],
-    afterAnnouncements: readonly string[] = [],
+    compassAnnouncements: readonly string[] = [],
     isStillness = false,
     coords?: ScreenPoint | null,
   ): void => {
@@ -1731,15 +1898,18 @@ export function Explore({
     const moveEffects = mergeAnnouncements(
       [...extraAnnouncements, ...pacedAxisCrossings, ...edgeAnnouncements],
       pacedEffects,
-      afterAnnouncements,
+      compassAnnouncements,
     );
     // R3-02: update lastSpokenRef unconditionally from the merged speak effect
+    const hasWalkSpeech = walkTouchSpokenRef.current;
+    walkTouchSpokenRef.current = false;
     const joined = moveEffects.find((e) => e.kind === 'speak');
     if (joined?.kind === 'speak') {
       askAnswerSpeakingRef.current = false;
+      walkSpeechRef.current = hasWalkSpeech;
       lastSpokenRef.current = joined.text;
       lastSpeechStartRef.current = performance.now();
-      if (moveResult.pageEdge?.spoken) {
+      if (moveResult.pageEdge?.spoken || hasWalkSpeech) {
         setStatusMessage(joined.text);
       }
     }
@@ -1950,7 +2120,20 @@ export function Explore({
         );
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, coords, now, lang);
-        applyMoveResult(moveResult, lang, [], compassAnnouncements, true, coords);
+
+        if (walk !== null && walkRef.current.phase !== 'idle') {
+          const tickRes = walkStep(walkRef.current, { kind: 'tick', t: now });
+          walkRef.current = tickRes.state;
+          syncWalkPhase(tickRes.state.phase);
+        }
+        applyMoveResult(
+          moveResult,
+          lang,
+          [],
+          compassAnnouncements,
+          true,
+          coords,
+        );
         stickyHoldRef.current = updateStickyHoldState(
           stickyHoldRef.current,
           moveResult.target,
@@ -2147,7 +2330,10 @@ export function Explore({
       pageEdgeState.current,
       stickyOpts,
     );
-    const compassAnnouncements = checkVertexCompass(moveResult.target, now);
+    const compassAnnouncements = [
+      ...checkVertexCompass(moveResult.target, now),
+      ...stepWalkTouch(moveResult.target, coords, view, now),
+    ];
     checkLineDwell(moveResult.target, coords, now, lang);
     applyMoveResult(moveResult, lang, centreAnnouncements, compassAnnouncements);
     stickyHoldRef.current = updateStickyHoldState(
@@ -2274,7 +2460,10 @@ export function Explore({
       pageEdgeState.current,
       stickyOpts,
     );
-    const compassAnnouncements = checkVertexCompass(moveResult.target, now);
+    const compassAnnouncements = [
+      ...checkVertexCompass(moveResult.target, now),
+      ...stepWalkTouch(moveResult.target, coords, view, now),
+    ];
     checkLineDwell(moveResult.target, coords, now, lang);
     applyMoveResult(moveResult, lang, [], compassAnnouncements, false, coords);
     stickyHoldRef.current = updateStickyHoldState(
@@ -2376,11 +2565,21 @@ export function Explore({
           },
         );
         const compassAnnouncements = !askActive.current
-          ? checkVertexCompass(moveResult.target, now)
+          ? [
+              ...checkVertexCompass(moveResult.target, now),
+              ...stepWalkTouch(moveResult.target, promotedCoords, view, now),
+            ]
           : [];
         checkLineDwell(moveResult.target, promotedCoords, now, lang);
         // Promotion of surviving pointer
-        applyMoveResult(moveResult, lang, [], compassAnnouncements, false, promotedCoords);
+        applyMoveResult(
+          moveResult,
+          lang,
+          [],
+          compassAnnouncements,
+          false,
+          promotedCoords,
+        );
         stickyHoldRef.current = updateStickyHoldState(
           stickyHoldRef.current,
           moveResult.target,
@@ -2714,6 +2913,21 @@ export function Explore({
               style={{ minWidth: '48px', minHeight: '48px' }}
             >
               {t('ask.guideMe')}
+            </AccessibleButton>
+          )}
+          {walk !== null && (
+            <AccessibleButton
+              data-testid="explore-walk"
+              className="gt-control gt-explore__walk"
+              onPointerDown={walkTap.onPointerDown}
+              onPointerUp={walkTap.onPointerUp}
+              onPointerCancel={walkTap.onPointerCancel}
+              onClick={walkTap.onClick}
+              disabled={isBusy}
+              aria-label={isWalkRunning ? t('walk.next') : t('walk.start')}
+              style={{ minWidth: '48px', minHeight: '48px' }}
+            >
+              {isWalkRunning ? t('walk.next') : t('walk.start')}
             </AccessibleButton>
           )}
           <AccessibleButton

@@ -77,8 +77,7 @@ describe('task 85: Requirement 51 oracles (lane 85b)', () => {
       ['bar chart', bars],
       ['sine', sine],
     ] as const) {
-      // Fails today: no "Walk me through" button exists.
-      it.fails(`W1 the ${name} sample shows a Walk me through button`, async () => {
+      it(`W1 the ${name} sample shows a Walk me through button`, async () => {
         await withExplore({ scene }, (rig) => {
           expect(walkButton(rig)).not.toBeNull();
         });
@@ -122,8 +121,7 @@ describe('task 85: Requirement 51 oracles (lane 85b)', () => {
       });
     });
 
-    // Fails today: there is no button, so the rig throws before anything is spoken.
-    it.fails('W3 start speaks the first find prompt; a wrong touch is silent; the anchor speaks step one once', async () => {
+    it('W3 start speaks the first find prompt; a wrong touch is silent; the anchor speaks step one once', async () => {
       await withExplore({ scene: triangle }, async (rig) => {
         startWalk(rig);
         expect(rig.spoken().join(' ')).toContain(tf('walk.find.segment', { name: 'CA' }));
@@ -152,8 +150,8 @@ describe('task 85: Requirement 51 oracles (lane 85b)', () => {
       });
     });
 
-    // Fails today for the same reason. The vertex label and the step sentence are ONE utterance (51.8).
-    it.fails('W3b the step sentence and the engine announcement for the same touch are one utterance', async () => {
+    // The vertex label and the step sentence are ONE utterance (51.8).
+    it('W3b the step sentence and the engine announcement for the same touch are one utterance', async () => {
       await withExplore({ scene: triangle }, async (rig) => {
         startWalk(rig);
         tap(rig, CA);
@@ -169,7 +167,7 @@ describe('task 85: Requirement 51 oracles (lane 85b)', () => {
       });
     });
 
-    it.fails('W3c "next step" before the anchor is touched does not move on', async () => {
+    it('W3c "next step" before the anchor is touched does not move on', async () => {
       await withExplore({ scene: triangle }, async (rig) => {
         startWalk(rig);
         rig.clearCalls();
@@ -193,8 +191,7 @@ describe('task 85: Requirement 51 oracles (lane 85b)', () => {
       });
     });
 
-    // Fails today: no walk exists to protect.
-    it.fails('a step sentence still playing when the finger lifts is not stopped', async () => {
+    it('a step sentence still playing when the finger lifts is not stopped', async () => {
       await withExplore({ scene: triangle }, (rig) => {
         startWalk(rig);
         rig.down(CA.x, CA.y);
@@ -237,8 +234,7 @@ describe('task 85: Requirement 51 oracles (lane 85b)', () => {
       expect(b).toEqual(a);
     });
 
-    // Fails today: there is no walk to start.
-    it.fails('the vibrate, tone and earcon calls are identical with and without a started walk', async () => {
+    it('the vibrate, tone and earcon calls are identical with and without a started walk', async () => {
       const plain = await trace(false);
       const walking = await trace(true);
       expect(walking.vib).toEqual(plain.vib);
@@ -248,8 +244,7 @@ describe('task 85: Requirement 51 oracles (lane 85b)', () => {
   });
 
   describe('W6: "stop" ends the walk with one line and no earcon (51.7)', () => {
-    // Fails today: there is no walk to stop, and "stop" is parsed only while Guide is active.
-    it.fails('stop speaks one line, plays no earcon of its own, and later touches speak no step', async () => {
+    it('stop speaks one line, plays no earcon of its own, and later touches speak no step', async () => {
       await withExplore({ scene: triangle }, async (rig) => {
         startWalk(rig);
         rig.clearCalls();

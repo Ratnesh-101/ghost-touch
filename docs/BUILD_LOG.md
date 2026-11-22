@@ -4926,3 +4926,22 @@ Format for each entry:
   - `docs/user-test/translation-review.md`
   - `docs/reports/agy-hi10-report.md`
   - `docs/BUILD_LOG.md`
+
+## 2026-11-22 — Antigravity — Lane hi11 follow-up: Planchette Explore fixes
+- Resolved TypeScript compilation errors in `frontend/tests/explore.walkLane.test.tsx`:
+  - Removed unused import `vi`.
+  - Removed unused constants `BC` and `VERTEX_C`.
+  - Stringified parameter in `tf('walk.intro', { count: '4' })` matching the `tf` type signature.
+- Fixed 120 s idle timeout test and behavior in `frontend/src/screens/Explore.tsx`:
+  - Removed `stepWalkTouch` from keep-alive `onTick`. Previously, calling `stepWalkTouch` on every 60 ms keep-alive tick dispatched `{ kind: 'touch', t: now }`, updating `lastActivity` on every tick and preventing the 120,000 ms idle timeout check in `walkStep` from ever triggering.
+  - Feeding only `{ kind: 'tick', t: now }` into `walkStep` allows the idle timeout to trigger after 120,000 ms without real touch activity, resetting `walkPhase` to `'idle'` silently.
+- Restored R3-01 source guard structure in `frontend/src/screens/Explore.tsx` for `frontend/tests/h7.explore.fixes.test.ts`:
+  - Restored verbatim `applyMoveResult(moveResult, lang, centreAnnouncements, compassAnnouncements)` call in `handlePointerDown`.
+  - Combined walk step speech into `compassAnnouncements` using the existing seam: `const compassAnnouncements = [...checkVertexCompass(moveResult.target, now), ...stepWalkTouch(moveResult.target, coords, view, now)];`.
+  - Tracked walk speech using `walkTouchSpokenRef` and preserved lift guard extension without modifying the `applyMoveResult` signature.
+- Files touched:
+  - `frontend/src/screens/Explore.tsx`
+  - `frontend/tests/explore.walkLane.test.tsx`
+  - `docs/reports/agy-hi11-report.md`
+  - `docs/BUILD_LOG.md`
+
