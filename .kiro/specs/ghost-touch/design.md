@@ -940,3 +940,34 @@ helpSentences(ctx: HelpContext): HelpKey[]
 | P156 | **Each flag adds exactly its keys (Kiro, task 80.2):** for any context, flipping `raw` adds or removes exactly `help.raw`; flipping `guideOn` exactly `help.guide` and `help.stop`; flipping `askOn` exactly `help.ask`; the other keys are unchanged. 300 runs. | 50.1 |
 | P157 | **Pure, stable and total (Kiro, task 80.2):** the same context gives an equal array and a new array; a frozen context is not mutated; any junk (`null`, `undefined`, primitives, fields of any type, a field `'true'` or `1`) never throws and counts as off. 300 runs. | 50.2 |
 | P158 | **Strings are complete and honest (Kiro, task 80.2; `it.fails` until the string lane lands):** every key in `HELP_I18N_KEYS` exists in `en`, `hi` and `gu`, is not blank, has Hindi and Gujarati values that differ from English, and contains none of "verified", "correct", "checked", "approved" (any case). Every (language, key) pair is run as an explicit example, then 200 random pairs. | 50.7 |
+
+
+## Help and Where am I with a second finger, readable Help text, landscape footer (Requirements 25.9, 25.10, 50.10 to 50.13, task 84)
+Written by Kiro on 2026-11-22 before the code, from `docs/reports/opus-playwright-recommendations.md` items 1, 2 and 4 (each reproduced by the reviewer under Chromium touch emulation, not on a phone). Spec only: `screens/`, `flow/`, `i18n/` and the e2e specs are not edited here. The code and the e2e oracles are for agy lane hi8.
+
+### Second-finger activation (50.10)
+- Cause (reviewer's evidence): with finger 1 down on the canvas, a tap by finger 2 on Help gives `pointerdown` and `pointerup` on the button and no `click`; `Explore.tsx` listens to `onClick` only. Where am I uses the same pattern.
+- Rule for the lane: a small shared handler for the two buttons. `onPointerDown` (touch only) remembers the pointer id on that button. `onPointerUp` (touch only) activates when the id matches, then sets a short "just activated" time stamp. `onClick` activates unless the time stamp is less than about 500 ms old. `onPointerCancel` and a `pointerup` that lands elsewhere forget the id. The handler never calls `setPointerCapture` and never touches `activePointers`, the primary pointer, the highlight or the engine, so 50.10.4 holds by construction. The 500 ms guard is a click de-duplicator, not a tuned value; it goes in code, not in `tech.md`.
+- Keyboard, TalkBack double-tap and mouse send `click` with no touch pointer-up on the button, so they go through the `onClick` path unchanged (50.10.2).
+
+### Reachable Help text (25.9, 50.11)
+- Cause (reviewer's measurements, `scrollHeight` / `clientHeight` after Help): en 384 px 78/59, en 320 px 98/59, hi and gu the same, Raw scene 384 px 98/59 with 4 sentences. The 3-line clamp inside the 5rem card hides the last sentence, which in Raw Mode is the Raw sentence (50.8). `toContainText` passes on clipped text because it reads `textContent`.
+- Rule: the card stays `height: 5rem` (25.4). While Help text is shown the status element carries a modifier class (the lane names it, suggested `gt-explore__status--help`) that removes the line clamp and sets `overflow-y: auto`, `tabindex="0"`. Other status text puts the 3-line clamp back. Alternative (50.11.5): one sentence at a time in step with speech.
+- The measurement the oracle uses is geometry, not CSS text: after Help, if `scrollHeight > clientHeight + 1` then computed `overflow-y` is `auto` or `scroll`; scroll the status to `scrollHeight`; the last sentence's `getBoundingClientRect().bottom` is at or above the status card's bottom. Card height, canvas box and footer boxes are equal before and after Help.
+
+### Landscape on a short phone (25.10, 50.12)
+- Cause: at 832x384 the Help, Ask, Where am I and Back buttons sit at y 364 to 419 in a 384 px viewport. The screen scrolls, so they are reachable, but a blind or low-vision user has no cue to scroll. The rotation test measures only the canvas width.
+- Rule: inside `@media (orientation: landscape) and (max-height: 480px)` the footer is fully inside the viewport with no scroll. The lane chooses footer beside the canvas, or a fixed bottom bar. Buttons keep 48 x 48 CSS px, and Requirement 25.1 (canvas box stable), 25.4 and 25.6 hold. 25.5's 220 px lower bound may give way to 160 px in this query only if the footer cannot otherwise fit (PROPOSED, owner to look on a phone).
+- A `max-height` query also matches a small desktop window in landscape; that is acceptable, since the rule only makes the footer more visible.
+
+### Oracles (examples, not fast-check properties: they need a real layout engine and real touch input)
+| # | Oracle | Where | Today |
+|---|---|---|---|
+| N1 | CDP `touchStart [B]`, then `touchStart [B, Help centre]`, then `touchEnd`: the status shows the Help text and exactly one utterance is recorded; the highlight stays `vertex:B`. Repeat for Where am I (one where-am-I utterance). | e2e, `explore.help-highlight.spec.ts` (agy) | red (reproduced by the reviewer) |
+| N2 | Single-finger `tap()` on Help and on Where am I: one utterance, not two (the `click` after pointer-up is ignored). A keyboard Enter on each: one utterance. | e2e (agy) | single-finger passes today; keyboard passes; kept as the guard for the de-dupe |
+| N3 | A touch that goes down on Help and up on the canvas, and one that is cancelled: no utterance. | e2e (agy), or vitest in the rig with synthetic pointer events (Kiro, if the rig can express it) | passes today for the wrong reason (nothing activates); must stay green after the fix |
+| N4 | After Help, in en, hi, gu, Raw and non-Raw, at 320 and 384 px width: card height, canvas box and footer boxes are equal to before Help; `scrollHeight > clientHeight + 1` implies `overflow-y` auto or scroll and `tabindex="0"`; after scrolling to the end the last sentence's bottom is at or above the card bottom. | e2e (agy) | red: Raw and 320 px clipped |
+| N5 | At 640x360, 832x384 and 915x412: every footer button (Back, Where am I, Ask, Help, Correct and Guide me when on) has top >= 0, bottom <= viewport height, size >= 48 x 48; `document.scrollingElement` and `.gt-explore` do not scroll; canvas box unchanged across a rotation except as 25.1 allows. | e2e `explore.actions-layout.spec.ts` (agy); `buttonSpecs` gains Help and the test is renamed "6 action buttons" | red |
+| N6 | `buttonSpecs` lists Help (`required: true`) and the Help test checks `y + height <= viewport.height`. | e2e (agy) | red (Help is not measured) |
+
+jsdom cannot show N4 or N5 (no layout), so no vitest oracle exists for them and none is committed as `it.fails`. N1 and N3 could be written in the vitest rig with synthetic `pointerup` events; that is task 84.2, not done in this spec commit.

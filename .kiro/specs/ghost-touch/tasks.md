@@ -661,3 +661,16 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 81.1 Highlight in `screens/Explore.tsx` (Requirement 49.4 to 49.11); removes `.fails` from `explore.highlight.oracle.test.tsx`; due Nov 28 or withdrawn (D9)
   - [x] 81.2 Help button, strings in `en`, `hi`, `gu`, rows in `docs/user-test/translation-review.csv` and `.md` (Requirement 50.2 to 50.9); removes `.fails` from `explore.help.oracle.test.tsx` and `help.prop.test.ts`
   - _Requirements: 49.4-49.11, 50.2-50.9_
+
+## Playwright findings 1, 2 and 4: second-finger Help, readable Help text, landscape footer (Requirements 25.9, 25.10, 50.10 to 50.13; spec written before the code)
+> Spec text in task 84.1. Do not edit `screens/`, `flow/`, `i18n/` or any tuned value in this task. Code and e2e specs are agy lane hi8. Source: `docs/reports/opus-playwright-recommendations.md` items 1, 2, 4 (items 3 and 5 to 10 are not part of this task).
+
+- [ ] 84. Close verified Playwright findings 1, 2 and 4
+  - [x] 84.1 Requirements 25.9, 25.10, 50.10 to 50.13, design section with oracles N1 to N6, this task; note in `docs/reviews/kiro-review-hi3-hi4.md` ("Kiro follow-up 4")
+  - [ ] 84.2 (Kiro, optional) vitest oracle in the Explore rig for N1 and N3 with synthetic touch pointer events (finger 1 down on the canvas, finger 2 down and up on Help and on Where am I, no `click`): expect one speech call and an unchanged highlight; `it.fails` while red. Only if the rig can express a second pointer on a button; otherwise recorded as not expressible and left to 84.3
+  - [ ] 84.3 (agy, e2e) N1 to N3: second-finger tap on Help and on Where am I via CDP, single-finger and keyboard de-dupe, slid-off and cancelled touch
+  - [ ] 84.4 (agy, e2e) N4: Help text reachable in en, hi, gu, Raw and non-Raw at 320 and 384 px, with card, canvas and footer boxes measured before and after
+  - [ ] 84.5 (agy, e2e) N5 and N6: landscape footer fully visible at 640x360, 832x384 and 915x412; `buttonSpecs` lists Help; test renamed "6 action buttons"
+  - [ ] 84.6 (agy, screens) the fixes of 50.10, 50.11 and 25.10 in `Explore.tsx` and the stylesheets; removes the `.fails` or red marks of 84.2 to 84.5
+  - [ ] 84.7 (owner) phone check: second-finger Help tap, status card after Help on a Raw photo with TalkBack, rotation to landscape; decide the 160 px landscape canvas bound if it is needed
+  - _Requirements: 25.9, 25.10, 50.10-50.13_
