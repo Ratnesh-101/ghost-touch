@@ -67,12 +67,14 @@ function isObj(v: unknown): v is Record<string, unknown> {
   return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
 
-/** An object whose element lists are arrays or absent (`addPoint` can then never throw on it). */
+/** An object whose element lists are arrays of objects, or absent (`addPoint` reads every element's id). */
 function usable(scene: unknown): scene is DiagramScene {
   if (!isObj(scene)) return false;
   for (const key of ['points', 'segments', 'polylines', 'bars']) {
     const v = scene[key];
-    if (v !== undefined && !Array.isArray(v)) return false;
+    if (v === undefined) continue;
+    if (!Array.isArray(v)) return false;
+    for (const item of v) if (!isObj(item)) return false;
   }
   return true;
 }

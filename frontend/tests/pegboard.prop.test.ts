@@ -615,8 +615,15 @@ describe('P180 total and pure (52.16)', () => {
     );
   });
 
-  it('a deep-frozen draft is never mutated', () => {
-    fc.assert(
+  it('pinned example (seed -1963959690): a points list holding null and numbers is refused, not thrown on', () => {
+    const scene = { points: [null, 3, { id: 1, x: 'a', y: null }, { id: '__proto__', x: NaN, y: Infinity }] };
+    const r = pin(scene as unknown as DiagramScene, 0, 0);
+    expect(r.kind).toBe('badInput');
+    expect(r.scene).toBe(scene);
+    expect(stitchInOrder(scene as unknown as DiagramScene)).toBe(scene);
+  });
+
+  it('a deep-frozen draft is never mutated', () => {    fc.assert(
       fc.property(attemptsArb, bigNumber, bigNumber, (attempts, gx, gy) => {
         const { scene } = build(attempts);
         deepFreeze(scene);
