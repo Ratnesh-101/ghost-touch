@@ -1,0 +1,17 @@
+# Progress save, 2026-11-22 18:10 IST (Claude Code orchestrator). Resume from "RESUME HERE".
+
+## RESUME HERE
+`main` = the commit after 96d6440 (check `git log`), pushed unless the network was down (then `git push origin main` first). Two new features are being built after the idea tournament (docs/reports/idea-tournament/, winner Ghost Hand, runner-up Planchette; both being built, feasibility in feasibility-both.md):
+1. **Planchette ("Walk me through")**: Kiro T85 spec + core done (Req 51, P159 to P170, 30 mutants killed); agy lanes hi10 (flow, commands, i18n) and hi11 (Explore button and walk) MERGED on main. Remaining: a Kiro review of hi11, the layout regression below, phone test.
+2. **Ghost Hand (Build screen)**: Kiro T86 spec + core done (Req 52, P171 to P182); agy lane hi12 (Build screen, strings) MERGED. Lane **hi13** (wiring: flow/navigation.ts, App.tsx, Capture.tsx, e2e/build.spec.ts) is DONE BY AGY but NOT merged: worktree `C:\Users\Admin\Downloads\ghost-touch-main\gt-lane-hi13` (branch agy/hi13), uncommitted. Its gate had a tsc error in `tests/build.wire.test.tsx(254,45)` ("drivers does not exist in type Attributes"). Next: send agy a fix pass (`gt-p-hi13-fix1.txt` pattern with `run-fix3.sh hi13` in the parent folder), re-gate, then cherry-pick onto main (resolve BUILD_LOG additive conflicts by keeping both sides), flip passing `it.fails` oracles, then lane **hi14** (hand-in: share link plus point list, see docs/reviews/kiro-review-ghosthand-spec.md section 5 C-hand-in).
+3. **Open real regression (class C, from Kiro's e2e diagnosis, docs/reviews/kiro-e2e-regressions.md)**: lane hi11 put the Walk button in the footer row. At 360x640 with Teacher tools on the footer is 176 px and the canvas is 216 px (needs >= 256 and >= 230): e2e `explore.actions-layout.spec.ts` "360x640 compact viewport" and "6 action buttons layout" fail (2 tests x 2 projects = 4 of 62). Next: an agy lane (EX, Explore.tsx/global.css/explore.css) to lay the footer out in two rows (brief is in that file), keeping every button >= 48x48, no horizontal scroll, Req 25.4 status card height.
+
+## Honest correction (important)
+Earlier I reported Playwright as 48/48 passing. That was WRONG: my gate tail lines were failing-test names. The real state after Kiro's fixes (96d6440): only the 4 layout failures above remain (Kiro fixed stale/racy specs in help-fixes, help-highlight, raw-guide). `run-hi3.sh` in the parent folder now greps passed/failed; ALWAYS read the line "N failed" yourself: `npx playwright test --reporter=line 2>&1 | grep -E "passed|failed"`.
+
+## Gate to run after any merge
+tsc `npx tsc --noEmit`; `npx vitest run --maxWorkers=4 --testTimeout=30000`; `npm run build`; Playwright as above; backend untouched since 7eb5e7c (931 passing). Last full vitest on main before hi13: 254 files, 3246 passed, 3 expected fail.
+
+## Also still to do
+Kiro review of lanes hi10, hi11, hi12 (gt-reviewer, one prompt each; they found real bugs every time before); update README numbers, BUILD_LOG entry for T85-T87 and the lanes, handoff; push after the full gate.
+Notes: I ended hung vitest processes twice (Kiro mutation runs, mutant A4 hangs a test loop: worth an unbounded-loop guard in the walkAnchor property); owner items unchanged (phone tests, video, FILLs, OpenAI cap, Gemini terms, Render env, Hindi/Gujarati review, Share flag on Vercel, OD-A pin spacing 44 px rule in kiro-review-ghosthand-spec.md).
