@@ -183,7 +183,7 @@ export function canvasAriaDescription(scene?: DiagramScene): string {
     : t('explore.gestureHintTalkBack');
 }
 
-const BASE_SCREEN_NAMES = [
+export const SCREEN_NAMES = [
   'start',
   'capture',
   'explore',
@@ -192,26 +192,11 @@ const BASE_SCREEN_NAMES = [
   'teach',
   'shareError',
   'shareGate',
+  'build',
 ] as const;
 
-export type ScreenName = (typeof BASE_SCREEN_NAMES)[number] | 'build';
-
-const screenNamesList = [...BASE_SCREEN_NAMES];
-Object.defineProperty(screenNamesList, 'includes', {
-  value: (val: unknown) =>
-    val === 'build' || (BASE_SCREEN_NAMES as readonly unknown[]).includes(val),
-  configurable: true,
-  writable: true,
-});
-Object.defineProperty(screenNamesList, 'indexOf', {
-  value: (val: unknown) =>
-    val === 'build' ? 8 : (BASE_SCREEN_NAMES as readonly unknown[]).indexOf(val),
-  configurable: true,
-  writable: true,
-});
-
 /** Every screen the app can show. */
-export const SCREEN_NAMES = screenNamesList as unknown as readonly ScreenName[];
+export type ScreenName = (typeof SCREEN_NAMES)[number];
 
 export interface BackContext {
   /** The Teacher editor holds changes that were not saved or shared. */
