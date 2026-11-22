@@ -7,7 +7,7 @@
  * Pure decisions live in `flow/explore.ts`, `flow/ask.ts`, and `flow/commands.ts`;
  * browser APIs live in `drivers/` (navigation history, canvas context & DOM events here).
  */
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type JSX, type PointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type JSX, type MouseEvent, type PointerEvent } from 'react';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { Spark } from '../components/lab/Spark';
 import { SettingsLauncher } from '../components/SettingsLauncher';
@@ -132,6 +132,63 @@ export {
 export interface PointerPromotionResult {
   promotedPointerId: number | null;
   promotedCoords: ScreenPoint | null;
+}
+
+export interface TouchTapHandlers {
+  onPointerDown: (e: PointerEvent<HTMLButtonElement>) => void;
+  onPointerUp: (e: PointerEvent<HTMLButtonElement>) => void;
+  onPointerCancel: (e: PointerEvent<HTMLButtonElement>) => void;
+  onClick: (e: MouseEvent<HTMLButtonElement>) => void;
+}
+
+/**
+ * Guarded tap activator for secondary-touch buttons while another finger is held on canvas (Item 1).
+ * Activates on pointerup when pointerType === 'touch' and started on that button.
+ * Suppresses synthetic trailing click (500 ms guard per button).
+ * Preserves onClick for keyboard (detail 0) and TalkBack (pointerType not touch).
+ */
+export function useTouchTap(onActivate: () => void, guardMs = 500): TouchTapHandlers {
+  const onActivateRef = useRef(onActivate);
+  onActivateRef.current = onActivate;
+  const pointerIdRef = useRef<number | null>(null);
+  const suppressClickUntilRef = useRef<number>(0);
+
+  const onPointerDown = useCallback((e: PointerEvent<HTMLButtonElement>) => {
+    if (e.pointerType === 'touch') {
+      pointerIdRef.current = e.pointerId;
+    }
+  }, []);
+
+  const onPointerUp = useCallback(
+    (e: PointerEvent<HTMLButtonElement>) => {
+      if (
+        e.pointerType === 'touch' &&
+        pointerIdRef.current !== null &&
+        pointerIdRef.current === e.pointerId
+      ) {
+        pointerIdRef.current = null;
+        suppressClickUntilRef.current = performance.now() + guardMs;
+        onActivateRef.current();
+      }
+    },
+    [guardMs],
+  );
+
+  const onPointerCancel = useCallback((e: PointerEvent<HTMLButtonElement>) => {
+    if (pointerIdRef.current === e.pointerId) {
+      pointerIdRef.current = null;
+    }
+  }, []);
+
+  const onClick = useCallback((_e: MouseEvent<HTMLButtonElement>) => {
+    const now = performance.now();
+    if (now < suppressClickUntilRef.current) {
+      return;
+    }
+    onActivateRef.current();
+  }, []);
+
+  return { onPointerDown, onPointerUp, onPointerCancel, onClick };
 }
 
 /**
@@ -566,6 +623,17 @@ export function Explore({
 
   const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
   const [statusMessage, setStatusMessage] = useState(announced);
+  const [isHelpActive, setIsHelpActive] = useState(false);
+  const helpTextRef = useRef<string>('');
+
+  const isHelpDisplayed =
+    isHelpActive && statusMessage === helpTextRef.current && helpTextRef.current !== '';
+
+  useEffect(() => {
+    if (isHelpActive && !isHelpDisplayed) {
+      setIsHelpActive(false);
+    }
+  }, [isHelpActive, isHelpDisplayed]);
 
   const deriveAnnouncement = useCallback((): string => {
     const isRawMode =
@@ -2450,8 +2518,13 @@ export function Explore({
     drivers.speech.speak(text, lang);
     markSpeechStart();
     lastSpokenRef.current = text;
+    helpTextRef.current = text;
+    setIsHelpActive(true);
     setStatusMessage(text);
   };
+
+  const whereAmITap = useTouchTap(handleWhereAmIClick);
+  const helpTap = useTouchTap(handleHelpClick);
 
   const renderA11yTree = (): JSX.Element => {
     const view = makeViewport(canvasSize.w, canvasSize.h);
@@ -2518,8 +2591,14 @@ export function Explore({
         </div>
       )}
 
-      <div className={`gt-explore__status-card gt-lab-status-card${isAlive ? ' gt-lab-status-card--alive' : ''}`}>
-        <StatusText className="gt-explore__status" spoken={drivers.speech.canSpeak}>
+      <div
+        className={`gt-explore__status-card gt-lab-status-card${isAlive ? ' gt-lab-status-card--alive' : ''}${isHelpDisplayed ? ' gt-explore__status-card--help gt-explore__status--help' : ''}`}
+        tabIndex={isHelpDisplayed ? 0 : undefined}
+      >
+        <StatusText
+          className={`gt-explore__status${isHelpDisplayed ? ' gt-explore__status--help' : ''}`}
+          spoken={drivers.speech.canSpeak}
+        >
           {statusMessage}
         </StatusText>
       </div>
@@ -2640,7 +2719,10 @@ export function Explore({
           <AccessibleButton
             data-testid="explore-where-am-i"
             className="gt-control gt-explore__where-am-i"
-            onClick={handleWhereAmIClick}
+            onPointerDown={whereAmITap.onPointerDown}
+            onPointerUp={whereAmITap.onPointerUp}
+            onPointerCancel={whereAmITap.onPointerCancel}
+            onClick={whereAmITap.onClick}
             disabled={isBusy}
             aria-label={t('explore.whereAmI')}
             style={{ minWidth: '48px', minHeight: '48px' }}
@@ -2657,7 +2739,10 @@ export function Explore({
           </AccessibleButton>
           <AccessibleButton
             className="gt-control gt-explore__help"
-            onClick={handleHelpClick}
+            onPointerDown={helpTap.onPointerDown}
+            onPointerUp={helpTap.onPointerUp}
+            onPointerCancel={helpTap.onPointerCancel}
+            onClick={helpTap.onClick}
             aria-label={t('explore.help')}
             style={{ minWidth: '48px', minHeight: '48px' }}
           >
