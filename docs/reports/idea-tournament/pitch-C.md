@@ -1,0 +1,40 @@
+# Pitch C: Ghost Hand (the creature learns to draw)
+
+**Hook:** A blind student plots her own graph on a tactile pegboard made of the phone's existing buzz, tone and voice. She traces it back to check it, then hands it in as a picture her sighted teacher can mark.
+
+## The problem it solves
+Class 9 NCERT coordinate geometry, homework: "Plot (0, 1), (1, 3), (2, 5), (3, 7) and join them. Is it a straight line?" Class 10 repeats this for y = 2x + 1 and pairs of linear equations. Today a blind student either needs a physical pin-and-rubber-band graph board (which cannot be posted or sent on WhatsApp), or a classmate draws while she dictates, so the work is not hers. Every Ghost Touch feature so far goes one way: the world is read *to* the student. Nothing lets her *make* a diagram. Ms Verma's persona report ends with "I draw it on her palm, as I have for twenty years" (`fable-persona-verma-teacher.md:327`). Amara's ends with "I would not yet use it for homework that counts" (`fable-persona-amara-blind-student.md:335`). Ghost Hand answers both: homework that counts, made by the student, readable by the teacher.
+
+## How it works and feels
+1. **Open the pegboard.** Capture gets a fourth big button, "Make my own graph". The phone says: "Empty graph. x from 0 to 6, y from 0 to 8. Rest a finger to hear where you are." The range can be set by voice ("x from minus 3 to 3"). Cells are never smaller than 48 CSS px, so a grid that would be too fine is refused out loud.
+2. **Feel the board.** The two axes are ordinary scene axes, so they buzz like any line, and crossing one is already spoken (Explore's axis-crossing rule). When the finger rests 300 ms, the snapped grid crossing is spoken: "two, five". While the finger moves, the existing theremin tone follows height (`pitchForY`), so "up" is heard as well as told.
+3. **Place a pin.** Keep finger one resting and tap once with a second finger (a split tap, under 300 ms, under 20 px of movement). The pin snaps to the nearest crossing and becomes a real scene `Point` labelled "(2, 5)", built with the existing `addPoint` in `core/correct.ts`. The confirmation is the tuned corner pattern `[50, 90, 50]` plus the label, because a pin *is* a corner: from now on the student finds it exactly as she finds any corner. There is also a 48 px "Pin here" button (it uses the last finger position, as Where-am-I does) and the voice command "pin" for anyone who cannot split tap.
+4. **Stitch.** Split tap on pin A, then on pin B, and a segment joins them (`addSegment`). Or say "join in order": the pins become one polyline sorted by x. The engine already plays the theremin on any polyline (`hapticEngine.ts:181`), so tracing the joined graph is the self-check: **a straight line sounds like a steady glide, a wrong point sounds like a jump**. No AI is involved and none is claimed.
+5. **Undo, ask, save.** "Undo" uses the existing `historyReducer` (spoken via `describeUndo`). The result is an ordinary `DiagramScene`, so Ask, Spec Ghost, Saved diagrams and Share work on it unchanged. Every pin autosaves a draft, so a palm-triggered two-finger exit (open item I28) loses nothing.
+6. **Hand in.** One button builds a printable picture: black on white (not the dark lab theme), grid numbers, every pin labelled, and a caption listing the points as text. It goes to WhatsApp through `navigator.share({files})` together with the existing share link ("Made by Amara, not checked"). The teacher can mark the picture by eye or open the link and trace the same graph. If file sharing is unsupported, the picture downloads and the link is copied.
+
+## Frankenstein fit
+So far the creature has eyes (vision AI), nerves (buzzer) and a voice (synth), and it only *reads*. Ghost Hand gives it a **hand**. The student becomes the doctor: pins are bones, stitches are sinews, and when she traces her finished graph the nerves wake and the voice sings along: *it's alive*. It also reverses the eyes. Until now the creature's eyes worked for the blind student; now her hand makes something for sighted eyes. The Halloween stays in the creature and the stitching, never in blindness.
+
+## What to build
+**Kiro, pure core (spec first: next free requirement after 50, task after 81, properties after P158; re-check before use):**
+- `frontend/src/core/pegboard.ts`: `GridSpec {xMin,xMax,yMin,yMax}`, `gridFits(grid, viewport)` (cell is at least 48 px), `snap(norm, grid)` giving grid integers and normalised coordinates, `toNorm` and `toMath`, `pin(scene, grid, gx, gy)` and `stitch(scene, a, b)` (both wrap `addPoint` and `addSegment`), `joinInOrder(scene)` (an x-sorted polyline), and `describeWork(scene, grid)` (the caption and spoken summary). The grid range is stored as a fact line, so **no schema change** is needed. Kiro adds a property that `verify.ts`'s parser ignores that line.
+- `frontend/src/core/splitTap.ts`: classifies second-pointer gestures as tap, long-press or swipe.
+- Properties: snap is idempotent and moves a point by at most half a cell; `toMath(toNorm(g)) = g`; no two pins share a crossing; every built scene passes `validateSceneInvariants`, `isRenderableScene` and a share encode-decode round trip; `joinInOrder` is x-monotone; a split tap is never classified as `TWO_FINGER_LONG_PRESS_MS` (600) or as a swipe (disjoint by time and movement); `describeWork` names exactly the pins.
+
+**agy, shell:** `frontend/src/flow/build.ts` (a mode machine shaped like `flow/ghostwriter.ts`). `frontend/src/screens/Build.tsx` is a **new screen** that reuses `hitTest`, `step` and `runEffects` directly, so it does **not** join the serialized Explore lanes. Also: a `#/build` route in `App.tsx`, the button in `Capture.tsx`, `drivers/exportImage.ts` (an offscreen white canvas to PNG, and a file share that extends `drivers/clipboard.ts`), and i18n keys in en, hi and gu. **Backend: no change. Tuned haptic values: no change.** No new vibration pattern. An optional soft click when crossing a grid line would be a new PROPOSED row, off by default, and is not part of the MVP.
+
+**Phase 2 (only if time allows):** a teacher "worksheet" link (a grid plus a task fact) made in Teach. `share/validate.ts:501` rejects scenes with no drawable elements today, so a worksheet needs one anchor point or a rule change. That is a Kiro decision.
+
+## 20-second demo
+Eyes closed. The board already has three pins. Rest the finger: "three, seven". Split tap: buzz-tap, "(3, 7)". Say "join in order", then trace: a steady rising glide. Tap Hand in, and the teacher's phone on screen shows a clean black-on-white graph with four labelled points in WhatsApp. Caption: *"She drew this herself."*
+
+## Risks, and why each is survivable
+- **Placement precision:** snapping plus 48 px cells mean a finger only has to land within half a cell. Coarse grids are a limit we accept and say out loud.
+- **The split tap collides with TalkBack or palms:** the Pin button and the voice command "pin" do the same thing, the disjointness is a property test, and drafts autosave. TalkBack in the full app is untested, as it already is today.
+- **File sharing on Android Chrome:** not tested here. Download plus copied link is the fallback, and the existing link alone already works.
+- **Exam integrity:** we claim none. The hand-in says "not checked", the same honesty rule as Share.
+- **Scope:** about three agy lanes (flow, screen, export) and one Kiro task. Every haptic and audio rule comes from the existing engine. Nothing has been felt on a phone, and the pitch claims nothing that has.
+
+## Why it should win
+It is the only kind of idea that turns the product around, from *consuming* diagrams to *authoring* them, which is where STEM grades are actually earned. It is creative without being risky: zero new haptic values, zero backend, zero schema change, and a new screen that stays out of the 2,686-line Explore bottleneck. It builds on proven pure code (`addPoint`, `addSegment`, history, the share codec, the engine). The demo ends with an object a judge can see, a graph a blind student drew. And it gives the Frankenstein story its missing limb.
