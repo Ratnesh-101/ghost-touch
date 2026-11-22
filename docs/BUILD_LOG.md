@@ -4945,3 +4945,15 @@ Format for each entry:
   - `docs/reports/agy-hi11-report.md`
   - `docs/BUILD_LOG.md`
 
+## 2026-11-22 — Antigravity — Lane hi15 follow-up: Explore footer compact flexbox layout
+- Replaced 3-column CSS Grid layout with `display: flex; flex-wrap: wrap; gap: var(--gt-space-2xs, 4px);` in both `frontend/src/styles/explore.css` and `frontend/src/styles/global.css`, satisfying `tests/explore.lab.test.tsx` BUG-04 requiring `.gt-explore__actions` to explicitly declare `flex-wrap: wrap`.
+- Configured 4 buttons per row at narrow widths via `flex: 1 1 calc(25% - var(--gt-space-2xs, 4px));` and 48px target bounds (`min-height: var(--gt-target, 48px); height: 48px; min-width: var(--gt-target, 48px);`).
+- At 360x640 with the 7-button footer (including injected Guide me), actions wrap into two rows (4 in row 1, 3 in row 2) instead of three rows. Total actions height drops from 156 px (3 rows × 48 px + 12 px) to 100 px (2 rows × 48 px + 4 px), reducing footer footprint by 58 px.
+- Canvas height at 360x640 with 7 buttons increases from 226 px to ~284 px, safely exceeding the >= 230 px threshold required by `explore.actions-layout.spec.ts` and `explore.footer-layout.spec.ts`.
+- Files touched:
+  - `frontend/src/styles/explore.css`
+  - `frontend/src/styles/global.css`
+  - `docs/reports/agy-hi15-report.md`
+  - `docs/BUILD_LOG.md`
+
+

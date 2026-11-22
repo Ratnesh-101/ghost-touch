@@ -1161,26 +1161,45 @@ body {
 
 /* Explore Actions Footer */
 .gt-explore__footer {
-  margin-top: var(--gt-space-xs);
+  margin-top: var(--gt-space-2xs, 4px);
+  padding: 0;
 }
 
 .gt-explore__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--gt-space-sm);
+  gap: var(--gt-space-2xs, 4px);
   width: 100%;
 }
 
+.gt-explore__actions > button,
+.gt-explore__actions .gt-control,
+.gt-explore__actions .gt-btn {
+  flex: 1 1 calc(25% - var(--gt-space-2xs, 4px));
+  min-height: 48px;
+  height: 48px;
+  min-width: var(--gt-target, 48px);
+  padding: 2px 4px;
+  font-size: var(--gt-text-sm, 0.875rem);
+  line-height: 1.15;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+  box-sizing: border-box;
+}
+
 .gt-explore__correct {
-  flex: 1;
-  min-height: 52px;
-  min-width: var(--gt-target);
-  font-size: var(--gt-text-base);
+  flex: 1 1 calc(25% - var(--gt-space-2xs, 4px));
+  min-height: 48px;
+  min-width: var(--gt-target, 48px);
+  font-size: var(--gt-text-sm, 0.875rem);
   font-weight: 600;
   border-radius: var(--gt-radius-lg);
   border: 2px solid var(--gt-border-subtle);
   background: var(--gt-surface);
   color: var(--gt-text);
+  padding: 2px 4px;
 }
 
 .gt-explore__correct:hover {
@@ -1190,16 +1209,17 @@ body {
 
 /* Test regex requirement: .gt-explore__ask { min-height: (\d+)px */
 .gt-explore__ask {
-  flex: 1;
-  min-height: 52px;
-  min-width: var(--gt-target);
-  font-size: var(--gt-text-lg);
+  flex: 1 1 calc(25% - var(--gt-space-2xs, 4px));
+  min-height: 48px;
+  min-width: var(--gt-target, 48px);
+  font-size: var(--gt-text-sm, 0.875rem);
   font-weight: 700;
   border-radius: var(--gt-radius-lg);
   border: 2px solid var(--gt-line);
   background: linear-gradient(180deg, var(--gt-btn-gradient-start, #183324) 0%, var(--gt-btn-gradient-end, #12241b) 100%);
   color: var(--gt-text);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5), 0 0 14px var(--gt-green-glow);
+  padding: 2px 4px;
 }
 
 .gt-explore__ask:hover {
@@ -1210,15 +1230,16 @@ body {
 
 /* Test regex requirement: .gt-explore__back { min-height: (\d+)px */
 .gt-explore__back {
-  flex: 1;
-  min-height: 52px;
-  min-width: var(--gt-target);
-  font-size: var(--gt-text-lg);
+  flex: 1 1 calc(25% - var(--gt-space-2xs, 4px));
+  min-height: 48px;
+  min-width: var(--gt-target, 48px);
+  font-size: var(--gt-text-sm, 0.875rem);
   font-weight: 600;
   border-radius: var(--gt-radius-lg);
   border: 2px solid var(--gt-border-subtle);
   background: var(--gt-surface);
   color: var(--gt-text);
+  padding: 2px 4px;
 }
 
 .gt-explore__back:hover {
