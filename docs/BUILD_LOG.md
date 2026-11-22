@@ -4869,3 +4869,7 @@ Format for each entry:
 - Dependabot PRs 37 to 40 (jsdom, Playwright, Vite, plugin-react, dev dependencies): merged together after tsc, vitest, build and Playwright all passed on the combined tree.
 - I28 (exit guard) was NOT built: the phone result that would justify it does not exist. I30, I31 and the other P2 items remain after Dec 5.
 - Not verified: the look of the highlight and outlines on a phone, Help with TalkBack, Guide under a real finger, Hindi/Gujarati wording (machine translated), CI result of the pin until GitHub runs it.
+
+## 2026-11-22 (Claude Code): Playwright check of the Help button and highlight
+- Tool: Claude Code ran the Playwright suite itself (no agy, no Kiro). The existing 22 e2e tests passed on main. The suite had no coverage of Requirements 49 and 50, so Claude Code added `frontend/e2e/explore.help-highlight.spec.ts` (3 tests x 2 Galaxy viewports): Help button at least 48x48, inside the viewport, no horizontal scroll, speaks the gestures into the status line; with real CDP touch input the highlight reads vertex:B on corner B, segment:BC on the middle of side BC, none off the diagram, and none after the lift; canvas size is unchanged over a 2 s hold. Result: 28 of 28 pass. A mutation (expecting vertex:A) made the test fail, so it can fail.
+- Not covered: how the highlight and outlines look (colour, thickness), TalkBack, real vibration. Those still need the phone.
