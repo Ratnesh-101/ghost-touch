@@ -684,13 +684,13 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
 ## Planchette: a guided "Walk me through" (Requirement 51; spec written before the code)
 > Template walks only: no AI, no backend, no new vibration, tone or earcon. Kiro writes the spec, `core/walk.ts`, `core/walkAnchor.ts`, the properties and the Explore oracles. Do not edit `screens/`, `flow/`, `App.tsx`, `i18n/`, `hitTest.ts`, `hapticEngine.ts` or any tuned value; the Explore lane is in `docs/reviews/kiro-review-planchette-spec.md`. Numbers reserved by `docs/reports/idea-tournament/feasibility-both.md` were re-checked: Requirement 51, task 85 and P159 to P170 were free; Ghost Hand (task 86, Requirement 52, P171 on) comes after this task.
 
-- [ ] 85. Planchette spec, core, properties and oracles
+- [x] 85. Planchette spec, core, properties and oracles (Kiro's part done; the Explore lane is 85b)
   - [x] 85.0 Verify lanes hi8 and hi9 against Requirements 25.9, 25.10 and 50.10 to 50.13 (result in the notes under 84.7: nothing ticked)
   - [x] 85.1 Requirement 51, the amendment of Requirement 37.2 ("a walk step"), Requirement 45.6, design section and P159 to P170 written before any code
-  - [ ] 85.2 `core/walkAnchor.ts` (`anchorPoint`, `isAnchorReachable`, `spotReached`) and `core/walk.ts` (`templateWalk`, `validateWalk`, `startWalk`, `walkStep`, `anchorReached`, `walkCommandOf`, `WALK_KEYS`); pure, named exports, no `any`
-  - [ ] 85.3 Properties P159 to P170 (250 to 300 runs, each able to fail), written before the code that makes them pass; at least eight mutants run and reported in BUILD_LOG
-  - [ ] 85.4 Explore oracles W1 to W7 and the Requirement 45.6 command rows as `it.fails` (W2 and the controls pass today)
-  - [ ] 85.5 `docs/reviews/kiro-review-planchette-spec.md`: exact exports, `walk.*` key names, the Explore lane brief (6 `processPointerMove` sites, `isAskAnswerSpeaking`, button), what Kiro did and did not do
-  - [ ] 85.6 Gate (`tsc --noEmit`, `vitest run`); BUILD_LOG entry (tool = Kiro); path-scoped commits
+  - [x] 85.2 `core/walkAnchor.ts` (`anchorPoint`, `isAnchorReachable`, `spotReached`) and `core/walk.ts` (`templateWalk`, `validateWalk`, `startWalk`, `walkStep`, `anchorReached`, `walkCommandOf`, `WALK_KEYS`); pure, named exports, no `any`
+  - [x] 85.3 Properties P159 to P170 (250 to 400 runs, each able to fail), written before the code that makes them pass; 30 mutants run and reported in BUILD_LOG (two survived the first run and got tests)
+  - [x] 85.4 Explore oracles W1 to W7 and the Requirement 45.6 command rows as `it.fails` (12 expected fail; 8 controls and guards pass today)
+  - [x] 85.5 `docs/reviews/kiro-review-planchette-spec.md`: exact exports, `walk.*` key names, the Explore lane brief (6 `processPointerMove` sites, `isAskAnswerSpeaking`, button), what Kiro did and did not do
+  - [x] 85.6 Gate (`tsc --noEmit` 0 errors, `vitest run`: 247 files, 3163 passed, 12 expected fail, 1 todo); BUILD_LOG entry (tool = Kiro); path-scoped commits
   - [ ] 85b. Lane (not Kiro): `flow/walk.ts`, phrases in `flow/commands.ts`, i18n `walk.*` in en, hi, gu and the translation sheets, then one serialized Explore lane; removes the `.fails` of `explore.walk.oracle.test.tsx` and `walk.commands.table.test.ts`
   - _Requirements: 51.*, 37.2, 45.6_
