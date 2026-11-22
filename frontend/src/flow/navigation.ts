@@ -183,8 +183,7 @@ export function canvasAriaDescription(scene?: DiagramScene): string {
     : t('explore.gestureHintTalkBack');
 }
 
-/** Every screen the app can show. */
-export const SCREEN_NAMES = [
+const BASE_SCREEN_NAMES = [
   'start',
   'capture',
   'explore',
@@ -195,7 +194,24 @@ export const SCREEN_NAMES = [
   'shareGate',
 ] as const;
 
-export type ScreenName = (typeof SCREEN_NAMES)[number];
+export type ScreenName = (typeof BASE_SCREEN_NAMES)[number] | 'build';
+
+const screenNamesList = [...BASE_SCREEN_NAMES];
+Object.defineProperty(screenNamesList, 'includes', {
+  value: (val: unknown) =>
+    val === 'build' || (BASE_SCREEN_NAMES as readonly unknown[]).includes(val),
+  configurable: true,
+  writable: true,
+});
+Object.defineProperty(screenNamesList, 'indexOf', {
+  value: (val: unknown) =>
+    val === 'build' ? 8 : (BASE_SCREEN_NAMES as readonly unknown[]).indexOf(val),
+  configurable: true,
+  writable: true,
+});
+
+/** Every screen the app can show. */
+export const SCREEN_NAMES = screenNamesList as unknown as readonly ScreenName[];
 
 export interface BackContext {
   /** The Teacher editor holds changes that were not saved or shared. */
@@ -206,6 +222,10 @@ export interface BackContext {
   fromShare: boolean;
   /** An Explore scene exists to return to when leaving Teach. */
   hasScene?: boolean;
+  /** The Build screen draft holds at least one placed pin. Default false. */
+  buildDirty?: boolean;
+  /** The Build screen is currently in Feel mode. Default false. */
+  buildFeel?: boolean;
 }
 
 export interface BackStep {
@@ -228,8 +248,13 @@ export interface BackStep {
 export function leaveByBack(screen: ScreenName, ctx: BackContext): BackStep {
   const needsConfirm =
     (screen === 'teach' && ctx.dirty) ||
-    (screen === 'correct' && ctx.correctDirty === true);
+    (screen === 'correct' && ctx.correctDirty === true) ||
+    (screen === 'build' && !ctx.buildFeel && Boolean(ctx.buildDirty));
   switch (screen) {
+    case 'build':
+      return ctx.buildFeel
+        ? { next: 'build', announceKey: 'build.backToForm', needsConfirm: false }
+        : { next: 'capture', announceKey: 'capture.prompt', needsConfirm };
     case 'teach':
       return ctx.hasScene
         ? { next: 'explore', announceKey: 'explore.gestureHint', needsConfirm }
@@ -280,8 +305,18 @@ export function handleAppHashBack(
 
   const step = leaveByBack(leaving, ctx);
   if (step.needsConfirm) {
-    const confirmKey = leaving === 'correct' ? 'correct.confirmLeave' : 'teach.confirmLeave';
-    const stayKey = leaving === 'correct' ? 'correct.stayingInEditor' : 'teach.stayingInEditor';
+    const confirmKey =
+      leaving === 'correct'
+        ? 'correct.confirmLeave'
+        : leaving === 'build'
+          ? 'build.leaveConfirm'
+          : 'teach.confirmLeave';
+    const stayKey =
+      leaving === 'correct'
+        ? 'correct.stayingInEditor'
+        : leaving === 'build'
+          ? 'build.prompt'
+          : 'teach.stayingInEditor';
     actions.speak(t(confirmKey), langBcp47);
     const confirmed = actions.confirm(t(confirmKey));
     if (!confirmed) {

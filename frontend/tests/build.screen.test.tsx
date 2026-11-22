@@ -232,11 +232,11 @@ describe('screens/Build.tsx component', () => {
       expect(handInBtn.getAttribute('aria-disabled')).toBe('true');
 
       act(() => feelBtn.click());
-      expect(rig.speak).toHaveBeenCalledWith(t('build.needPin'));
+      expect(rig.speak).toHaveBeenCalledWith(t('build.needPin'), expect.any(String));
 
       rig.speak.mockClear();
       act(() => handInBtn.click());
-      expect(rig.speak).toHaveBeenCalledWith(t('build.needPin'));
+      expect(rig.speak).toHaveBeenCalledWith(t('build.needPin'), expect.any(String));
     });
   });
 
@@ -253,7 +253,7 @@ describe('screens/Build.tsx component', () => {
 
       rig.speak.mockClear();
       act(() => handInBtn.click());
-      expect(rig.speak).toHaveBeenCalledWith(t('build.handin.soon'));
+      expect(rig.speak).toHaveBeenCalledWith(t('build.handin.soon'), expect.any(String));
     });
   });
 
@@ -281,7 +281,7 @@ describe('screens/Build.tsx component', () => {
 
         rig.speak.mockClear();
         act(() => rig.button(t('build.feel')).click());
-        expect(rig.speak).toHaveBeenCalledWith(t('build.feelSmall'));
+        expect(rig.speak).toHaveBeenCalledWith(t('build.feelSmall'), expect.any(String));
         expect(rig.root().getAttribute('data-mode')).toBe('feel');
       });
     } finally {

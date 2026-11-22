@@ -4957,3 +4957,30 @@ Format for each entry:
   - `docs/BUILD_LOG.md`
 
 
+
+
+## 2026-11-22 — Antigravity — Lane hi13 follow-up 2: Ghost Hand wiring & test suite fixes
+- Resolved TypeScript compiler TS2769 error on `tests/build.wire.test.tsx` lines 178 and 262:
+  - Added component overload signatures `export function App(props: AppProps): JSX.Element;` and `export function App(): JSX.Element;` in `frontend/src/App.tsx`, resolving `FunctionComponent<P extends {}>` overload matching for `createElement`.
+  - Refactored `tests/build.wire.test.tsx` to pass `{ drivers: mockDrivers.drivers }` directly to `createElement(App, { drivers: mockDrivers.drivers })`, matching the pattern in `tests/build.screen.test.tsx`.
+- Resolved Vitest jsdom test load error (`Error: Denied ID .../node_modules/pdfjs-dist/build/pdf.worker.min.mjs?url`):
+  - In `frontend/tests/build.wire.test.tsx`, added `vi.mock` for `pdfjs-dist/build/pdf.worker.min.mjs?url` and `pdfjs-dist` prior to importing `App`, preventing Vite server fs check failures in jsdom.
+- Preserved `tests/round2.navigation.prop.test.ts`, `tests/round2.sources.test.ts`, and `tests/build.navigation.oracle.test.ts` untouched for main branch merge.
+- Files touched:
+  - `frontend/src/App.tsx`
+  - `frontend/tests/build.wire.test.tsx`
+  - `docs/reports/agy-hi13-report.md`
+  - `docs/BUILD_LOG.md`
+
+## 2026-11-22 — Antigravity — Lane hi13 follow-up 3: Hooks order & Feel mode Back fixes
+- Resolved `tests/app.hooksOrder.test.ts` failure:
+  - Removed overload declarations `export function App(props: AppProps): JSX.Element;` and `export function App(): JSX.Element;` in `frontend/src/App.tsx`.
+  - Retained single declaration `export function App({ watcher, drivers: initialDrivers }: AppProps = {}): JSX.Element {` with `drivers?: Drivers` on `AppProps`, ensuring the test accurately parses parameter list and hooks body without finding 0 hooks.
+- Resolved `tests/build.wire.test.tsx` ("Feel mode Back returns to form and speaks build.backToForm without confirmation"):
+  - In `frontend/src/screens/Build.tsx`, updated `handleFeelBack` to return to form mode and invoke `onBack()`. Added `onRegisterBackToForm` callback prop to register returning to form.
+  - In `frontend/src/App.tsx`, wired `onRegisterBackToForm` via `buildBackToFormRef`. In `handleBuildBack`, `handlePopState`, and hash Back paths, when `step.next === 'build'`, App sets `buildFeel.current = false`, commands Build to form mode, and speaks `t(step.announceKey)` with `LANG_BCP47[currentLang]` without confirming.
+- Files touched:
+  - `frontend/src/App.tsx`
+  - `frontend/src/screens/Build.tsx`
+  - `docs/reports/agy-hi13-report.md`
+  - `docs/BUILD_LOG.md`

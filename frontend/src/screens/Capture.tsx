@@ -57,6 +57,8 @@ interface CaptureProps {
   ) => void;
   /** Opens the saved-diagrams list. */
   onSavedDiagrams?: () => void;
+  /** Opens the Ghost Hand Build screen. */
+  onBuild?: () => void;
 }
 
 const SAMPLES: ReadonlyArray<{
@@ -74,6 +76,7 @@ export function Capture({
   initialStatus,
   onScene,
   onSavedDiagrams,
+  onBuild,
 }: CaptureProps): JSX.Element {
   const [status, setStatus] = useState(initialStatus);
   const [busy, setBusy] = useState(false);
@@ -334,6 +337,14 @@ export function Capture({
             onClick={onSavedDiagrams}
           >
             {t('capture.savedDiagrams')}
+          </AccessibleButton>
+
+          <AccessibleButton
+            className="gt-capture__button gt-capture__button--secondary gt-capture__button--build"
+            aria-label={t('build.open')}
+            onClick={onBuild}
+          >
+            {t('build.open')}
           </AccessibleButton>
         </div>
       </div>

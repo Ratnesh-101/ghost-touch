@@ -18,7 +18,7 @@
  * - Hand in speaks build.handin.soon until lane hi14
  */
 
-import { useCallback, useId, useState, type ChangeEvent, type JSX } from 'react';
+import { useCallback, useEffect, useId, useState, type ChangeEvent, type JSX } from 'react';
 import type { DiagramScene } from '../core/scene';
 import type { Drivers } from '../drivers';
 import { canFeel, canHandIn, describeWork, pinSpacingOk, pinsOf } from '../core/pegboard';
@@ -34,13 +34,16 @@ import {
   stringifyParams,
   type BuildSliders,
 } from '../flow/build';
-import { t, tf } from '../i18n';
+import { getLang, LANG_BCP47, t, tf } from '../i18n';
 import { Explore } from './Explore';
 import '../styles/build.css';
 
 export interface BuildProps {
   drivers: Drivers;
   onBack: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+  onFeelChange?: (feel: boolean) => void;
+  onRegisterBackToForm?: (backToForm: () => void) => void;
 }
 
 function buildAnnounced(scene: DiagramScene): string {
@@ -59,7 +62,13 @@ function getCanvasScale(): number {
   return 400;
 }
 
-export function Build({ drivers, onBack }: BuildProps): JSX.Element {
+export function Build({
+  drivers,
+  onBack,
+  onDirtyChange,
+  onFeelChange,
+  onRegisterBackToForm,
+}: BuildProps): JSX.Element {
   const [history, setHistory] = useState(initialBuildHistory);
   const [sliders, setSliders] = useState<BuildSliders>(initialSliders);
   const [mode, setMode] = useState<'form' | 'feel'>('form');
@@ -72,6 +81,20 @@ export function Build({ drivers, onBack }: BuildProps): JSX.Element {
   const pinCount = pins.length;
   const segmentCount = scene.segments?.length ?? 0;
   const hasPins = canFeel(scene);
+
+  useEffect(() => {
+    onDirtyChange?.(pinCount > 0);
+  }, [pinCount, onDirtyChange]);
+
+  useEffect(() => {
+    onFeelChange?.(mode === 'feel');
+  }, [mode, onFeelChange]);
+
+  useEffect(() => {
+    onRegisterBackToForm?.(() => {
+      setMode('form');
+    });
+  }, [onRegisterBackToForm]);
 
   const handleXChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const val = clampX(Number(e.target.value));
@@ -86,44 +109,44 @@ export function Build({ drivers, onBack }: BuildProps): JSX.Element {
   const handlePin = useCallback(() => {
     const res = pressPin(history, sliders.x, sliders.y);
     setHistory(res.history);
-    drivers.speech.speak(tf(res.speech.key, stringifyParams(res.speech.params)));
+    drivers.speech.speak(tf(res.speech.key, stringifyParams(res.speech.params)), LANG_BCP47[getLang()]);
   }, [history, sliders.x, sliders.y, drivers.speech]);
 
   const handleUndo = useCallback(() => {
     const res = pressUndo(history);
     setHistory(res.history);
-    drivers.speech.speak(tf(res.speech.key, stringifyParams(res.speech.params)));
+    drivers.speech.speak(tf(res.speech.key, stringifyParams(res.speech.params)), LANG_BCP47[getLang()]);
   }, [history, drivers.speech]);
 
   const handleStitch = useCallback(() => {
     const res = pressStitch(history);
     setHistory(res.history);
-    drivers.speech.speak(tf(res.speech.key, stringifyParams(res.speech.params)));
+    drivers.speech.speak(tf(res.speech.key, stringifyParams(res.speech.params)), LANG_BCP47[getLang()]);
   }, [history, drivers.speech]);
 
   const handleFeel = useCallback(() => {
     if (!canFeel(history.present)) {
-      drivers.speech.speak(t('build.needPin'));
+      drivers.speech.speak(t('build.needPin'), LANG_BCP47[getLang()]);
       return;
     }
     const scale = getCanvasScale();
     if (!pinSpacingOk(scale)) {
-      drivers.speech.speak(t('build.feelSmall'));
+      drivers.speech.speak(t('build.feelSmall'), LANG_BCP47[getLang()]);
     }
     setMode('feel');
   }, [history.present, drivers.speech]);
 
   const handleHandIn = useCallback(() => {
     if (!canHandIn(history.present)) {
-      drivers.speech.speak(t('build.needPin'));
+      drivers.speech.speak(t('build.needPin'), LANG_BCP47[getLang()]);
       return;
     }
-    drivers.speech.speak(t('build.handin.soon'));
+    drivers.speech.speak(t('build.handin.soon'), LANG_BCP47[getLang()]);
   }, [history.present, drivers.speech]);
 
   const handleFeelBack = useCallback(() => {
     setMode('form');
-    drivers.speech.speak(t('build.backToForm'));
+    drivers.speech.speak(t('build.backToForm'), LANG_BCP47[getLang()]);
   }, [drivers.speech]);
 
   return (

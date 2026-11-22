@@ -59,6 +59,7 @@ import { Capture } from './screens/Capture';
 import { Correct } from './screens/Correct';
 import { Debug } from './screens/Debug';
 import { Explore } from './screens/Explore';
+import { Build } from './screens/Build';
 import { SavedDiagrams } from './screens/SavedDiagrams';
 import { ShareError as ShareErrorScreen, shareErrorMessage } from './screens/ShareError';
 import { Start } from './screens/Start';
@@ -253,6 +254,7 @@ type View =
   | { screen: 'correct'; scene: DiagramScene }
   | { screen: 'saved' }
   | { screen: 'teach'; scene?: DiagramScene }
+  | { screen: 'build' }
   | { screen: 'shareError'; code: ShareErrorCode; announced: string }
   | {
       screen: 'shareGate';
@@ -261,13 +263,14 @@ type View =
 
 export interface AppProps {
   watcher?: UpdateWatcher;
+  drivers?: Drivers;
 }
 
-export function App({ watcher }: AppProps = {}): JSX.Element {
+export function App({ watcher, drivers: initialDrivers }: AppProps = {}): JSX.Element {
   const activeWatcher = watcher ?? getDefaultUpdateWatcher();
   const hash = useSyncExternalStore(subscribeHash, readHash, readHash);
   const currentLang = useSyncExternalStore(subscribeLang, getLang, getLang);
-  const [drivers] = useState<Drivers>(() => createBrowserDrivers());
+  const [drivers] = useState<Drivers>(() => initialDrivers ?? createBrowserDrivers());
   const lastExploreScene = useRef<DiagramScene | null>(null);
   const [view, setView] = useState<View>(() => {
     const currentHash = readHash();
@@ -303,6 +306,9 @@ export function App({ watcher }: AppProps = {}): JSX.Element {
     teachDirty.current = dirty;
   }, []);
   const correctDirty = useRef(false);
+  const buildDirty = useRef(false);
+  const buildFeel = useRef(false);
+  const buildBackToFormRef = useRef<(() => void) | null>(null);
   const pendingUpdateRef = useRef(false);
   const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingStorageError = useRef<string | null>(null);
@@ -426,7 +432,8 @@ export function App({ watcher }: AppProps = {}): JSX.Element {
       const leaving: ScreenName | null =
         current.screen === 'teach' ||
         current.screen === 'shareError' ||
-        current.screen === 'shareGate'
+        current.screen === 'shareGate' ||
+        current.screen === 'build'
           ? current.screen
           : fromShare
             ? 'explore'
@@ -438,26 +445,54 @@ export function App({ watcher }: AppProps = {}): JSX.Element {
           correctDirty: correctDirty.current,
           fromShare,
           hasScene,
+          buildDirty: buildDirty.current,
+          buildFeel: buildFeel.current,
         });
         if (step.needsConfirm) {
-          drivers.speech.speak(t('teach.confirmLeave'), LANG_BCP47[currentLang]);
+          let confirmMsg: string;
+          switch (leaving as ScreenName) {
+            case 'correct':
+              confirmMsg = t('correct.confirmLeave');
+              break;
+            case 'build':
+              confirmMsg = t('build.leaveConfirm');
+              break;
+            default:
+              confirmMsg = t('teach.confirmLeave');
+              break;
+          }
+          drivers.speech.speak(confirmMsg, LANG_BCP47[currentLang]);
           const confirmed =
             typeof window !== 'undefined' && typeof window.confirm === 'function'
-              ? window.confirm(t('teach.confirmLeave'))
+              ? window.confirm(confirmMsg)
               : true;
           if (!confirmed) {
-            // Stay in the editor: put the URL back.
-            window.location.hash = TEACH_HASH;
-            drivers.speech.speak(t('teach.stayingInEditor'), LANG_BCP47[currentLang]);
-            document.querySelector<HTMLElement>('.gt-teach__title')?.focus();
+            // Stay in the editor: put the URL back if teach.
+            if (leaving === 'teach') {
+              window.location.hash = TEACH_HASH;
+              drivers.speech.speak(t('teach.stayingInEditor'), LANG_BCP47[currentLang]);
+              document.querySelector<HTMLElement>('.gt-teach__title')?.focus();
+            }
             return;
           }
         }
+        if (step.next === 'build') {
+          buildFeel.current = false;
+          buildBackToFormRef.current?.();
+          drivers.speech.speak(t(step.announceKey), LANG_BCP47[currentLang]);
+          return;
+        }
+        buildDirty.current = false;
+        buildFeel.current = false;
         if (step.next === 'explore' && lastExploreScene.current) {
           const scene = lastExploreScene.current;
           const announced = exploreAnnouncement(scene, 'ai');
           drivers.speech.speak(announced, LANG_BCP47[currentLang]);
           setView({ screen: 'explore', scene, announced });
+        } else if (step.next === 'capture') {
+          const announced = t(step.announceKey);
+          drivers.speech.speak(announced, LANG_BCP47[currentLang]);
+          setView({ screen: 'capture', announced });
         } else {
           drivers.speech.speak(t(step.announceKey), LANG_BCP47[currentLang]);
           setView({ screen: 'start' });
@@ -505,6 +540,54 @@ export function App({ watcher }: AppProps = {}): JSX.Element {
           announced: makeExploreAnnounced(baseAnnounced),
         });
       });
+    }
+    if (view.screen === 'build') {
+      const handlePopState = (e: PopStateEvent): void => {
+        if (e.state?.screen === 'build') return;
+        const step = leaveByBack('build', {
+          dirty: teachDirty.current,
+          correctDirty: correctDirty.current,
+          fromShare: false,
+          buildDirty: buildDirty.current,
+          buildFeel: buildFeel.current,
+        });
+        if (step.needsConfirm) {
+          drivers.speech.speak(t('build.leaveConfirm'), LANG_BCP47[currentLang]);
+          const confirmed =
+            typeof window !== 'undefined' && typeof window.confirm === 'function'
+              ? window.confirm(t('build.leaveConfirm'))
+              : true;
+          if (!confirmed) {
+            if (typeof window !== 'undefined' && window.history) {
+              window.history.pushState({ screen: 'build' }, '', window.location.href);
+            }
+            return;
+          }
+        }
+        if (step.next === 'build') {
+          buildFeel.current = false;
+          buildBackToFormRef.current?.();
+          drivers.speech.speak(t(step.announceKey), LANG_BCP47[currentLang]);
+          if (typeof window !== 'undefined' && window.history) {
+            window.history.pushState({ screen: 'build' }, '', window.location.href);
+          }
+          return;
+        }
+        buildDirty.current = false;
+        buildFeel.current = false;
+        const announced = t(step.announceKey);
+        drivers.speech.speak(announced, LANG_BCP47[currentLang]);
+        setView({ screen: 'capture', announced });
+      };
+      if (typeof window !== 'undefined') {
+        if (window.history && window.history.state?.screen !== 'build') {
+          window.history.pushState({ screen: 'build' }, '', window.location.href);
+        }
+        window.addEventListener('popstate', handlePopState);
+        return () => {
+          window.removeEventListener('popstate', handlePopState);
+        };
+      }
     }
   }, [view, drivers, currentLang, makeExploreAnnounced]);
 
@@ -661,6 +744,45 @@ export function App({ watcher }: AppProps = {}): JSX.Element {
     setView({ screen: 'start' });
   };
 
+  const openBuild = useCallback((): void => {
+    buildDirty.current = false;
+    buildFeel.current = false;
+    const announced = t('build.prompt');
+    drivers.speech.speak(announced, LANG_BCP47[currentLang]);
+    setView({ screen: 'build' });
+  }, [currentLang, drivers]);
+
+  const handleBuildBack = useCallback((): void => {
+    const step = leaveByBack('build', {
+      dirty: teachDirty.current,
+      correctDirty: correctDirty.current,
+      fromShare: false,
+      buildDirty: buildDirty.current,
+      buildFeel: buildFeel.current,
+    });
+    if (step.needsConfirm) {
+      drivers.speech.speak(t('build.leaveConfirm'), LANG_BCP47[currentLang]);
+      const confirmed =
+        typeof window !== 'undefined' && typeof window.confirm === 'function'
+          ? window.confirm(t('build.leaveConfirm'))
+          : true;
+      if (!confirmed) {
+        return;
+      }
+    }
+    if (step.next === 'build') {
+      buildFeel.current = false;
+      buildBackToFormRef.current?.();
+      drivers.speech.speak(t(step.announceKey), LANG_BCP47[currentLang]);
+      return;
+    }
+    buildDirty.current = false;
+    buildFeel.current = false;
+    const announced = t(step.announceKey);
+    drivers.speech.speak(announced, LANG_BCP47[currentLang]);
+    setView({ screen: 'capture', announced });
+  }, [currentLang, drivers]);
+
   const handleCorrect = (): void => {
     if (view.screen !== 'explore') return;
     pushCorrectEntry();
@@ -767,6 +889,23 @@ export function App({ watcher }: AppProps = {}): JSX.Element {
           initialStatus={view.announced}
           onScene={handleScene}
           onSavedDiagrams={openSaved}
+          onBuild={openBuild}
+        />
+      );
+    case 'build':
+      return (
+        <Build
+          drivers={drivers}
+          onBack={handleBuildBack}
+          onDirtyChange={(dirty) => {
+            buildDirty.current = dirty;
+          }}
+          onFeelChange={(feel) => {
+            buildFeel.current = feel;
+          }}
+          onRegisterBackToForm={(backToForm) => {
+            buildBackToFormRef.current = backToForm;
+          }}
         />
       );
     case 'explore':
