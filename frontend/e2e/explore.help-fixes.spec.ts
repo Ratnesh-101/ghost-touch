@@ -1,4 +1,5 @@
 import { test, expect, type Page, type CDPSession } from '@playwright/test';
+import { t } from '../src/i18n';
 
 /**
  * End-to-end tests for Lane hi8 Help and landscape fixes:
@@ -62,7 +63,7 @@ test.describe('Lane hi8: Help second-finger touch, status card expansion, landsc
     // Release second finger on Help button
     await cdp.send('Input.dispatchTouchEvent', {
       type: 'touchEnd',
-      touchPoints: [{ x: Math.round(b.x), y: Math.round(b.y), id: 0 }],
+      touchPoints: [{ x: hx, y: hy, id: 1 }],
     });
 
     // Status contains gesture hint
@@ -123,7 +124,7 @@ test.describe('Lane hi8: Help second-finger touch, status card expansion, landsc
       }
 
       // Last sentence is reachable
-      await expect(status).toContainText('Tap Ask to ask a question with your voice');
+      await expect(status).toContainText(t('help.ask'));
     });
   }
 

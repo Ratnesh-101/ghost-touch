@@ -129,8 +129,11 @@ test.describe('Help button and highlight in a real browser', () => {
     await expect(canvas).toHaveAttribute('data-highlight', 'none');
 
     // Lifted state: pixel probe returns to normal dark background/glow
-    const pixelAfter = await getCanvasPixel(page, probe.x, probe.y);
-    expect(pixelAfter.r).toBeLessThan(100);
+    // data-highlight is updated before the redraw frame runs, so poll the pixel instead of
+    // reading it once (a single read raced the requestAnimationFrame redraw).
+    await expect
+      .poll(async () => (await getCanvasPixel(page, probe.x, probe.y)).r, { timeout: 5000 })
+      .toBeLessThan(100);
   });
 
   test('canvas size and Help layout stay stable during a 2 s hold on a side', async ({ page }) => {

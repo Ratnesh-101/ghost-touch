@@ -202,6 +202,10 @@ test.describe('Raw Mode, Guide, and Multi-Chart highlight e2e specifications', (
     // Enable Guide in localStorage
     await page.addInitScript(() => {
       window.localStorage.setItem('gt_guide_enabled', 'true');
+      // Make the Ask text fallback deterministic: Chromium ships webkitSpeechRecognition,
+      // so without this the form appears only if a speech-service error arrives in time.
+      Reflect.deleteProperty(window, 'SpeechRecognition');
+      Reflect.deleteProperty(window, 'webkitSpeechRecognition');
     });
 
     // Mock /api/v1/ask to return guide target for corner B
@@ -211,7 +215,8 @@ test.describe('Raw Mode, Guide, and Multi-Chart highlight e2e specifications', (
         contentType: 'application/json',
         body: JSON.stringify({
           answer: 'Corner B is at the bottom right.',
-          target: { kind: 'point', id: 'B' },
+          source: 'ai',
+          target: { elementId: 'B' },
         }),
       });
     });
@@ -246,13 +251,15 @@ test.describe('Raw Mode, Guide, and Multi-Chart highlight e2e specifications', (
     const statusLine = page.locator('.gt-explore__status');
     await expect(statusLine).toContainText('B');
 
-    // Requirement 49: No highlight while guiding
-    // Touch on corner B during active guide must NOT set highlight to vertex:B; it must remain none
-    await touch(cdp, 'touchStart', b.x, b.y);
+    // Requirement 49: No highlight while guiding.
+    // Start away from the guided target (corner B): touching the target is the arrival and
+    // ends guiding, after which the highlight is correctly back (that is not what is tested here).
+    const a = await toPage(page, 0.25, 0.25); // corner A, a vertex that would highlight as vertex:A
+    await touch(cdp, 'touchStart', a.x, a.y);
     await expect(canvas).toHaveAttribute('data-highlight', 'none');
 
-    const mid = await toPage(page, 0.475, 0.85);
-    await touch(cdp, 'touchMove', mid.x, mid.y);
+    const midCA = await toPage(page, 0.25, 0.55); // on side CA, would highlight as segment:CA
+    await touch(cdp, 'touchMove', midCA.x, midCA.y);
     await expect(canvas).toHaveAttribute('data-highlight', 'none');
     await touch(cdp, 'touchEnd');
     await expect(canvas).toHaveAttribute('data-highlight', 'none');
