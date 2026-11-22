@@ -61,7 +61,12 @@ describe('CORE-03 — Saved Diagrams does not act after it is closed', () => {
 describe('CORE-01 — leaving by Back is spoken and guarded', () => {
   it('uses leaveByBack in the hash handler and asks before discarding edits', () => {
     expect(appSource).toContain('leaveByBack(');
-    expect(appSource).toContain("t('teach.confirmLeave')");
+    // The confirm key is chosen per screen (teach, correct, build), so a literal
+    // t('teach.confirmLeave') call is no longer in App.tsx. What must stay: the Teach key is
+    // reachable, the prompt is driven by the policy's needsConfirm, and window.confirm gates it.
+    expect(appSource).toContain("'teach.confirmLeave'");
+    expect(appSource).toMatch(/step\.needsConfirm/);
+    expect(appSource).toMatch(/window\.confirm\(t\(/);
   });
 });
 

@@ -50,7 +50,7 @@ describe('P182 control: every screen follows the extended formula', () => {
 });
 
 describe('P182 Back from Build (it.fails until lane C-wire)', () => {
-  it.fails('Feel stays on build and speaks build.backToForm; the form goes to capture, confirming only with pins', () => {
+  it('Feel stays on build and speaks build.backToForm; the form goes to capture, confirming only with pins', () => {
     fc.assert(
       fc.property(flagsArb, (f) => {
         const step = leaveByBack(BUILD, ctxOf(f));
@@ -64,7 +64,7 @@ describe('P182 Back from Build (it.fails until lane C-wire)', () => {
     );
   });
 
-  it.fails('build is a screen name', () => {
+  it('build is a screen name', () => {
     expect((SCREEN_NAMES as readonly string[]).includes('build')).toBe(true);
   });
 });

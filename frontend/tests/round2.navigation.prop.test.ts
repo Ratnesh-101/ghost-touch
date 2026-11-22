@@ -15,6 +15,7 @@ describe('P43 — leaveByBack', () => {
   it('covers every screen the app can show', () => {
     expect([...SCREEN_NAMES].sort()).toEqual(
       [
+        'build',
         'capture',
         'correct',
         'explore',
@@ -43,16 +44,48 @@ describe('P43 — leaveByBack', () => {
     );
   });
 
-  // Amended by Kiro in task 40.1 (Requirement 24.1, decision (a)): Correct with unsaved
-  // corrections asks too, through its own flag `correctDirty`. Written before the lane adds the
-  // field, so this is red until then (docs/reviews/kiro-round6.md). `ctx` is a variable, not a
-  // literal, so the extra field type-checks against today's BackContext.
-  it('asks before discarding unsaved Teach or Correct edits, and only then (200+ runs)', () => {
+  // Amended by Kiro in task 40.1 (Requirement 24.1, decision (a)) and extended for Build
+  // (Requirement 52.9): Teach asks with `dirty`, Correct with `correctDirty`, Build with
+  // `buildDirty` unless it is in Feel mode (`buildFeel`), where Back only returns to the form.
+  it('asks before discarding unsaved Teach, Correct or Build edits, and only then (200+ runs)', () => {
     fc.assert(
-      fc.property(screenArb, fc.boolean(), fc.boolean(), fc.boolean(), fc.boolean(), (screen, dirty, correctDirty, fromShare, hasScene) => {
-        const ctx = { dirty, correctDirty, fromShare, hasScene };
-        const step = leaveByBack(screen, ctx);
-        expect(step.needsConfirm).toBe((screen === 'teach' && dirty) || (screen === 'correct' && correctDirty));
+      fc.property(
+        screenArb,
+        fc.boolean(),
+        fc.boolean(),
+        fc.boolean(),
+        fc.boolean(),
+        fc.boolean(),
+        fc.boolean(),
+        (screen, dirty, correctDirty, fromShare, hasScene, buildDirty, buildFeel) => {
+          const step = leaveByBack(screen, { dirty, correctDirty, fromShare, hasScene, buildDirty, buildFeel });
+          expect(step.needsConfirm).toBe(
+            (screen === 'teach' && dirty) ||
+              (screen === 'correct' && correctDirty) ||
+              (screen === 'build' && !buildFeel && buildDirty),
+          );
+        },
+      ),
+      { numRuns: 300 },
+    );
+  });
+
+  it('Build: Feel stays on build and speaks build.backToForm; the form goes to capture (Requirement 52.9)', () => {
+    fc.assert(
+      fc.property(fc.boolean(), fc.boolean(), fc.boolean(), fc.boolean(), (dirty, correctDirty, buildDirty, fromShare) => {
+        const base = { dirty, correctDirty, fromShare };
+        expect(leaveByBack('build', { ...base, buildDirty, buildFeel: true })).toEqual({
+          next: 'build',
+          announceKey: 'build.backToForm',
+          needsConfirm: false,
+        });
+        expect(leaveByBack('build', { ...base, buildDirty, buildFeel: false })).toEqual({
+          next: 'capture',
+          announceKey: 'capture.prompt',
+          needsConfirm: buildDirty,
+        });
+        // Omitted flags mean false: no confirmation, straight to Capture.
+        expect(leaveByBack('build', base)).toEqual({ next: 'capture', announceKey: 'capture.prompt', needsConfirm: false });
       }),
       { numRuns: 300 },
     );
