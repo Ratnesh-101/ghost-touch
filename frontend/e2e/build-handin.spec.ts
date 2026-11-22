@@ -173,10 +173,11 @@ test.describe('Ghost Hand Hand-in Screen End-to-End', () => {
     await expect(canvas).toBeVisible();
 
     // Compare Explore canvas box and Explore container padding
-    const { canvasLeft, exploreLeft, explorePaddingLeft, rootPaddingLeft } = await page.evaluate(() => {
+    const { canvasLeft, exploreLeft, explorePaddingLeft, rootPaddingLeft, containerBorderLeft } = await page.evaluate(() => {
       const canvasEl = document.querySelector('canvas.gt-explore__canvas');
       const exploreEl = document.querySelector('.gt-explore');
       const rootEl = document.querySelector('[data-testid="build-root"]');
+      const containerEl = document.querySelector('.gt-explore__canvas-container');
 
       const canvasRect = canvasEl?.getBoundingClientRect();
       const exploreRect = exploreEl?.getBoundingClientRect();
@@ -188,14 +189,15 @@ test.describe('Ghost Hand Hand-in Screen End-to-End', () => {
         exploreLeft: exploreRect?.left ?? 0,
         explorePaddingLeft: parseFloat(exploreStyle?.paddingLeft ?? '0'),
         rootPaddingLeft: parseFloat(rootStyle?.paddingLeft ?? '0'),
+        containerBorderLeft: containerEl ? parseFloat(window.getComputedStyle(containerEl).borderLeftWidth) || 0 : 0,
       };
     });
 
     // Root wrapper in feel mode must have 0 padding
     expect(rootPaddingLeft).toBe(0);
 
-    // Canvas left edge equals Explore left edge + Explore page padding (subpixel tolerance <= 1px)
-    expect(Math.abs(canvasLeft - (exploreLeft + explorePaddingLeft))).toBeLessThanOrEqual(1);
+    // Canvas left edge equals Explore left edge + Explore page padding + the canvas container's own border (the 2 px outline border), subpixel tolerance <= 1px
+    expect(Math.abs(canvasLeft - (exploreLeft + explorePaddingLeft + containerBorderLeft))).toBeLessThanOrEqual(1);
 
     // No vertical scroll on page during feel mode
     const noVerticalScroll = await page.evaluate(() => {
