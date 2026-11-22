@@ -1049,7 +1049,7 @@ Mutants run for these properties are listed in `docs/BUILD_LOG.md` (task 85).
 
 
 ## Ghost Hand: a blind student plots her own graph (Requirement 52, task 86)
-Written by Kiro before the code. One new pure module, `frontend/src/core/pegboard.ts`, named exports only. It imports `core/correct` (`addPoint`, `addSegment`, `COINCIDENT_EPSILON`), `core/verify` is NOT imported (only tests use it), and nothing else except scene types and `core/speakable` is not needed. No i18n, no `flow/`, no browser API. Wording is the lane's: the core holds i18n KEYS and parameters.
+Written by Kiro before the code. One new pure module, `frontend/src/core/pegboard.ts`, named exports only. It imports `core/correct` (`addPoint`, `addSegment`, `COINCIDENT_EPSILON`) and the scene type, nothing else; `verify`, `walk` and `sceneGuard` are used by the tests only. No i18n, no `flow/`, no browser API. Wording is the lane's: the core holds i18n KEYS and parameters.
 
 ### Interface
 ```ts
@@ -1078,7 +1078,7 @@ BUILD_WORK_KEYS
 - `pin` order of checks: non-finite input gives `badInput`; snap; occupied test against EVERY existing point using `COINCIDENT_EPSILON` on the normalized coordinates (the same test `addPoint` uses to decide to nudge, so `addPoint` is never asked to nudge); then `addPoint(scene, x, y, label)` with the exact crossing coordinates. If `addPoint` returns the same scene (it cannot here) the answer is `badInput`.
 - `stitchInOrder` drops every segment of the input, sorts the points (x asc, gy asc, id asc), and calls `addSegment(next, a, b)` for each neighbour pair. If the new segments equal the old ones (ids and ends, in order) the input object is returned. The result depends only on the pin set because the sort is total and `addSegment` ids are `${a}${b}` (point ids are unique and never reserved).
 - `pinSpacingPx(scale) = scale / GRID_MAX_Y`, because 1/8 is the smaller of the two steps (1/6 and 1/8) of the unit square. `pinSpacingOk` is `>= MIN_PIN_SPACING_PX`, so true exactly from scale 352.
-- `describeWork` keys: `build.work.empty`, `build.work.count` ({count}), `build.work.pin` ({id}, {label}), `build.work.stitched` ({count}). Params are strings or finite numbers. No string built here contains a bracket, parenthesis, comma, equals sign or "verified", "correct", "checked", "approved".
+- `describeWork` keys: `build.work.empty`, `build.work.count` ({count}), `build.work.pin` ({id}, {label}, plus the numbers `x` and `y`), `build.work.stitched` ({count}). Params are strings or finite numbers. `pin` and `stitchInOrder` refuse (`badInput`, same object) a scene whose point, segment, polyline or bar list is not an array of objects, because `addPoint` reads every element's id (found by P180). No string built here contains a bracket, parenthesis, comma, equals sign or "verified", "correct", "checked", "approved".
 
 ### Navigation for `flow/navigation.ts` (lane C-wire)
 `SCREEN_NAMES` gains `'build'`. `BackContext` gains optional `buildDirty` and `buildFeel`. `leaveByBack('build', ctx)`: `buildFeel === true` gives `{ next: 'build', announceKey: 'build.backToForm', needsConfirm: false }`; otherwise `{ next: 'capture', announceKey: 'capture.prompt', needsConfirm: ctx.buildDirty === true }`. Every other screen is unchanged and P43 is extended: `needsConfirm === (teach && dirty) || (correct && correctDirty) || (build && !buildFeel && buildDirty)`.
