@@ -25,8 +25,10 @@ import {
 import { directionOf, nearestElement, type NearestElement } from '../core/compass';
 import { DEFAULT_RADII, hitTest } from '../core/hitTest';
 import { speakableName } from '../core/speakable';
+import { walkCommandOf } from '../core/walk';
 import { joinAnnouncements } from './explore';
 import { buildOverview } from './overview';
+import { walkPhrases } from './walk';
 import { t, tf } from '../i18n';
 
 export type CommandType =
@@ -39,6 +41,8 @@ export type CommandType =
   | 'guide_to'
   | 'guide_semantic'
   | 'stop'
+  | 'walk_start'
+  | 'walk_next'
   | 'unknown';
 
 export interface ParsedCommand {
@@ -58,6 +62,7 @@ export interface ExploreCommandContext {
   readonly currentRate: SpeechRateSetting;
   readonly isGuiding?: boolean;
   readonly isGuideActive?: boolean;
+  readonly isWalkActive?: boolean;
 }
 
 export interface ExploreCommandResult {
@@ -68,6 +73,8 @@ export interface ExploreCommandResult {
   readonly earcon?: 'success' | 'error' | 'listening' | 'start' | 'back';
   readonly guideTarget?: ResolvedTarget;
   readonly stopGuide?: boolean;
+  readonly stopWalk?: boolean;
+  readonly walkRepeat?: boolean;
 }
 
 function normalizeInput(input: string): string {
@@ -286,17 +293,28 @@ const RATE_NORMAL_SPEC = makePhraseSpec(RATE_NORMAL_PHRASES);
 /** Pure parser for voice commands supporting English, Hindi, and Gujarati. */
 export function parseExploreCommand(
   transcript: string,
-  guideActiveOrOptions: boolean | { isGuideActive?: boolean } = false,
+  guideActiveOrOptions: boolean | { isGuideActive?: boolean; isWalkActive?: boolean } = false,
 ): ParsedCommand {
+  const walkCmd = walkCommandOf(transcript, walkPhrases());
+  if (walkCmd === 'start') {
+    return { type: 'walk_start', raw: transcript };
+  }
+  if (walkCmd === 'next') {
+    return { type: 'walk_next', raw: transcript };
+  }
+
   const norm = normalizeInput(transcript);
   const words = norm.length > 0 ? norm.split(' ') : [];
   const isGuide =
     typeof guideActiveOrOptions === 'boolean'
       ? guideActiveOrOptions
       : Boolean(guideActiveOrOptions?.isGuideActive);
+  const isWalk =
+    typeof guideActiveOrOptions === 'boolean'
+      ? false
+      : Boolean(guideActiveOrOptions?.isWalkActive);
 
-  // Guide commands (active only when guide feature flag & setting are active)
-  if (isGuide) {
+  if (isGuide || isWalk) {
     if (
       norm === 'stop' ||
       norm === 'stop guide' ||
@@ -331,6 +349,10 @@ export function parseExploreCommand(
     ) {
       return { type: 'stop', raw: transcript };
     }
+  }
+
+  // Guide commands (active only when guide feature flag & setting are active)
+  if (isGuide) {
 
     // Semantic guide targets (peak, trough, origin, tallestBar, shortestBar, rightAngle, longestSide)
     const semTarget = matchSemanticPhrase(norm);
@@ -699,7 +721,14 @@ export function executeExploreCommand(
         return {
           speech: t('guide.stopped'),
           stopGuide: true,
+          stopWalk: ctx.isWalkActive,
           earcon: 'back',
+        };
+      }
+      if (ctx.isWalkActive) {
+        return {
+          speech: t('walk.stopped'),
+          stopWalk: true,
         };
       }
       return {
@@ -773,8 +802,21 @@ export function executeExploreCommand(
     }
 
     case 'repeat': {
+      if (ctx.isWalkActive) {
+        return {
+          speech: '',
+          walkRepeat: true,
+        };
+      }
       const speech = lastSpoken.trim().length > 0 ? lastSpoken : t('commands.noSpoken');
       return { speech };
+    }
+
+    case 'walk_start':
+    case 'walk_next': {
+      return {
+        speech: '',
+      };
     }
 
     case 'next_corner': {

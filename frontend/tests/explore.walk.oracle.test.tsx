@@ -267,7 +267,7 @@ describe('task 85: Requirement 51 oracles (lane 85b)', () => {
 
   describe('W7: the walk strings are complete and honest (51.9)', () => {
     // Fails today: no `walk.*` key exists in any table.
-    it.fails('every WALK_KEYS key exists in en, hi and gu with the same placeholders, differs from English, and is not a claim of correctness', () => {
+    it('every WALK_KEYS key exists in en, hi and gu with the same placeholders, differs from English, and is not a claim of correctness', () => {
       const placeholders = (s: string): string => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
       const problems: string[] = [];
       for (const key of WALK_KEYS) {

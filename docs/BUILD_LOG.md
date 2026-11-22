@@ -4909,3 +4909,20 @@ Format for each entry:
 - **Gate:** `tsc --noEmit` 0 errors; `vitest run --maxWorkers=4`: 251 files, 3193 passed, 22 expected fail, 1 todo.
 - **Not verified:** phone, TalkBack (sliders), Hindi and Gujarati, TTS reading of `x 2 y 5`, Playwright, the live `VITE_FEATURE_SHARE` value, the Feel canvas size on a 360 px phone. The screen oracle tails have never run against a real `Build`. The mutation script was a throwaway.
 - **Files:** `frontend/src/core/pegboard.ts`; `frontend/tests/{pegboard.prop.test.ts,build.screen.oracle.test.tsx,build.i18n.oracle.test.ts,build.navigation.oracle.test.ts}`, `frontend/tests/support/buildKeys.ts`; `.kiro/specs/ghost-touch/{requirements,design,tasks}.md`; `docs/reviews/kiro-review-ghosthand-spec.md`; `docs/BUILD_LOG.md`.
+## 2026-11-22 — Antigravity — Lane hi10: Planchette flow glue, commands, and i18n (Requirement 51)
+- Built `frontend/src/flow/walk.ts` (`walkLineText`, `walkPhrases`) connecting core WalkLine to localized strings with unit resolution and placeholder substitution via `tf()`.
+- Updated `frontend/src/flow/commands.ts` with `walk_start` and `walk_next` command types; called `walkCommandOf(transcript, walkPhrases())` before other branches with whole-phrase equality; added `isWalkActive` support so "stop" commands end active walks even with Guide off; wired `repeat` and `stop` handling in `executeExploreCommand` without introducing any new earcons.
+- Added all 32 `WALK_KEYS` to `en`, `hi`, and `gu` in `frontend/src/i18n/index.ts` with identical placeholders, non-empty distinct translations, and no claim/verification words.
+- Added all 32 rows to `docs/user-test/translation-review.csv` and `docs/user-test/translation-review.md`.
+- Converted the two passing command rows in `frontend/tests/walk.commands.table.test.ts` from `it.fails` to `it`.
+- Added unit and flow test suite in `frontend/tests/walk.flow.test.ts` covering key resolution, placeholder parity, absence of banned words, `walkLineText` outputs for Pythagoras and bar lines, and `parseExploreCommand` cases.
+- Files touched:
+  - `frontend/src/flow/walk.ts`
+  - `frontend/src/flow/commands.ts`
+  - `frontend/src/i18n/index.ts`
+  - `frontend/tests/walk.commands.table.test.ts`
+  - `frontend/tests/walk.flow.test.ts`
+  - `docs/user-test/translation-review.csv`
+  - `docs/user-test/translation-review.md`
+  - `docs/reports/agy-hi10-report.md`
+  - `docs/BUILD_LOG.md`

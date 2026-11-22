@@ -16,14 +16,13 @@ import { parseExploreCommand } from '../src/flow/commands';
 const type = (s: string): string => parseExploreCommand(s).type as string;
 
 describe('task 85: walk phrases in the command table (Requirement 45.6)', () => {
-  // Fail today: the command types do not exist, so "walk me through" is `unknown`.
-  it.fails('"walk me through" starts a walk, in any case, with punctuation', () => {
+  it('"walk me through" starts a walk, in any case, with punctuation', () => {
     expect(type('walk me through')).toBe('walk_start');
     expect(type('Walk me through.')).toBe('walk_start');
     expect(type('  WALK   ME  THROUGH! ')).toBe('walk_start');
   });
 
-  it.fails('"next step" moves a walk on', () => {
+  it('"next step" moves a walk on', () => {
     expect(type('next step')).toBe('walk_next');
     expect(type('Next step.')).toBe('walk_next');
   });
