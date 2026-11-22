@@ -141,6 +141,9 @@ test.describe('Explore Walk Speech Preservation & Lift Cancellation (hi16)', () 
     const q4 = await toPage(page, 0.795, 0.59);
     await touch(cdp, 'touchStart', q4.x, q4.y);
     await expect(status).toContainText(/32/);
+    await expect
+      .poll(() => page.evaluate(() => (window.__speechSpy?.utterances ?? []).some((u) => u.includes('32'))))
+      .toBe(true);
 
     // Record cancel call count before lifting finger
     const cancelCountBeforeLift = await page.evaluate(
@@ -177,6 +180,11 @@ test.describe('Explore Walk Speech Preservation & Lift Cancellation (hi16)', () 
     const q1 = await toPage(page, 0.195, 0.77);
     await touch(cdp, 'touchStart', q1.x, q1.y);
     await expect(status).toContainText(/22/);
+    // The driver cancels the previous utterance right before it speaks the next one. Wait until the
+    // step-two utterance has really been handed to speechSynthesis, so that cancel is not counted as a lift cancel.
+    await expect
+      .poll(() => page.evaluate(() => (window.__speechSpy?.utterances ?? []).some((u) => u.includes('22'))))
+      .toBe(true);
 
     // Lift finger after step two: speech is also preserved
     const cancelCountBeforeLift2 = await page.evaluate(
