@@ -58,7 +58,13 @@
 | **Step 12** | Hindi & Gujarati TTS Voices | 1.5 min | OFF |
 | **Step 13** | Guide My Finger (TalkBack OFF & ON, Pan vs Speaker, Cancel, Ask) | 3 min | OFF & ON |
 | **Step 14** | Teacher Verify & Share (Routes `#/teach`, Link Decompression Offline, Bad Links, QR) | 3 min | OFF |
-| **Total** | **End-to-End Phone Evaluation** | **~27.5 min** | |
+| **Step 15** | Highlight of the touched element and the dark outlines (added 2026-11-22) | ~3 min (estimate) | OFF, then ON |
+| **Step 16** | Explore Help button (added 2026-11-22) | ~4 min (estimate) | OFF, then ON |
+| **Step 17** | Planchette: Walk me through (added 2026-11-22) | ~6 min (estimate) | OFF, then ON |
+| **Step 18** | Ghost Hand: Make my own graph (added 2026-11-22) | ~7 min (estimate) | OFF, then ON |
+| **Step 19** | Compact footer at 360 px in English, Hindi and Gujarati (added 2026-11-22) | ~3 min (estimate) | OFF |
+| **Total (Steps 0 to 14)** | **End-to-End Phone Evaluation** | **~27.5 min** | |
+| **Total (Steps 15 to 19)** | **Added on 2026-11-22; run as a second session** | **~23 min (estimate)** | |
 
 ---
 
@@ -279,6 +285,108 @@
 
 ---
 
+## Steps 15 to 19: features built since 2026-11-20 (added 2026-11-22)
+
+> [!WARNING]
+> **Everything in Steps 15 to 19 is untested on a phone.** It passes automated tests in a simulated browser and, for some layout checks, in an emulated Chrome. Nobody has felt, heard or looked at any of it on a real device, with or without TalkBack. A fail here is expected information, not a surprise. Hindi and Gujarati wording is machine-translated and not reviewed by native speakers.
+>
+> **Two ways to test, write which one you used in the notes:** **TalkBack OFF** (direct touch) and **TalkBack ON** (double-tap-and-hold, then drag, as in Step 5). If you have no TalkBack, do only the OFF rows and write "no TalkBack" in the notes. Time estimates are guesses.
+>
+> Open the **Right triangle** sample unless a row says otherwise. Turn **Teacher tools** ON in Settings only where a row needs it.
+
+### Step 15: Highlight of the touched element and the dark outlines
+
+> [!NOTE]
+> The highlight is on by default and has no switch. It is drawn only while a finger is down. It adds no sound, speech or vibration, so those must feel exactly as in Step 4. This is a **look** test: judge colour and thickness on the real screen.
+
+| # | Do this | Expected | Result (pass / fail / notes) |
+|---|---|---|---|
+| 15.1 | **Look, indoors.** TalkBack OFF. Open the Right triangle. Hold a finger on side AC and look at the screen (or ask a sighted helper). Then slide to corner B, then onto a bar in the Bar chart sample. | While the finger is on a side, that side is drawn clearly thicker and brighter than the others. On a corner, that corner is a larger, brighter dot. On a bar, its outline is thicker and brighter (the fill does not change). The other elements stay as they were. Nothing blinks or pulses. **Fail:** nothing changes, the wrong element lights up, it flashes, the highlight stays after you lift, or you can not tell it apart from the normal line. Write the thickness and colour as you see it (for example "about twice as thick, light green"). | |
+| 15.2 | **Look, outdoors.** Take the phone into daylight (shade and direct sun if you can) at normal screen brightness. Repeat 15.1 on one side and one corner. | The highlighted element can still be told from the rest at arm's length. **Fail:** you can not see it in daylight, or it looks the same as the other lines. Note the brightness setting and the conditions. | |
+| 15.3 | **Dark outlines.** Look at the plain (not touched) drawing on the Right triangle, Sine wave and Bar chart. | The strokes are clear glowing green on a near-black background with no texture, grid, stitches or rivets inside the drawing area. **Fail:** any decoration inside the drawing area, strokes too dim or too thin to see indoors, or a visible glow that blurs two close lines together. Note which sample and what you saw. | |
+| 15.4 | **It clears.** Hold a finger on a side, then lift. Repeat, and also press the Home button while holding, then come back. | The highlight disappears the moment you lift and does not come back by itself. **Fail:** the element stays lit after the finger is up or after returning to the app. | |
+| 15.5 | **Two fingers.** Put one finger on side AC, then add a second finger on another side, then lift the first finger only. | The highlight follows the finger that is now in charge: after the first finger lifts, it moves to the element under the remaining finger. **Fail:** the old element stays lit, or nothing is lit while a finger is down on a line. | |
+| 15.6 | **Feel and sound are unchanged.** TalkBack OFF, eyes closed, helper watching. Trace the triangle as in Step 4. Then TalkBack ON and use double-tap-and-hold. | Line buzz, corner double pulse, spoken corner label and the quiet window feel exactly as before. **Fail:** any new buzz, tone or speech, or anything delayed or lost compared with Step 4. | |
+| 15.7 | **Layout stays put.** Watch the canvas edges and the buttons under it while you press and drag on the diagram. | The canvas and the buttons do not move or resize. **Fail:** anything jumps. | |
+
+### Step 16: The Help button
+
+> [!NOTE]
+> Help speaks the gestures that apply to the screen you are on, as one sentence list: touch, Back, Ask, Guide and stop (only when Guide is on), and a rough-outlines sentence on a Raw photo. It works with or without a finger down and while Ask or Guide is active. The wording is not final.
+
+| # | Do this | Expected | Result (pass / fail / notes) |
+|---|---|---|---|
+| 16.1 | Open the Right triangle. Find the **Help** button in the row under the drawing (TalkBack ON: swipe right until it is read). | A button named "Help" exists, is at least about 48 x 48 px (finger-sized), and is reachable by TalkBack swipe. **Fail:** missing, too small to hit, or not read by TalkBack. | |
+| 16.2 | Tap Help with no finger on the drawing. | One spoken sequence: how to explore by touch, how to go Back, how to Ask. The same words appear in the status card. It finishes without being cut. **Fail:** nothing is spoken, it speaks twice, or it says something that is not a gesture the app has. | |
+| 16.3 | **Second-finger tap.** TalkBack OFF. Rest one finger on the middle of side AC (so the line buzz is on). With a second finger, tap Help once and lift the second finger. Keep the first finger down. | Help is spoken exactly once. The first finger keeps buzzing on the line and keeps exploring. The highlight stays on AC. **Fail:** Help does not speak, it speaks twice, the buzz stops or restarts, the highlight clears or jumps, or the second finger takes over the exploring. Repeat once with **Where am I** instead of Help; it should behave the same way. | |
+| 16.4 | **Slid-off tap.** Press down on Help with one finger, slide off the button, lift. Then press down on Help and lift in a different place on the screen. | Nothing is spoken for a touch that does not end on the button. **Fail:** Help speaks anyway. | |
+| 16.5 | **Keyboard and TalkBack double-tap.** TalkBack ON: focus Help, double-tap. | Help speaks once. **Fail:** twice, or not at all. | |
+| 16.6 | **Help on a Raw photo.** Take a messy photo (clutter, a table) so the result is Raw Mode (see Step 8). Open Help and read the status card without TalkBack. | The spoken list ends with a sentence that the diagram is only rough outlines and labels may be missing, and **that last sentence is fully visible**, or you can scroll the status card to see it. **Fail:** the last sentence is cut off and you can not scroll to it. Also write whether the card, the drawing and the buttons moved when the help text appeared (they must not). Repeat with Language set to Hindi, then Gujarati, and write what you see. | |
+| 16.7 | **Help in Guide or Ask.** With Guide on (Step 13) start guiding, then tap Help. Also try while Ask is listening. | Help speaks and does not start or cancel anything else. **Fail:** Help ends Guide, starts Ask, or navigates away. | |
+| 16.8 | **Landscape footer.** TalkBack OFF. Rotate the phone to landscape on the Right triangle. Do not scroll. | All the buttons under or beside the drawing (Back, Where am I, Ask, Help, plus Correct and Guide me if they are on) are fully on screen, each at least about 48 x 48 px, with no scrolling needed. The drawing stays usable. Rotate back to portrait. **Fail:** any button is cut off or only reachable by scrolling, or the drawing becomes tiny. Write the phone's landscape size if you know it and how tall the drawing is. | |
+| 16.9 | **Rotation does not jump the canvas.** Hold a finger on the drawing and rotate. | The drawing keeps its position until the rotation finishes; nothing grows for several seconds. **Fail:** the drawing keeps growing or shifts under your finger. | |
+
+### Step 17: Planchette, "Walk me through"
+
+> [!NOTE]
+> A walk leads your finger through the reasoning behind a number, one part at a time, and then asks you to find one part yourself. It is built from fixed templates, with no AI and no new vibration or tone. It speaks arithmetic on the printed numbers only. It never says the diagram is "right". Start it with the **Walk me through** button or by saying the whole phrase "walk me through". Say "next step" or press the next-step control to go on. Say "repeat" to hear a prompt again and "stop" to end it.
+
+| # | Do this | Expected | Result (pass / fail / notes) |
+|---|---|---|---|
+| 17.1 | **Triangle walk starts.** Open the Right triangle sample. Find and press **Walk me through** (TalkBack ON: swipe to it, double-tap). | A button named "Walk me through" exists and is at least about 48 x 48 px. After pressing it you hear a short opening, then a prompt telling you which part to find first (for example a side). **Fail:** no button on the triangle, the prompt gives a number before you have touched anything, or it says something is "correct" or "verified". | |
+| 17.2 | **A step is spoken only when you reach it.** Touch somewhere that is not the requested part, then find the requested side or corner. | The wrong place gives no step sentence. When your finger reaches the right part, you hear its sentence once (for example a length). The corner or side label may be heard in the same sentence rather than cutting it off. **Fail:** a step sentence is spoken without touching the right part, it is spoken twice in a row, or the label cuts the sentence short. | |
+| 17.3 | **Do all the steps.** Say "next step" for each step. Then do the same again with the on-screen next control instead of your voice. | Each "next step" gives the prompt for the next part. "Next step" before you have reached the current part repeats the prompt instead of skipping ahead. The last triangle step speaks the squares, their sum and the square root, and the numbers agree with the lengths printed on the diagram. **Fail:** it skips a step, a spoken number does not match the diagram's printed lengths, or the voice phrase is not recognised (write what you said and what the app did). Also say "next" alone: it should not start or advance a walk (it keeps its old job). | |
+| 17.4 | **Your turn, with a wrong touch.** After the last step say "next step" to hear the Your-turn prompt. Rest your finger on a **wrong** side or corner for about a second, then lift and rest on a different wrong one. Then find the right one. | The prompt names no number and does not give the answer. Passing quickly over other parts counts as nothing. After the second wrong rest, the app tells you the answer once and guides your finger to it. Touching the right part always ends it with a success line and a closing line. **Fail:** the answer is given at the first wrong touch or while you only slide past, it repeats the answer over and over, touching the right part does not finish the walk, or you are told you are "correct". | |
+| 17.5 | **Lift during a step.** Start a walk. Reach a part so its sentence starts, then lift your finger right away. | The step sentence finishes; lifting does not cut it. A plain corner label spoken when not in a walk is still cut when you lift (as in Step 4 and the main test). **Fail:** the walk sentence is cut off on lift. | |
+| 17.6 | **Stop.** Start a walk, then say "stop". Try again with the Back button. | The walk ends with one short spoken line. If Guide was also running there is one stop line, not two. Nothing keeps speaking afterwards and the drawing still works. **Fail:** speech continues, two lines are spoken, or the walk is still active. | |
+| 17.7 | **Repeat.** In a walk, say "repeat" once at a find prompt and once after a step sentence. | The current prompt or sentence is spoken again. **Fail:** nothing, or the wrong sentence. | |
+| 17.8 | **Idle end.** Start a walk and leave the phone for about two minutes without touching. | The walk ends quietly. Touching afterwards behaves like normal exploring. **Fail:** the walk keeps going or speaks by itself after the end. | |
+| 17.9 | **Bar chart walk.** Open the Bar chart sample and start the walk. Reach each requested bar. | The steps name the tallest bar and the shortest bar and give the difference as highest minus lowest. The numbers match the values you hear when you rest on each bar normally. Your turn asks for a bar taller than the lowest one. **Fail:** a bar is named that does not match, the difference does not match the two values, or the steps contradict the diagram. | |
+| 17.10 | **Does the walk change the feel?** Trace the triangle with a walk active, eyes closed. | Line buzz, corner double pulse and tones are the same as without a walk. **Fail:** any new vibration, tone or earcon from the walk. | |
+| 17.11 | **No walk on the Sine sample.** Open the Sine wave sample. Look for **Walk me through** (and say "walk me through"). | The request says no walk is offered on the sine sample. **Note for the tester:** the written design (design.md, property P170) expects the shipped sine to get a curve-shape walk, so this row can go either way. Write exactly what happens: no button, or a button and what the steps say. Report a button as a **discrepancy with the request**, not as a pass. If a walk does start, check that its steps stay on the origin, the peak and the trough and that it speaks no numbers. | |
+| 17.12 | **No walk on a Raw photo.** Take the messy photo from 16.6 so the result is Raw Mode, and look for **Walk me through**. Say "walk me through". | No button. Saying the phrase does not start a walk (it is handled as an ordinary spoken line, or ignored). **Fail:** a walk starts on a Raw photo. | |
+| 17.13 | **A question is not a command.** In the triangle say a long sentence that contains the words, for example: "can you walk me through the proof of this triangle". | It is treated as a question to Ask, not as a walk start. **Fail:** a walk starts. | |
+| 17.14 | **TalkBack ON, whole walk.** Do 17.1 to 17.4 once with TalkBack ON, using double-tap-and-hold and drag to reach each part. | The walk works with TalkBack. TalkBack does not read extra text over the walk sentences. **Fail:** TalkBack speaks over the walk, a step is lost, or the reached part is not noticed. Describe exactly what you did. | |
+
+### Step 18: Ghost Hand, "Make my own graph"
+
+> [!IMPORTANT]
+> This lets you plot your own graph on a fixed grid (x 0 to 6, y 0 to 8) with two sliders and a Pin button, then feel it. **The Hand in link needs the share feature:** the Vercel build must have `VITE_FEATURE_SHARE=1` and Teacher tools must be ON in Settings. **Before row 18.12, open one existing share link on this phone** (for example a link made in Step 14.3) to confirm sharing is available on this build. If a link does not open, write "share not on this build" and skip 18.12. Everything in this step is untested on a phone. Pin labels are spoken like "x 2 y 5".
+
+| # | Do this | Expected | Result (pass / fail / notes) |
+|---|---|---|---|
+| 18.1 | On the Capture screen find and open **Make my own graph**. | A button of at least about 48 x 48 px with that name opens a screen with two sliders (x and y), a Pin button, an Undo button, a Stitch in order button, and Feel and Hand in buttons. Feel and Hand in are **disabled** with no pins. **Fail:** no way in, a control is too small to hit, or Feel is usable with nothing pinned. | |
+| 18.2 | **Sliders under TalkBack.** TalkBack ON. Swipe to the x slider, then swipe up or down (or use the volume keys) to change it. Repeat for y. | TalkBack reads each as, for example, "x 3" and "y 5" and the value changes by one whole step each time (x from 0 to 6, y from 0 to 8). **Fail:** the slider has no name, reads only a percentage, jumps by more than one, or can not be changed with TalkBack. Also try the sliders with TalkBack OFF by dragging them and note whether you can reach every value. | |
+| 18.3 | **Pin.** Set x 2, y 5. Press Pin. | It speaks that a point was added with its name and "x 2 y 5". Pins are named A, B, C and so on. **Fail:** silence, the wrong coordinates, or the text includes brackets or the word "correct". | |
+| 18.4 | **Same crossing twice.** Press Pin again without moving the sliders. | Nothing new is added and it speaks that the spot is already taken. **Fail:** a second point appears at the same place, or no explanation is spoken. | |
+| 18.5 | **Plot several.** Pin (0, 1), (1, 3), (2, 5). Order the pins any way you like. | Each pin is announced. **Fail:** any pin lands at the wrong place when you later feel it (check in 18.9). | |
+| 18.6 | **Undo.** Press Undo once. | The last pin is removed and the app says what was removed. Undo again removes the one before. **Fail:** more or less than one pin is removed per press, or silence. Pin it back again afterwards. | |
+| 18.7 | **Stitch in order.** With three or more pins, press Stitch in order. Press it again. | Pins are joined into a chain from left to right (for three pins, two lines), spoken once. A second press changes nothing. One Undo removes the whole stitch. **Fail:** a pin is skipped, lines connect in the wrong order, a line appears that you did not stitch, or Undo needs several presses. | |
+| 18.8 | **Feel.** Press Feel. | The ordinary Explore screen opens on your graph. Axes lie along the bottom and left edges. **Fail:** the screen shows another diagram or is empty. | |
+| 18.9 | **Touch a pin.** Move your finger onto each pin. | Each pin gives the corner double pulse and its spoken label ("x 0 y 1", "x 1 y 3" and so on). Between two stitched pins the line buzz is felt. The pins are the places you chose. **Fail:** a pin is missing, announced with the wrong coordinates, can not be found by touch, or two pins merge so you can not tell them apart. Note whether neighbouring pins feel too close together on this phone; the app says so out loud if the screen is small. | |
+| 18.10 | **No pitch for slope.** Slide along a stitched line. | The line buzz is steady. No rising or falling tone, because these are straight segments. **Fail:** a tone that you take as "the slope". | |
+| 18.11 | **Back keeps the pins.** From Feel press Back (or the Back gesture). | You return to the sliders screen and the spoken prompt says so; every pin and stitch you made is still there. Press Back again with pins present: it asks you to confirm before leaving and leaving without confirming does nothing. **Fail:** pins are lost on the first Back, or it leaves without asking. | |
+| 18.12 | **Hand in.** (Needs share on this build, see the box above.) Press Hand in. | You get a link and a text list of the pins, one line per pin, for example "A: x 0 y 1", in order. Both say the work is not checked. The words "verified", "correct" and "approved" do not appear. **Fail:** the list is missing a pin or has the wrong coordinates, the text says the work is checked or correct, or the link is missing. | |
+| 18.13 | **Open the link.** Copy the link, open it in a new Chrome tab (or in airplane mode for a second test). | It opens on the Explore screen with the same pins and lines. **Fail:** error screen, a different graph, or lost points. Write what was shown. | |
+| 18.14 | **Empty hand-in.** Remove all pins and look at Hand in and Feel. | Both are disabled and say why when pressed. **Fail:** either works with no pins. | |
+| 18.15 | **Does it ruin the walk or fact check?** Make a 3-4-5 shape of pins and press Feel. Press **Walk me through**, and also listen for any spoken disagreement. | No walk is offered and no "facts and drawing disagree" sentence is spoken on your own plot. **Fail:** a walk or a disagreement sentence appears. | |
+
+### Step 19: Compact footer at 360 px width in English, Hindi and Gujarati
+
+> [!NOTE]
+> 360 px is a common budget-phone width in CSS pixels. Check it with the phone in portrait. If your phone is wider, you can narrow the layout by turning on **Settings > Display > Display size and text** to the largest setting, or note your real width and say so. Check that the footer buttons are all visible, readable and not touching.
+
+| # | Do this | Expected | Result (pass / fail / notes) |
+|---|---|---|---|
+| 19.1 | Settings language **English**. Open the Right triangle and look at the buttons under the drawing. With Teacher tools and Guide ON, also check with those on. | Every button (Back, Where am I, Ask, Help, and Correct and Guide me when on) is fully visible, readable, at least about 48 x 48 px and has a clear gap to the next. The status card and the drawing have the same size as before you pressed anything. **Fail:** text is cut off or overlaps, a button is off screen, or the drawing is much smaller than the buttons. | |
+| 19.2 | Settings language **Hindi** (हिन्दी). Same screen. | Same as 19.1. Hindi words are longer: check that every label is readable, not clipped to "..." and the buttons wrap onto a second row cleanly if they must. **Fail:** same as 19.1. Note which label is longest. | |
+| 19.3 | Settings language **Gujarati** (ગુજરાતી). Same screen. | Same as 19.1 and 19.2. **Fail:** same. | |
+| 19.4 | Press Help in each language. | The status card shows the help text; its card height does not change and, if the text is longer than the card, you can scroll the card. The last sentence is reachable. **Fail:** text is cut off with no way to scroll, or the drawing moves. | |
+| 19.5 | TalkBack ON, English. Swipe through every footer button. | Each button has a clear name; all are reached in a sensible order. **Fail:** a button is skipped, read twice, or has no name. | |
+| 19.6 | Set Language back to English when finished. | Language is English. | |
+
+---
+
 ## Paste This Back to the Team
 
 Copy the block below, fill in `PASS` or `FAIL` and your notes, and paste it back into your discussion or issue:
@@ -305,6 +413,13 @@ Tester: Owner
 12 (Hindi/Gujarati speech):   PASS/FAIL - <voices present or missing? notice heard? downloaded in TTS settings?>
 13 (guide my finger):          PASS/FAIL - <TalkBack off/on? speaker hints vs headphone pan? cancel voice/back/timeout? arrival buzz? "take me to B"/"find AC"/Ask "Guide me" button>
 14 (teacher share & QR):       PASS/FAIL - <cold open #s=? airplane mode offline? bad truncated link spoken error? Open Teacher Editor / #/teach? Mark verified? QR scanned from 2nd device? Read note toggle?>
+
+15 (highlight, outlines):      PASS/FAIL - <colour and thickness indoors and outdoors? clears on lift? feel/sound unchanged? TalkBack on/off?>
+16 (Help button):              PASS/FAIL - <spoken once? second-finger tap while resting on AC? Raw photo last sentence reachable? landscape footer visible?>
+17 (Walk me through):          PASS/FAIL - <triangle and bar walks? next step by voice and button? Your turn wrong touch? lift during step? stop? no walk on sine / Raw photo (what actually happened on sine)?>
+18 (Ghost Hand):               PASS/FAIL - <sliders under TalkBack? Pin, Undo, Stitch? Feel and touching a pin? Back kept pins? Hand in link opened? share on this build?>
+19 (footer at 360 px):         PASS/FAIL - <English / Hindi / Gujarati, anything clipped? width used>
+(Steps 15 to 19 were not tested on any phone before this run.)
 
 ------------------------------------------------------
 FAILURE / ANOMALY DATA (fill in if any step failed or behaved strangely):
