@@ -78,9 +78,14 @@ function clamp(x: number, lo: number, hi: number): number {
   return x < lo ? lo : x > hi ? hi : x;
 }
 
-/** Linear blend that is exact at both ends and never leaves [min(a, b), max(a, b)]. */
+/**
+ * Linear blend that is exact at both ends, never leaves [min(a, b), max(a, b)], and is monotone
+ * in `f` to the last bit (Requirement 27.1, task 88): `a + (b - a) * f` has only monotone rounded
+ * steps, unlike `a*(1-f) + b*f`, whose two terms move in opposite directions.
+ */
 function blend(a: number, b: number, f: number): number {
-  return clamp(a * (1 - f) + b * f, Math.min(a, b), Math.max(a, b));
+  if (f >= 1) return b;
+  return clamp(a + (b - a) * f, Math.min(a, b), Math.max(a, b));
 }
 
 /** 0 at `radiusPx` (or beyond, or not a number), 1 at or inside `lineRadiusPx`. */

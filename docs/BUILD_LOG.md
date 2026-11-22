@@ -5013,3 +5013,9 @@ Format for each entry:
 - Spec first: Requirement 51.5, design.md and tasks.md (task 87) amended. Fix in frontend/src/core/walkAnchor.ts: SPOT_TIE_EPS = 1e-9, two-pass extreme, first sample within the tolerance.
 - Tests: pinned example (fails on old code), P170 oracle amended, edge band 0.4e-9 to 2.5e-9 excluded from the transform property (documented). Two mutants killed. tsc 0 errors; full suite twice under load: 256 files, 3268 passed, 1 expected fail, 1 todo.
 - Files: frontend/src/core/walkAnchor.ts, frontend/tests/walkAnchor.prop.test.ts, .kiro/specs/ghost-touch/{requirements,design,tasks}.md, docs/reviews/kiro-review-planchette-spec.md, docs/BUILD_LOG.md.
+
+### 2026-11-22 (Kiro, task 88): P98 intermittent failure
+- Tool: Kiro. Reproduced with a hunt over distances 1 to 3 ulps apart (5 inversions in about 3 million tries; the property alone passed 300,000 runs). Real: `blend` in `core/proximity.ts` (`a*(1-f)+b*f`) was one ulp non-monotone for gain and interval.
+- Spec first: design.md P98 note and tasks.md task 88. Fix: `blend` is `f >= 1 ? b : clamp(a + (b - a) * f, min, max)`. No tuned value or tech.md row changed.
+- Tests: two pinned examples and an adjacent-double property; both fail on the old formula (the mutant) and pass now. tsc 0 errors; full suite under load (`--maxWorkers=3 --testTimeout=30000`): 257 files, 3278 passed, 1 todo.
+- Files: frontend/src/core/proximity.ts, frontend/tests/proximity.prop.test.ts, .kiro/specs/ghost-touch/{design,tasks}.md, docs/reviews/kiro-review-planchette-spec.md, docs/BUILD_LOG.md.

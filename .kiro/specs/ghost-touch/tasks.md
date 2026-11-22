@@ -716,3 +716,13 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 87.2 `core/walkAnchor.ts`: `SPOT_TIE_EPS`, two-pass extreme; pinned example from seed 45; P170 oracle amended in the same way; mutant run
   - [x] 87.3 Gate; finding written in `docs/reviews/kiro-review-planchette-spec.md`; BUILD_LOG; path-scoped commit
   - _Requirements: 51.5_
+
+## P98 intermittent failure (task 88; spec written before the code)
+> Found by one failure in a full-suite run on 4d324db. Only `core/proximity.ts` and tests change. No tuned value (`DEFAULT_PROXIMITY`, gains) is changed.
+
+- [x] 88. The click helpers are monotone in distance down to the last bit (Requirement 27.1)
+  - [x] 88.1 Hunt: the property alone did not fail in 300000 runs; a hunt over distances one to three ulps apart found the inversion in 5 of about 3 million tries: `blend` (`a*(1-f)+b*f`) rounds two opposite-moving terms, so gain and interval can differ by one ulp the wrong way. Real, not load. Design.md P98 amended before the code
+  - [x] 88.2 `core/proximity.ts` `blend`: `f >= 1 ? b : clamp(a + (b - a) * f, min, max)` (each rounded step is monotone; both end points stay exact)
+  - [x] 88.3 Pinned examples from the hunt, adjacent-double property added to P98, one mutant (old formula) killed
+  - [x] 88.4 Gate; finding in docs/reviews/kiro-review-planchette-spec.md; BUILD_LOG; path-scoped commit
+  - _Requirements: 27.1_

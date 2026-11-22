@@ -230,6 +230,58 @@ describe('P98: closer is faster, higher and louder (Requirement 27.1)', () => {
     );
   });
 
+  // Task 88: a distance one ulp farther must never be closer, down to the last bit. The old blend
+  // `a*(1-f) + b*f` was found one ulp non-monotone at adjacent doubles (counterexamples below,
+  // from a hunt over adjacent distances).
+  it('pinned counterexamples: adjacent distances stay ordered (gain, interval)', () => {
+    const gainCfg: ProximityConfig = {
+      radiusPx: 103.06741839992839,
+      lineRadiusPx: 25.359573642329543,
+      nearMs: 85.19661125974058,
+      farMs: 209.53017070066528,
+      loHz: 684.6826450011275,
+      hiHz: 858.7052224720085,
+    };
+    expect(clickGain(25.789401670918686, gainCfg)).toBeGreaterThanOrEqual(clickGain(25.789401670918693, gainCfg));
+    const intervalCfg: ProximityConfig = {
+      radiusPx: 80.91421025585248,
+      lineRadiusPx: 6.766368999707957,
+      nearMs: 113.5539707653568,
+      farMs: 119.91317414406991,
+      loHz: 618.8208346023076,
+      hiHz: 2403.4479052143874,
+    };
+    expect(clickIntervalMs(23.503914918032855, intervalCfg)).toBeLessThanOrEqual(
+      clickIntervalMs(23.503914918032866, intervalCfg),
+    );
+  });
+
+  it('adjacent doubles (1 to 3 ulps apart) keep the order for interval, pitch and gain', () => {
+    const nextUp = (x: number): number => {
+      const v = new DataView(new ArrayBuffer(8));
+      v.setFloat64(0, x);
+      v.setBigUint64(0, v.getBigUint64(0) + 1n);
+      return v.getFloat64(0);
+    };
+    fc.assert(
+      fc.property(
+        arbConfig,
+        fc.double({ min: 0, max: 1, noNaN: true }),
+        fc.integer({ min: 1, max: 3 }),
+        (cfg, frac, ulps) => {
+          const d1 = cfg.lineRadiusPx + frac * (cfg.radiusPx - cfg.lineRadiusPx);
+          let d2 = d1;
+          for (let i = 0; i < ulps; i++) d2 = nextUp(d2);
+          fc.pre(d2 <= cfg.radiusPx);
+          expect(clickIntervalMs(d1, cfg)).toBeLessThanOrEqual(clickIntervalMs(d2, cfg));
+          expect(clickHz(d1, cfg)).toBeGreaterThanOrEqual(clickHz(d2, cfg));
+          expect(clickGain(d1, cfg)).toBeGreaterThanOrEqual(clickGain(d2, cfg));
+        },
+      ),
+      { numRuns: 2000 },
+    );
+  });
+
   it('example: default config end points', () => {
     expect(clickIntervalMs(48, DEFAULT_PROXIMITY)).toBe(400);
     expect(clickIntervalMs(14, DEFAULT_PROXIMITY)).toBe(90);

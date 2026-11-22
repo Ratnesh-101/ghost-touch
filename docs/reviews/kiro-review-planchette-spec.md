@@ -176,3 +176,17 @@ Whether a student can find the peak, trough and origin of the sine with the 22 p
 **Verification.** After the fix: the same hunt over 3000 seeds fails only at the two edge seeds (before the exclusion existed in the temporary copy); the real file passes at `FC_RUNS_MULT=30`; `tsc --noEmit` 0 errors; the full suite twice with a second loaded vitest running (256 files, 3268 passed, 1 expected fail, 1 todo each time). No timeout was involved, so no timeout was changed.
 
 **Not checked.** The original failure's message was never captured, so I cannot prove it was this exact cause; the rate (about 1 in 100 seeds) and the four reproductions make it the only candidate I found. I did not look for other intermittent failures in the suite.
+
+## Follow-up: P98 intermittent failure (task 88)
+
+**Verdict: real bug in `core/proximity.ts`, not load.** P98 (`helpers are monotonic in distance and hit the end points`) failed once in a full-suite run on 4d324db and passed three times alone afterwards.
+
+**Hunt.** The property's own checks (monotone order plus the end-point checks) did not fail in 300,000 runs, because its two distances are almost never within a few ulps of each other. A direct hunt over distances 1 to 3 ulps apart on random valid configs found the inversion 5 times in about 3 million tries: 4 in `clickGain` and 1 in `clickIntervalMs`, always one ulp the wrong way (for example gain 0.5983405998586244 at the nearer distance against 0.5983405998586245 at the farther). `clickHz` was not hit in that run but has the same formula.
+
+**Cause.** `blend(a, b, f)` was `a*(1-f) + b*f`. The two terms move in opposite directions as `f` grows, each is rounded, and the rounded sum can step the wrong way by one ulp. `closeness` itself is monotone (subtract, divide, clamp, `1 - x` are monotone), so the fault is only in the blend. The full-suite failure is consistent with a random pair that landed a few ulps apart or with the end-point comparison near the top, a rare draw rather than load.
+
+**Fix (smallest change, `core/proximity.ts`).** `blend` is now `f >= 1 ? b : clamp(a + (b - a) * f, min, max)`. Every rounded step is monotone in `f`, `f = 0` gives `a` exactly, `f >= 1` returns `b` exactly, and the clamp keeps the value inside the end points. No constant changed: `DEFAULT_PROXIMITY`, `PROXIMITY_GAIN_FAR` and `PROXIMITY_GAIN_NEAR` are as before, so `tech.md` is untouched.
+
+**Tests (`tests/proximity.prop.test.ts`).** Two pinned examples from the hunt (gain and interval), and a property over adjacent doubles (1 to 3 ulps, 2000 runs, interval, pitch and gain). Both fail on the old formula (the property reports `0.5999999999999999 >= 0.6`) and pass on the new. The old formula is the mutant and both tests kill it. The original P98 checks are unchanged.
+
+**Limit.** The fix keeps order within each helper. It does not claim the three helpers agree with an exact real-number formula to more than the existing `toBeCloseTo` tolerances. Requirement 27 is unchanged; design.md P98 has a note and tasks.md has task 88.
