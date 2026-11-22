@@ -1045,3 +1045,62 @@ Mutants run for these properties are listed in `docs/BUILD_LOG.md` (task 85).
 
 ### Explore oracles for the lane (written as `it.fails` in task 85)
 `frontend/tests/explore.walk.oracle.test.tsx` mounts the real `Explore` with the task 67 rig. W1: the button named "Walk me through" is present on the triangle, bar and sine samples. W2: it is absent on a Raw Mode scene (passes today, guards the lane). W3: after Start, a step sentence is spoken only after the anchor is touched, a wrong touch speaks no step, and the sentence is in the same utterance as the engine's own announcement. W4: a lift does not call `stopSpeaking` while a walk step is playing, and still does for a corner label. W5: the vibrate and tone calls of a fixed trace are identical with and without a started walk. W6: "stop" while a walk is active ends it, with one spoken line and no earcon. W7: `walk.*` keys are complete and honest in `en`, `hi`, `gu` (the P61 pattern). `frontend/tests/walk.commands.table.test.ts` has the Requirement 45.6 rows against `parseExploreCommand` (`walk_start`, `walk_next`).
+
+
+
+## Ghost Hand: a blind student plots her own graph (Requirement 52, task 86)
+Written by Kiro before the code. One new pure module, `frontend/src/core/pegboard.ts`, named exports only. It imports `core/correct` (`addPoint`, `addSegment`, `COINCIDENT_EPSILON`), `core/verify` is NOT imported (only tests use it), and nothing else except scene types and `core/speakable` is not needed. No i18n, no `flow/`, no browser API. Wording is the lane's: the core holds i18n KEYS and parameters.
+
+### Interface
+```ts
+const GRID_MAX_X = 6, GRID_MAX_Y = 8, GRID_FACT = 'Grid: x 0 to 6, y 0 to 8';
+const MIN_PIN_SPACING_PX = 44;            // twice DEFAULT_RADII.vertex (22), copied, not a haptic value
+interface Crossing { gx: number; gy: number }
+gridToNorm(c: Crossing): { x: number; y: number }          // x = gx/6, y = 1 - gy/8
+snapNorm(x: number, y: number): Crossing | null            // nearest crossing, clamped; null if not finite
+snapCrossing(gx: number, gy: number): Crossing | null      // round and clamp whole numbers
+emptyDraft(): DiagramScene                                  // Requirement 52.2
+pinLabel(c: Crossing): string                               // 'x 2 y 5'
+pinsOf(scene): PinEntry[]                                   // points in stitch order: x asc, gy asc, id
+type PinResult = { kind: 'pinned'; scene; id; label; crossing } | { kind: 'occupied'; scene; id } | { kind: 'badInput'; scene }
+pin(scene, gx, gy): PinResult
+stitchInOrder(scene): DiagramScene
+canFeel(scene): boolean; canHandIn(scene): boolean          // at least 1 pin
+describeWork(scene): { pinCount; segmentCount; pins: WorkPin[]; lines: { key: BuildWorkKey; params }[] }
+handInList(scene): { id; label; gx; gy }[]                  // same order as the pins
+pinSpacingPx(scalePx): number; pinSpacingOk(scalePx): boolean
+isDraft(scene): boolean                                     // carries the grid fact line
+BUILD_WORK_KEYS
+```
+
+### Rules
+- `snapNorm` converts to grid units (`x*6`, `(1-y)*8`), rounds to the nearest whole number, clamps to 0..6 and 0..8 and turns `-0` into `0`. A crossing's own norm point snaps back to it because `(gx/6)*6` is within one ulp of `gx` and rounding absorbs that.
+- `pin` order of checks: non-finite input gives `badInput`; snap; occupied test against EVERY existing point using `COINCIDENT_EPSILON` on the normalized coordinates (the same test `addPoint` uses to decide to nudge, so `addPoint` is never asked to nudge); then `addPoint(scene, x, y, label)` with the exact crossing coordinates. If `addPoint` returns the same scene (it cannot here) the answer is `badInput`.
+- `stitchInOrder` drops every segment of the input, sorts the points (x asc, gy asc, id asc), and calls `addSegment(next, a, b)` for each neighbour pair. If the new segments equal the old ones (ids and ends, in order) the input object is returned. The result depends only on the pin set because the sort is total and `addSegment` ids are `${a}${b}` (point ids are unique and never reserved).
+- `pinSpacingPx(scale) = scale / GRID_MAX_Y`, because 1/8 is the smaller of the two steps (1/6 and 1/8) of the unit square. `pinSpacingOk` is `>= MIN_PIN_SPACING_PX`, so true exactly from scale 352.
+- `describeWork` keys: `build.work.empty`, `build.work.count` ({count}), `build.work.pin` ({id}, {label}), `build.work.stitched` ({count}). Params are strings or finite numbers. No string built here contains a bracket, parenthesis, comma, equals sign or "verified", "correct", "checked", "approved".
+
+### Navigation for `flow/navigation.ts` (lane C-wire)
+`SCREEN_NAMES` gains `'build'`. `BackContext` gains optional `buildDirty` and `buildFeel`. `leaveByBack('build', ctx)`: `buildFeel === true` gives `{ next: 'build', announceKey: 'build.backToForm', needsConfirm: false }`; otherwise `{ next: 'capture', announceKey: 'capture.prompt', needsConfirm: ctx.buildDirty === true }`. Every other screen is unchanged and P43 is extended: `needsConfirm === (teach && dirty) || (correct && correctDirty) || (build && !buildFeel && buildDirty)`.
+
+### Screen contract for the lanes (the oracles read these)
+`screens/Build.tsx` exports `Build` with props `{ drivers: Drivers; onBack: () => void }`. Root element `data-testid="build-root"` carries `data-pins` and `data-segments` (counts) and `data-mode` (`form` or `feel`). Two `input[type=range]` with accessible names and `aria-valuetext` `x 3` / `y 5`; buttons named (by `t()`) Pin, Undo, Stitch in order, Feel, Hand in. In Feel the unchanged `Explore` is mounted by Build (its canvas is `canvas.gt-explore__canvas`). After Hand in, `data-testid="build-handin-text"` holds the point list and `data-testid="build-handin-link"` is an `<a>` whose `#s=` fragment decodes with `decodeShare`.
+
+### Properties
+| # | Property | Validates |
+|---|---|---|
+| P171 | **Snap is idempotent and a crossing is its own snap (Kiro, task 86):** for any finite x, y (including huge and negative) `snapNorm` is on the grid and snapping the position of the answer gives the answer; for every one of the 63 crossings `snapNorm(gridToNorm(c))` equals `c`; for x, y inside the unit square the snapped position is at most half a cell away on each axis; NaN and infinite input give `null`. 300 runs. | 52.1 |
+| P172 | **A pin is exactly on its crossing, never nudged (Kiro, task 86):** for any draft built by pins and any whole or fractional gx, gy, `pin` returns `pinned` exactly when the input is finite and the snapped crossing is free; then there is exactly one more point, at exactly `gridToNorm` of the crossing, labelled `x gx y gy`, every other element is equal, the input is not mutated. An occupied crossing returns the same scene object and the id of the point there, even when another point lies within `COINCIDENT_EPSILON` of it. 300 runs. | 52.4, 52.5 |
+| P173 | **Any pin sequence stays on the grid (Kiro, task 86):** after any sequence of up to 120 pin attempts (repeats included) every point is on a crossing, no two share one, there are at most 63, labels match coordinates, ids are unique and none is reserved; attempting all 63 crossings in any order fills all 63. 200 runs. | 52.4 |
+| P174 | **Stitch is the neighbour chain, segments only (Kiro, task 86):** for any draft with n pins `stitchInOrder` gives exactly n - 1 segments (0 for n < 2) joining consecutive pins in (x, gy, id) order, no polyline, points, axes, facts and title unchanged, unique segment ids, the same answer when the pins were placed in any other order (compared by crossings), the same scene object when applied twice, and stale segments in the input are dropped. 300 runs. | 52.7 |
+| P175 | **Drafts are valid and share (Kiro, task 86):** for any draft of 0 to 63 pins, stitched or not, `isRenderableScene` and `validateSceneInvariants` accept it; `validateShareScene` accepts it exactly when it has at least one pin (and `canFeel`, `canHandIn` say the same); with a pin, `decodeShare(encodeShare(...))` returns the same points, segments, kind, axes and facts. 200 runs. | 52.2, 52.8, 52.10 |
+| P176 | **The grid line is not a fact and a draft has no walk (Kiro, task 86):** for any draft (including 3-4-5 shapes of pins), `parseFacts` of its facts returns nothing, `verifyScene` is `silent` with no findings; `templateWalk` is `null` even when length facts that would give a longest-side walk on the same pins in a scene WITHOUT the grid line are added (a control shows that walk exists without the line). 200 runs. | 52.11 |
+| P177 | **Pin and stitch undo exactly (Kiro, task 86):** through `historyReducer`, one `apply` per pin or stitch, undo gives back the previous scene object and redo the edited one; a refused pin (occupied, badInput) is the same object, so no history entry is made. 200 runs. | 52.6 |
+| P178 | **What is said about the work is exact and bracket-free (Kiro, task 86):** `describeWork` and `handInList` list exactly the pins, once each, in stitch order, with the gx, gy of each; the empty draft gives only `build.work.empty`; every string in them (labels, params) has no bracket, parenthesis, comma, equals sign, and none of "verified", "correct", "checked", "approved"; keys come from `BUILD_WORK_KEYS`. 250 runs. | 52.5, 52.13 |
+| P179 | **Pin spacing follows the geometry (Kiro, task 86):** against a brute-force minimum over all pairs of the 63 crossings placed with `toScreen` on a letterboxed viewport, `pinSpacingPx(scale)` equals that minimum and `pinSpacingOk(scale)` is true exactly when the minimum is at least 44; it is false at 351.9 and true at 352; the viewport offsets and a non-square canvas do not change the answer. 250 runs. | 52.12 |
+| P180 | **Total and pure (Kiro, task 86):** NaN, infinities, huge numbers, scenes cast from junk (null, missing arrays, points with non-finite coordinates, duplicate ids, `__proto__` ids) never throw in any export and never mutate a deep-frozen input. 300 runs. | 52.16 |
+| P181 | **Build strings are complete and honest (Kiro, task 86; `it.fails` until lane C-wire):** every key in `BUILD_I18N_KEYS` exists in `en`, `hi` and `gu`, is not blank, has the same placeholders in all three, has hi and gu values that differ from English, and contains none of "verified", "correct", "approved"; "checked" only inside the hand-in keys and only as "not checked" (hi: जाँचा नहीं गया, gu: ચકાસાયેલ નથી). Each (language, key) pair is an explicit example, then 200 random pairs. | 52.14, 52.15 |
+| P182 | **Back from Build (Kiro, task 86; `it.fails` until lane C-wire):** for every combination of `buildDirty`, `buildFeel`, `dirty`, `correctDirty`, `fromShare`, `leaveByBack('build', ctx)` follows 52.9, and for every other screen `needsConfirm` equals `(teach && dirty) || (correct && correctDirty)`. 100 runs over the 64 combinations. | 52.9 |
+
+### Oracles for the lanes (`it.fails`, task 86)
+`frontend/tests/build.screen.oracle.test.tsx` (jsdom, the task 67 rig style, `import.meta.glob` so a missing screen is a red test and not a broken file): B1 the controls exist with names, two sliders with `aria-valuetext`; B2 Feel and Hand in are disabled with 0 pins and enabled after one Pin; B3 Pin speaks and adds a point, the same crossing again adds nothing and speaks the reason; B4 Stitch makes n - 1 segments in one step and Undo takes it back in one step; B5 Feel mounts the real Explore canvas, a touch on a pin speaks its label, Back returns to the form with the pins kept; B6 the form makes no `vibrate`, `setTone` or `playEarcon` call; B7 Hand in shows the list and a link that decodes to the scene, and the text says "not checked". P181 and P182 are in `build.i18n.oracle.test.ts` and `build.navigation.oracle.test.ts`.

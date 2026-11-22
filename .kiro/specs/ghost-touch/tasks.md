@@ -694,3 +694,16 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 85.6 Gate (`tsc --noEmit` 0 errors, `vitest run`: 247 files, 3163 passed, 12 expected fail, 1 todo); BUILD_LOG entry (tool = Kiro); path-scoped commits
   - [ ] 85b. Lane (not Kiro): `flow/walk.ts`, phrases in `flow/commands.ts`, i18n `walk.*` in en, hi, gu and the translation sheets, then one serialized Explore lane; removes the `.fails` of `explore.walk.oracle.test.tsx` and `walk.commands.table.test.ts`
   - _Requirements: 51.*, 37.2, 45.6_
+
+
+## Ghost Hand: a blind student plots her own graph (Requirement 52; spec written before the code)
+> Core half only. Do not edit `screens/`, `flow/`, `App.tsx`, `i18n/`, `hitTest.ts`, `hapticEngine.ts` or any tuned value. No new vibration, tone or earcon, no backend. Numbers re-checked after task 85: Requirement 52, task 86 and P171 on were free. The Build screen, navigation and hand-in are lanes C-screen, C-wire, C-hand-in (briefs in `docs/reviews/kiro-review-ghosthand-spec.md`).
+
+- [ ] 86. Ghost Hand spec, `core/pegboard.ts`, properties and oracles
+  - [ ] 86.1 Requirement 52, design section and P171 to P182 written before any code; the 44 px pin-spacing rule flagged as an owner decision
+  - [ ] 86.2 `core/pegboard.ts`: grid, snap, `pin`, `stitchInOrder`, `describeWork`, `handInList`, spacing, `canFeel`, `canHandIn`; pure, named exports, no `any`
+  - [ ] 86.3 Properties P171 to P180 (200 to 300 runs, each able to fail); mutants run and reported in BUILD_LOG
+  - [ ] 86.4 Oracles as `it.fails`: Build screen B1 to B7, strings P181, navigation P182
+  - [ ] 86.5 `docs/reviews/kiro-review-ghosthand-spec.md`: exports, `build.*` keys, three lane briefs, owner decisions, what Kiro did; gate; BUILD_LOG
+  - [ ] 86b. Lanes (not Kiro): C-screen (`flow/build.ts`, `screens/Build.tsx`, CSS), C-wire (`'build'` in navigation, route in `App.tsx`, Capture button, i18n `build.*`), C-hand-in (share link and point list); remove the `.fails` of the oracles
+  - _Requirements: 52.*_
