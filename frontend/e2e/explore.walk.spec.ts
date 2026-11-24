@@ -142,27 +142,9 @@ test.describe('Planchette ("Walk me through") E2E in a real browser', () => {
     await expect(status).toContainText(/22/);
   });
 
-  test('sine sample: walk button exists and meets touch target constraints', async ({ page }) => {
+  test('sine sample: no Walk me through button is offered on a graph (task 90)', async ({ page }) => {
     await openSine(page);
-    const walkBtn = page.getByTestId('explore-walk');
-    await expect(walkBtn).toBeVisible();
-
-    const box = await walkBtn.boundingBox();
-    expect(box).not.toBeNull();
-    if (box) {
-      expect(box.width).toBeGreaterThanOrEqual(47.5);
-      expect(box.height).toBeGreaterThanOrEqual(47.5);
-    }
-    await expect(walkBtn).toHaveText(/walk me through/i);
-
-    const vp = page.viewportSize();
-    if (box && vp) {
-      expect(box.x).toBeGreaterThanOrEqual(-0.5);
-      expect(box.x + box.width).toBeLessThanOrEqual(vp.width + 0.5);
-      expect(box.y).toBeGreaterThanOrEqual(-0.5);
-      expect(box.y + box.height).toBeLessThanOrEqual(vp.height + 0.5);
-    }
-
+    await expect(page.getByTestId('explore-walk')).toHaveCount(0);
     const noScroll = await page.evaluate(() => {
       const el = document.scrollingElement ?? document.documentElement;
       return el.scrollWidth <= el.clientWidth;

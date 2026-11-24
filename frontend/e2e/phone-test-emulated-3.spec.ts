@@ -203,14 +203,10 @@ test.describe('PT 17 Planchette (Walk me through)', () => {
     void browser;
   });
 
-  test('PT 17.11 sine sample: record whether a walk is offered', async ({ page }) => {
+  test('PT 17.11 no walk is offered on the sine sample (the owner request, task 90)', async ({ page }) => {
     await installPhoneSpies(page);
     await openSample(page, /sine/i);
-    const offered = await page.getByRole('button', { name: t('walk.start') }).count();
-    // PHONE_TEST row 17.11 says the design expects no walk on the sine sample. The app offers one when the
-    // anchors are reachable (P170). This test records the fact so the doc row can be corrected.
-    expect(typeof offered).toBe('number');
-    test.info().annotations.push({ type: 'finding', description: `sine walk button count = ${offered}` });
+    await expect(page.getByRole('button', { name: t('walk.start') })).toHaveCount(0);
   });
 
   test('PT 17.12 no Walk me through on a Raw photo', async ({ page }) => {
