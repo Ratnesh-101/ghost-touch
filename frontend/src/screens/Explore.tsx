@@ -1106,6 +1106,7 @@ export function Explore({
     finger: ScreenPoint,
     view: Viewport,
     now: number,
+    held = false,
   ): string[] => {
     if (walk === null || walkRef.current.phase === 'idle') {
       walkTouchSpokenRef.current = false;
@@ -1117,6 +1118,7 @@ export function Explore({
       target,
       finger,
       view,
+      held,
     });
     walkRef.current = touchRes.state;
     syncWalkPhase(touchRes.state.phase);
@@ -2231,19 +2233,15 @@ export function Explore({
         const compassAnnouncements = checkVertexCompass(moveResult.target, now);
         checkLineDwell(moveResult.target, coords, now, lang);
 
-        if (walk !== null && walkRef.current.phase !== 'idle') {
-          const tickRes = walkStep(walkRef.current, { kind: 'tick', t: now });
-          walkRef.current = tickRes.state;
-          syncWalkPhase(tickRes.state.phase);
-          if (tickRes.state.phase === 'idle' || tickRes.state.phase === 'done') {
-            clearWalkInterval();
-          }
-        }
+        const walkLines =
+          walk !== null && walkRef.current.phase !== 'idle'
+            ? stepWalkTouch(moveResult.target, coords, view, now, true)
+            : [];
         applyMoveResult(
           moveResult,
           lang,
           [],
-          compassAnnouncements,
+          [...compassAnnouncements, ...walkLines],
           true,
           coords,
         );

@@ -297,9 +297,8 @@ describe('task 85: Requirement 51 oracles (lane 85b)', () => {
       });
     });
 
-    // Red today: the keep-alive feeds the walk only `tick`, which the reducer ignores, so a finger
-    // that sends no pointer events is never counted. The lane sends `touch` with `held: true`.
-    it.fails('a still finger resting on a wrong part during Your turn gives the answer after the second rest', async () => {
+    // The keep-alive feeds the walk `touch` with `held: true`, so a still finger counts as a try (task 89).
+    it('a still finger resting on a wrong part during Your turn gives the answer after the second rest', async () => {
       await withExplore({ scene: triangle }, async (rig) => {
         await toYourTurn(rig);
         rig.clearCalls();
