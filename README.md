@@ -155,7 +155,7 @@ uvicorn app.main:app --app-dir backend --reload --port 8000
 
 ## Tests
 
-Current test suite status: On 2026-11-22 (at main 0a32a9c): frontend tests 3,278 passed (plus 1 todo) in 257 files; backend tests 931 passed; Playwright 98 passed across two Galaxy phone viewports; requirements 52; properties numbered to P182; tasks 88; commits 1021, of which 126 carry the kiro: prefix.
+Current test suite status: On 2026-11-25 (at main d78a941): frontend tests 3,318 passed (plus 1 todo) in 261 files; backend tests 931 passed; the Playwright suite passes in CI across two Galaxy phone viewports and includes emulated checks of the rows of docs/PHONE_TEST.md (see its results table); requirements 52; properties numbered to P186; tasks 89; commits 1041, of which 129 carry the kiro: prefix.
 
 ```bash
 # Frontend: Vitest and fast-check property tests
