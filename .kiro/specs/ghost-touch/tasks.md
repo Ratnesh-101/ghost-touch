@@ -739,3 +739,13 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - _Requirements: 51.6, 51.7, 51.13_
 
   - _Requirements: 27.1_
+
+## No Planchette walk on graphs (task 90; spec written before the code)
+> Found by the Playwright pass over `docs/PHONE_TEST.md` row 17.11. Only `core/walk.ts` and walk tests change. Do not edit `screens/`, `flow/`, `i18n/`, `e2e/`. `core/walkAnchor.ts` and P170 stay.
+
+- [x] 90. `templateWalk` is `null` for any graph (Requirement 51.14)
+  - [x] 90.1 Requirement 51.14, design section and P187 written before any code
+  - [x] 90.2 `core/walk.ts`: return `null` for `function_graph` or any polyline, before the templates
+  - [x] 90.3 Tests that expected a sine or graph walk now assert `null`; triangle and bar walks still asserted; P187 mutation-checked
+  - [x] 90.4 Note "Follow-up: no walk on graphs (task 90)" in `docs/reviews/kiro-review-planchette-spec.md` naming the e2e specs to change; gate; BUILD_LOG; path-scoped commits
+  - _Requirements: 51.14_

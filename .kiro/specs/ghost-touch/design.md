@@ -1022,7 +1022,10 @@ WALK_KEYS, WALK_UNITS, WALK_MAX_STEPS = 6, WALK_TRY_DWELL_MS = 500, WALK_IDLE_MS
   - `stop` goes to `idle` and speaks `walk.stopped` unless `silent` (used when Guide's own stop line is spoken) or already idle. `tick` with `t - lastActivity >= WALK_IDLE_MS` goes to `idle` with no effect. Non-finite times are ignored; a time earlier than `lastActivity` never shortens the idle clock.
 - **Commands (Requirement 45.6).** `walkCommandOf(transcript, { start, next })` normalises like `flow/commands.ts` (lower case, trim, punctuation and danda removed, spaces collapsed) and answers only on EQUALITY with a listed, normalised phrase of at most 3 words. A phrase of more than 3 words in the list is ignored. No word-subset rule.
 
-### Reachability decision for the sine (51.5)
+### No walk on graphs (Requirement 51.14, task 90)
+`templateWalk` returns `null` for `kind === 'function_graph'` and for any scene with a polyline, checked with the other guards before any template is tried. The curve-shape builder and `core/walkAnchor.ts` stay, unused by `templateWalk`; P170 is unchanged. Why: untried by touch, and the spot anchors are not reachable by a still-finger test on a phone. The sine sentence below describes what the library can do, not what the app offers. P187 pins the rule.
+
+### Reachability decision for the sine (51.5; library only since task 90)
 `final1-B.md` section 2 is adopted as written, with one change: reachability is tested for the walk's own scale set instead of one canvas, because 22 px is a fixed number of pixels and a scene with a vertex near the spot is reachable at one size and not at another. On the shipped sine (a polyline and two axes, no points) P170 shows the three spots reachable at every scale, so the sine has a walk.
 
 ### Properties
@@ -1041,7 +1044,9 @@ WALK_KEYS, WALK_UNITS, WALK_MAX_STEPS = 6, WALK_TRY_DWELL_MS = 500, WALK_IDLE_MS
 | P169 | **A command is a whole phrase (Kiro, task 85):** `walkCommandOf` answers `start` or `next` only when the normalised transcript equals a listed phrase of at most 3 words; a transcript of more than 3 words, a listed phrase inside a longer sentence, "next" alone, "walk" alone and "walk through" give `null`; case, punctuation (including danda) and extra spaces do not change the answer; a list phrase of more than 3 words is ignored; junk input gives `null`. 300 runs. | 51.7, 45.6 |
 | P170 | **Spots lie on a real element and the finger can reach them (Kiro, task 85):** for random `function_graph` scenes (sine, parabola, line, several curves) with both axes and nothing else, `anchorPoint` returns a peak that is a sample of its polyline with the least y and a trough with the greatest y, and `isAnchorReachable` holds: at each scale in {200, 360, 600}, `hitTest` at the spot returns a line whose id the anchor accepts, and `spotReached` is true there and false 23 px away from the spot; the shipped sine gives three reachable spots and a curve walk. Adding a point within 22 px of the peak makes the peak unreachable and the curve walk `null`. The answers are the same under uniform scaling and translation of the curve, and `null` without a polyline or without axes. 250 runs. | 51.5 |
 
-Mutants run for these properties are listed in `docs/BUILD_LOG.md` (task 85).
+| P187 | **No walk on a graph (Kiro, task 90):** for any scene of kind `function_graph` (curves, axes, optional facts, with or without points) and for any scene of another kind that has one or more polylines (a triangle or bar chart plus a polyline), `templateWalk` is `null`; the shipped sine sample gives `null`; the triangle and bar samples still give `pythagoras` and `barDifference`. 250 runs. | 51.14 |
+
+Mutants run for these properties are listed in `docs/BUILD_LOG.md` (task 85, and task 90 for P187).
 
 ### A still finger counts (Requirement 51.13, task 89)
 Written by Kiro before the code. `WalkInput` touch gains `held?: boolean`. In `reduce`, for `kind: 'touch'` with `held === true`, the only change from a moved touch is `lastActivity = state.lastActivity` (instead of `Math.max(state.lastActivity, t)`). Everything else (the idle test at the top, the anchor test, the rest dwell and try counter, the single reveal, the once-only sentences) is the same code path, so a held touch cannot drift from a moved one. A `tick` is unchanged (no effect, no state change); it stays the input for "no finger is down". Why not make `tick` carry the finger: a tick has no target, finger or view, and the reducer must not guess them.
