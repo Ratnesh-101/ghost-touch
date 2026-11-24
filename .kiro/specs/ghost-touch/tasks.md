@@ -725,4 +725,17 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 88.2 `core/proximity.ts` `blend`: `f >= 1 ? b : clamp(a + (b - a) * f, min, max)` (each rounded step is monotone; both end points stay exact)
   - [x] 88.3 Pinned examples from the hunt, adjacent-double property added to P98, one mutant (old formula) killed
   - [x] 88.4 Gate; finding in docs/reviews/kiro-review-planchette-spec.md; BUILD_LOG; path-scoped commit
+
+## A still finger counts as a try in Planchette (task 89; spec written before the code)
+> Found by the Playwright pass over `docs/PHONE_TEST.md` step 17.4. Only `core/walk.ts` and tests change here; the Explore change is a lane, briefed in `docs/reviews/kiro-review-planchette-spec.md`. No tuned value changes.
+
+- [ ] 89. Held touch input for the walk reducer (Requirement 51.13)
+  - [x] 89.1 Cause verified by reading: `reduce()` ignores `tick`; a try is counted only from `touch`; Explore's keep-alive `onTick` sends only `tick`, so a finger that does not move sends no touch after its first. Requirements 51.6, 51.7, new 51.13, design section and P183 to P186 written before any code
+  - [ ] 89.2 `core/walk.ts`: optional `held` on the touch input; `lastActivity` is not refreshed by a held touch
+  - [ ] 89.3 Properties P183 to P186 in `tests/walk.held.prop.test.ts` (300 runs), mutation-checked
+  - [ ] 89.4 Oracle in `tests/explore.walk.oracle.test.tsx` as `it.fails`; brief "Follow-up: still finger (task 89)"
+  - [ ] 89.5 Gate; BUILD_LOG; path-scoped commits
+  - [ ] 89b. Lane (not Kiro): the Explore `onTick` change; removes the `.fails`
+  - _Requirements: 51.6, 51.7, 51.13_
+
   - _Requirements: 27.1_
