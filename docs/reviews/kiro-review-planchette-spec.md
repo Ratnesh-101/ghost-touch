@@ -190,3 +190,38 @@ Whether a student can find the peak, trough and origin of the sine with the 22 p
 **Tests (`tests/proximity.prop.test.ts`).** Two pinned examples from the hunt (gain and interval), and a property over adjacent doubles (1 to 3 ulps, 2000 runs, interval, pitch and gain). Both fail on the old formula (the property reports `0.5999999999999999 >= 0.6`) and pass on the new. The old formula is the mutant and both tests kill it. The original P98 checks are unchanged.
 
 **Limit.** The fix keeps order within each helper. It does not claim the three helpers agree with an exact real-number formula to more than the existing `toBeCloseTo` tolerances. Requirement 27 is unchanged; design.md P98 has a note and tasks.md has task 88.
+
+## Follow-up: still finger (task 89)
+
+**Found by:** the Playwright pass over `docs/PHONE_TEST.md` step 17.4 (CDP touch, triangle sample, walk started, steps done, "Your turn" spoken). Resting on side CA for 1.4 s with no pointer movement said nothing. The same rest with a 1 px jiggle every 100 ms counted.
+
+**Cause (checked by reading, not by running the Playwright spec):** `core/walk.ts` `reduce()` returns `none(state)` for every `tick`. A wrong try is counted only in the `touch` branch of the `turn` phase, after `WALK_TRY_DWELL_MS` (500 ms) on one element. In `Explore.tsx` the keep-alive `onTick` (about line 2205) sends the walk only `{ kind: 'tick', t }`. `stepWalkTouch` is called only from the three pointer-move paths (about lines 2448, 2578, 2683). A finger that does not move therefore sends one `touch` (its first) and nothing else. The tick was made touch-free on purpose, because a `touch` refreshed `lastActivity` and so the 60 ms keep-alive reset the 120 s idle end (Requirement 51.7).
+
+**Decision (Kiro, core and spec):** option "held flag", as proposed.
+- `WalkInput` touch gains `held?: boolean`. `held === true` is processed exactly like a moved touch, except that `lastActivity` is left as it was. Anything else for `held` (false, `'true'`, 1, missing) is a moved touch.
+- Why not keep `tick` and give it the finger: a tick carries no target, finger or view, and the reducer must not guess them. The caller already has all three at the keep-alive.
+- Requirement 51.6 and 51.7 amended, new clause 51.13, design P183 to P186. Core is done (`core/walk.ts`), with `tests/walk.held.prop.test.ts` (300 runs each) and seven mutants, all killed: held refreshes the idle clock, held never counts a try, truthy `held`, `held` honoured on any input kind, held cannot reach a find anchor, held cannot finish the turn, held restarts the rest every time.
+
+**Brief for the Explore lane (agy; `screens/Explore.tsx` only, no new string, no `flow/` or `i18n/` change):**
+
+1. `stepWalkTouch(target, finger, view, now)` gains a fifth parameter `held = false` and passes `held` into the `walkStep` call as `{ kind: 'touch', t: now, target, finger, view, held }`. Pass `held: true` only from the keep-alive. The three pointer-move callers do not change (they pass nothing, so the input has `held: false`, which is a moved touch; omitting the field entirely is also fine).
+2. In the keep-alive `onTick` (inside `createHoldKeepAliveTimer`), replace this block:
+   ```ts
+   if (walk !== null && walkRef.current.phase !== 'idle') {
+     const tickRes = walkStep(walkRef.current, { kind: 'tick', t: now });
+     ...
+   }
+   ```
+   by a call `const walkLines = stepWalkTouch(moveResult.target, coords, view, now, true);` made under the same condition (`walk !== null`, `walkRef.current.phase !== 'idle'`). `stepWalkTouch` already syncs the phase, clears the interval when the walk ends, runs `guideTo`, and returns the spoken lines.
+3. The lines MUST be spoken: pass them to `applyMoveResult` as announcements, as the move paths do (`...stepWalkTouch(...)`), instead of the empty `[]` that `onTick` passes today. Without this the answer is computed and never heard. One utterance per step (Requirement 17.2, 51.8): the keep-alive's own announcements (`compassAnnouncements`) and the walk lines are joined, as on a move.
+4. `target` is `moveResult.target` of this tick, that is, after sticky following when it is on. The finger is the `coords` the timer already supplies. Nothing else in the tick changes: `processPointerMove`, the highlight, the draw and the bar rest stay as they are.
+5. Keep `{ kind: 'tick', t }` in the 5 s walk interval (`startWalkInterval`) and in the button and voice handlers. It is the input for "no finger is down" and for the idle end. Do not send a `tick` and a held `touch` for the same keep-alive step.
+6. `walkTouchSpokenRef.current` (the lift guard of Requirement 37.2) is set from the lines `stepWalkTouch` returns, so a held step sentence is protected from a lift like a moved one. No change needed beyond (1).
+7. No change to vibration, tone, earcon or highlight calls. W5 (identical `vibrate`, `setTone`, `playEarcon` calls with and without a walk) must stay green.
+
+**Definition of done for the lane:** the oracle `W8` in `frontend/tests/explore.walk.oracle.test.tsx` ("a still finger resting on a wrong part during Your turn gives the answer after the second rest") is committed as `it.fails`; the lane removes `.fails` and it passes. Its control (the same with a 1 px jiggle) already passes. `tsc --noEmit`, `vitest run`, and `walk.held.prop.test.ts` stay green. Do not change `core/walk.ts`.
+
+**Known limits:**
+- Checked in jsdom with fake timers and in the pure reducer only. Not run under Playwright or on a phone.
+- A held touch that happens to reach a find anchor (for example after a voice "next step" while the finger rests on the next element) speaks that step's sentence, because it counts like a moved touch. That is intended by 51.13; it is the same sentence a one-pixel move would have caused.
+- While Ask is listening or Guide is guiding the keep-alive does not run, so no held touch is sent. A finger that rests on a wrong part through an Ask answer is not counted during it. Not changed.

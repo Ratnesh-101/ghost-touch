@@ -260,6 +260,62 @@ describe('task 85: Requirement 51 oracles (lane 85b)', () => {
     });
   });
 
+  describe('W8: a finger that rests perfectly still counts as a try (51.6, 51.13; task 89)', () => {
+    const BC_SIDE = { x: 190, y: 340 };
+
+    /** The triangle walk driven to "Your turn. Touch the side across from the right angle at C." */
+    async function toYourTurn(rig: Rig): Promise<void> {
+      startWalk(rig);
+      tap(rig, CA);
+      await say(rig, 'next step');
+      tap(rig, BC);
+      await say(rig, 'next step');
+      tap(rig, VERTEX_C);
+      await say(rig, 'next step');
+      tap(rig, AB);
+      await say(rig, 'next step');
+    }
+
+    const answer = (): string => tf('walk.turn.answer', { name: 'AB' });
+
+    it('control: with a 1 px jiggle every 100 ms two rests on two wrong sides give the answer once, and not after the first', async () => {
+      await withExplore({ scene: triangle }, async (rig) => {
+        await toYourTurn(rig);
+        rig.clearCalls();
+        rig.down(CA.x, CA.y);
+        for (let i = 0; i < 7; i++) {
+          rig.advance(100);
+          rig.move(CA.x + (i % 2), CA.y);
+        }
+        expect(rig.spoken().join(' ')).not.toContain(answer());
+        rig.move(BC_SIDE.x, BC_SIDE.y);
+        for (let i = 0; i < 7; i++) {
+          rig.advance(100);
+          rig.move(BC_SIDE.x + (i % 2), BC_SIDE.y);
+        }
+        expect(rig.spoken().filter((s) => s.includes(answer()))).toHaveLength(1);
+      });
+    });
+
+    // Red today: the keep-alive feeds the walk only `tick`, which the reducer ignores, so a finger
+    // that sends no pointer events is never counted. The lane sends `touch` with `held: true`.
+    it.fails('a still finger resting on a wrong part during Your turn gives the answer after the second rest', async () => {
+      await withExplore({ scene: triangle }, async (rig) => {
+        await toYourTurn(rig);
+        rig.clearCalls();
+        rig.down(CA.x, CA.y);
+        rig.advance(1400); // no pointer events at all, only the keep-alive
+        expect(rig.spoken().join(' ')).not.toContain(answer()); // one try so far
+        rig.move(BC_SIDE.x, BC_SIDE.y);
+        rig.advance(1400); // again no events
+        expect(rig.spoken().filter((s) => s.includes(answer()))).toHaveLength(1);
+        // and it is said once: more still time on a third side adds nothing
+        rig.advance(3000);
+        expect(rig.spoken().filter((s) => s.includes(answer()))).toHaveLength(1);
+      });
+    });
+  });
+
   describe('W7: the walk strings are complete and honest (51.9)', () => {
     // Fails today: no `walk.*` key exists in any table.
     it('every WALK_KEYS key exists in en, hi and gu with the same placeholders, differs from English, and is not a claim of correctness', () => {

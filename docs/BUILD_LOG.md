@@ -5030,3 +5030,11 @@ Format for each entry:
 
 ## 2026-11-24 (Claude Code): nightly frontend soak was cancelled, not failing
 - The two latest "Property Tests Soak (Nightly)" runs (2026-11-23 and 2026-11-24) show the Frontend PBT Soak job as cancelled after exactly 30 minutes while the Backend soak passed. Cause: the frontend suite grew (257 test files) and 10 soak iterations at FC_RUNS_MULT=10 no longer fit the job's `timeout-minutes: 30`. No test failed. Raised the frontend job's limit to 150 minutes in `.github/workflows/pbt-soak.yml` (a one-line change made directly by Claude Code). Not yet confirmed: whether 10 iterations finish inside 150 minutes; check the next nightly run and lower `iterations` if not.
+
+## 2026-11-24 (Kiro): task 89, a still finger counts as a try in Planchette
+- Tool: Kiro. Found by the Playwright pass over PHONE_TEST.md step 17.4: in "Your turn", a finger resting perfectly still on a wrong part was never counted, so the answer was never spoken (a 1 px jiggle every 100 ms counted).
+- Cause, checked by reading: `core/walk.ts` ignores `tick`; a try is counted only from `touch`; the Explore keep-alive `onTick` sends the walk only `tick` (made so on purpose, so the 60 ms keep-alive would not reset the 120 s idle end).
+- Spec first (bac7dde): Requirement 51.6 and 51.7 amended, new 51.13, design P183 to P186, task 89. Core: optional `held` on the walk touch input; a held touch counts like a moved one but leaves `lastActivity` as it was. `tests/walk.held.prop.test.ts`: 10 tests, 300 runs each, lockstep against the moved run as the model. Seven mutants all killed (held refreshes idle; held never counts; truthy `held`; `held` on any input kind; held cannot reach a find anchor; held cannot finish the turn; held restarts the rest each time).
+- Oracle W8 in `tests/explore.walk.oracle.test.tsx`: a jiggle control that passes today, and the still-finger oracle as `it.fails`. Brief for the Explore lane in `docs/reviews/kiro-review-planchette-spec.md`, "Follow-up: still finger (task 89)". Not touched: `screens/`, `flow/`, `i18n/`.
+- Gate: `tsc --noEmit` 0 errors; `vitest run` 258 files, 3289 passed, 1 expected fail, 1 todo.
+- Not verified: Playwright and a phone (the oracle runs in jsdom with fake timers). Lane 89b (the Explore `onTick` change) is open.
