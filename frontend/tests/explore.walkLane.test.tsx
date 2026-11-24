@@ -61,7 +61,7 @@ describe('Lane hi11: Planchette in Explore (Requirement 51)', () => {
   afterEach(teardownRigEnv);
 
   describe('Guard 1 & 2: templateWalk is the only gate', () => {
-    it('shows button on supported scenes (triangle, bar chart, sine)', async () => {
+    it('shows button on supported scenes (triangle, bar chart) and not on the sine graph (Requirement 51.14)', async () => {
       await withExplore({ scene: triangle }, (rig) => {
         expect(walkButton(rig)?.textContent).toContain('Walk me through');
       });
@@ -69,7 +69,7 @@ describe('Lane hi11: Planchette in Explore (Requirement 51)', () => {
         expect(walkButton(rig)?.textContent).toContain('Walk me through');
       });
       await withExplore({ scene: sine }, (rig) => {
-        expect(walkButton(rig)?.textContent).toContain('Walk me through');
+        expect(walkButton(rig)).toBeNull();
       });
     });
 

@@ -119,16 +119,11 @@ const scaleneArb: fc.Arbitrary<{ scene: DiagramScene; sides: [number, number, nu
   .map(([a, b, c]) => ({ sides: [a, b, c] as [number, number, number], scene: scaleneScene([a, b, c], 'cm') }))
   .filter(({ scene }) => scene.points!.every((p) => p.x > 0.02 && p.x < 0.98 && p.y > 0.02 && p.y < 0.98));
 
-const graphArb = fc
-  .tuple(curveArb, axesArb)
-  .map(([curve, axes]) => graphScene([curve], axes));
-
-/** A scene that has a walk, of any of the four kinds. */
+/** A scene that has a walk (task 90: no graph, Requirement 51.14). */
 const walkSceneArb: fc.Arbitrary<DiagramScene> = fc.oneof(
   triArb.map((t) => t.scene),
   barsUniqueArb.map((b) => b.scene),
   scaleneArb.map((s) => s.scene),
-  graphArb,
 );
 
 function walkOf(scene: DiagramScene): Walk {
@@ -259,10 +254,64 @@ describe('P159: every anchor is a scene element', () => {
     );
   });
 
-  it('the three shipped samples have a walk of the expected kind', () => {
+  it('the shipped triangle and bar samples have a walk of the expected kind; the sine has none (task 90)', () => {
     expect(templateWalk(triangleSample)?.kind).toBe('pythagoras');
     expect(templateWalk(barSample)?.kind).toBe('barDifference');
-    expect(templateWalk(sineSample)?.kind).toBe('curveShape');
+    expect(templateWalk(sineSample)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// P187 (task 90, Requirement 51.14)
+// ---------------------------------------------------------------------------------------------
+
+describe('P187: no walk on a graph', () => {
+  it('is null for any function_graph scene, with or without points and facts', () => {
+    fc.assert(
+      fc.property(
+        fc.array(curveArb, { minLength: 1, maxLength: 3 }),
+        axesArb,
+        fc.boolean(),
+        fc.array(fc.constantFrom('AB = 3 cm', 'AC = 5 cm', 'angle B = 90°', 'not to scale'), { maxLength: 4 }),
+        (curves, axes, withPoints, facts) => {
+          const base = graphScene(curves, axes, { facts });
+          const scene: DiagramScene = withPoints
+            ? { ...base, points: [{ id: 'A', x: 0.2, y: 0.3, label: 'A' }, { id: 'B', x: 0.7, y: 0.6, label: 'B' }] }
+            : base;
+          expect(templateWalk(scene)).toBeNull();
+        },
+      ),
+      { numRuns: runs(250) },
+    );
+  });
+
+  it('is null for a triangle or bar chart that also has a polyline, and still a walk without it', () => {
+    fc.assert(
+      fc.property(triArb, barsUniqueArb, curveArb, (t, b, curve) => {
+        for (const s of [t.scene, b.scene]) {
+          expect(templateWalk(s)).not.toBeNull();
+          const withLine: DiagramScene = { ...s, polylines: [{ id: 'curve9', points: curve, label: null }] };
+          expect(templateWalk(withLine)).toBeNull();
+        }
+      }),
+      { numRuns: runs(250) },
+    );
+  });
+
+  it('is null for kind function_graph even with no polyline (a triangle or bar chart relabelled)', () => {
+    fc.assert(
+      fc.property(triArb, barsUniqueArb, (t, b) => {
+        for (const s of [t.scene, b.scene]) {
+          expect(templateWalk(s)).not.toBeNull();
+          expect(templateWalk({ ...s, kind: 'function_graph' })).toBeNull();
+        }
+      }),
+      { numRuns: runs(250) },
+    );
+  });
+
+  it('is null for the shipped sine sample', () => {
+    expect(templateWalk(sineSample)).toBeNull();
   });
 });
 
@@ -592,12 +641,12 @@ describe('P162: a forged number is refused', () => {
   }
 
   it('more than six steps is refused', () => {
-    const w = walkOf(sineSample);
+    const w = walkOf(triangleSample);
     const long = clone(w);
     long.steps = [...w.steps, ...clone(w).steps, ...clone(w).steps];
     expect(long.steps.length).toBeGreaterThan(6);
-    expect(validateWalk(sineSample, long)).toEqual({ ok: false, reason: 'shape' });
-    expect(validateWalk(sineSample, { ...clone(w), steps: [] })).toEqual({ ok: false, reason: 'shape' });
+    expect(validateWalk(triangleSample, long)).toEqual({ ok: false, reason: 'shape' });
+    expect(validateWalk(triangleSample, { ...clone(w), steps: [] })).toEqual({ ok: false, reason: 'shape' });
   });
 
   it('the unmodified walks are accepted (control)', () => {
@@ -979,7 +1028,7 @@ function junkInput(): fc.Arbitrary<unknown> {
 }
 
 describe('P166: the reducer emits only speech and guidance', () => {
-  const sceneArb = fc.oneof(triArb.map((t) => t.scene), barsUniqueArb.map((b) => b.scene), scaleneArb.map((s) => s.scene), graphArb);
+  const sceneArb = fc.oneof(triArb.map((t) => t.scene), barsUniqueArb.map((b) => b.scene), scaleneArb.map((s) => s.scene));
 
   it('every effect is a walk speech line or a guideTo of one of the walk anchors; nothing is mutated', () => {
     fc.assert(

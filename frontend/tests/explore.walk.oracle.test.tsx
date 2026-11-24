@@ -75,7 +75,6 @@ describe('task 85: Requirement 51 oracles (lane 85b)', () => {
     for (const [name, scene] of [
       ['triangle', triangle],
       ['bar chart', bars],
-      ['sine', sine],
     ] as const) {
       it(`W1 the ${name} sample shows a Walk me through button`, async () => {
         await withExplore({ scene }, (rig) => {
@@ -83,6 +82,12 @@ describe('task 85: Requirement 51 oracles (lane 85b)', () => {
         });
       });
     }
+
+    it('W1 (task 90, Requirement 51.14) the sine sample shows no Walk me through button', async () => {
+      await withExplore({ scene: sine }, (rig) => {
+        expect(walkButton(rig)).toBeNull();
+      });
+    });
 
     it('W2 guard: a Raw Mode scene shows no button, whatever its content', async () => {
       await withExplore({ scene: triangle, isRaw: true }, (rig) => {

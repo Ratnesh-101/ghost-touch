@@ -714,7 +714,8 @@ function longestSide(scene: DiagramScene, pf: ParsedFactsResult): Walk | null {
   };
 }
 
-function curveShape(scene: DiagramScene): Walk | null {
+/** Library only since task 90 (Requirement 51.14): `templateWalk` does not offer it. */
+export function curveShape(scene: DiagramScene): Walk | null {
   if (scene.kind !== 'function_graph') return null;
   const origin = anchorPoint(scene, 'origin');
   const peak = anchorPoint(scene, 'peak');
@@ -737,12 +738,15 @@ const GRID_FACT = /^\s*grid\s*:/i;
 
 /**
  * The walk for a scene, or `null` (Requirement 51.1 to 51.3). Templates are tried in this order and
- * the first that builds a valid walk wins: Pythagoras, bar difference, longest side, curve shape.
+ * the first that builds a valid walk wins: Pythagoras, bar difference, longest side. A graph (kind
+ * `function_graph` or any polyline) gets no walk (Requirement 51.14).
  */
 export function templateWalk(scene: unknown, opts?: { raw?: boolean }): Walk | null {
   try {
     if (!isRenderableScene(scene)) return null;
     if (opts?.raw === true || scene.kind === 'unknown') return null;
+    // Requirement 51.14 (task 90): no walk on a graph. The curve template stays as library code.
+    if (scene.kind === 'function_graph' || (scene.polylines ?? []).length > 0) return null;
     const ids: string[] = [];
     for (const p of scene.points ?? []) ids.push(p.id);
     for (const s of scene.segments ?? []) ids.push(s.id);
@@ -759,7 +763,6 @@ export function templateWalk(scene: unknown, opts?: { raw?: boolean }): Walk | n
       () => py,
       () => barDifference(scene),
       () => longestSide(scene, pf),
-      () => curveShape(scene),
     ];
     for (const build of builders) {
       const w = build();
