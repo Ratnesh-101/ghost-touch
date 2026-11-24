@@ -5075,3 +5075,9 @@ Format for each entry:
   - `frontend/tests/lab.settingsSpeech.test.tsx` (new)
   - `docs/reports/agy-hi18-report.md` (new)
   - `docs/BUILD_LOG.md`
+
+## 2026-11-24 to 2026-11-25 (Claude Code): Playwright pass over docs/PHONE_TEST.md, three defects found and fixed
+- Claude Code wrote e2e/phone-test-emulated.spec.ts, -2, -3 and e2e/support/phoneSpies.ts (spies on vibrate, speechSynthesis and oscillator frequencies, a fake speech recogniser, mocked backend answers) and ran them in emulated Chrome. Results are in the new table at the top of docs/PHONE_TEST.md. It is emulation: it proves calls, text, layout, offline and link handling, never a motor, a voice, a camera or TalkBack.
+- Defects found and fixed: (1) the settings sheet never spoke "Lab settings opened" or "closed" although the strings existed (agy lane hi18); (2) the Ghost Hand Build status line kept the empty-graph prompt after pins, reported by the owner and reproduced in Playwright (agy lane hi17); (3) a perfectly still finger was never counted as a try in Planchette's Your turn, caused by an earlier idle fix that stopped the keep-alive sending touches (Kiro task 89: a held touch in the core, P183 to P186, 7 mutants killed; agy lane hi19 wired it into Explore). Each had an expected-failure test first, flipped once fixed.
+- Also: the app's speech rate is 1.1 x 0.8, 1.0 and 1.25, so the phone-test rows' "0.8x" is a multiplier; the sine sample does offer a Walk me through button (row 17.11 records it as a discrepancy); a leftover preview server on port 4173 made Playwright runs fail wholesale when two lane gates overlapped (I stopped two stale node processes; run gates one at a time); a background full-suite run was stopped by the system's memory monitor and was not restarted: the verdict comes from GitHub CI on d78a941 (all jobs green, including the full Playwright run).
+- Not verified: everything the table lists under "left for the phone".
