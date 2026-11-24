@@ -14,3 +14,5 @@ Pushed? see `git status -sb` (push only if the gate line above is green).
 3. Write the results table into docs/PHONE_TEST.md (new section near the top, "Browser check results (Playwright)": rows checked PASS, rows that need the phone; step 0 live check: backend health 200 in 28 s cold; sine sample DOES offer a walk, row 17.11 is a discrepancy to report; rate is 1.1 x 0.8/1.0/1.25, not 0.8/1.0/1.25).
 4. Full gate on main (always read the "N failed" line), push, check CI, update BUILD_LOG and README numbers.
 5. Housekeeping: a stale preview server on port 4173 can make Playwright runs fail wholesale when two lane gates overlap: run lane gates one at a time; I stopped two leftover node processes (PIDs 7536, 11324) this session.
+
+## UPDATE 2026-11-25: everything above is DONE and pushed (lane hi19 merged, F3 test flipped, PHONE_TEST.md results table written, README and BUILD_LOG updated). CI on d78a941 was fully green, including the full Playwright run. Nothing is running. Only owner-only items remain (phone tests, video, [FILL] slots, OpenAI cap, Gemini terms, Render env, Share flag on Vercel, hi/gu native review, pin spacing decision OD-A).
