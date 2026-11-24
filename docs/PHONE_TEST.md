@@ -8,6 +8,40 @@
 
 ---
 
+## Browser check results (Playwright, 2026-11-24 and 25): what is already checked, what is left for the phone
+
+> [!WARNING]
+> This is an **emulated Chrome in Playwright**, not a phone. It proves the app makes the right calls (vibrate, speak, set a tone), shows the right text and layout, and handles touch, offline and links correctly. It does **not** prove that a motor buzzes, how a voice sounds, how TalkBack behaves, what the camera sees, or how anything looks in sunlight. A PASS below never replaces the phone row: it only means that row is unlikely to fail for a software reason. Backend answers in the Ask and photo rows are mocked here.
+>
+> Rerun: `cd frontend && npx playwright test e2e/phone-test-emulated*.spec.ts` (it builds and serves on port 4173; stop any other preview server first). Test titles start with the row number, for example "PT 4.2".
+
+| Step | Checked in the browser (PASS) | Left for the phone |
+|---|---|---|
+| 0 wake backend | 0.1, 0.2: `/api/v1/health` returned `{"ok":true}` in 28 s from a cold start (checked live from a laptop) | timing on the phone's network |
+| 1 PWA | 1.3, 1.4: manifest name, standalone display, `#0b0e0c` background, icons | 1.1, 1.2 install prompt, icon look, splash |
+| 2 start | 2.2: tap vibrates 50, speaks the capture prompt, shows Capture | 2.1 spoken intro (autoplay), mascot look, earcon sound |
+| 3 settings | 3.1 to 3.9: opening and closing each speak once (fixed by lane hi18 after this pass found they did not), language confirmations in en, hi and gu, speech speed (the real rate is 1.1 x 0.8, 1.0 and 1.25, not 0.8, 1.0 and 1.25 as the rows say), Guide and Teacher switches, language persists after a reload | focus feel, scrim |
+| 4 explore (TalkBack off) | 4.1 to 4.6: announcement, `vibrate(80)` on a line, `vibrate(0)` off it, `[50,90,50]` and the label at a corner, no line buzz for 450 ms, sine tone inside 200 to 1000 Hz and rising with height, bar label | whether it is felt and heard, how the pitch sounds |
+| 5 explore (TalkBack on) | nothing | all of it |
+| 6 voice commands | 6.2 to 6.7 command handling with a fake recogniser (describe, help, next corner, where am I, repeat, faster, normal speed) | the real microphone and recognition accuracy in en, hi and gu |
+| 7 Ask | 7.1 to 7.3 plumbing with a mocked backend: Thinking, spoken answer, the exact fallback line, the typed fallback sends the question | real answers (backend), the keyboard on the phone |
+| 8 photo | 8.2 to 8.5 through a file upload with a mocked backend: Reading your diagram, Explore opens, the Raw Mode announcement, a failure is never silent | 8.1 camera, 8.4 which mode a real photo gets |
+| 9 PDF | not automated | all of it |
+| 10 saved offline | 10.1 to 10.6: saved, pin spoken, opens with the network off and no API call, line buzz works offline | real airplane mode |
+| 11 Correct | 11.1, 11.3 to 11.5: opens, point drag spoken, undo and redo spoken, save validates and confirms | 11.2 scrim look, drag feel |
+| 12 hi and gu | the spoken text is in the chosen language | installed voices, pronunciation (the utterance language tag depends on the voices installed) |
+| 13 Guide | 13.1, 13.7, 13.8: "take me to B" starts, "stop" and Back stop it | 13.2 to 13.6, 13.9: audio pan, arrival feel, the 20 s timeout |
+| 14 share | 14.1 the route opens with Teacher tools on and is ignored with them off, 14.5 and 14.7 a share link opens (through its gate button) and a truncated one is refused, offline by a URL fragment change | 14.2 to 14.4 QR from a second device, 14.6 a true offline reload (needs the service worker) |
+| 15 highlight | 15.4 to 15.7: clears on lift, follows the remaining finger, the feel calls are unchanged, layout is stable (other specs) | 15.1 to 15.3 how it looks |
+| 16 Help | 16.1 to 16.4, 16.6 to 16.9: size and position, spoken once, second-finger tap, slid-off tap, the Raw sentence, Help during Guide, landscape footer, rotation | 16.5 TalkBack double-tap |
+| 17 Planchette | 17.1 to 17.4, 17.6, 17.7, 17.9, 17.10, 17.12, 17.13: steps spoken on reaching the part, next step, repeat, Your turn with wrong rests (including a perfectly still finger, found broken by this pass and fixed by task 89), stop, no extra vibration, no walk on a Raw photo, a long sentence is a question | 17.5 lift feel, 17.8 the two-minute idle end (unit-tested only), 17.14 TalkBack. **17.11:** the sine sample DOES show a Walk me through button: record it as a discrepancy with the request, as the row says |
+| 18 Ghost Hand | 18.1 to 18.4, 18.6 to 18.9, 18.11 to 18.15: sliders with value text, Pin speaks x and y without brackets, an occupied spot is refused, undo removes one at a time, stitch twice changes nothing, Feel and touching a pin, Back keeps the pins, Hand in gives a link and a list marked not checked, the link opens on the same graph, no walk on a draft. The status line after pins was reported wrong by the owner (it still said Empty graph) and fixed by lane hi17 | 18.2 sliders under TalkBack, 18.5, 18.10 by feel, whether `x 2 y 5` reads well in Android speech |
+| 19 footer | 19.1 to 19.4: every footer button inside the screen, at least 48 x 48, canvas not squeezed, in English, Hindi and Gujarati at 320, 360 and 384 px, Help text reachable | 19.5 TalkBack order |
+
+Three real defects were found by this pass and fixed before any phone test: the settings sheet never spoke opened or closed, the Ghost Hand Build status line stayed on the empty prompt after pins, and a perfectly still finger was never counted in Planchette's Your turn. See docs/BUILD_LOG.md.
+
+---
+
 ## Critical Live Environment Facts (Verified Today, 2026-11-06)
 
 1. **Live Frontend URL:** `https://ghost-touch-iota.vercel.app` (Vercel)  
