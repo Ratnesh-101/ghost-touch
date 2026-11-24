@@ -5088,3 +5088,6 @@ Format for each entry:
 - Mutants: removing the polyline check was caught by P187 (graph scenes); removing only the kind check was first NOT caught (every generated graph has a polyline), so a relabelled triangle/bar test was added and then killed it.
 - Gate: `tsc --noEmit` 0 errors; `vitest run`: 261 files, 3322 passed, 1 todo. Not run: Playwright (orchestrator's specs listed in docs/reviews/kiro-review-planchette-spec.md).
 - Files: frontend/src/core/walk.ts, frontend/tests/walk.prop.test.ts, frontend/tests/explore.walk.oracle.test.tsx, frontend/tests/explore.walkLane.test.tsx, .kiro/specs/ghost-touch/{requirements,design,tasks}.md, docs/reviews/kiro-review-planchette-spec.md.
+
+## 2026-11-25 (Kiro): task 91, directionHint boundary flake
+- Tool = Kiro. CI failure on f0cf241 in `guide.geometry.prop.test.ts` was a test generator problem: r = 0.05 times cos/sin recomputed by `hypot` can be 0.05000000000000001, correctly outside the dead zone. `guide/geometry.ts` unchanged. Test now uses a 1e-9 relative margin inside, a "just outside never here" property, an exact-axis example and the pinned counterexample; mutant `+ 1e-6` killed it. Finding in `docs/reviews/kiro-review-planchette-spec.md`. `hasArrived` (+1e-9) vs `directionHint` (none) noted, not changed.

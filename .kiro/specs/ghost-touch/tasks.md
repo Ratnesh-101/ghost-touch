@@ -749,3 +749,19 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 90.3 Tests that expected a sine or graph walk now assert `null`; triangle and bar walks still asserted; P187 mutation-checked
   - [x] 90.4 Note "Follow-up: no walk on graphs (task 90)" in `docs/reviews/kiro-review-planchette-spec.md` naming the e2e specs to change; gate; BUILD_LOG; path-scoped commits
   - _Requirements: 51.14_
+
+## directionHint boundary flake (task 91)
+> Test-generator bug, no product change. `guide/geometry.ts` and the dead zone 0.05 untouched.
+
+- [x] 91. Dead-zone property no longer samples the boundary through rounding
+  - [x] 91.1 Reproduced (r = 0.05, hypot 0.05000000000000001); finding in `docs/reviews/kiro-review-planchette-spec.md`
+  - [x] 91.2 Test: margin inside, "just outside never here" property, axis example, pinned counterexample; mutant killed
+  - [x] 91.3 Gate; BUILD_LOG; path-scoped commit
+
+## directionHint boundary flake (task 91)
+> Test-generator bug, no product change. `guide/geometry.ts` and the dead zone 0.05 untouched.
+
+- [x] 91. Dead-zone property no longer samples the boundary through rounding
+  - [x] 91.1 Reproduced (r = 0.05, hypot 0.05000000000000001); finding in `docs/reviews/kiro-review-planchette-spec.md`
+  - [x] 91.2 Test: margin inside, "just outside never here" property, axis example, pinned counterexample; mutant killed
+  - [x] 91.3 Gate; BUILD_LOG; path-scoped commit

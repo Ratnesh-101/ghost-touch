@@ -237,3 +237,12 @@ Owner's request, found by the Playwright pass over `docs/PHONE_TEST.md` row 17.1
 - `frontend/e2e/explore.walk.spec.ts`: the header comment (lines 17 to 18) and the test "sine sample: walk button exists and meets touch target constraints" (line 145) expect a button on the sine sample. Change it to expect no button (count 0) and no walk phrase starting a walk. `openSine` can stay.
 - `frontend/e2e/phone-test-emulated-3.spec.ts`: "PT 17.11 sine sample: record whether a walk is offered" (line 206) records the count as a finding. Change it to assert count 0; the comment about "the app offers one" is no longer true. Update `docs/PHONE_TEST.md` row 17.11 from "discrepancy" to "as designed".
 - `frontend/e2e/explore.walk-speech.spec.ts` mentions "Walk me through" but no sine line matched; check that it does not open the sine sample.
+
+
+## Follow-up: directionHint boundary (task 91)
+CI on f0cf241 failed `guide.geometry.prop.test.ts` "directionHint: within dead-zone always returns here" ("expected 'right' to be 'here'"; the log had no seed).
+- **Reproduced.** Fixing r = 0.05 and drawing theta at random, about 1 in 1,000 angles gives a vector whose `Math.hypot` is 0.05000000000000001, for example dx = -0.020470662687430096, dy = -0.045617452462160334 (theta = -1.9926071801318321). fast-check biases `fc.double` towards its maximum, so r = 0.05 is drawn often; that is why it shows up in CI and rarely locally.
+- **Cause: generator, not code.** `r * cos` and `r * sin` recomputed through `hypot` can exceed r by a few ULPs. `directionHint` uses one rule, `hypot(dx, dy) <= deadZone`, and is consistent: the same vector always gives the same answer. The vector really is outside the zone.
+- **Fix (test only).** The "here" property now draws r up to `0.05 * (1 - 1e-9)`. New: a property that r from `0.05 * (1 + 1e-9)` never gives `here`; an example on the four axes at exactly 0.05 (`here`), just above (direction); and the pinned counterexample above. `guide/geometry.ts` is unchanged; the dead zone 0.05 stays.
+- **Mutant.** `dist <= deadZone + 1e-6` in `directionHint` fails both the new "just outside" property (counterexample 0.05000000005, 0) and the axis example. Reverted.
+- **Noted, not changed.** `hasArrived` uses `dist <= radius + 1e-9` while `directionHint` has no tolerance, so a distance within 1e-9 above the radius counts as arrived but is not `here`. It is harmless in practice (about 1e-9 of normalised units); say if you want the two aligned.
