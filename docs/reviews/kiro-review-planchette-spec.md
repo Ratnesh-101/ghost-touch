@@ -225,3 +225,15 @@ Whether a student can find the peak, trough and origin of the sine with the 22 p
 - Checked in jsdom with fake timers and in the pure reducer only. Not run under Playwright or on a phone.
 - A held touch that happens to reach a find anchor (for example after a voice "next step" while the finger rests on the next element) speaks that step's sentence, because it counts like a moved touch. That is intended by 51.13; it is the same sentence a one-pixel move would have caused.
 - While Ask is listening or Guide is guiding the keep-alive does not run, so no held touch is sent. A finger that rests on a wrong part through an Ask answer is not counted during it. Not changed.
+
+
+## Follow-up: no walk on graphs (task 90)
+
+Owner's request, found by the Playwright pass over `docs/PHONE_TEST.md` row 17.11: the Sine wave sample must not offer "Walk me through". `templateWalk` now returns `null` for any scene of kind `function_graph` and for any scene with a polyline (Requirement 51.14, design.md "No walk on graphs", P187). The check runs before every template. `core/walkAnchor.ts`, P170 and the exported `curveShape` builder are unchanged library code that the app no longer offers. Why: a graph walk has not been tried by touch, and its spot anchors (origin, peak, trough) cannot be reached by a still-finger test on a phone.
+
+**Changed in this task (Kiro):** `core/walk.ts`; `tests/walk.prop.test.ts` (graph scenes removed from the "has a walk" generators, the sine sample now asserts `null`, the six-step test uses the triangle, P187 added with 3 tests); `tests/explore.walk.oracle.test.tsx` and `tests/explore.walkLane.test.tsx` (the sine sample now expects no button). The triangle and bar samples still assert `pythagoras` and `barDifference`.
+
+**E2E specs that must change (orchestrator, not touched here):**
+- `frontend/e2e/explore.walk.spec.ts`: the header comment (lines 17 to 18) and the test "sine sample: walk button exists and meets touch target constraints" (line 145) expect a button on the sine sample. Change it to expect no button (count 0) and no walk phrase starting a walk. `openSine` can stay.
+- `frontend/e2e/phone-test-emulated-3.spec.ts`: "PT 17.11 sine sample: record whether a walk is offered" (line 206) records the count as a finding. Change it to assert count 0; the comment about "the app offers one" is no longer true. Update `docs/PHONE_TEST.md` row 17.11 from "discrepancy" to "as designed".
+- `frontend/e2e/explore.walk-speech.spec.ts` mentions "Walk me through" but no sine line matched; check that it does not open the sine sample.
