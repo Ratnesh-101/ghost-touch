@@ -159,7 +159,7 @@ export type WalkState =
   | { phase: 'done'; walk: Walk; lastActivity: number };
 
 export type WalkInput =
-  | { kind: 'touch'; t: number; target: Target; finger: ScreenPoint; view: Viewport }
+  | { kind: 'touch'; t: number; target: Target; finger: ScreenPoint; view: Viewport; held?: boolean }
   | { kind: 'next'; t: number }
   | { kind: 'repeat'; t: number }
   | { kind: 'guideMe'; t: number }
@@ -837,7 +837,10 @@ function reduce(state: WalkState, rawInput: WalkInput): { state: WalkState; effe
   if (t - state.lastActivity >= WALK_IDLE_MS) return none(initialWalkState());
   if (input.kind === 'tick') return none(state);
 
-  const lastActivity = Math.max(state.lastActivity, t);
+  // Requirement 51.13: a held touch re-reports a finger that has not moved. It counts like a moved
+  // touch in every way except that it is not student activity, so it never moves the idle end.
+  const held = input.kind === 'touch' && input.held === true;
+  const lastActivity = held ? state.lastActivity : Math.max(state.lastActivity, t);
   const walk = state.walk;
   const stay = (s: WalkState, effects: WalkEffect[] = []): { state: WalkState; effects: WalkEffect[] } => ({ state: s, effects });
 
