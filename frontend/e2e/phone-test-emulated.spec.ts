@@ -122,17 +122,19 @@ test.describe('PT 3 settings sheet and persistence', () => {
   });
 });
 
-test.describe('PT 3 findings: rows that the phone test expects but the app does not do (Playwright confirms the gap)', () => {
-  // The keys exist in en, hi and gu but nothing in src/ speaks them. test.fail() makes this test pass
-  // while the gap exists and turns red the day the app speaks them, so the doc row can be restored.
-  test('PT 3.1 and 3.8: "Lab settings opened" and "Lab settings closed" are NOT spoken (finding F1)', async ({ page }) => {
-    test.fail(true, 'finding F1: lab.settings.opened and lab.settings.closed are never spoken');
+test.describe('PT 3.1 and 3.8 the settings sheet speaks when it opens and closes (was finding F1, fixed by lane hi18)', () => {
+  test('PT 3.1/3.8 opening speaks Lab settings opened once, closing speaks Lab settings closed once', async ({ page }) => {
     await installPhoneSpies(page);
     await page.goto('/');
     await page.locator('.gt-start-surface').click();
     await clearSpies(page);
     await openSettings(page);
     await expectSpoken(page, t('lab.settings.opened'));
+    await clearSpies(page);
+    await page.getByRole('button', { name: new RegExp(t('lab.settings.close')) }).first().click();
+    await expectSpoken(page, t('lab.settings.closed'));
+    const closedCount = (await spoken(page)).filter((u) => u === t('lab.settings.closed')).length;
+    expect(closedCount).toBe(1);
   });
 });
 
