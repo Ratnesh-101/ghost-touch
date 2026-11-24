@@ -142,10 +142,9 @@ test.describe('PT 17 Planchette (Walk me through)', () => {
     await touch(cdp, 'touchEnd');
   });
 
-  // Finding F3: a finger resting perfectly still on a wrong part is never counted as a try (the keep-alive only
-  // sends ticks). test.fail() keeps this green while the bug exists and turns red the day it is fixed (task 89).
-  test('PT 17.4b a perfectly still finger during Your turn gives the answer after two rests (finding F3)', async ({ page }) => {
-    test.fail(true, 'finding F3: a still finger is never counted as a try (task 89)');
+  // Was finding F3: a finger resting perfectly still on a wrong part was never counted as a try. Fixed by task 89
+  // (held touch from the keep-alive, lane hi19).
+  test('PT 17.4b a perfectly still finger during Your turn gives the answer after two rests (was finding F3, fixed)', async ({ page }) => {
     test.setTimeout(120000);
     await installPhoneSpies(page);
     await openSample(page, /triangle/i);
