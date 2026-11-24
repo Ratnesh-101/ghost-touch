@@ -5050,3 +5050,28 @@ Format for each entry:
   - `docs/reports/agy-hi17-report.md` (new)
   - `docs/BUILD_LOG.md`
 
+## 2026-11-24 — Antigravity — Lane hi18: Lab settings open and close speech
+- Wired speech announcements when LabSettings opens and closes (PHONE_TEST.md rows 3.1 & 3.8):
+  - When the sheet opens (`open` transitions from false to true), speaks `t('lab.settings.opened')` ("Lab settings opened") once through `doSpeak` with the localized BCP-47 language tag (`LANG_BCP47[getLang()]`).
+  - When the sheet closes (`handleClose` is invoked via close button, scrim click, or Escape key; or `open` becomes false directly via Android Back / parent state update), speaks `t('lab.settings.closed')` ("Lab settings closed") once.
+  - Guarded against duplicate utterances using `wasOpen` and `hasSpokenClose` refs so React StrictMode effect re-runs, component re-renders, and language changes never speak duplicate announcements.
+  - Initial render with `open: false` remains completely silent without speaking.
+  - Silent close (`handleClose(true)`, such as navigating to the Teacher Editor) remains silent without speaking closed.
+- Added comprehensive unit tests in `frontend/tests/lab.settingsSpeech.test.tsx`:
+  - No speech on initial render with `open: false`
+  - Opening speaks `lab.settings.opened` once with BCP-47 language code (`en-IN`)
+  - Closing by close button speaks `lab.settings.closed` once
+  - Closing by scrim backdrop click speaks `lab.settings.closed` once
+  - Closing by Escape key speaks `lab.settings.closed` once
+  - Opening twice speaks opened twice in total
+  - Closing by open prop becoming false directly (Android Back / parent update) speaks closed once
+  - Custom `speak` callback prop receives open and close speech with localized language argument
+  - React StrictMode does not double speech
+  - Silent close (`handleClose(true)`) produces no close speech
+  - Language change re-render produces no unwanted open/close speech
+  - Hindi and Gujarati speech with respective localized strings and BCP-47 language codes (`hi-IN`, `gu-IN`)
+- Files touched:
+  - `frontend/src/components/LabSettings.tsx`
+  - `frontend/tests/lab.settingsSpeech.test.tsx` (new)
+  - `docs/reports/agy-hi18-report.md` (new)
+  - `docs/BUILD_LOG.md`

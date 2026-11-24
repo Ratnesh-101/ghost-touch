@@ -60,7 +60,7 @@ import {
 } from '../flow/teach';
 import type { Drivers } from '../drivers';
 import { MemoryDiagramStore } from '../drivers';
-import { describeSettings, t } from '../i18n';
+import { describeSettings, getLang, LANG_BCP47, t } from '../i18n';
 import '../styles/settings.css';
 
 export { describeSettings };
@@ -68,7 +68,7 @@ export { describeSettings };
 export interface LabSettingsProps {
   open: boolean;
   onClose: () => void;
-  speak?: (text: string) => void;
+  speak?: (text: string, lang?: string) => void;
   drivers?: Drivers;
   className?: string;
   triggerRef?: RefObject<HTMLElement | null>;
@@ -93,6 +93,7 @@ export function LabSettings({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedElement = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
+  const hasSpokenClose = useRef(false);
   const [guideEnabled, setGuideEnabled] = useState(() => getStoredGuideSetting());
   const [directionsEnabled, setDirectionsEnabled] = useState(() => getStoredDirectionsSetting());
   const [findingSoundEnabled, setFindingSoundEnabled] = useState(() => getStoredFindingSoundSetting());
@@ -103,11 +104,11 @@ export function LabSettings({
   const [speechDetail, setSpeechDetail] = useState<SpeechDetail>(() => getStoredSpeechDetailSetting());
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const doSpeak = (text: string): void => {
+  const doSpeak = (text: string, lang = LANG_BCP47[getLang()] ?? 'en-IN'): void => {
     if (speak) {
-      speak(text);
+      speak(text, lang);
     } else if (drivers?.speech?.speak) {
-      drivers.speech.speak(text);
+      drivers.speech.speak(text, lang);
     }
   };
 
@@ -243,7 +244,13 @@ export function LabSettings({
     doSpeak(spoken);
   };
 
-  const handleClose = (_silent?: boolean | unknown): void => {
+  const handleClose = (silent?: boolean | unknown): void => {
+    if (silent === true) {
+      hasSpokenClose.current = true;
+    } else if (!hasSpokenClose.current && (open || wasOpen.current)) {
+      hasSpokenClose.current = true;
+      doSpeak(t('lab.settings.closed'), LANG_BCP47[getLang()] ?? 'en-IN');
+    }
     onClose();
     if (triggerRef?.current) {
       triggerRef.current.focus();
@@ -254,6 +261,10 @@ export function LabSettings({
 
   useEffect(() => {
     if (open) {
+      if (!wasOpen.current) {
+        hasSpokenClose.current = false;
+        doSpeak(t('lab.settings.opened'), LANG_BCP47[getLang()] ?? 'en-IN');
+      }
       setGuideEnabled(getStoredGuideSetting());
       setDirectionsEnabled(getStoredDirectionsSetting());
       setFindingSoundEnabled(getStoredFindingSoundSetting());
@@ -269,6 +280,10 @@ export function LabSettings({
       const focusTarget = closeButtonRef.current ?? dialogRef.current;
       focusTarget?.focus();
     } else if (wasOpen.current) {
+      if (!hasSpokenClose.current) {
+        hasSpokenClose.current = true;
+        doSpeak(t('lab.settings.closed'), LANG_BCP47[getLang()] ?? 'en-IN');
+      }
       if (triggerRef?.current) {
         triggerRef.current.focus();
       } else if (previouslyFocusedElement.current && typeof previouslyFocusedElement.current.focus === 'function') {
