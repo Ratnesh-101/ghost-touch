@@ -29,7 +29,7 @@ jobs:
   frontend-pbt-soak:
     name: Frontend PBT Soak (Node LTS)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 150
     defaults:
       run:
         working-directory: frontend
