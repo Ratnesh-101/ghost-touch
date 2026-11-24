@@ -5038,3 +5038,15 @@ Format for each entry:
 - Oracle W8 in `tests/explore.walk.oracle.test.tsx`: a jiggle control that passes today, and the still-finger oracle as `it.fails`. Brief for the Explore lane in `docs/reviews/kiro-review-planchette-spec.md`, "Follow-up: still finger (task 89)". Not touched: `screens/`, `flow/`, `i18n/`.
 - Gate: `tsc --noEmit` 0 errors; `vitest run` 258 files, 3289 passed, 1 expected fail, 1 todo.
 - Not verified: Playwright and a phone (the oracle runs in jsdom with fake timers). Lane 89b (the Explore `onTick` change) is open.
+## 2026-11-24 — Antigravity — Lane hi17: Fix Ghost Hand Build form status line
+- Fixed the Ghost Hand Build form status line bug where `.gt-build__status` continuously displayed `t('build.prompt')` ("Empty graph...") even after pins were added:
+  - In `frontend/src/flow/build.ts`, implemented and exported `buildStatusText(scene, lastSpeech)`. The status line shows `t('build.prompt')` ONLY while the draft has no pins. Otherwise, it presents the draft's work summary (`build.work.count` formatted as "{count} points." and, when stitched, `build.work.stitched` formatted as "{count} joins.") followed by the last spoken action outcome text (pinned / occupied / stitched / undo / needPin), keeping aria-live polite and avoiding double announcements or layout overflow.
+  - In `frontend/src/screens/Build.tsx`, wired `lastSpeech` state tracking across `pressPin`, `pressUndo`, `pressStitch`, `handleFeel`, `handleHandIn`, and `handleFeelBack`, rendering `{buildStatusText(scene, lastSpeech)}` inside `.gt-build__status`.
+- Added Vitest unit and integration test suite in `frontend/tests/build.status.test.tsx` (11 tests) verifying 0 pins prompt, count updates after 1, 2, and 6 pins without prompt text, prompt return after Undo back to 0, stitch joins addition/removal, occupied feedback, polite live region, and multilingual localization in Hindi and Gujarati.
+- Files touched:
+  - `frontend/src/flow/build.ts`
+  - `frontend/src/screens/Build.tsx`
+  - `frontend/tests/build.status.test.tsx` (new)
+  - `docs/reports/agy-hi17-report.md` (new)
+  - `docs/BUILD_LOG.md`
+

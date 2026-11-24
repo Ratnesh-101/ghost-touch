@@ -24,6 +24,7 @@ import type { Drivers } from '../drivers';
 import { canFeel, canHandIn, describeWork, handInList, pinSpacingOk, pinsOf } from '../core/pegboard';
 import { joinAnnouncements } from '../flow/explore';
 import {
+  buildStatusText,
   clampX,
   clampY,
   initialBuildHistory,
@@ -33,6 +34,7 @@ import {
   pressUndo,
   stringifyParams,
   type BuildSliders,
+  type BuildSpeech,
 } from '../flow/build';
 import { getLang, LANG_BCP47, t, tf } from '../i18n';
 import { copyToClipboard, getShareOrigin } from '../drivers/clipboard';
@@ -76,6 +78,7 @@ export function Build({
   const [sliders, setSliders] = useState<BuildSliders>(initialSliders);
   const [mode, setMode] = useState<'form' | 'feel'>('form');
   const [showHandIn, setShowHandIn] = useState(false);
+  const [lastSpeech, setLastSpeech] = useState<BuildSpeech | null>(null);
 
   const feelContainerRef = useRef<HTMLDivElement>(null);
   const hasSpokenFeelSmallRef = useRef(false);
@@ -100,6 +103,7 @@ export function Build({
   useEffect(() => {
     onRegisterBackToForm?.(() => {
       setMode('form');
+      setLastSpeech({ key: 'build.backToForm', params: {} });
     });
   }, [onRegisterBackToForm]);
 
@@ -159,23 +163,27 @@ export function Build({
   const handlePin = useCallback(() => {
     const res = pressPin(history, sliders.x, sliders.y);
     setHistory(res.history);
+    setLastSpeech(res.speech);
     drivers.speech.speak(tf(res.speech.key, stringifyParams(res.speech.params)), LANG_BCP47[getLang()]);
   }, [history, sliders.x, sliders.y, drivers.speech]);
 
   const handleUndo = useCallback(() => {
     const res = pressUndo(history);
     setHistory(res.history);
+    setLastSpeech(res.speech);
     drivers.speech.speak(tf(res.speech.key, stringifyParams(res.speech.params)), LANG_BCP47[getLang()]);
   }, [history, drivers.speech]);
 
   const handleStitch = useCallback(() => {
     const res = pressStitch(history);
     setHistory(res.history);
+    setLastSpeech(res.speech);
     drivers.speech.speak(tf(res.speech.key, stringifyParams(res.speech.params)), LANG_BCP47[getLang()]);
   }, [history, drivers.speech]);
 
   const handleFeel = useCallback(() => {
     if (!canFeel(history.present)) {
+      setLastSpeech({ key: 'build.needPin', params: {} });
       drivers.speech.speak(t('build.needPin'), LANG_BCP47[getLang()]);
       return;
     }
@@ -184,6 +192,7 @@ export function Build({
 
   const handleHandIn = useCallback(() => {
     if (!canHandIn(history.present)) {
+      setLastSpeech({ key: 'build.needPin', params: {} });
       drivers.speech.speak(t('build.needPin'), LANG_BCP47[getLang()]);
       return;
     }
@@ -205,6 +214,7 @@ export function Build({
 
   const handleFeelBack = useCallback(() => {
     setMode('form');
+    setLastSpeech({ key: 'build.backToForm', params: {} });
     drivers.speech.speak(t('build.backToForm'), LANG_BCP47[getLang()]);
   }, [drivers.speech]);
 
@@ -263,7 +273,7 @@ export function Build({
           </header>
 
           <div className="gt-build__status" aria-live="polite">
-            {t('build.prompt')}
+            {buildStatusText(scene, lastSpeech)}
           </div>
 
           <div className="gt-build__sliders">

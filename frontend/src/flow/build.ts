@@ -17,6 +17,7 @@ import {
   type HistoryState,
 } from '../core/correct';
 import {
+  describeWork,
   emptyDraft,
   GRID_MAX_X,
   GRID_MAX_Y,
@@ -26,7 +27,9 @@ import {
   snapCrossing,
   stitchInOrder,
 } from '../core/pegboard';
+import type { DiagramScene } from '../core/scene';
 import { describeUndo } from './ghostwriter';
+import { t, tf } from '../i18n';
 
 export interface BuildSpeech {
   key: string;
@@ -193,4 +196,35 @@ export function pressUndo(history: HistoryState): BuildActionResult {
       params: {},
     },
   };
+}
+
+/**
+ * Format the visible status text for the Build form (Requirement 52).
+ * Shows t('build.prompt') ONLY while the draft has no pins.
+ * Otherwise shows the real state of the draft: the work summary (describeWork lines
+ * build.work.count and, when stitched, build.work.stitched) followed by the last
+ * outcome text that was just spoken (pinned / occupied / stitched / undo / needPin).
+ */
+export function buildStatusText(
+  scene: DiagramScene,
+  lastSpeech?: BuildSpeech | null,
+): string {
+  const pins = pinsOf(scene);
+  if (pins.length === 0) {
+    return t('build.prompt');
+  }
+  const summary = describeWork(scene);
+  const parts: string[] = [];
+  for (const line of summary.lines) {
+    if (line.key === 'build.work.count' || line.key === 'build.work.stitched') {
+      parts.push(tf(line.key, stringifyParams(line.params)));
+    }
+  }
+  if (lastSpeech) {
+    const outcome = tf(lastSpeech.key, stringifyParams(lastSpeech.params));
+    if (outcome) {
+      parts.push(outcome);
+    }
+  }
+  return parts.join(' ');
 }
