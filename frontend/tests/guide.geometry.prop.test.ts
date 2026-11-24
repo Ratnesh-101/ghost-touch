@@ -119,10 +119,13 @@ describe('Guide Geometry Properties (>= 200 runs)', () => {
     );
   });
 
-  it('directionHint: within dead-zone always returns here', () => {
+  // Task 91: r * cos / r * sin recomputed through hypot can land a few ULPs
+  // above r, so sampling r = 0.05 exactly through an angle is a rounding
+  // test, not a dead-zone test. The random cases keep a relative margin.
+  it('directionHint: inside the dead-zone (with a rounding margin) always returns here', () => {
     fc.assert(
       fc.property(
-        fc.double({ min: 0, max: 0.05, noNaN: true }),
+        fc.double({ min: 0, max: 0.05 * (1 - 1e-9), noNaN: true }),
         fc.double({ min: -Math.PI, max: Math.PI, noNaN: true }),
         (r, theta) => {
           const dx = r * Math.cos(theta);
@@ -132,6 +135,38 @@ describe('Guide Geometry Properties (>= 200 runs)', () => {
       ),
       { numRuns: 200 }
     );
+  });
+
+  it('directionHint: just outside the dead-zone never returns here', () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.05 * (1 + 1e-9), max: 1, noNaN: true }),
+        fc.double({ min: -Math.PI, max: Math.PI, noNaN: true }),
+        (r, theta) => {
+          const dx = r * Math.cos(theta);
+          const dy = r * Math.sin(theta);
+          expect(directionHint(dx, dy, 0.05)).not.toBe('here');
+        }
+      ),
+      { numRuns: 200 }
+    );
+  });
+
+  it('directionHint: boundary is "here" when hypot(dx, dy) <= dead-zone, exactly', () => {
+    const r = 0.05;
+    const up = r * (1 + 1e-12); // clearly above 0.05 in doubles
+    const axes: Array<[number, number]> = [[r, 0], [-r, 0], [0, r], [0, -r]];
+    for (const [dx, dy] of axes) {
+      expect(directionHint(dx, dy, r)).toBe('here');
+    }
+    expect(directionHint(up, 0, r)).toBe('right');
+    expect(directionHint(0, -up, r)).toBe('up');
+    // Pinned counterexample (task 91): the angle generator produced a vector
+    // whose hypot is 0.05000000000000001, correctly outside the zone.
+    const dx = -0.020470662687430096;
+    const dy = -0.045617452462160334;
+    expect(Math.hypot(dx, dy)).toBeGreaterThan(0.05);
+    expect(directionHint(dx, dy, 0.05)).not.toBe('here');
   });
 
   it('directionHint: the 8 compass directions with varying magnitudes outside dead-zone', () => {
