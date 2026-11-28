@@ -765,3 +765,27 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 91.1 Reproduced (r = 0.05, hypot 0.05000000000000001); finding in `docs/reviews/kiro-review-planchette-spec.md`
   - [x] 91.2 Test: margin inside, "just outside never here" property, axis example, pinned counterexample; mutant killed
   - [x] 91.3 Gate; BUILD_LOG; path-scoped commit
+
+## Ghost Host (Requirement 53; spec written before the code)
+> Spec text only in task 92.1. Do not edit `screens/`, `flow/`, `i18n/`, `core/` (except the new `core/hostPolicy.ts` in 92.2), `hitTest.ts`, `hapticEngine.ts`, `.kiro/agents` or any tuned value in this task. Wording, focus and CSS are agy lanes H-copy and H-wire. Source: `docs/reports/ghost-host-audit.md`. Numbers checked: Requirement 53, task 92 and P188 on were free.
+
+- [ ] 92. Ghost Host, a friendly guide voice (Requirement 53)
+  - [x] 92.1 Requirement 53, design section and P188 to P198 written before any code (this entry)
+  - [x] 92.2 `core/hostPolicy.ts`: `mayJoke`, `composeErrorLine`, `nextFlowState`, `lintHostLine`; pure, named exports, no `any`, total
+  - [x] 92.3 Properties P188 to P191, P197 (code half) and P198 in `frontend/tests/hostPolicy.prop.test.ts` (250 to 300 runs), each mutation-checked and the mutants recorded
+  - [x] 92.4 (finished by Kiro in the resumed run; P192 and P193 no longer `it.fails`, P194 to P196 written in `tests/host.screen.oracle.test.tsx`, jsdom plus CSS text, three mutants killed) Oracles: P192 and P193 in `tests/host.i18n.oracle.test.ts`, P194 and P195 and P196 in `tests/host.screen.oracle.test.tsx` (jsdom rig, recording speech driver, `import.meta.glob` so a missing piece is a red test)
+  - [x] 92.5 (done by Kiro in the resumed run; Hindi and Gujarati are machine-translated, native review still open) Lane H-copy: `host.*` keys and replaced error values in `en`, `hi`, `gu` (hi and gu plain, joke-free), rows in `docs/user-test/translation-review.csv` and `.md`; removes `.fails` from P192 and P193
+  - [x] 92.6 (done by Kiro in the resumed run; GH-04 uses a short button name, not a screen-reader check, see 53.14c; P194 covers Start, the tap and the Capture line only) Lane H-wire: GH-01 focus to the typing box, GH-04 no double greeting, GH-05 offer flag after speech `end`, GH-06 voice notice with the language name, GH-09 one Back wording, GH-10 `min-height`, GH-12 no dash; removes `.fails` from P194 to P196
+  - [x] 92.7 (low findings closed: P194 Explore entry line test, P196 named as a stylesheet-only check) Review lanes H-copy and H-wire against Requirement 53 (Kiro); owner decisions recorded: English-only jokes or none (53.14b), greeting rule under TalkBack (53.14c)
+  - [ ] 92.8 Phone test rows for TalkBack greeting overlap and TTS reading of the new lines added to `docs/PHONE_TEST.md` (owner runs them); results recorded before any tick of 92
+  - [x] 92.9 (tsc 0 errors, vitest 264 files / 3384 passed, build ok; no commit made) Gate (`tsc --noEmit`, `vitest run`, `npm run build`); BUILD_LOG entry (tool = Kiro); path-scoped commits (not made in this step)
+  - _Requirements: 53.*_
+
+- [ ] 93. Ghost Host wiring and wording, lane B-host (Requirement 53.15 to 53.18; spec written before the code)
+  - [x] 93.1 Requirement 53.15 to 53.18 appended; findings W1 to W8 (`docs/reports/wa-a1-host-req53.md`), A3-01 and A3-02 (`wa-a3-offline-pwa.md`), A8 wording table (`wa-a8-copy-scare-easy.md`, applied only where `lintHostLine` and 53.4 and 53.6 hold: jokes are separate `.joke` keys, never baked in, never in next-step lines)
+  - [x] 93.2 `flow/host.ts` (per-flow tracker over `core/hostPolicy.ts`) wired in `flow/ask.ts` and `flow/capture.ts`; `warmBackend()` on app start; `host.*.next` spoken on Explore, Raw Mode, Back to Start and Capture, and when Teach, Build and Saved open
+  - [x] 93.3a Next-step lines on Correct, Teach, Saved diagrams and Settings (Requirement 53.24; `hostEntryAnnouncement` and `savedEntryAnnouncement` build one utterance per screen; App no longer speaks `saved.heading`; tests in `tests/b.nextlines.test.tsx`, e2e in `e2e/host.guide.spec.ts`; evidence in `docs/kiro-evidence/b-next-lines.md`). Ask: decision recorded in 53.24d, no code. Nothing tried on a phone or with TalkBack
+  - [ ] 93.3 Still open (93.3a closed the next-step lines): `leave` of the ask flow from the Explore shell; save-flow jokes; W9 to W14
+  - [x] 93.5 Requirement 53.19 to 53.23 written first; fixes for the four defects of `docs/reports/wb-playwright-probe.md` (Build one utterance, Correct intro once, Raw notice not a live region while speaking, Teach Back to Capture) and the minor items (debug line behind `showDebug`, Settings spoken title); tests in `frontend/tests/b.speech.test.tsx`; evidence in `docs/kiro-evidence/b-speech.md`
+  - [x] 93.4 Gate (`tsc --noEmit` 0 errors, `vitest run` 267 files / 3419 tests passed); evidence in `docs/kiro-evidence/b-host.md`; no commit made (wa-index)
+  - _Requirements: 53.*_
