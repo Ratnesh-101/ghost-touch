@@ -789,3 +789,9 @@ Properties P1–P13 validate the core contracts via fast-check and Hypothesis.
   - [x] 93.5 Requirement 53.19 to 53.23 written first; fixes for the four defects of `docs/reports/wb-playwright-probe.md` (Build one utterance, Correct intro once, Raw notice not a live region while speaking, Teach Back to Capture) and the minor items (debug line behind `showDebug`, Settings spoken title); tests in `frontend/tests/b.speech.test.tsx`; evidence in `docs/kiro-evidence/b-speech.md`
   - [x] 93.4 Gate (`tsc --noEmit` 0 errors, `vitest run` 267 files / 3419 tests passed); evidence in `docs/kiro-evidence/b-host.md`; no commit made (wa-index)
   - _Requirements: 53.*_
+- [x] 94. Live-test fixes D1 to D4 (Requirement 54; spec written before the code)
+  - [x] 94.1 Requirement 54 appended before any code
+  - [x] 94.2 D1: `makeInsetViewport` and `VIEW_INSET_PX` in `core/geometry.ts`, used by `Explore.tsx` for render, hit-test and the accessibility tree; property in `tests/geometry.inset.prop.test.ts` (every scene point maps at least the vertex radius inside the canvas); P1, P2, P8 unchanged
+  - [x] 94.3 D2 Build speaks `host.build.next`; D3 `lab.settings.closed` wording; D4 `warmBackendOncePerSession`; tests updated where the old wording was asserted
+  - [x] 94.4 Gate (`tsc --noEmit`, `vitest run`); evidence in `docs/kiro-evidence/b-live-fixes.md`; no commit made
+  - _Requirements: 54.*_
