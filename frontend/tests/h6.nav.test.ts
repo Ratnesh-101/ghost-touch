@@ -63,14 +63,14 @@ describe('R3-03: Hardware Back from Teach returns to Explore when scene exists',
     const cleanStep = leaveByBack('teach', { dirty: false, fromShare: false, hasScene: true });
     expect(cleanStep).toEqual({
       next: 'explore',
-      announceKey: 'explore.gestureHint',
+      announceKey: 'host.explore.next',
       needsConfirm: false,
     });
 
     const dirtyStep = leaveByBack('teach', { dirty: true, fromShare: false, hasScene: true });
     expect(dirtyStep).toEqual({
       next: 'explore',
-      announceKey: 'explore.gestureHint',
+      announceKey: 'host.explore.next',
       needsConfirm: true,
     });
   });
@@ -79,14 +79,14 @@ describe('R3-03: Hardware Back from Teach returns to Explore when scene exists',
     const stepNoScene = leaveByBack('teach', { dirty: false, fromShare: false, hasScene: false });
     expect(stepNoScene).toEqual({
       next: 'start',
-      announceKey: 'start.intro',
+      announceKey: 'host.start.next',
       needsConfirm: false,
     });
 
     const stepOmitted = leaveByBack('teach', { dirty: false, fromShare: false });
     expect(stepOmitted).toEqual({
       next: 'start',
-      announceKey: 'start.intro',
+      announceKey: 'host.start.next',
       needsConfirm: false,
     });
   });

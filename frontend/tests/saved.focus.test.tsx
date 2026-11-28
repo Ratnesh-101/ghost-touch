@@ -88,7 +88,7 @@ describe('Finding 8: SavedDiagrams screen heading focus placement', () => {
     // three messages live in flow/saved.ts, guarded against late results; the screen speaks
     // whatever `loadSavedList` hands it. The messages themselves are tested in round2.saved.test.ts.
     expect(tsx).toContain('loadSavedList(');
-    expect(tsx).toContain('say(view.announcement)');
+    expect(tsx).toContain('savedEntryAnnouncement(');
     const flowPath = new URL('../src/flow/saved.ts', import.meta.url);
     const flow = fs.readFileSync(flowPath, 'utf-8') as string;
     expect(flow).toContain("t('saved.empty')");
@@ -137,6 +137,6 @@ describe('Finding 8: Correct screen heading focus placement', () => {
     const tsx = fs.readFileSync(tsxPath, 'utf-8') as string;
 
     // Must still speak intro on mount
-    expect(tsx).toContain("speak(t('correct.intro'))");
+    expect(tsx).toContain("speak(hostEntryAnnouncement('correct'");
   });
 });

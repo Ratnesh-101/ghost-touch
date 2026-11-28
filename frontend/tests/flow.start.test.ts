@@ -31,11 +31,12 @@ function fakeDrivers(vibrationSupported: boolean): { drivers: Drivers; calls: st
 }
 
 describe('Start flow', () => {
-  it('speaks "Ghost Touch. Tap anywhere to begin." when the app loads', () => {
+  it('speaks the Ghost Host greeting once when the app loads (Requirement 53.1)', () => {
     const { drivers, spoken } = fakeDrivers(true);
     speakIntro(drivers);
-    expect(spoken).toEqual(['Ghost Touch. Tap anywhere to begin.']);
-    expect(t('start.intro')).toBe('Ghost Touch. Tap anywhere to begin.');
+    expect(spoken).toEqual([t('host.start.greeting')]);
+    expect(spoken[0]).toContain('Ghost Host');
+    expect(spoken[0]).toMatch(/double-tap/i);
   });
 
   it('on tap: unlocks audio, buzzes once, then speaks the next prompt, in that order', () => {
@@ -43,7 +44,7 @@ describe('Start flow', () => {
     handleStartTap(drivers);
     expect(calls).toEqual(['unlock', `vibrate:${CONFIRM_VIBRATION_MS}`, 'speak']);
     expect(CONFIRM_VIBRATION_MS).toBe(50);
-    expect(spoken).toEqual([t('capture.prompt')]);
+    expect(spoken).toEqual([t('host.capture.next')]);
   });
 
   it('speaks twice overall: once on load and once on the tap', () => {
@@ -60,11 +61,11 @@ describe('Start flow', () => {
     expect(spoken[0]).toContain('Vibration is not supported on this device');
     expect(spoken[0]).toContain('Chrome on Android');
     expect(spoken[0]).toContain('Audio-only mode');
-    expect(spoken[0]).toContain(t('capture.prompt'));
+    expect(spoken[0]).toContain(t('host.capture.next'));
   });
 
   it('capturePrompt only adds the warning when vibration is unsupported', () => {
-    expect(capturePrompt(true)).toBe(t('capture.prompt'));
-    expect(capturePrompt(false)).not.toBe(t('capture.prompt'));
+    expect(capturePrompt(true)).toBe(t('host.capture.next'));
+    expect(capturePrompt(false)).not.toBe(t('host.capture.next'));
   });
 });

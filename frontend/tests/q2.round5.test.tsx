@@ -146,7 +146,7 @@ describe('Lane q2-frontend-round5 Verification Suite', () => {
 
       const initialEnAnnouncement = exploreAnnouncement(testTriangleScene, 'ai');
       expect(initialEnAnnouncement).toContain('Right Triangle ABC');
-      expect(initialEnAnnouncement).toContain(tables.en['explore.gestureHint']);
+      expect(initialEnAnnouncement).toContain(tables.en['host.explore.next']);
 
       await act(async () => {
         root.render(
@@ -163,7 +163,7 @@ describe('Lane q2-frontend-round5 Verification Suite', () => {
       const statusEl = container.querySelector('.gt-explore__status');
       expect(statusEl).not.toBeNull();
       expect(statusEl?.textContent).toContain('Right Triangle ABC');
-      expect(statusEl?.textContent).toContain(tables.en['explore.gestureHint']);
+      expect(statusEl?.textContent).toContain(tables.en['host.explore.next']);
 
       // 2. Switch language to Hindi mid-session
       await act(async () => {
@@ -172,9 +172,9 @@ describe('Lane q2-frontend-round5 Verification Suite', () => {
 
       // Status text must be dynamically rebuilt in Hindi
       expect(statusEl?.textContent).toContain('Right Triangle ABC');
-      expect(statusEl?.textContent).toContain(tables.hi['explore.gestureHint']);
+      expect(statusEl?.textContent).toContain(tables.hi['host.explore.next']);
       expect(statusEl?.textContent).toContain('तथ्य और चित्र');
-      expect(statusEl?.textContent).not.toContain(tables.en['explore.gestureHint']);
+      expect(statusEl?.textContent).not.toContain(tables.en['host.explore.next']);
       expect(statusEl?.textContent).not.toContain('Facts and drawing disagree');
 
       // 3. Trigger voice repeat command ("repeat" / "दोहराएं") via Ask button
@@ -190,9 +190,9 @@ describe('Lane q2-frontend-round5 Verification Suite', () => {
       const lastSpoken = drivers.spokenUtterances[drivers.spokenUtterances.length - 1];
       expect(lastSpoken).toBeDefined();
       expect(lastSpoken?.lang).toBe('hi-IN');
-      expect(lastSpoken?.text).toContain(tables.hi['explore.gestureHint']);
+      expect(lastSpoken?.text).toContain(tables.hi['host.explore.next']);
       expect(lastSpoken?.text).toContain('तथ्य और चित्र');
-      expect(lastSpoken?.text).not.toContain(tables.en['explore.gestureHint']);
+      expect(lastSpoken?.text).not.toContain(tables.en['host.explore.next']);
       expect(lastSpoken?.text).not.toContain('Facts and drawing disagree');
 
       // Cleanup

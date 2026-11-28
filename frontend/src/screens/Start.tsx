@@ -7,7 +7,8 @@
  * - Tagline ("Feel diagrams you can't see").
  * - Three organ tiles via OrganTiles: Nerves (vibration), Eyes (vision AI), Voice (speech + theremin).
  * - Huge "Wake the creature" call to action badge with idle pulse dot.
- * - Entire screen remains ONE button with aria-label={t('start.intro')}.
+ * - Entire screen remains ONE button. Its accessible name is short ("Ghost Touch, Begin"), so a screen
+ *   reader's focus announcement does not repeat the spoken Ghost Host greeting (GH-04, Requirement 53.1).
  * - All hero contents are aria-hidden="true" for screen readers.
  * - All visible strings flow through t() with full en, hi, gu translations.
  */
@@ -66,7 +67,7 @@ export function Start({ drivers, onBegin }: StartProps): JSX.Element {
       ref={surface}
       type="button"
       className="gt-start-surface"
-      aria-label={t('start.intro')}
+      aria-label={`${t('app.name')}, ${t('start.begin')}`}
       onClick={begin}
     >
       <span className="gt-start__hero" aria-hidden="true">

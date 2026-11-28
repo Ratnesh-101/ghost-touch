@@ -341,6 +341,8 @@ interface ExploreProps {
   onBack: () => void;
   onCorrect?: () => void;
   isRaw?: boolean;
+  /** Show the cursor-offset debug line (off in production; Requirement 53.19). */
+  showDebug?: boolean;
   /** Optional override to suppress redundant canvas aria-label (Finding 5). */
   suppressAriaLabel?: boolean;
   /** Optional teacher verification details from a shared diagram link. */
@@ -508,6 +510,7 @@ export function Explore({
   onBack,
   onCorrect,
   isRaw,
+  showDebug = false,
   verified,
 }: ExploreProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -540,6 +543,7 @@ export function Explore({
   const askButtonRef = useRef<HTMLButtonElement>(null);
   const backButtonRef = useRef<HTMLButtonElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
+  const focusInputAfterAskRef = useRef(false);
 
   const engineState = useRef<EngineState>(initialState());
   const heartbeatState = useRef<HeartbeatState>(initialHeartbeatState());
@@ -900,6 +904,26 @@ export function Explore({
   const focusAfterRender = (ref: { current: HTMLElement | null }): void => {
     setTimeout(() => ref.current?.focus(), 0);
   };
+  // The typing box is disabled while busy, and a disabled input cannot take focus. The timeout
+  // can fire before React commits isBusy = false, so focus is also retried after each render.
+  const pendingInputFocusRef = useRef(false);
+  useEffect(() => {
+    const el = textInputRef.current;
+    if (pendingInputFocusRef.current && el && !el.disabled) {
+      pendingInputFocusRef.current = false;
+      el.focus();
+    }
+  });
+  /**
+   * Opens the typing box after a failed voice ask and remembers to move focus to it (GH-01,
+   * Requirement 53.5): an error line that says "type your question in the box" must not leave
+   * focus on the Ask button.
+   */
+  const openTextFallback = (): void => {
+    focusInputAfterAskRef.current = true;
+    pendingInputFocusRef.current = true;
+    setShowTextFallback(true);
+  };
 
   const sendProximityLift = (now = performance.now()): void => {
     const { state } = proximityStep(proximityState.current, { kind: 'lift', t: now });
@@ -1175,7 +1199,7 @@ export function Explore({
           // ignore
         }
         lastSpokenRef.current = msg;
-        setShowTextFallback(true);
+        openTextFallback();
         return;
       }
 
@@ -1215,7 +1239,7 @@ export function Explore({
           // ignore
         }
         lastSpokenRef.current = msg;
-        setShowTextFallback(true);
+        openTextFallback();
         return;
       } finally {
         askActive.current = false;
@@ -1348,7 +1372,7 @@ export function Explore({
           setStatusMessage(status);
         },
         onFallbackNeeded: () => {
-          setShowTextFallback(true);
+          openTextFallback();
         },
       });
 
@@ -1359,7 +1383,7 @@ export function Explore({
           setOfferedTarget(outcome.target);
         }
       } else if (outcome.kind === 'failed') {
-        setShowTextFallback(true);
+        openTextFallback();
       }
     } catch (err: unknown) {
       if (leaving.current) return;
@@ -1378,14 +1402,21 @@ export function Explore({
         // ignore
       }
       lastSpokenRef.current = msg;
-      setShowTextFallback(true);
+      openTextFallback();
     } finally {
       askActive.current = false;
       askManager.current.setActiveSpeech(null);
       busyRef.current = false;
       if (!leaving.current) {
         setIsBusy(false);
-        focusAfterRender(askButtonRef);
+        const toInput = focusInputAfterAskRef.current;
+        focusInputAfterAskRef.current = false;
+        if (toInput) {
+          // Prefer the typing box; fall back to the Ask button if it did not mount.
+          setTimeout(() => (textInputRef.current ?? askButtonRef.current)?.focus(), 0);
+        } else {
+          focusAfterRender(askButtonRef);
+        }
       }
     }
   };
@@ -1471,6 +1502,7 @@ export function Explore({
           focusAfterRender(askButtonRef);
         } else {
           // Keep the typed question so it can be retried; return focus to the input.
+          pendingInputFocusRef.current = true;
           focusAfterRender(textInputRef.current ? textInputRef : askButtonRef);
         }
       }
@@ -2895,7 +2927,10 @@ export function Explore({
       )}
 
       {isRawScene && (
-        <div className="gt-explore__raw-notice gt-lab-raw-notice" role="status">
+        <div
+          className="gt-explore__raw-notice gt-lab-raw-notice"
+          {...(drivers.speech.canSpeak ? {} : { role: 'status', 'aria-live': 'polite' as const })}
+        >
           <span className="gt-explore__raw-badge" aria-hidden="true">Raw</span>
           <span className="gt-explore__raw-text">{rawNoticeText}</span>
         </div>
@@ -2976,9 +3011,11 @@ export function Explore({
         {renderA11yTree()}
       </div>
 
-      <div className="gt-explore__debug" data-testid="explore-debug-offset" aria-hidden="true">
-        {debugText}
-      </div>
+      {showDebug && (
+        <div className="gt-explore__debug" data-testid="explore-debug-offset" aria-hidden="true">
+          {debugText}
+        </div>
+      )}
 
       {showTextFallback && (
         <form

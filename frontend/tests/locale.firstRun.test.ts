@@ -73,9 +73,9 @@ afterAll(() => {
 
 function fakeDrivers(): {
   drivers: Drivers;
-  calls: Array<{ text: string; lang?: string; queue?: boolean }>;
+  calls: Array<{ text: string; lang?: string; queue?: boolean; onEnd?: () => void }>;
 } {
-  const calls: Array<{ text: string; lang?: string; queue?: boolean }> = [];
+  const calls: Array<{ text: string; lang?: string; queue?: boolean; onEnd?: () => void }> = [];
   const drivers: Drivers = {
     haptics: {
       supported: true,
@@ -92,7 +92,7 @@ function fakeDrivers(): {
     },
     speech: {
       speak: (text, lang, options) => {
-        calls.push({ text, lang, queue: options?.queue });
+        calls.push({ text, lang, queue: options?.queue, onEnd: options?.onEnd });
       },
       listen: vi.fn(),
       canSpeak: true,
@@ -306,18 +306,29 @@ describe('UX8: First-run locale & Hindi phone initialization', () => {
       // First run: speaks the offer with queue: true so it plays after intro
       const spokenFirst = speakLangOffer(drivers);
       expect(spokenFirst).toBe(true);
-      expect(hasSpokenLangOffer()).toBe(true);
-      expect(safeGet(STORAGE_KEY_LANG_OFFER)).toBe('true');
+      // GH-05 (Requirement 53.14d): the flag is not written before the offer has been heard.
+      expect(hasSpokenLangOffer()).toBe(false);
+      expect(safeGet(STORAGE_KEY_LANG_OFFER)).not.toBe('true');
 
       expect(calls).toHaveLength(1);
       const firstCall = calls[0];
       expect(firstCall?.text).toBe(t('start.langOffer'));
       expect(firstCall?.queue).toBe(true);
 
-      // Second run / subsequent visits: does not speak again (once per install)
-      const spokenSecond = speakLangOffer(drivers);
-      expect(spokenSecond).toBe(false);
-      expect(calls).toHaveLength(1);
+      // A blocked, cancelled or replaced utterance never calls onEnd: the offer is tried again.
+      expect(speakLangOffer(drivers)).toBe(true);
+      expect(calls).toHaveLength(2);
+      expect(hasSpokenLangOffer()).toBe(false);
+
+      // Heard to its end: now the flag is written.
+      calls[1]?.onEnd?.();
+      expect(hasSpokenLangOffer()).toBe(true);
+      expect(safeGet(STORAGE_KEY_LANG_OFFER)).toBe('true');
+
+      // Subsequent visits: does not speak again (once per install)
+      const spokenThird = speakLangOffer(drivers);
+      expect(spokenThird).toBe(false);
+      expect(calls).toHaveLength(2);
     });
   });
 });

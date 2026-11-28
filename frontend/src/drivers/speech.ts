@@ -11,8 +11,18 @@
  * missing voice notice.
  */
 
-import { t } from '../i18n';
+import { englishOnly, LANG_NAMES } from '../i18n';
 import { safeGet, safeSet } from './storage';
+
+/**
+ * The language's English name for a spoken notice ("Hindi", not "HI"), GH-06.
+ * Falls back to the upper-case code for a language the app has no name for.
+ */
+export function voiceLangName(lang: string): string {
+  const prefix = (lang.split(/[-_]/u)[0] ?? lang).toLowerCase();
+  const names: Readonly<Record<string, { english: string } | undefined>> = LANG_NAMES;
+  return names[prefix]?.english ?? prefix.toUpperCase();
+}
 
 export type ListenFailure =
   | 'unsupported'
@@ -60,6 +70,11 @@ export interface SpeechVoiceLike {
 
 export interface SpeakOptions {
   queue?: boolean;
+  /**
+   * Called when this utterance has been spoken to its end (GH-05). It is NOT called when the
+   * utterance was cancelled or replaced by a newer, non-queued `speak` or by `stopSpeaking`.
+   */
+  onEnd?: () => void;
 }
 
 export interface SpeechDriver {
@@ -96,6 +111,8 @@ export interface UtteranceLike {
   lang: string;
   voice?: SpeechVoiceLike | null;
   text?: string;
+  /** `never` keeps the real `SpeechSynthesisUtterance` (handler takes an event) assignable. */
+  onend?: ((ev: never) => void) | null;
 }
 export interface SynthesisLike {
   cancel(): void;
@@ -210,6 +227,8 @@ export class WebSpeechDriver implements SpeechDriver {
   private lastSpokenText = '';
   private warnedMissingLangs = new Set<string>();
   private isSpeakingNotice = false;
+  /** Bumped on every cancel; an utterance's `onEnd` only fires if its epoch is still current. */
+  private speakEpoch = 0;
   private readonly win?: {
     addEventListener(type: string, listener: (ev: unknown) => void): void;
     removeEventListener(type: string, listener: (ev: unknown) => void): void;
@@ -230,10 +249,12 @@ export class WebSpeechDriver implements SpeechDriver {
 
     this.onVisibilityChange = () => {
       if (this.doc && (this.doc.hidden === true || this.doc.visibilityState === 'hidden')) {
+        this.speakEpoch += 1;
         this.host.synth?.cancel();
       }
     };
     this.onPageHide = () => {
+      this.speakEpoch += 1;
       this.host.synth?.cancel();
     };
 
@@ -297,8 +318,10 @@ export class WebSpeechDriver implements SpeechDriver {
 
     // Cancel anything being spoken unless queued
     if (!shouldQueue) {
+      this.speakEpoch += 1;
       synth.cancel();
     }
+    const epoch = this.speakEpoch;
 
     // Speak a notice when no voice for the chosen language exists (once per language session)
     if (
@@ -311,10 +334,11 @@ export class WebSpeechDriver implements SpeechDriver {
       this.warnedMissingLangs.add(lang);
       this.isSpeakingNotice = true;
       try {
-        const langDisplay = lang.split('-')[0]?.toUpperCase() ?? lang;
+        // The language's name, not its code: a voice reads "HI" as the word "hi" (GH-06).
+        const langDisplay = voiceLangName(lang);
         // Text comes from the language tables, not from this file (CORE-10, rule 7).
         const noticeUtterance = createUtterance(
-          t('speech.noVoiceNotice').replace('{lang}', langDisplay),
+          (englishOnly('speech.noVoiceNotice') ?? '').replace('{lang}', langDisplay),
         );
         noticeUtterance.rate = rate;
         noticeUtterance.lang = match.voice?.lang ?? DEFAULT_SPEECH_LANG;
@@ -331,16 +355,25 @@ export class WebSpeechDriver implements SpeechDriver {
     if (match.voice) {
       utterance.voice = match.voice;
     }
+    const onEnd = options?.onEnd;
+    if (onEnd !== undefined) {
+      utterance.onend = () => {
+        // A cancelled or replaced utterance may still report `end`; it was not heard.
+        if (epoch === this.speakEpoch) onEnd();
+      };
+    }
     synth.speak(utterance as never);
   }
 
   stopSpeaking(): void {
+    this.speakEpoch += 1;
     this.host.synth?.cancel();
   }
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.speakEpoch += 1;
     if (this.onVisibilityChange && this.doc) {
       this.doc.removeEventListener('visibilitychange', this.onVisibilityChange);
     }

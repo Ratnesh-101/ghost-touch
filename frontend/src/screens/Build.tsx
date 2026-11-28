@@ -37,6 +37,7 @@ import {
   type BuildSpeech,
 } from '../flow/build';
 import { getLang, LANG_BCP47, t, tf } from '../i18n';
+import { StatusText } from '../components/StatusText';
 import { copyToClipboard, getShareOrigin } from '../drivers/clipboard';
 import { encodeShare, shareUrl, ShareError, type ShareErrorCode } from '../share';
 import { shareErrorMessage } from './ShareError';
@@ -82,6 +83,10 @@ export function Build({
 
   const feelContainerRef = useRef<HTMLDivElement>(null);
   const hasSpokenFeelSmallRef = useRef(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const feelBtnRef = useRef<HTMLButtonElement>(null);
+  const cameFromFeelRef = useRef(false);
+  const speakTitleOnceRef = useRef(false);
 
   const xId = useId();
   const yId = useId();
@@ -99,6 +104,26 @@ export function Build({
   useEffect(() => {
     onFeelChange?.(mode === 'feel');
   }, [mode, onFeelChange]);
+
+  // Focus and announce on mount; return focus to the Feel button when Feel closes (A2-06).
+  useEffect(() => {
+    if (mode === 'feel') {
+      cameFromFeelRef.current = true;
+      return;
+    }
+    if (cameFromFeelRef.current) {
+      cameFromFeelRef.current = false;
+      feelBtnRef.current?.focus();
+      return;
+    }
+    headingRef.current?.focus();
+    if (!speakTitleOnceRef.current) {
+      speakTitleOnceRef.current = true;
+      // One utterance: the title then the next step (speak() cancels the previous line).
+      drivers.speech.speak(joinAnnouncements([t('build.title'), t('build.prompt')]), LANG_BCP47[getLang()]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   useEffect(() => {
     onRegisterBackToForm?.(() => {
@@ -259,9 +284,9 @@ export function Build({
           />
         </div>
       ) : (
-        <div className="gt-build__form">
+        <main className="gt-build__form">
           <header className="gt-build__header">
-            <h1 className="gt-build__title">{t('build.title')}</h1>
+            <h1 className="gt-build__title" tabIndex={-1} ref={headingRef}>{t('build.title')}</h1>
             <button
               type="button"
               className="gt-control gt-build__button"
@@ -272,9 +297,9 @@ export function Build({
             </button>
           </header>
 
-          <div className="gt-build__status" aria-live="polite">
+          <StatusText className="gt-build__status" spoken={drivers.speech.canSpeak}>
             {buildStatusText(scene, lastSpeech)}
-          </div>
+          </StatusText>
 
           <div className="gt-build__sliders">
             <div className="gt-build__slider-group">
@@ -350,6 +375,7 @@ export function Build({
               <button
                 type="button"
                 className="gt-control gt-build__button"
+                ref={feelBtnRef}
                 onClick={handleFeel}
                 aria-label={t('build.feel')}
                 aria-disabled={!hasPins}
@@ -404,7 +430,7 @@ export function Build({
               </button>
             </div>
           )}
-        </div>
+        </main>
       )}
     </div>
   );

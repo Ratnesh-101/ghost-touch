@@ -4,7 +4,7 @@
  * LabSettings Speech Tests (Lane hi18)
  *
  * Verifies speech announcements when LabSettings opens and closes:
- * - Opening speaks lab.settings.opened ("Lab settings opened") once with appropriate BCP-47 language tag
+ * - Opening speaks lab.settings.opened ("Settings opened") once with appropriate BCP-47 language tag
  * - Closing by close button speaks lab.settings.closed ("Lab settings closed") once
  * - Closing by scrim click speaks lab.settings.closed once
  * - Closing by Escape key speaks lab.settings.closed once
@@ -21,8 +21,14 @@ import { act, createElement, StrictMode, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LabSettings } from '../src/components/LabSettings';
+import { joinAnnouncements } from '../src/flow/explore';
 import { MemoryDiagramStore, type Drivers, type SpeechRateSetting } from '../src/drivers';
 import { getLang, LANG_BCP47, setLang, t, type Lang } from '../src/i18n';
+
+/** The opening line is one utterance: the title, then the next step (Requirement 53.15a). */
+function openedLine(): string {
+  return joinAnnouncements([t('lab.settings.opened'), t('host.settings.next')]);
+}
 
 function createMockDrivers(): {
   drivers: Drivers;
@@ -128,8 +134,8 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
     });
 
     expect(speakMock).toHaveBeenCalledTimes(1);
-    expect(speakMock).toHaveBeenCalledWith(t('lab.settings.opened'), LANG_BCP47['en']);
-    expect(speakMock).toHaveBeenCalledWith('Lab settings opened', 'en-IN');
+    expect(speakMock).toHaveBeenCalledWith(openedLine(), LANG_BCP47['en']);
+    expect(speakMock).toHaveBeenCalledWith(openedLine(), 'en-IN');
   });
 
   it('closing by the close button speaks closed once', () => {
@@ -140,7 +146,7 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
     });
 
     expect(speakMock).toHaveBeenCalledTimes(1);
-    expect(speakMock).toHaveBeenCalledWith('Lab settings opened', 'en-IN');
+    expect(speakMock).toHaveBeenCalledWith(openedLine(), 'en-IN');
     speakMock.mockClear();
 
     const closeBtn = container.querySelector<HTMLButtonElement>('.gt-lab-settings__close');
@@ -208,7 +214,7 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
       harnessControl!.setOpen(true);
     });
     expect(speakMock).toHaveBeenCalledTimes(1);
-    expect(speakMock).toHaveBeenLastCalledWith('Lab settings opened', 'en-IN');
+    expect(speakMock).toHaveBeenLastCalledWith(openedLine(), 'en-IN');
 
     // First close
     act(() => {
@@ -222,9 +228,9 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
       harnessControl!.setOpen(true);
     });
     expect(speakMock).toHaveBeenCalledTimes(3);
-    expect(speakMock).toHaveBeenLastCalledWith('Lab settings opened', 'en-IN');
+    expect(speakMock).toHaveBeenLastCalledWith(openedLine(), 'en-IN');
 
-    const openedCalls = speakMock.mock.calls.filter(([msg]) => msg === 'Lab settings opened');
+    const openedCalls = speakMock.mock.calls.filter(([msg]) => msg === openedLine());
     expect(openedCalls).toHaveLength(2);
   });
 
@@ -261,7 +267,7 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
       );
     });
 
-    expect(customSpeak).toHaveBeenCalledWith('Lab settings opened', 'en-IN');
+    expect(customSpeak).toHaveBeenCalledWith(openedLine(), 'en-IN');
     expect(speakMock).not.toHaveBeenCalled();
 
     customSpeak.mockClear();
@@ -290,7 +296,7 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
 
     // In StrictMode, effect re-runs must not double the open speech
     expect(speakMock).toHaveBeenCalledTimes(1);
-    expect(speakMock).toHaveBeenCalledWith('Lab settings opened', 'en-IN');
+    expect(speakMock).toHaveBeenCalledWith(openedLine(), 'en-IN');
 
     speakMock.mockClear();
 
@@ -312,7 +318,7 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
     });
 
     expect(speakMock).toHaveBeenCalledTimes(1);
-    expect(speakMock).toHaveBeenCalledWith('Lab settings opened', 'en-IN');
+    expect(speakMock).toHaveBeenCalledWith(openedLine(), 'en-IN');
     speakMock.mockClear();
 
     // Expand More settings to reach Teacher tools
@@ -356,7 +362,7 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
     });
 
     expect(speakMock).toHaveBeenCalledTimes(1);
-    expect(speakMock).toHaveBeenCalledWith('Lab settings opened', 'en-IN');
+    expect(speakMock).toHaveBeenCalledWith(openedLine(), 'en-IN');
     speakMock.mockClear();
 
     // Language change re-render
@@ -366,7 +372,8 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
 
     // Neither open nor close should be re-announced
     const settingsSpeech = speakMock.mock.calls.filter(([msg]) =>
-      msg === 'Lab settings opened' ||
+      msg === 'Settings opened' ||
+      msg === openedLine() ||
       msg === 'Lab settings closed' ||
       msg === 'लैब सेटिंग्स खुली' ||
       msg === 'लैब सेटिंग्स बंद',
@@ -389,7 +396,7 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
     });
 
     expect(speakMock).toHaveBeenCalledTimes(1);
-    expect(speakMock).toHaveBeenCalledWith('लैब सेटिंग्स खुली', 'hi-IN');
+    expect(speakMock).toHaveBeenCalledWith(openedLine(), 'hi-IN');
     speakMock.mockClear();
 
     const closeBtn = container.querySelector<HTMLButtonElement>('.gt-lab-settings__close');
@@ -416,7 +423,7 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
     });
 
     expect(speakMock).toHaveBeenCalledTimes(1);
-    expect(speakMock).toHaveBeenCalledWith('લેબ સેટિંગ્સ ખુલી', 'gu-IN');
+    expect(speakMock).toHaveBeenCalledWith(openedLine(), 'gu-IN');
     speakMock.mockClear();
 
     const closeBtn = container.querySelector<HTMLButtonElement>('.gt-lab-settings__close');

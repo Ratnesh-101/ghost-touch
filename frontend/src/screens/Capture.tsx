@@ -30,6 +30,7 @@ declare module 'react' {
 }
 import { loadSample, type SampleId, type SceneMode } from '../api/scene';
 import { warmBackend } from '../api/health';
+import { hostFlows } from '../flow/host';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { LabLoading } from '../components/loading/LabLoading';
 import { LabSettings, describeSettings } from '../components/LabSettings';
@@ -123,6 +124,7 @@ export function Capture({
     fileEl?.addEventListener('cancel', handleCancel);
     // Leaving the screen cancels an upload and silences its progress tone.
     return () => {
+      hostFlows.capture.leave();
       controller.abort();
       photoEl?.removeEventListener('cancel', handleCancel);
       fileEl?.removeEventListener('cancel', handleCancel);

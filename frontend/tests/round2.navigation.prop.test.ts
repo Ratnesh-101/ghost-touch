@@ -81,11 +81,11 @@ describe('P43 — leaveByBack', () => {
         });
         expect(leaveByBack('build', { ...base, buildDirty, buildFeel: false })).toEqual({
           next: 'capture',
-          announceKey: 'capture.prompt',
+          announceKey: 'host.capture.next',
           needsConfirm: buildDirty,
         });
         // Omitted flags mean false: no confirmation, straight to Capture.
-        expect(leaveByBack('build', base)).toEqual({ next: 'capture', announceKey: 'capture.prompt', needsConfirm: false });
+        expect(leaveByBack('build', base)).toEqual({ next: 'capture', announceKey: 'host.capture.next', needsConfirm: false });
       }),
       { numRuns: 300 },
     );
@@ -96,7 +96,7 @@ describe('P43 — leaveByBack', () => {
     const correctOnly = { dirty: false, correctDirty: true, fromShare: false };
     expect(leaveByBack('correct', teachOnly).needsConfirm).toBe(false);
     expect(leaveByBack('teach', correctOnly).needsConfirm).toBe(false);
-    expect(leaveByBack('correct', correctOnly)).toEqual({ next: 'explore', announceKey: 'explore.gestureHint', needsConfirm: true });
+    expect(leaveByBack('correct', correctOnly)).toEqual({ next: 'explore', announceKey: 'host.explore.next', needsConfirm: true });
     // A caller that omits the flag (today's App.tsx) never gets a confirmation from Correct.
     expect(leaveByBack('correct', { dirty: true, fromShare: false }).needsConfirm).toBe(false);
   });
@@ -114,14 +114,14 @@ describe('P43 — leaveByBack', () => {
   it('sends share, teach and share-error screens to Start with the intro', () => {
     expect(leaveByBack('teach', { dirty: false, fromShare: false })).toEqual({
       next: 'start',
-      announceKey: 'start.intro',
+      announceKey: 'host.start.next',
       needsConfirm: false,
     });
     expect(leaveByBack('shareError', { dirty: false, fromShare: false }).next).toBe('start');
     expect(leaveByBack('shareGate', { dirty: false, fromShare: false }).next).toBe('start');
     expect(leaveByBack('explore', { dirty: false, fromShare: true })).toEqual({
       next: 'start',
-      announceKey: 'start.intro',
+      announceKey: 'host.start.next',
       needsConfirm: false,
     });
   });

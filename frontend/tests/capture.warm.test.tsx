@@ -415,7 +415,7 @@ describe('Capture warm-up and cold-start resilience (Lane ux5)', () => {
 
       expect(outcome.kind).toBe('failed');
       expect(said).toContain(t('capture.waking'));
-      expect(said).toContain(t('capture.errorTimeout'));
+      expect(said.some((s) => s.startsWith(t('capture.errorTimeout')))).toBe(true);
     } finally {
       vi.useRealTimers();
     }

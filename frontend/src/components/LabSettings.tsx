@@ -61,6 +61,7 @@ import {
 import type { Drivers } from '../drivers';
 import { MemoryDiagramStore } from '../drivers';
 import { describeSettings, getLang, LANG_BCP47, t } from '../i18n';
+import { hostEntryAnnouncement } from '../flow/host';
 import '../styles/settings.css';
 
 export { describeSettings };
@@ -263,7 +264,7 @@ export function LabSettings({
     if (open) {
       if (!wasOpen.current) {
         hasSpokenClose.current = false;
-        doSpeak(t('lab.settings.opened'), LANG_BCP47[getLang()] ?? 'en-IN');
+        doSpeak(hostEntryAnnouncement('settings', t('lab.settings.opened')), LANG_BCP47[getLang()] ?? 'en-IN');
       }
       setGuideEnabled(getStoredGuideSetting());
       setDirectionsEnabled(getStoredDirectionsSetting());
@@ -320,9 +321,13 @@ export function LabSettings({
 
     if (e.key === 'Tab') {
       if (!dialogRef.current) return;
-      const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      );
+      // Skip controls inside a collapsed (`hidden`) block: they cannot take focus, so using one as
+      // `last` would stop the Tab trap from wrapping (A2-01).
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.closest('[hidden]') === null);
       if (focusable.length === 0) {
         e.preventDefault();
         return;

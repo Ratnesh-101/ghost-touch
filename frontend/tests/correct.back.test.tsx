@@ -168,7 +168,7 @@ describe('Lane o1-leavebyback: Back from Correct', () => {
       });
       expect(step).toEqual({
         next: 'explore',
-        announceKey: 'explore.gestureHint',
+        announceKey: 'host.explore.next',
         needsConfirm: true,
       });
     });
@@ -181,7 +181,7 @@ describe('Lane o1-leavebyback: Back from Correct', () => {
       });
       expect(step).toEqual({
         next: 'explore',
-        announceKey: 'explore.gestureHint',
+        announceKey: 'host.explore.next',
         needsConfirm: false,
       });
     });
@@ -193,7 +193,7 @@ describe('Lane o1-leavebyback: Back from Correct', () => {
       });
       expect(step.needsConfirm).toBe(false);
       expect(step.next).toBe('explore');
-      expect(step.announceKey).toBe('explore.gestureHint');
+      expect(step.announceKey).toBe('host.explore.next');
     });
 
     it('keeps Teach and Correct dirty flags strictly isolated', () => {

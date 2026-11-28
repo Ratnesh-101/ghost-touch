@@ -295,8 +295,9 @@ describe('Explore entry announcement integration', () => {
 
     const overview = buildOverview(scene);
     expect(announcement.startsWith(overview)).toBe(true);
-    expect(announcement).toContain(tables.en['explore.gestureHint']);
-    expect(announcement).toContain('Press Back to leave.');
+    expect(announcement).toContain(tables.en['host.explore.next']);
+    expect(announcement).toContain(tables.en['explore.backHint']);
+    expect(announcement).toContain('press Back');
     // Must NOT contain double reading of title
     const occurrences = (announcement.match(/Right Triangle ABC/g) || []).length;
     expect(occurrences).toBe(1);

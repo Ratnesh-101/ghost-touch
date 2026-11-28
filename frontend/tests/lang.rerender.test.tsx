@@ -43,21 +43,21 @@ describe('Finding 10: language change screen re-render', () => {
     // Initial English
     expect(getLang()).toBe('en');
     let html = renderToStaticMarkup(createElement(App));
-    expect(html).toContain(t('start.intro'));
+    expect(html).toContain(`aria-label="${t('app.name')}, ${t('start.begin')}"`);
     expect(html).toContain('gt-start-surface');
 
     // Switch to Hindi
     setLang('hi');
     expect(getLang()).toBe('hi');
     html = renderToStaticMarkup(createElement(App));
-    expect(html).toContain(t('start.intro'));
+    expect(html).toContain(`aria-label="${t('app.name')}, ${t('start.begin')}"`);
     expect(html).toContain('घोस्ट टच');
 
     // Switch to Gujarati
     setLang('gu');
     expect(getLang()).toBe('gu');
     html = renderToStaticMarkup(createElement(App));
-    expect(html).toContain(t('start.intro'));
+    expect(html).toContain(`aria-label="${t('app.name')}, ${t('start.begin')}"`);
     expect(html).toContain('ગોસ્ટ ટચ');
   });
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   BASE_SPEECH_RATE,
   findVoiceForLang,
@@ -10,6 +10,7 @@ import {
   type SpeechHost,
   type SpeechVoiceLike,
   type UtteranceLike,
+  voiceLangName,
 } from '../src/drivers/speech';
 
 function makeVoices(): SpeechVoiceLike[] {
@@ -189,7 +190,8 @@ describe('WebSpeechDriver voice and rate integration', () => {
     driver.speak('નમસ્તે', 'gu-IN');
     // First utterance is the missing voice notice
     expect(spokenUtterances).toHaveLength(2);
-    expect(spokenUtterances[0]?.text).toContain('No system voice found for GU');
+    expect(spokenUtterances[0]?.text).toContain("I don't have a Gujarati voice on this phone");
+    expect(spokenUtterances[0]?.text).not.toMatch(/\bGU\b/);
     // Second utterance is the actual text
     expect(spokenUtterances[1]?.text).toBe('નમસ્તે');
   });
@@ -201,7 +203,7 @@ describe('WebSpeechDriver voice and rate integration', () => {
     driver.speak('લાઇન A', 'gu-IN');
     driver.speak('લાઇન B', 'gu-IN');
     // Notice spoken only once on first occurrence
-    const notices = spokenUtterances.filter((u) => u.text.includes('No system voice found'));
+    const notices = spokenUtterances.filter((u) => u.text.includes("I don't have a Gujarati voice"));
     expect(notices).toHaveLength(1);
   });
 
@@ -214,5 +216,61 @@ describe('WebSpeechDriver voice and rate integration', () => {
     expect(driver.getLastSpoken()).toBe('Point C');
     driver.speak('Segment AB');
     expect(driver.getLastSpoken()).toBe('Segment AB');
+  });
+});
+
+describe('GH-06 voiceLangName: the notice names the language, never the code', () => {
+  it('maps known codes to English names and falls back to the upper-case prefix', () => {
+    expect(voiceLangName('hi-IN')).toBe('Hindi');
+    expect(voiceLangName('gu')).toBe('Gujarati');
+    expect(voiceLangName('en_IN')).toBe('English');
+    expect(voiceLangName('xx-YY')).toBe('XX');
+    expect(voiceLangName('')).toBe('');
+  });
+});
+
+describe('GH-05 onEnd: only an utterance that was heard to its end reports it', () => {
+  it('calls onEnd when the utterance ends, and not when a newer speak replaced it', () => {
+    const { host, spokenUtterances } = fakeSpeechHost();
+    const driver = new WebSpeechDriver(host);
+    const first = vi.fn();
+    const second = vi.fn();
+
+    driver.speak('one', 'en-IN', { onEnd: first });
+    driver.speak('two', 'en-IN', { onEnd: second });
+    // The browser may still report `end` for the cancelled first utterance.
+    const [u1, u2] = spokenUtterances;
+    (u1?.onend as (() => void) | null | undefined)?.();
+    (u2?.onend as (() => void) | null | undefined)?.();
+
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  it('a queued utterance keeps its onEnd', () => {
+    const { host, spokenUtterances } = fakeSpeechHost();
+    const driver = new WebSpeechDriver(host);
+    const first = vi.fn();
+    const queued = vi.fn();
+
+    driver.speak('one', 'en-IN', { onEnd: first });
+    driver.speak('two', 'en-IN', { queue: true, onEnd: queued });
+    (spokenUtterances[0]?.onend as (() => void) | null | undefined)?.();
+    (spokenUtterances[1]?.onend as (() => void) | null | undefined)?.();
+
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(queued).toHaveBeenCalledTimes(1);
+  });
+
+  it('stopSpeaking makes a pending onEnd silent', () => {
+    const { host, spokenUtterances } = fakeSpeechHost();
+    const driver = new WebSpeechDriver(host);
+    const onEnd = vi.fn();
+
+    driver.speak('one', 'en-IN', { onEnd });
+    driver.stopSpeaking();
+    (spokenUtterances[0]?.onend as (() => void) | null | undefined)?.();
+
+    expect(onEnd).not.toHaveBeenCalled();
   });
 });

@@ -57,7 +57,7 @@ describe('P182 Back from Build (it.fails until lane C-wire)', () => {
         if (f.buildFeel) {
           expect(step).toEqual({ next: 'build', announceKey: 'build.backToForm', needsConfirm: false });
         } else {
-          expect(step).toEqual({ next: 'capture', announceKey: 'capture.prompt', needsConfirm: f.buildDirty });
+          expect(step).toEqual({ next: 'capture', announceKey: 'host.capture.next', needsConfirm: f.buildDirty });
         }
       }),
       { numRuns: runs(100) },

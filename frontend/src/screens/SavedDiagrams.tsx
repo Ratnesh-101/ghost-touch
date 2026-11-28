@@ -12,7 +12,12 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type JSX } from 'react';
 import type { DiagramScene } from '../core/scene';
 import { orderForDisplay, savedTitle, type SavedDiagram } from '../core/savedDiagrams';
-import { confirmDeleteDiagram, deletedAnnouncement, loadSavedList } from '../flow/saved';
+import {
+  confirmDeleteDiagram,
+  deletedAnnouncement,
+  loadSavedList,
+  savedEntryAnnouncement,
+} from '../flow/saved';
 import { joinAnnouncements } from '../flow/explore';
 import type { DiagramStore } from '../drivers/diagramStore';
 import type { SpeechDriver } from '../drivers/speech';
@@ -46,11 +51,27 @@ export function SavedDiagrams({
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  // The Delete/Confirm/Cancel swap removes the focused button; remember where focus goes (A2-05).
+  const pendingFocusRef = useRef<{ id: string; action: 'confirm' | 'delete' } | null>(null);
   const activeRef = useRef(true);
   const entriesRef = useRef(entries);
   entriesRef.current = entries;
   const activeLangRef = useRef(activeLang);
   activeLangRef.current = activeLang;
+
+  useEffect(() => {
+    const pending = pendingFocusRef.current;
+    if (!pending) return;
+    pendingFocusRef.current = null;
+    const buttons = listRef.current?.querySelectorAll<HTMLElement>('[data-saved-action]') ?? [];
+    for (const el of Array.from(buttons)) {
+      if (el.dataset.entryId === pending.id && el.dataset.savedAction === pending.action) {
+        el.focus();
+        break;
+      }
+    }
+  }, [confirmingId]);
 
   // Focus screen heading on mount for TalkBack / keyboard focus placement (Finding 8)
   useEffect(() => {
@@ -70,12 +91,11 @@ export function SavedDiagrams({
     void loadSavedList(diagramStore, () => active && activeRef.current, (view) => {
       setLoading(false);
       setEntries(view.entries);
-      if (view.phase === 'list') {
-        const lang = activeLangRef.current;
-        say(joinAnnouncements(view.entries.map((e) => savedTitle(e.scene, lang))));
-      } else {
-        say(view.announcement);
-      }
+      // One utterance: heading, next step, then the titles (or the notice). App no longer
+      // speaks the heading, because `speak()` would cut it off when this line starts.
+      const lang = activeLangRef.current;
+      const titles = joinAnnouncements(view.entries.map((e) => savedTitle(e.scene, lang)));
+      say(savedEntryAnnouncement(view.phase === 'list' ? { ...view, announcement: titles } : view));
     });
     return () => {
       activeRef.current = false;
@@ -91,12 +111,14 @@ export function SavedDiagrams({
   };
 
   const handleDeleteRequest = (entry: SavedDiagram, title: string): void => {
+    pendingFocusRef.current = { id: entry.id, action: 'confirm' };
     setConfirmingId(entry.id);
     const msg = t('saved.deleteConfirm').replace('{title}', title);
     say(msg);
   };
 
-  const handleCancelDelete = (): void => {
+  const handleCancelDelete = (entryId: string): void => {
+    pendingFocusRef.current = { id: entryId, action: 'delete' };
     setConfirmingId(null);
     say(t('saved.cancelled'));
   };
@@ -163,7 +185,7 @@ export function SavedDiagrams({
           <p className="gt-saved__empty">{t('saved.empty')}</p>
         </div>
       ) : (
-        <ul className="gt-saved__list" role="list">
+        <ul className="gt-saved__list" role="list" ref={listRef}>
           {entries.map((entry) => {
             const title = savedTitle(entry.scene, activeLang);
             const pinLabel = entry.pinned ? t('saved.unpin') : t('saved.pin');
@@ -215,6 +237,8 @@ export function SavedDiagrams({
                     <>
                       <AccessibleButton
                         className="gt-saved__btn gt-saved__btn--confirm gt-control"
+                        data-saved-action="confirm"
+                        data-entry-id={entry.id}
                         aria-label={`${t('saved.confirmDelete')} ${title}`}
                         onClick={() => void handleConfirmDelete(entry, title)}
                       >
@@ -223,7 +247,7 @@ export function SavedDiagrams({
                       <AccessibleButton
                         className="gt-saved__btn gt-saved__btn--cancel gt-control"
                         aria-label={`${t('saved.cancel')} ${title}`}
-                        onClick={handleCancelDelete}
+                        onClick={() => handleCancelDelete(entry.id)}
                       >
                         {t('saved.cancel')}
                       </AccessibleButton>
@@ -231,6 +255,8 @@ export function SavedDiagrams({
                   ) : (
                     <AccessibleButton
                       className="gt-saved__btn gt-saved__btn--delete gt-control"
+                      data-saved-action="delete"
+                      data-entry-id={entry.id}
                       aria-label={`${t('saved.delete')} ${title}`}
                       onClick={() => handleDeleteRequest(entry, title)}
                     >

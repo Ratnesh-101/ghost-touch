@@ -117,7 +117,7 @@ describe('Teacher Editor Routing & Gating', () => {
     (globalThis as unknown as { history: unknown }).history = mockWindow.history;
 
     const html = renderToStaticMarkup(createElement(App));
-    expect(html).toContain(t('start.tapToBegin'));
+    expect(html).toContain(`${t('app.name')}, ${t('start.begin')}`);
     expect(html).not.toContain(t('teach.title'));
   });
 
@@ -130,7 +130,7 @@ describe('Teacher Editor Routing & Gating', () => {
     (globalThis as unknown as { history: unknown }).history = mockWindow.history;
 
     const html = renderToStaticMarkup(createElement(App));
-    expect(html).toContain(t('start.tapToBegin'));
+    expect(html).toContain(`${t('app.name')}, ${t('start.begin')}`);
     expect(html).not.toContain(t('teach.title'));
   });
 
@@ -145,7 +145,7 @@ describe('Teacher Editor Routing & Gating', () => {
     const html = renderToStaticMarkup(createElement(App));
     expect(html).toContain(t('teach.title'));
     expect(html).toContain(t('teach.markVerified'));
-    expect(html).not.toContain(t('start.tapToBegin'));
+    expect(html).not.toContain(`${t('app.name')}, ${t('start.begin')}`);
   });
 
   it('LabSettings sheet displays teacher toggle only when VITE_FEATURE_SHARE === "1"', () => {

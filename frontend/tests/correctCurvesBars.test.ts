@@ -437,12 +437,15 @@ describe('Requirement 21: Correct mode can select and delete curves and bars', (
       expect(html).toContain('gt-correct__element-list');
 
       // Curve buttons exist with accessible names
-      expect(html).toContain('Selected curve: Sine Wave (c1)');
-      expect(html).toContain('Selected curve: c2');
+      expect(html).toContain('>Sine Wave (c1)<');
+      expect(html).toContain('>c2<');
 
       // Bar buttons exist with accessible names
-      expect(html).toContain('Selected bar: Bar One (b1)');
-      expect(html).toContain('Selected bar: Bar Two (b2)');
+      expect(html).toContain('>Bar One (b1)<');
+      expect(html).toContain('>Bar Two (b2)<');
+      // aria-pressed carries the state, so the name must not say "Selected" (A2-02)
+      expect(html).not.toContain('Selected curve');
+      expect(html).not.toContain('Selected bar');
 
       // Delete button exists in toolbar
       expect(html).toContain(t('correct.delete'));

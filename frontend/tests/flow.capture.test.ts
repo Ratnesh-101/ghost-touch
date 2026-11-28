@@ -12,7 +12,17 @@ import {
 } from '../src/flow/capture';
 import { exploreAnnouncement, sceneName } from '../src/flow/navigation';
 import { PdfError } from '../src/drivers/pdf';
-import { getLang, setLang, t } from '../src/i18n';
+import { createHostFlow, resetHostFlows } from '../src/flow/host';
+import { englishOnly, getLang, setLang, t } from '../src/i18n';
+
+/**
+ * The spoken line of a flow's FIRST failure: the plain line plus its English joke clause
+ * (Requirement 53.6). Hindi and Gujarati never carry a joke.
+ */
+function fl(key: string): string {
+  const joke = getLang() === 'en' ? englishOnly(key + '.joke') : null;
+  return joke === null ? t(key) : t(key) + ' ' + joke;
+}
 
 const response: SceneResponse = { scene: { kind: 'geometry', title: 'Right triangle' }, mode: 'ai' };
 
@@ -46,7 +56,10 @@ describe('startProgressTone', () => {
 });
 
 describe('processImageFile', () => {
-  beforeEach(() => vi.useFakeTimers());
+  beforeEach(() => {
+    vi.useFakeTimers();
+    resetHostFlows();
+  });
   afterEach(() => vi.useRealTimers());
 
   it('accepts a chosen PDF, speaks first-page line, prepares with PDF renderer and uploads', async () => {
@@ -137,7 +150,7 @@ describe('processImageFile', () => {
     await processImageFile(jpeg(1000, 'image/gif'), deps);
     await processImageFile(jpeg(10 * 1024 * 1024 + 1, 'image/png'), deps);
     expect(said).toEqual([rejectionMessage('type'), rejectionMessage('size')]);
-    expect(said[1]).toBe('That file is too large. Maximum is 10 megabytes.');
+    expect(said[1]).toBe('That file is too large. Choose a smaller one, up to 10 megabytes.');
     expect(deps.request).not.toHaveBeenCalled();
   });
 
@@ -163,7 +176,7 @@ describe('processImageFile', () => {
       signal: chosen.controller.signal,
     });
     expect(chosenOutcome.kind).toBe('rejected');
-    expect(chosen.said).toEqual(['That file is too large. Maximum is 10 megabytes.']);
+    expect(chosen.said).toEqual(['That file is too large. Choose a smaller one, up to 10 megabytes.']);
   });
 
   it('says a camera photo that is far too large cannot be opened, without quoting 10 MB', async () => {
@@ -200,7 +213,8 @@ describe('processImageFile', () => {
       audio, say, prepare: (file) => Promise.resolve(file), request, signal: controller.signal,
     });
     expect(outcome.kind).toBe('failed');
-    expect(said).toEqual(['Reading your diagram', 'Something went wrong. Please try again, or pick a sample.']);
+    expect(said).toEqual(['Reading your diagram', fl('capture.error')]);
+    expect(said[1]).toBe('Something went wrong. Try again, or pick a sample. My spare parts rattled loose.');
     expect(vi.getTimerCount()).toBe(0);
   });
 
@@ -211,7 +225,7 @@ describe('processImageFile', () => {
       audio, say, prepare: (file) => Promise.resolve(file), request, signal: controller.signal,
     });
     expect(outcome.kind).toBe('failed');
-    expect(said).toEqual(['Reading your diagram', t('capture.errorBusy')]);
+    expect(said).toEqual(['Reading your diagram', fl('capture.errorBusy')]);
     expect(vi.getTimerCount()).toBe(0);
   });
 
@@ -254,7 +268,7 @@ describe('processImageFile', () => {
         audio, say, prepare: (file) => Promise.resolve(file), request, signal: controller.signal,
       });
       expect(outcome.kind).toBe('failed');
-      expect(said).toEqual(['Reading your diagram', t('capture.errorOffline')]);
+      expect(said).toEqual(['Reading your diagram', fl('capture.errorOffline')]);
       expect(vi.getTimerCount()).toBe(0);
     } finally {
       restoreNav();
@@ -264,45 +278,45 @@ describe('processImageFile', () => {
   it('maps every failure kind to the appropriate message, including network', () => {
     // When online or in node test environment (navigator.onLine !== false), network failure
     // maps to generic error for backwards compatibility
-    expect(captureErrorMessage(new SceneRequestError('busy'))).toBe(t('capture.errorBusy'));
-    expect(captureErrorMessage(new SceneRequestError('gateway'))).toBe(t('capture.errorGateway'));
-    expect(captureErrorMessage(new SceneRequestError('timeout'))).toBe(t('capture.errorTimeout'));
-    expect(captureErrorMessage(new SceneRequestError('network'))).toBe(t('capture.error'));
-    expect(captureErrorMessage(new SceneRequestError('http'))).toBe(t('capture.error'));
-    expect(captureErrorMessage(new SceneRequestError('bad-response'))).toBe(t('capture.error'));
-    expect(captureErrorMessage(new SceneRequestError('aborted'))).toBe(t('capture.error'));
+    expect(captureErrorMessage(new SceneRequestError('busy'), createHostFlow())).toBe(fl('capture.errorBusy'));
+    expect(captureErrorMessage(new SceneRequestError('gateway'), createHostFlow())).toBe(fl('capture.errorGateway'));
+    expect(captureErrorMessage(new SceneRequestError('timeout'), createHostFlow())).toBe(fl('capture.errorTimeout'));
+    expect(captureErrorMessage(new SceneRequestError('network'), createHostFlow())).toBe(fl('capture.errorServer'));
+    expect(captureErrorMessage(new SceneRequestError('http'), createHostFlow())).toBe(fl('capture.errorServer'));
+    expect(captureErrorMessage(new SceneRequestError('bad-response'), createHostFlow())).toBe(fl('capture.errorServer'));
+    expect(captureErrorMessage(new SceneRequestError('aborted'), createHostFlow())).toBe(fl('capture.error'));
 
     // PdfError reasons
-    expect(captureErrorMessage(new PdfError('password'))).toBe(t('capture.errorPdfPassword'));
-    expect(captureErrorMessage(new PdfError('invalid'))).toBe(t('capture.errorPdfInvalid'));
-    expect(captureErrorMessage(new PdfError('empty'))).toBe(t('capture.errorPdfEmpty'));
-    expect(captureErrorMessage(new PdfError('timeout'))).toBe(t('capture.errorPdfTimeout'));
+    expect(captureErrorMessage(new PdfError('password'), createHostFlow())).toBe(t('capture.errorPdfPassword'));
+    expect(captureErrorMessage(new PdfError('invalid'), createHostFlow())).toBe(t('capture.errorPdfInvalid'));
+    expect(captureErrorMessage(new PdfError('empty'), createHostFlow())).toBe(t('capture.errorPdfEmpty'));
+    expect(captureErrorMessage(new PdfError('timeout'), createHostFlow())).toBe(t('capture.errorPdfTimeout'));
 
     // Unknown errors fall back to generic error
-    expect(captureErrorMessage(new Error('unknown'))).toBe(t('capture.error'));
-    expect(captureErrorMessage('non-error string')).toBe(t('capture.error'));
+    expect(captureErrorMessage(new Error('unknown'), createHostFlow())).toBe(fl('capture.error'));
+    expect(captureErrorMessage('non-error string', createHostFlow())).toBe(fl('capture.error'));
 
     // When truly offline (navigator.onLine === false), network failure maps to capture.errorOffline
     const restoreNav = setNavigatorOnLine(false);
     try {
-      expect(captureErrorMessage(new SceneRequestError('network'))).toBe(
-        t('capture.errorOffline'),
+      expect(captureErrorMessage(new SceneRequestError('network'), createHostFlow())).toBe(
+        fl('capture.errorOffline'),
       );
 
       // Localized network error message
       const prevLang = getLang();
       try {
         setLang('hi');
-        expect(captureErrorMessage(new SceneRequestError('network'))).toBe(
-          t('capture.errorOffline'),
+        expect(captureErrorMessage(new SceneRequestError('network'), createHostFlow())).toBe(
+          fl('capture.errorOffline'),
         );
-        expect(captureErrorMessage(new SceneRequestError('network'))).toContain('ऑफ़लाइन');
+        expect(captureErrorMessage(new SceneRequestError('network'), createHostFlow())).toContain('ऑफ़लाइन');
 
         setLang('gu');
-        expect(captureErrorMessage(new SceneRequestError('network'))).toBe(
-          t('capture.errorOffline'),
+        expect(captureErrorMessage(new SceneRequestError('network'), createHostFlow())).toBe(
+          fl('capture.errorOffline'),
         );
-        expect(captureErrorMessage(new SceneRequestError('network'))).toContain('ઑફલાઇન');
+        expect(captureErrorMessage(new SceneRequestError('network'), createHostFlow())).toContain('ઑફલાઇન');
       } finally {
         setLang(prevLang);
       }
@@ -317,7 +331,7 @@ describe('processImageFile', () => {
       audio, say, prepare: () => Promise.reject(new Error('decode')), request: vi.fn(), signal: controller.signal,
     });
     expect(outcome.kind).toBe('failed');
-    expect(said.at(-1)).toBe(t('capture.error'));
+    expect(said.at(-1)).toBe(fl('capture.error'));
     expect(vi.getTimerCount()).toBe(0);
   });
 

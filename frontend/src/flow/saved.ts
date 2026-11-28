@@ -13,6 +13,7 @@ import type { DiagramStore } from '../drivers/diagramStore';
 import { requestPersistentStorage } from '../drivers/persist';
 import { t } from '../i18n';
 import { joinAnnouncements } from './explore';
+import { hostNextKey } from './host';
 
 export interface SavedLoadView {
   phase: 'error' | 'empty' | 'list';
@@ -43,6 +44,19 @@ export async function loadSavedList(
   }
   // R3-05: joinAnnouncements used instead of raw entries.map((e) => e.title).join('. ')
   apply({ phase: 'list', entries, announcement: joinAnnouncements(entries.map((e) => e.title)) });
+}
+
+/**
+ * The one utterance when the Saved screen has loaded (Requirement 53.3, probe item 5): the
+ * heading, then the next step, then the titles. With no entries (or a load error) the notice
+ * replaces the titles and the next step is left out, because `host.saved.next` says to choose a
+ * saved diagram and there is none.
+ */
+export function savedEntryAnnouncement(view: SavedLoadView): string {
+  if (view.phase === 'list') {
+    return joinAnnouncements([t('saved.heading'), t(hostNextKey('saved')), view.announcement]);
+  }
+  return joinAnnouncements([t('saved.heading'), view.announcement]);
 }
 
 /**

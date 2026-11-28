@@ -191,7 +191,7 @@ describe('LabSettings spoken announcements and callbacks', () => {
   });
 
   it('provides lab.settings.opened and lab.settings.closed string definitions', () => {
-    expect(t('lab.settings.opened')).toBe('Lab settings opened');
+    expect(t('lab.settings.opened')).toBe('Settings opened');
     expect(t('lab.settings.closed')).toBe('Lab settings closed');
 
     setLang('hi');

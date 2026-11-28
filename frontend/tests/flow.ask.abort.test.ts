@@ -53,9 +53,9 @@ describe('AskManager listen handling', () => {
   });
 
   it('maps a listen timeout to its own message', () => {
-    expect(askErrorMessage(new ListenError('timeout'))).toBe(t('ask.errorListenTimeout'));
+    expect(askErrorMessage(new ListenError('timeout'))).toContain(t('ask.errorListenTimeout'));
     expect(t('ask.errorListenTimeout')).not.toBe(t('ask.errorTimeout'));
-    expect(askErrorMessage(new AskRequestError('timeout'))).toBe(t('ask.errorTimeout'));
+    expect(askErrorMessage(new AskRequestError('timeout'))).toContain(t('ask.errorTimeout'));
   });
 });
 

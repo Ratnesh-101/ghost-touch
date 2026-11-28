@@ -25,6 +25,7 @@ import {
 import { reloadOnce } from '../drivers/swUpdate';
 import type { AudioDriver } from '../drivers';
 import { t } from '../i18n';
+import { hostFlows, type HostFlow } from './host';
 
 /** Soft cue while the diagram is being read (Requirement 2.3). */
 export const PROGRESS_INTERVAL_MS = 1500;
@@ -63,30 +64,40 @@ export function pdfErrorMessage(reason: PdfErrorReason): string {
   return t(PDF_ERROR_KEYS[reason]);
 }
 
-export function captureErrorMessage(error: unknown): string {
+/**
+ * The spoken line for a failed capture. Each call counts one failure in the capture flow
+ * (Requirement 53.6), so only the first failure in a row may carry a joke clause. Only an offline
+ * device says "offline"; an online device that cannot reach the backend, or gets an HTTP error or
+ * an unreadable body, says so in plain words and names what still works (Requirement 53.16d).
+ * File and PDF problems are not backend failures and never carry a joke.
+ */
+export function captureErrorMessage(
+  error: unknown,
+  flow: HostFlow = hostFlows.capture,
+  isOffline: () => boolean = () => typeof navigator !== 'undefined' && navigator.onLine === false,
+): string {
   if (error instanceof PdfError) {
     return pdfErrorMessage(error.reason);
   }
   if (error instanceof SceneRequestError) {
-    if (error.failure === 'busy') {
-      return t('capture.errorBusy');
-    }
-    if (error.failure === 'gateway') {
-      return t('capture.errorGateway');
-    }
-    if (error.failure === 'timeout') {
-      return t('capture.errorTimeout');
-    }
-    if (error.failure === 'network') {
-      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-        return t('capture.errorOffline');
-      }
-      return t('capture.error');
+    switch (error.failure) {
+      case 'busy':
+        return flow.errorLine('capture.errorBusy');
+      case 'gateway':
+        return flow.errorLine('capture.errorGateway');
+      case 'timeout':
+        return flow.errorLine('capture.errorTimeout');
+      case 'network':
+        return flow.errorLine(isOffline() ? 'capture.errorOffline' : 'capture.errorServer');
+      case 'http':
+      case 'bad-response':
+        return flow.errorLine('capture.errorServer');
+      default:
+        break;
     }
   }
-  return t('capture.error');
+  return flow.errorLine('capture.error');
 }
-
 /** Where the file came from decides the size limit: the camera's raw photo vs a chosen file. */
 export type FileSource = 'camera' | 'file';
 
@@ -158,6 +169,7 @@ export async function processImageFile(
   try {
     const image = await prepare(file);
     const response = await request(image, deps.signal);
+    hostFlows.capture.success();
     return { kind: 'scene', response };
   } catch (err: unknown) {
     if (deps.signal.aborted) return { kind: 'cancelled' };

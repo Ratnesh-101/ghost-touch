@@ -504,7 +504,7 @@ export function App({ watcher, drivers: initialDrivers }: AppProps = {}): JSX.El
   useEffect(() => {
     if (view.screen === 'saved') {
       return onSavedBack(() => {
-        const announced = t('capture.prompt');
+        const announced = t('host.capture.next');
         drivers.speech.speak(announced, LANG_BCP47[getLang()]);
         setView({ screen: 'capture', announced });
       });
@@ -727,19 +727,19 @@ export function App({ watcher, drivers: initialDrivers }: AppProps = {}): JSX.El
     updatePhotoUrl(null);
     if ((view.screen === 'explore' && view.fromShare) || view.screen === 'shareGate') {
       clearHash();
-      const announced = t('start.intro');
+      const announced = t('host.start.next');
       drivers.speech.speak(announced, LANG_BCP47[currentLang]);
       setView({ screen: 'start' });
       return;
     }
-    const announced = t('capture.prompt');
+    const announced = t('host.capture.next');
     drivers.speech.speak(announced, LANG_BCP47[currentLang]);
     setView({ screen: 'capture', announced });
   };
 
   const handleGoToStart = (): void => {
     clearHash();
-    const announced = t('start.intro');
+    const announced = t('host.start.next');
     drivers.speech.speak(announced, LANG_BCP47[currentLang]);
     setView({ screen: 'start' });
   };
@@ -747,8 +747,7 @@ export function App({ watcher, drivers: initialDrivers }: AppProps = {}): JSX.El
   const openBuild = useCallback((): void => {
     buildDirty.current = false;
     buildFeel.current = false;
-    const announced = t('build.prompt');
-    drivers.speech.speak(announced, LANG_BCP47[currentLang]);
+    // Build speaks its title and next step as one utterance on mount.
     setView({ screen: 'build' });
   }, [currentLang, drivers]);
 
@@ -786,8 +785,7 @@ export function App({ watcher, drivers: initialDrivers }: AppProps = {}): JSX.El
   const handleCorrect = (): void => {
     if (view.screen !== 'explore') return;
     pushCorrectEntry();
-    const intro = t('correct.intro');
-    drivers.speech.speak(intro, LANG_BCP47[currentLang]);
+    // Correct speaks its intro once on mount.
     setView({ screen: 'correct', scene: view.scene });
   };
 
@@ -823,14 +821,13 @@ export function App({ watcher, drivers: initialDrivers }: AppProps = {}): JSX.El
 
   const openSaved = (): void => {
     pushSavedEntry();
-    const msg = t('saved.heading');
-    drivers.speech.speak(msg, LANG_BCP47[currentLang]);
+    // The Saved screen speaks its heading, next step and list as one utterance on load.
     setView({ screen: 'saved' });
   };
 
   const handleSavedBack = (): void => {
     leaveSavedEntry();
-    const announced = t('capture.prompt');
+    const announced = t('host.capture.next');
     drivers.speech.speak(announced, LANG_BCP47[currentLang]);
     setView({ screen: 'capture', announced });
   };
@@ -844,7 +841,7 @@ export function App({ watcher, drivers: initialDrivers }: AppProps = {}): JSX.El
     const isRaw = scene.kind === 'unknown';
     const overview = isRaw ? '' : buildOverview(scene, title);
     const lead = overview.length > 0 ? overview : title;
-    const base = joinAnnouncements([lead, t('explore.gestureHint'), t('explore.backHint')]);
+    const base = joinAnnouncements([lead, t('host.explore.next'), t('explore.backHint')]);
     const caveat = verifyCaveatForScene(scene, 'ai');
     const baseAnnounced = caveat ? joinAnnouncements([base, caveat]) : base;
     drivers.speech.speak(baseAnnounced, LANG_BCP47[currentLang]);
@@ -869,9 +866,10 @@ export function App({ watcher, drivers: initialDrivers }: AppProps = {}): JSX.El
         announced: makeExploreAnnounced(baseAnnounced),
       });
     } else {
-      const announced = t('start.intro');
+      // Teach opens from Capture (Settings), so Back returns there, not to Start.
+      const announced = t('host.capture.next');
       drivers.speech.speak(announced, LANG_BCP47[currentLang]);
-      setView({ screen: 'start' });
+      setView({ screen: 'capture', announced });
     }
   };
 

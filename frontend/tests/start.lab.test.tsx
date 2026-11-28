@@ -82,7 +82,9 @@ describe('Start screen (Frankenstein Lab redesign)', () => {
 
       expect(html.match(/<button/g)).toHaveLength(1);
       expect(html).toContain('class="gt-start-surface"');
-      expect(html).toContain(`aria-label="${t('start.intro')}"`);
+      expect(html).toContain(`aria-label="${t('app.name')}, ${t('start.begin')}"`);
+      // The long greeting is spoken, not the accessible name (Requirement 53.1, GH-04).
+      expect(html).not.toContain(t('host.start.greeting'));
     });
 
     it('encloses all visible hero content in aria-hidden="true" so screen readers hear only the button label', () => {
@@ -168,8 +170,8 @@ describe('Start screen (Frankenstein Lab redesign)', () => {
       const { drivers } = makeMockDrivers();
       const html = renderToStaticMarkup(createElement(Start, { drivers, onBegin: vi.fn() }));
 
-      // Button accessible name in Hindi
-      expect(html).toContain('aria-label="घोस्ट टच। शुरू करने के लिए कहीं भी टैप करें।"');
+      // Button accessible name in Hindi: short name, so the spoken greeting is not repeated (GH-04)
+      expect(html).toContain('aria-label="घोस्ट टच, शुरू करें"');
 
       // Tagline in Hindi
       expect(html).toContain('वे चित्र महसूस करें जो आप देख नहीं सकते।');
@@ -200,8 +202,8 @@ describe('Start screen (Frankenstein Lab redesign)', () => {
       const { drivers } = makeMockDrivers();
       const html = renderToStaticMarkup(createElement(Start, { drivers, onBegin: vi.fn() }));
 
-      // Button accessible name in Gujarati
-      expect(html).toContain('aria-label="ગોસ્ટ ટચ. શરૂ કરવા માટે ગમે ત્યાં ટેપ કરો."');
+      // Button accessible name in Gujarati: short name (GH-04)
+      expect(html).toContain('aria-label="ગોસ્ટ ટચ, શરૂ કરો"');
 
       // Tagline in Gujarati
       expect(html).toContain('જે આકૃતિઓ તમે જોઈ શકતા નથી તેને સ્પર્શથી અનુભવો.');

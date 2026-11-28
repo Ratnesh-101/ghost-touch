@@ -329,7 +329,6 @@
 .gt-explore .gt-explore__actions .gt-explore__guide-me {
   flex: 1 1 calc(25% - var(--gt-space-2xs, 4px));
   min-height: var(--gt-target, 48px);
-  height: 48px;
   min-width: var(--gt-target, 48px);
   padding: 2px 4px;
   font-size: var(--gt-text-sm, 0.875rem);

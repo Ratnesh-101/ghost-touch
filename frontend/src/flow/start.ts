@@ -32,25 +32,32 @@ export function setSpokenLangOffer(spoken: boolean = true): void {
  */
 export function speakLangOffer(drivers: Drivers, lang: string = LANG_BCP47[getLang()]): boolean {
   if (hasSpokenLangOffer()) return false;
-  setSpokenLangOffer(true);
-  drivers.speech.speak(t('start.langOffer'), lang, { queue: true });
+  // The flag is written only when the offer has been heard to its end (GH-05, Requirement 53.14d).
+  // A blocked, cancelled or replaced utterance leaves it unset, so the offer is tried again.
+  drivers.speech.speak(t('start.langOffer'), lang, {
+    queue: true,
+    onEnd: () => setSpokenLangOffer(true),
+  });
   return true;
 }
 
-/** What the user hears when the Capture screen opens. */
+/** What the user hears when the Capture screen opens (one host line, Requirement 53.2). */
 export function capturePrompt(vibrationSupported: boolean): string {
   return vibrationSupported
-    ? t('capture.prompt')
-    : `${t('start.noVibration')} ${t('capture.prompt')}`;
+    ? t('host.capture.next')
+    : `${t('start.noVibration')} ${t('host.capture.next')}`;
 }
 
-/** Speak the opening line when the app loads (Chrome may block it until a tap). */
+/**
+ * Speak the host greeting when the app loads (Chrome may block it until a tap).
+ * One utterance, spoken once per Start opening (Requirement 53.1).
+ */
 export function speakIntro(
   drivers: Drivers,
   lang: string = LANG_BCP47[getLang()],
   options?: { offerLang?: boolean },
 ): void {
-  drivers.speech.speak(t('start.intro'), lang);
+  drivers.speech.speak(t('host.start.greeting'), lang);
   if (options?.offerLang) {
     speakLangOffer(drivers, lang);
   }

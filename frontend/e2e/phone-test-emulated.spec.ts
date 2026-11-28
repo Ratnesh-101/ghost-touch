@@ -54,7 +54,7 @@ test.describe('PT 2 start screen and audio unlock', () => {
     await expect(page.locator('.gt-start-surface')).toBeVisible();
     await clearSpies(page);
     await page.locator('.gt-start-surface').click();
-    await expectSpoken(page, t('capture.prompt'));
+    await expectSpoken(page, t('host.capture.next'));
     expect(await vibrations(page)).toContainEqual(50);
     await expect(page.getByRole('button', { name: /triangle/i }).first()).toBeVisible();
   });
@@ -118,7 +118,7 @@ test.describe('PT 3 settings sheet and persistence', () => {
     await page.reload();
     await clearSpies(page);
     await page.locator('.gt-start-surface').click();
-    await expectSpoken(page, tables.hi['capture.prompt'] as string);
+    await expectSpoken(page, tables.hi['host.capture.next'] as string);
   });
 });
 
@@ -271,7 +271,7 @@ test.describe('PT 12 Hindi and Gujarati speech: the spoken text (voice and langu
       await page.reload();
       await clearSpies(page);
       await page.locator('.gt-start-surface').click();
-      const prompt = tables[lang]['capture.prompt'] as string;
+      const prompt = tables[lang]['host.capture.next'] as string;
       await expectSpoken(page, prompt);
       // The utterance language tag depends on the voices installed: this test browser has no Hindi or Gujarati
       // voice, so the driver falls back to an English voice (by design, with a spoken notice). The tag and the

@@ -246,7 +246,7 @@ describe('Lab Explore: HUD, Status Chip & Raw Mode (Brief Item 2)', () => {
     expect(html).toContain('Diagram');
   });
 
-  it('renders raw mode notice when in raw mode, with role="status"', () => {
+  it('renders raw mode notice when in raw mode, as plain text while the app speaks it (no live region)', () => {
     const html = renderToStaticMarkup(
       createElement(Explore, {
         scene: { kind: 'unknown', title: 'Raw Diagram' },
@@ -258,7 +258,7 @@ describe('Lab Explore: HUD, Status Chip & Raw Mode (Brief Item 2)', () => {
     );
 
     expect(html).toContain('gt-lab-raw-notice');
-    expect(html).toContain('role="status"');
+    expect(html).not.toContain('role="status"');
     expect(html).toContain('gt-explore__raw-badge');
     expect(html).toContain('Raw');
     expect(html).toContain('gt-explore__raw-text');

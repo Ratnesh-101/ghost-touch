@@ -143,7 +143,7 @@ describe('Lane ux4: gesture hint and start subhint wording (say only what is tru
           expect(text.toLowerCase()).not.toContain('double-tap');
           expect(text).not.toContain('डबल-टैप');
           expect(text).not.toContain('ડબલ-ટેપ');
-          expect(text).toContain(t('explore.gestureHint'));
+          expect(text).toContain(t('host.explore.next'));
         });
 
         it('exploreAnnouncement matches buildEntryAnnouncement identically', () => {
@@ -157,7 +157,7 @@ describe('Lane ux4: gesture hint and start subhint wording (say only what is tru
           expect(text.toLowerCase()).not.toContain('double-tap');
           expect(text).not.toContain('डबल-टैप');
           expect(text).not.toContain('ડબલ-ટેપ');
-          expect(text).toContain(t('explore.gestureHint'));
+          expect(text).toContain(t('host.explore.next'));
         });
 
         it('buildEntryAnnouncement contains no "double-tap" in sample mode', () => {
@@ -179,7 +179,7 @@ describe('Lane ux4: gesture hint and start subhint wording (say only what is tru
           expect(text.toLowerCase()).not.toContain('double-tap');
           expect(text).not.toContain('डबल-टैप');
           expect(text).not.toContain('ડબલ-ટેપ');
-          expect(text).toContain(t('explore.gestureHint'));
+          expect(text).toContain(t('host.raw.next'));
         });
       });
     }
@@ -225,8 +225,8 @@ describe('Lane ux4: gesture hint and start subhint wording (say only what is tru
       const step = leaveByBack('teach', ctx);
 
       expect(step.next).toBe('explore');
-      expect(step.announceKey).toBe('explore.gestureHint');
-      expect(t(step.announceKey)).toBe('Drag one finger to feel the diagram.');
+      expect(step.announceKey).toBe('host.explore.next');
+      expect(t(step.announceKey)).toBe('Drag one finger to feel the diagram, or press Help any time.');
       expect(t(step.announceKey).toLowerCase()).not.toContain('double-tap');
     });
 
@@ -236,8 +236,8 @@ describe('Lane ux4: gesture hint and start subhint wording (say only what is tru
       const step = leaveByBack('correct', ctx);
 
       expect(step.next).toBe('explore');
-      expect(step.announceKey).toBe('explore.gestureHint');
-      expect(t(step.announceKey)).toBe('Drag one finger to feel the diagram.');
+      expect(step.announceKey).toBe('host.explore.next');
+      expect(t(step.announceKey)).toBe('Drag one finger to feel the diagram, or press Help any time.');
       expect(t(step.announceKey).toLowerCase()).not.toContain('double-tap');
     });
   });

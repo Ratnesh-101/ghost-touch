@@ -10,7 +10,8 @@ import {
   askErrorMessage,
   type AskDeps,
 } from '../src/flow/ask';
-import { t } from '../src/i18n';
+import { createHostFlow } from '../src/flow/host';
+import { englishOnly, t } from '../src/i18n';
 
 const sampleScene: DiagramScene = {
   kind: 'geometry',
@@ -46,26 +47,52 @@ function createMockDrivers(): {
 }
 
 describe('askErrorMessage', () => {
+  // Requirement 53.6 and 53.15: the first failure may carry its English joke clause, so each case
+  // uses a fresh flow.
+  const first = (error: unknown): string => askErrorMessage(error, createHostFlow());
+  const withJoke = (key: string): string => `${t(key)} ${englishOnly(`${key}.joke`) ?? ''}`;
+
   it('maps ListenError reasons to translated failure lines offering text box', () => {
-    expect(askErrorMessage(new ListenError('no-speech'))).toBe(t('ask.errorNoSpeech'));
-    expect(askErrorMessage(new ListenError('denied'))).toBe(t('ask.errorDenied'));
-    expect(askErrorMessage(new ListenError('timeout'))).toBe(t('ask.errorListenTimeout'));
-    expect(askErrorMessage(new ListenError('unsupported'))).toBe(t('ask.errorUnsupported'));
-    expect(askErrorMessage(new ListenError('failed'))).toBe(t('ask.errorFailed'));
+    expect(first(new ListenError('no-speech'))).toBe(withJoke('ask.errorNoSpeech'));
+    expect(first(new ListenError('timeout'))).toBe(withJoke('ask.errorListenTimeout'));
+    expect(first(new ListenError('failed'))).toBe(withJoke('ask.errorFailed'));
+  });
+
+  it('never adds a joke to a permission or unsupported line', () => {
+    expect(first(new ListenError('denied'))).toBe(t('ask.errorDenied'));
+    expect(first(new ListenError('unsupported'))).toBe(t('ask.errorUnsupported'));
   });
 
   it('maps AskRequestError failures to translated failure lines offering text box', () => {
-    expect(askErrorMessage(new AskRequestError('timeout'))).toBe(t('ask.errorTimeout'));
-    expect(askErrorMessage(new AskRequestError('network'))).toBe(t('ask.errorOffline'));
-    expect(askErrorMessage(new AskRequestError('http'))).toBe(t('ask.errorServer'));
-    expect(askErrorMessage(new AskRequestError('bad-response'))).toBe(t('ask.errorServer'));
+    expect(first(new AskRequestError('timeout'))).toBe(withJoke('ask.errorTimeout'));
+    expect(first(new AskRequestError('network'))).toBe(withJoke('ask.errorOffline'));
+  });
+
+  it('gives busy, http and bad-response three different lines (Requirement 53.4)', () => {
+    const busy = first(new AskRequestError('busy'));
+    const http = first(new AskRequestError('http'));
+    const bad = first(new AskRequestError('bad-response'));
+    expect(busy).toBe(withJoke('ask.errorBusy'));
+    expect(http).toBe(withJoke('ask.errorServer'));
+    expect(bad).toBe(withJoke('ask.errorBadResponse'));
+    expect(new Set([busy, http, bad]).size).toBe(3);
+    expect(bad).not.toMatch(/few seconds/i);
+  });
+
+  it('is plain from the second failure in a row and joke-capable again after a reset', () => {
+    const flow = createHostFlow();
+    expect(askErrorMessage(new AskRequestError('timeout'), flow)).toBe(withJoke('ask.errorTimeout'));
+    expect(askErrorMessage(new AskRequestError('timeout'), flow)).toBe(t('ask.errorTimeout'));
+    expect(askErrorMessage(new ListenError('no-speech'), flow)).toBe(t('ask.errorNoSpeech'));
+    flow.success();
+    // The joke gap (one joke per three host lines) still holds after a success.
+    expect(askErrorMessage(new ListenError('failed'), flow)).toBe(t('ask.errorFailed'));
   });
 
   it('maps generic errors to generic failure line', () => {
-    expect(askErrorMessage(new Error('Unknown problem'))).toBe(t('ask.errorFailed'));
+    expect(first(new Error('Unknown problem'))).toBe(withJoke('ask.errorFailed'));
   });
 });
-
 describe('AskManager happy path', () => {
   it('executes in exact sequence: beep -> listen -> request -> speak answer', async () => {
     const { audio, speech, calls } = createMockDrivers();
@@ -144,7 +171,8 @@ describe('AskManager failures and text fallback offer', () => {
     });
 
     expect(outcome.kind).toBe('failed');
-    expect(spoken).toEqual([t('ask.errorNoSpeech')]);
+    expect(spoken).toHaveLength(1);
+    expect(spoken[0]).toContain(t('ask.errorNoSpeech'));
     expect(fallbackOffered).toBe(true);
     expect(manager.isBusy()).toBe(false);
   });

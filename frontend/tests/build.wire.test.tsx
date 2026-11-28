@@ -92,7 +92,7 @@ describe('LANE hi13: Build Navigation Formula (Requirement 52.9)', () => {
     const step = leaveByBack('build', ctx);
     expect(step).toEqual({
       next: 'capture',
-      announceKey: 'capture.prompt',
+      announceKey: 'host.capture.next',
       needsConfirm: true,
     });
   });
@@ -102,7 +102,7 @@ describe('LANE hi13: Build Navigation Formula (Requirement 52.9)', () => {
     const step = leaveByBack('build', ctx);
     expect(step).toEqual({
       next: 'capture',
-      announceKey: 'capture.prompt',
+      announceKey: 'host.capture.next',
       needsConfirm: false,
     });
   });
@@ -128,7 +128,7 @@ describe('LANE hi13: Build Navigation Formula (Requirement 52.9)', () => {
           } else {
             expect(step).toEqual({
               next: 'capture',
-              announceKey: 'capture.prompt',
+              announceKey: 'host.capture.next',
               needsConfirm: flags.buildDirty,
             });
           }
@@ -209,7 +209,10 @@ describe('LANE hi13: App Screen Wiring for Build (Requirement 52.9, 52.18)', () 
     expect(buildRoot?.getAttribute('data-pins')).toBe('0');
 
     // Verify build.prompt spoken
-    expect(mockDrivers.speak).toHaveBeenCalledWith(t('build.prompt'), expect.any(String));
+    expect(mockDrivers.speak).toHaveBeenCalledWith(
+      expect.stringContaining(t('build.prompt')),
+      expect.any(String),
+    );
 
     // 4. Locate sliders and pin a point
     const sliders = container.querySelectorAll<HTMLInputElement>('input[type="range"]');
@@ -260,7 +263,7 @@ describe('LANE hi13: App Screen Wiring for Build (Requirement 52.9, 52.18)', () 
     // Returned to Capture screen
     expect(container.querySelector('[data-testid="build-root"]')).toBeNull();
     expect(container.querySelector('.gt-capture')).not.toBeNull();
-    expect(mockDrivers.speak).toHaveBeenCalledWith(t('capture.prompt'), expect.any(String));
+    expect(mockDrivers.speak).toHaveBeenCalledWith(t('host.capture.next'), expect.any(String));
   });
 
   it('Feel mode Back returns to form and speaks build.backToForm without confirmation', async () => {

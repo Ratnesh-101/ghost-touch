@@ -151,7 +151,7 @@ describe('K1 Verify Wiring — SPEC GHOST (Lane k1-verify-wiring)', () => {
     it('does NOT append caveat for honest sample triangle', () => {
       const announcement = exploreAnnouncement(honestTriangleScene, 'sample');
       expect(announcement).not.toContain("Facts and drawing disagree");
-      const hint = `${t('explore.gestureHint')} ${t('explore.backHint')}`;
+      const hint = `${t('host.explore.next')} ${t('explore.backHint')}`;
       const expected = joinAnnouncements([buildOverview(honestTriangleScene), hint]);
       expect(announcement).toBe(expected);
     });
@@ -160,7 +160,7 @@ describe('K1 Verify Wiring — SPEC GHOST (Lane k1-verify-wiring)', () => {
       const announcement = exploreAnnouncement(forgedTriangleScene, 'sample');
       const caveat = "Facts and drawing disagree on AC. I can't tell which is right.";
       expect(announcement).toContain(caveat);
-      const hint = `${t('explore.gestureHint')} ${t('explore.backHint')}`;
+      const hint = `${t('host.explore.next')} ${t('explore.backHint')}`;
       const expected = joinAnnouncements([
         buildOverview(forgedTriangleScene),
         hint,
@@ -195,7 +195,7 @@ describe('K1 Verify Wiring — SPEC GHOST (Lane k1-verify-wiring)', () => {
       };
       const announcement = exploreAnnouncement(notToScaleScene, 'sample');
       expect(announcement).not.toContain("Facts and drawing disagree");
-      const hint = `${t('explore.gestureHint')} ${t('explore.backHint')}`;
+      const hint = `${t('host.explore.next')} ${t('explore.backHint')}`;
       const expected = joinAnnouncements([buildOverview(notToScaleScene), hint]);
       expect(announcement).toBe(expected);
     });
@@ -231,7 +231,7 @@ describe('K1 Verify Wiring — SPEC GHOST (Lane k1-verify-wiring)', () => {
           honestTriangleScene.title!,
         );
         const expectedOverview = buildOverview(honestTriangleScene, expectedTitle);
-        const hint = `${t('explore.gestureHint')} ${t('explore.backHint')}`;
+        const hint = `${t('host.explore.next')} ${t('explore.backHint')}`;
         const expectedHonest = t('share.sharedBy').replace('{name}', 'Teacher Alice');
         const expectedScene = joinAnnouncements([expectedOverview, hint]);
         expect(resolution.sceneAnnouncement).toBe(expectedScene);
@@ -272,7 +272,7 @@ describe('K1 Verify Wiring — SPEC GHOST (Lane k1-verify-wiring)', () => {
             forgedTriangleScene.title!,
           );
           const expectedOverview = buildOverview(forgedTriangleScene, expectedTitle);
-          const hint = `${t('explore.gestureHint')} ${t('explore.backHint')}`;
+          const hint = `${t('host.explore.next')} ${t('explore.backHint')}`;
           const expectedHonest = t('share.sharedBy').replace('{name}', 'Teacher Bob');
           const expectedScene = joinAnnouncements([expectedOverview, hint, caveat]);
           expect(resolution.sceneAnnouncement).toBe(expectedScene);

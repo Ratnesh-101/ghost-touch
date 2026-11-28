@@ -171,7 +171,7 @@ test.describe('PT 11 teacher Correct mode (Teacher tools on)', () => {
     await openTriangle(page);
     await clearSpies(page);
     await page.getByRole('button', { name: 'Correct', exact: true }).click();
-    await expectSpoken(page, t('correct.intro'));
+    await expectSpoken(page, t('host.correct.next'));
     const canvas = page.locator('canvas').first();
     const box = await canvas.boundingBox();
     if (!box) throw new Error('no correct canvas');

@@ -12,7 +12,7 @@ import speechSource from '../src/drivers/speech.ts?raw';
 import exploreSource from '../src/screens/Explore.tsx?raw';
 import savedSource from '../src/screens/SavedDiagrams.tsx?raw';
 import teachCanvasSource from '../src/components/teach/TeachCanvas.tsx?raw';
-import { t } from '../src/i18n';
+import { englishOnly, tables } from '../src/i18n';
 
 describe('CORE-08 — Explore survives a refused pointer capture', () => {
   it('wraps setPointerCapture in try/catch', () => {
@@ -40,8 +40,11 @@ describe('CORE-10 — the missing-voice notice comes from the language tables', 
     expect(speechSource).toContain('speech.noVoiceNotice');
   });
 
-  it('has the key in every language table', () => {
-    expect(t('speech.noVoiceNotice')).toContain('{lang}');
+  it('reads the notice from the English-only lines in every language (Requirement 53.11)', () => {
+    expect(englishOnly('speech.noVoiceNotice')).toContain('{lang}');
+    expect(tables.hi['speech.noVoiceNotice']).toBeUndefined();
+    expect(tables.gu['speech.noVoiceNotice']).toBeUndefined();
+    expect(speechSource).toContain('englishOnly');
   });
 });
 

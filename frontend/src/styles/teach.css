@@ -427,3 +427,14 @@
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
 }
+
+.gt-teach__elements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gt-space-xs, 8px);
+}
+
+.gt-teach__element-btn[aria-pressed='true'] {
+  border-color: var(--gt-green, #39ff88);
+  background: var(--gt-surface-raised, #13271f);
+}

@@ -56,10 +56,10 @@ describe('Finding 11: Ask error handling in AskManager and Explore', () => {
     const outcome = await manager.submitTextAsk('What is this?', deps);
     expect(outcome.kind).toBe('failed');
     if (outcome.kind === 'failed') {
-      expect(outcome.message).toBe(t('ask.errorTimeout'));
+      expect(outcome.message).toContain(t('ask.errorTimeout'));
     }
     expect(audio.playEarcon).toHaveBeenCalledWith('error');
-    expect(spoken).toContain(t('ask.errorTimeout'));
+    expect(spoken.some((s) => s.startsWith(t('ask.errorTimeout')))).toBe(true);
     expect(manager.isBusy()).toBe(false);
   });
 
@@ -87,10 +87,10 @@ describe('Finding 11: Ask error handling in AskManager and Explore', () => {
     const outcome = await manager.submitTextAsk('Where is point A?', deps);
     expect(outcome.kind).toBe('failed');
     if (outcome.kind === 'failed') {
-      expect(outcome.message).toBe(t('ask.errorOffline'));
+      expect(outcome.message).toContain(t('ask.errorOffline'));
     }
     expect(audio.playEarcon).toHaveBeenCalledWith('error');
-    expect(spoken).toContain(t('ask.errorOffline'));
+    expect(spoken.some((s) => s.startsWith(t('ask.errorOffline')))).toBe(true);
     expect(manager.isBusy()).toBe(false);
   });
 
@@ -179,11 +179,11 @@ describe('Finding 11: Ask error handling in AskManager and Explore', () => {
     const outcome = await manager.startVoiceAsk(deps);
     expect(outcome.kind).toBe('failed');
     if (outcome.kind === 'failed') {
-      expect(outcome.message).toBe(t('ask.errorNoSpeech'));
+      expect(outcome.message).toContain(t('ask.errorNoSpeech'));
     }
     expect(audio.playEarcon).toHaveBeenCalledWith('error');
     expect(fallbackRequested).toBe(true);
-    expect(spoken).toContain(t('ask.errorNoSpeech'));
+    expect(spoken.some((s) => s.startsWith(t('ask.errorNoSpeech')))).toBe(true);
     expect(manager.isBusy()).toBe(false);
   });
 

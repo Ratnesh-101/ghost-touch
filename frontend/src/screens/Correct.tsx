@@ -49,6 +49,7 @@ import {
   pointerToScene,
 } from '../flow/correctCanvas';
 import { getLang, LANG_BCP47, t } from '../i18n';
+import { hostEntryAnnouncement } from '../flow/host';
 import '../styles/correct.css';
 
 export interface CorrectProps {
@@ -216,7 +217,8 @@ export function Correct({
   // Announce intro on mount and move focus to screen heading (Finding 8)
   useEffect(() => {
     headingRef.current?.focus();
-    speak(t('correct.intro'));
+    // One utterance: the title and the next step (Requirement 53.15a). `correct.intro` stays as the visible status.
+    speak(hostEntryAnnouncement('correct', t('correct.title')));
   }, []);
 
   // Update canvas bitmap dimensions to match real CSS box and device pixel ratio (BUG-02)
@@ -752,7 +754,7 @@ export function Correct({
                   aria-pressed={isSel}
                   onClick={() => handleSelectElement({ kind: 'point', id: pt.id })}
                 >
-                  {`${t('correct.selectedPoint')}: ${label}`}
+                  {`${t('vertex.unnamed')}: ${label}`}
                 </AccessibleButton>
               );
             })}
@@ -769,7 +771,7 @@ export function Correct({
                   aria-pressed={isSel}
                   onClick={() => handleSelectElement({ kind: 'segment', id: seg.id })}
                 >
-                  {`${t('correct.selectedSegment')}: ${label}`}
+                  {`${t('line.unnamed')}: ${label}`}
                 </AccessibleButton>
               );
             })}
@@ -786,7 +788,7 @@ export function Correct({
                   aria-pressed={isSel}
                   onClick={() => handleSelectElement({ kind: 'polyline', id: poly.id })}
                 >
-                  {`${t('correct.selectedPolyline')}: ${label}`}
+                  {label}
                 </AccessibleButton>
               );
             })}
@@ -803,7 +805,7 @@ export function Correct({
                   aria-pressed={isSel}
                   onClick={() => handleSelectElement({ kind: 'bar', id: bar.id })}
                 >
-                  {`${t('correct.selectedBar')}: ${label}`}
+                  {label}
                 </AccessibleButton>
               );
             })}

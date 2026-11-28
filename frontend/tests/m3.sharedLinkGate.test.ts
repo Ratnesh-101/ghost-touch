@@ -177,7 +177,7 @@ describe('Lane m3-shared-link-gate & p3-r5-share-fixes Regression Suite', () => 
       const step = leaveByBack('shareGate', { dirty: false, fromShare: true });
       expect(step).toEqual({
         next: 'start',
-        announceKey: 'start.intro',
+        announceKey: 'host.start.next',
         needsConfirm: false,
       });
     });

@@ -143,7 +143,7 @@ describe('screen markup (server render)', () => {
   it('Start is one full-screen button named by the intro line', () => {
     const html = renderToStaticMarkup(createElement(Start, { drivers, onBegin: vi.fn() }));
     expect(html).toContain('class="gt-start-surface"');
-    expect(html).toContain('aria-label="Ghost Touch. Tap anywhere to begin."');
+    expect(html).toContain('aria-label="Ghost Touch, Begin"');
     expect(html.match(/<button/g)).toHaveLength(1);
   });
 

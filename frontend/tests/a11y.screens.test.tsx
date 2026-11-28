@@ -405,7 +405,7 @@ describe('Live regions for spoken announcements (Requirement 2)', () => {
     }
   });
 
-  it('Explore in Raw Mode renders status live region banner in all three languages', () => {
+  it('Explore in Raw Mode: banner is plain text while speaking, a live region only when silent, in all three languages (53.21)', () => {
     const drivers = createMockDrivers();
     for (const lang of ['en', 'hi', 'gu'] as const) {
       setLang(lang);
@@ -419,7 +419,17 @@ describe('Live regions for spoken announcements (Requirement 2)', () => {
         }),
       );
       expect(html).toContain('gt-explore__raw-notice');
-      expect(html).toContain('role="status"');
+      expect(html).not.toContain('role="status"');
+      const silentHtml = renderToStaticMarkup(
+        createElement(Explore, {
+          scene: rawScene,
+          announced: t('raw.announce'),
+          drivers: createMockDrivers({ canSpeak: false }),
+          onBack: vi.fn(),
+          isRaw: true,
+        }),
+      );
+      expect(silentHtml).toContain('role="status"');
     }
   });
 });

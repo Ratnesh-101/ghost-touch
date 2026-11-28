@@ -356,11 +356,11 @@ describe('Lane hx5: Ask resilience tests (required suite)', () => {
 
     expect(outcome.kind).toBe('failed');
     if (outcome.kind === 'failed') {
-      expect(outcome.message).toBe(t('ask.errorTimeout'));
+      expect(outcome.message).toContain(t('ask.errorTimeout'));
     }
     expect(fallbackNeeded).toBe(true);
     expect(spoken.filter((s) => s === t('ask.wakingUp')).length).toBe(1);
-    expect(spoken[spoken.length - 1]).toBe(t('ask.errorTimeout'));
+    expect(spoken[spoken.length - 1]).toContain(t('ask.errorTimeout'));
     expect(deps.audio.playEarcon).toHaveBeenCalledWith('error');
   });
 
@@ -478,12 +478,12 @@ describe('Lane hx5: Ask resilience tests (required suite)', () => {
 
     expect(outcome.kind).toBe('failed');
     if (outcome.kind === 'failed') {
-      expect(outcome.message).toBe(t('ask.errorOffline'));
+      expect(outcome.message).toContain(t('ask.errorOffline'));
     }
     // Only 1 attempt made when offline
     expect(askCallCount).toBe(1);
     expect(spoken).not.toContain(t('ask.wakingUp'));
-    expect(spoken).toContain(t('ask.errorOffline'));
+    expect(spoken.some((s) => s.startsWith(t('ask.errorOffline')))).toBe(true);
     expect(fallbackNeeded).toBe(true);
   });
 
@@ -580,7 +580,7 @@ describe('Lane hx5: Ask resilience tests (required suite)', () => {
     const outcome = await promise;
     expect(outcome.kind).toBe('failed');
     if (outcome.kind === 'failed') {
-      expect(outcome.message).toBe(t('ask.errorTimeout'));
+      expect(outcome.message).toContain(t('ask.errorTimeout'));
     }
   });
 });

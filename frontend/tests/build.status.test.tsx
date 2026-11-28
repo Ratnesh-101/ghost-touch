@@ -240,10 +240,10 @@ describe('Lane hi17: Build form status line', () => {
   });
 
   describe('Component integration: Build screen status element', () => {
-    it('0 pins prompt is rendered initially in .gt-build__status with aria-live="polite"', async () => {
+    it('0 pins prompt is rendered initially in .gt-build__status; no live region while the app speaks it (A2-04)', async () => {
       await withBuildScreen((rig) => {
         const statusEl = rig.status();
-        expect(statusEl.getAttribute('aria-live')).toBe('polite');
+        expect(statusEl.getAttribute('aria-live')).toBeNull();
         expect(statusEl.textContent).toBe(t('build.prompt'));
         expect(statusEl.textContent).toContain('Empty graph');
       });

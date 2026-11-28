@@ -70,7 +70,8 @@ import {
   type SharePayload,
 } from '../share';
 import { validateShareScene } from '../share/validate';
-import { getLang, LANG_BCP47, subscribeLang, t } from '../i18n';
+import { getLang, LANG_BCP47, subscribeLang, t, tf } from '../i18n';
+import { hostEntryAnnouncement } from '../flow/host';
 import '../styles/teach.css';
 
 export interface TeachProps {
@@ -235,7 +236,8 @@ export function Teach({
   // Announce intro on mount and move focus to heading
   useEffect(() => {
     headingRef.current?.focus();
-    speak(t('teach.intro'));
+    // One utterance: the intro and the next step (Requirement 53.15a).
+    speak(hostEntryAnnouncement('teach', t('teach.intro')));
   }, []);
 
   // Update intro status message when language changes
@@ -688,6 +690,45 @@ export function Teach({
             onEscape={handleCanvasEscape}
           />
 
+          {/* Element list: lets keyboard, switch and TalkBack users pick points and edges without a pointer (A2-03) */}
+          {((history.present.points?.length ?? 0) > 0 || (history.present.segments?.length ?? 0) > 0) && (
+            <section
+              className="gt-teach__elements"
+              aria-label={t('teach.loadCurrent')}
+              data-testid="teach-element-list"
+            >
+              {(history.present.points ?? []).map((pt) => {
+                const name = pt.label ? `${pt.label} (${pt.id})` : tf('vertex.unlabelled', { id: pt.id });
+                const isSel = selection?.kind === 'point' && selection.id === pt.id;
+                return (
+                  <AccessibleButton
+                    key={`point-${pt.id}`}
+                    type="button"
+                    className="gt-btn gt-btn--secondary gt-teach__element-btn"
+                    aria-pressed={isSel}
+                    onClick={() => handleSelect({ kind: 'point', id: pt.id })}
+                  >
+                    {name}
+                  </AccessibleButton>
+                );
+              })}
+              {(history.present.segments ?? []).map((seg) => {
+                const name = seg.label ? `${seg.label} (${seg.a}-${seg.b})` : `${seg.a}-${seg.b}`;
+                const isSel = selection?.kind === 'segment' && selection.id === seg.id;
+                return (
+                  <AccessibleButton
+                    key={`segment-${seg.id}`}
+                    type="button"
+                    className="gt-btn gt-btn--secondary gt-teach__element-btn"
+                    aria-pressed={isSel}
+                    onClick={() => handleSelect({ kind: 'segment', id: seg.id })}
+                  >
+                    {name}
+                  </AccessibleButton>
+                );
+              })}
+            </section>
+          )}
           {/* Action Toolbar */}
           <div className="gt-teach__toolbar" role="toolbar" aria-label={t('teach.toolbar')}>
             <AccessibleButton

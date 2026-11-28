@@ -20,6 +20,7 @@ import type { DiagramScene } from '../core/scene';
 import { ListenError, type AudioDriver, type SpeechDriver } from '../drivers';
 import { getLang, LANG_BCP47, tables, t, type Lang } from '../i18n';
 import { joinAnnouncements } from './explore';
+import { hostFlows, type HostFlow } from './host';
 import {
   verifyScene,
   getFindingTarget,
@@ -100,52 +101,57 @@ export interface AskDeps {
 
 /**
  * Maps listen, network, and server errors to friendly spoken failure lines.
- * Every failure line offers the text box fallback (Requirement 7.4).
+ * Every failure line offers the text box fallback (Requirement 7.4). Each call counts one failure
+ * in the ask flow, so the joke clause of Requirement 53.6 appears at most on the first failure of
+ * a run and never on a protected (permission) line.
  */
-export function askErrorMessage(error: unknown): string {
+export function askErrorMessage(error: unknown, flow: HostFlow = hostFlows.ask): string {
+  const say = (key: string, jokeless = false): string => flow.errorLine(key, { jokeless });
+
   if (error instanceof ListenError) {
     switch (error.reason) {
       case 'no-speech':
-        return t('ask.errorNoSpeech');
+        return say('ask.errorNoSpeech');
       case 'denied':
-        return t('ask.errorDenied');
+        return say('ask.errorDenied', true);
       case 'timeout':
-        return t('ask.errorListenTimeout');
+        return say('ask.errorListenTimeout');
       case 'unsupported':
-        return t('ask.errorUnsupported');
+        return say('ask.errorUnsupported', true);
       case 'failed':
       default:
-        return t('ask.errorFailed');
+        return say('ask.errorFailed');
     }
   }
 
   if (error instanceof AskRequestError) {
     switch (error.failure) {
       case 'timeout':
-        return t('ask.errorTimeout');
+        return say('ask.errorTimeout');
       case 'network':
-        return t('ask.errorOffline');
+        return say('ask.errorOffline');
       case 'busy':
-      case 'http':
+        return say('ask.errorBusy');
       case 'bad-response':
+        return say('ask.errorBadResponse');
+      case 'http':
       default:
-        return t('ask.errorServer');
+        return say('ask.errorServer');
     }
   }
 
   if (error instanceof Error) {
     const msg = error.message.toLowerCase();
     if (msg.includes('timeout')) {
-      return t('ask.errorTimeout');
+      return say('ask.errorTimeout');
     }
     if (msg.includes('network') || msg.includes('offline') || msg.includes('fetch')) {
-      return t('ask.errorOffline');
+      return say('ask.errorOffline');
     }
   }
 
-  return t('ask.errorFailed');
+  return say('ask.errorFailed');
 }
-
 function escapeRegExp(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -381,6 +387,7 @@ export class AskManager {
       } catch {
         // non-fatal
       }
+      hostFlows.ask.success();
       return {
         kind: 'success',
         answer: response.answer,
@@ -497,6 +504,7 @@ export class AskManager {
       } catch {
         // non-fatal
       }
+      hostFlows.ask.success();
       return {
         kind: 'success',
         answer: response.answer,
@@ -588,6 +596,7 @@ export class AskManager {
    * Abort any ongoing request (for example, on screen unmount).
    */
   abort(): void {
+    hostFlows.ask.leave();
     if (this.activeController) {
       this.activeController.abort();
       this.activeController = null;

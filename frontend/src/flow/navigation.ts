@@ -133,7 +133,9 @@ export function exploreAnnouncement(
   } else {
     name = sceneName(scene);
   }
-  const hint = `${t('explore.gestureHint')} ${t('explore.backHint')}`;
+  // Requirement 53.3 and 53.15: the host next-step line replaces the gesture hint in place; the
+  // Back hint of Requirement 13.1 stays, and it is all one utterance.
+  const hint = `${t('host.explore.next')} ${t('explore.backHint')}`;
   const isRaw = mode === 'raw' || scene.kind === 'unknown';
   const overview = isRaw ? '' : buildOverview(scene, name);
   const lead = overview.length > 0 ? overview : name;
@@ -145,7 +147,8 @@ export function exploreAnnouncement(
       ? joinAnnouncements([
           t('raw.announce'),
           rawReasonSentence(resolvedRawReason),
-          `${name}. ${hint}`,
+          // host.raw.next already names Back, so the Back hint is not added a second time.
+          `${name}. ${t('host.raw.next')}`,
         ])
       : joinAnnouncements([lead, hint]);
 
@@ -239,24 +242,24 @@ export function leaveByBack(screen: ScreenName, ctx: BackContext): BackStep {
     case 'build':
       return ctx.buildFeel
         ? { next: 'build', announceKey: 'build.backToForm', needsConfirm: false }
-        : { next: 'capture', announceKey: 'capture.prompt', needsConfirm };
+        : { next: 'capture', announceKey: 'host.capture.next', needsConfirm };
     case 'teach':
       return ctx.hasScene
-        ? { next: 'explore', announceKey: 'explore.gestureHint', needsConfirm }
-        : { next: 'start', announceKey: 'start.intro', needsConfirm };
+        ? { next: 'explore', announceKey: 'host.explore.next', needsConfirm }
+        : { next: 'start', announceKey: 'host.start.next', needsConfirm };
     case 'shareError':
     case 'shareGate':
     case 'capture':
     case 'start':
-      return { next: 'start', announceKey: 'start.intro', needsConfirm: false };
+      return { next: 'start', announceKey: 'host.start.next', needsConfirm: false };
     case 'explore':
       return ctx.fromShare
-        ? { next: 'start', announceKey: 'start.intro', needsConfirm: false }
-        : { next: 'capture', announceKey: 'capture.prompt', needsConfirm: false };
+        ? { next: 'start', announceKey: 'host.start.next', needsConfirm: false }
+        : { next: 'capture', announceKey: 'host.capture.next', needsConfirm: false };
     case 'saved':
-      return { next: 'capture', announceKey: 'capture.prompt', needsConfirm: false };
+      return { next: 'capture', announceKey: 'host.capture.next', needsConfirm: false };
     case 'correct':
-      return { next: 'explore', announceKey: 'explore.gestureHint', needsConfirm };
+      return { next: 'explore', announceKey: 'host.explore.next', needsConfirm };
   }
 }
 

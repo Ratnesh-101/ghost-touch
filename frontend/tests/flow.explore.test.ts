@@ -679,8 +679,9 @@ describe('exploreAnnouncement', () => {
     const scene: DiagramScene = { kind: 'geometry', title: 'Triangle' };
     const aiAnnounce = exploreAnnouncement(scene, 'ai');
     expect(aiAnnounce).toContain('Triangle.');
-    expect(aiAnnounce).toContain(t('explore.gestureHint'));
-    expect(aiAnnounce).toContain('Press Back to leave.');
+    expect(aiAnnounce).toContain(t('host.explore.next'));
+    expect(aiAnnounce).toContain(t('explore.backHint'));
+    expect(aiAnnounce).toContain('press Back');
 
     const rawAnnounce = exploreAnnouncement(scene, 'raw');
     expect(rawAnnounce.startsWith("I couldn't fully read this diagram. You can still feel its outlines.")).toBe(true);

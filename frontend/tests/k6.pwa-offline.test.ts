@@ -588,8 +588,8 @@ describe('B4-06 & B4-07: Render cold start timeout, retry and error mapping', ()
   it('maps SceneRequestError "gateway" to capture.errorGateway in captureErrorMessage', () => {
     const error = new SceneRequestError('gateway');
     const msgEn = captureErrorMessage(error);
-    expect(msgEn).toBe(t('capture.errorGateway'));
-    expect(msgEn).toContain('waking up');
+    expect(msgEn).toContain(t('capture.errorGateway'));
+    expect(msgEn).toContain('starting up');
 
     setLang('hi');
     expect(captureErrorMessage(error)).toBe(t('capture.errorGateway'));
@@ -601,7 +601,7 @@ describe('B4-06 & B4-07: Render cold start timeout, retry and error mapping', ()
   it('maps SceneRequestError "timeout" to capture.errorTimeout in captureErrorMessage', () => {
     const error = new SceneRequestError('timeout');
     const msgEn = captureErrorMessage(error);
-    expect(msgEn).toBe(t('capture.errorTimeout'));
+    expect(msgEn).toContain(t('capture.errorTimeout'));
     expect(msgEn).toContain('too long');
 
     setLang('hi');
@@ -612,9 +612,9 @@ describe('B4-06 & B4-07: Render cold start timeout, retry and error mapping', ()
   });
 
   it('preserves backwards compatibility for busy and generic errors in captureErrorMessage', () => {
-    expect(captureErrorMessage(new SceneRequestError('busy'))).toBe(t('capture.errorBusy'));
-    expect(captureErrorMessage(new SceneRequestError('http'))).toBe(t('capture.error'));
-    expect(captureErrorMessage(new SceneRequestError('network'))).toBe(t('capture.error'));
-    expect(captureErrorMessage(new Error('arbitrary error'))).toBe(t('capture.error'));
+    expect(captureErrorMessage(new SceneRequestError('busy'))).toContain(t('capture.errorBusy'));
+    expect(captureErrorMessage(new SceneRequestError('http'))).toContain(t('capture.errorServer'));
+    expect(captureErrorMessage(new SceneRequestError('network'))).toContain(t('capture.errorServer'));
+    expect(captureErrorMessage(new Error('arbitrary error'))).toContain(t('capture.error'));
   });
 });

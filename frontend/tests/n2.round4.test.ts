@@ -420,14 +420,14 @@ describe('M4-04 (HIGH): Gateway 504 Timeout No-Retry & Cold-Start 502 Retry', ()
     const err = new SceneRequestError('timeout');
 
     setLang('en');
-    expect(captureErrorMessage(err)).toBe('The server took too long; please try again.');
+    expect(captureErrorMessage(err)).toContain('That took too long. Try again, or pick a sample.');
     expect(captureErrorMessage(err)).not.toContain('waking up');
 
     setLang('hi');
-    expect(captureErrorMessage(err)).toBe('सर्वर ने बहुत लंबा समय लिया; कृपया पुनः प्रयास करें।');
+    expect(captureErrorMessage(err)).toBe('बहुत समय लग गया। पुनः प्रयास करें, या कोई नमूना चुनें।');
 
     setLang('gu');
-    expect(captureErrorMessage(err)).toBe('સર્વરે ઘણો સમય લીધો; કૃપા કરીને ફરી પ્રયાસ કરો.');
+    expect(captureErrorMessage(err)).toBe('ઘણો સમય લાગી ગયો. ફરી પ્રયાસ કરો, અથવા કોઈ નમૂનો પસંદ કરો.');
   });
 });
 

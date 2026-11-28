@@ -83,7 +83,9 @@ describe('Lane k8-i18n: Internationalisation Fixes', () => {
 
       expect(spoken.length).toBe(1);
       expect(spoken[0]?.lang).toBe('hi-IN');
-      expect(spoken[0]?.text).toBe('घोस्ट टच। शुरू करने के लिए कहीं भी टैप करें।');
+      expect(spoken[0]?.text).toBe(
+        'नमस्ते, मैं घोस्ट होस्ट हूँ। मैं चित्रों को स्पर्श और ध्वनि में बदलता हूँ। शुरू करने के लिए कहीं भी टैप करें। टॉकबैक के साथ, डबल-टैप करें।',
+      );
     });
 
     it('speakIntro passes active BCP-47 tag in Gujarati (gu-IN)', () => {
@@ -93,7 +95,9 @@ describe('Lane k8-i18n: Internationalisation Fixes', () => {
 
       expect(spoken.length).toBe(1);
       expect(spoken[0]?.lang).toBe('gu-IN');
-      expect(spoken[0]?.text).toBe('ગોસ્ટ ટચ. શરૂ કરવા માટે ગમે ત્યાં ટેપ કરો.');
+      expect(spoken[0]?.text).toBe(
+        'નમસ્તે, હું ગોસ્ટ હોસ્ટ છું. હું આકૃતિઓને સ્પર્શ અને અવાજમાં બદલું છું. શરૂ કરવા માટે ગમે ત્યાં ટેપ કરો. ટોકબેક સાથે, ડબલ-ટેપ કરો.',
+      );
     });
 
     it('speakIntro passes default BCP-47 tag in English (en-IN)', () => {
@@ -103,7 +107,9 @@ describe('Lane k8-i18n: Internationalisation Fixes', () => {
 
       expect(spoken.length).toBe(1);
       expect(spoken[0]?.lang).toBe('en-IN');
-      expect(spoken[0]?.text).toBe('Ghost Touch. Tap anywhere to begin.');
+      expect(spoken[0]?.text).toBe(
+        "Hi, I'm Ghost Host. I turn diagrams into touch and sound. Tap anywhere to begin. With TalkBack, double-tap.",
+      );
     });
 
     it('handleStartTap passes active BCP-47 tag in Hindi (hi-IN)', () => {
@@ -129,7 +135,7 @@ describe('Lane k8-i18n: Internationalisation Fixes', () => {
     it('verifies start.ts and Capture.tsx do not call speak without lang parameter', () => {
       // In start.ts, all speak calls pass the language parameter (no 1-argument speak calls)
       expect(startSource).not.toMatch(/drivers\.speech\.speak\s*\([^,]+?\)\s*;/);
-      expect(startSource).toContain('drivers.speech.speak(t(\'start.intro\'), lang)');
+      expect(startSource).toContain("drivers.speech.speak(t('host.start.greeting'), lang)");
 
       // In Capture.tsx, say helper explicitly passes LANG_BCP47[getLang()]
       expect(captureSource).not.toMatch(/drivers\.speech\.speak\s*\([^,]+?\)\s*;/);
