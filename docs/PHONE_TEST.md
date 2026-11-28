@@ -499,7 +499,7 @@ Tester: ____  Phone model: ____  Android / Chrome: ____  Date: ____
 - [ ] Teach, then Back: you land on Capture, not Start.
 - [ ] Saved diagrams: Delete, then Confirm or Cancel. Does TalkBack focus stay on the new button?
 - [ ] Hindi and Gujarati: is there an installed voice? How does it sound? Does the English "no voice" notice make sense? Ask a native speaker to listen to Start, Capture and the error lines (use `docs/user-test/translation-review.md`).
-- [ ] Ask by voice: listening tone, the 6 s timeout, the two-finger long-press, and a real answer spoken back. Try "How long is AB?" on the triangle.
+- [ ] Ask by voice: listening tone, the 6 s timeout, the two-finger long-press, and a real answer spoken back. Try "How long is AB?" on the triangle (expect 5 cm; BC is 3 cm).
 - [ ] Ask error in the typed fallback: after a failed Ask, does focus land in the typing box and does the spoken line tell you where it is?
 - [ ] Ghost Host tone: does the greeting make you smile and still tell you what to tap next? Does any joke get in the way?
 - [ ] Android "Largest" display size and font size together: any control cut off or smaller than a fingertip? Double-tap-and-hold on the canvas still traces?

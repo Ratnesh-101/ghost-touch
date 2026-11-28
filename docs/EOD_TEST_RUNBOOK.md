@@ -16,7 +16,7 @@ Pass/fail rule: if something is broken that a judge would hit in the first minut
 Use Chrome on your OnePlus over HTTPS, in a fresh tab, on the live URL (not localhost).
 1. Start screen: tap. Pass: vibrates once, speaks a greeting and the next step, and Capture opens.
 2. Samples, eyes closed: triangle, sine, bars. Pass: line buzz, corner "bzzzz-tap" with the label spoken, quiet after a corner, theremin rises and falls on the sine.
-3. Ask by voice on the triangle: "How long is AB?" Pass: "3 centimetres". Then "What colour is it?" Pass: "I don't know from this diagram."
+3. Ask by voice on the triangle: "How long is AB?" Pass: an answer naming 5 cm (the sample has AB = 5 cm, BC = 3 cm, AC = 4 cm). Also try "How long is BC?" and expect 3 cm. Then "What colour is it?" Pass: "I don't know from this diagram."
 4. Ask error path: turn mobile data off, then Ask. Pass: a short funny clause then a clear action, and focus moves to the typing box. Ask again. Pass: the second error has no joke.
 5. Real photo of a printed textbook triangle. Pass: AI mode within about 30 s, and "reading" is spoken while you wait. Then a messy photo. Pass: Raw Mode outlines, no crash.
 6. Airplane mode: open a sample. Pass: it works. Reload while offline. Pass: still works (PWA).
@@ -57,3 +57,7 @@ Run `docs/PHONE_TEST.md` Step 22.
 - Task 93.3 in `.kiro/specs/ghost-touch/tasks.md`: the Ask screen's `host.ask.next` has no caller, and the empty Saved list has no next-step line. Needs your decision.
 - Hindi and Gujarati text is machine-translated and unreviewed. English is the reviewed language. Say so on Devpost.
 - Kiroween things (video, Devpost form, native speakers, user-testing placeholders) are in `submission/HUMAN_ONLY.md`, due before Dec 5, 3:30 AM IST.
+
+## H. Live Playwright result (2026-11-28, run by Opus 5.5 against the live site)
+Report: `docs/reports/live-test-2026-11-28.md`. All 9 areas pass: Start and greeting, three samples, Back and next-step lines, offline PWA, Hindi and Gujarati (no overflow at 200% font), typed Ask (AB = 5 cm, BC = 3 cm) with a forced-failure joke then plain line, one real upload (AI mode in about 41 s on a cold start), no page errors, 251 KB on throttled 4G.
+Known low items, not fixed before judging so your phone test stays valid: (1) after a real photo, corners can sit on the canvas edge and be hard to find; (2) Build speaks its own prompt instead of `host.build.next`; (3) Settings says "Lab settings closed" on close; (4) every load pings the backend health URL (this also helps keep Render warm).
