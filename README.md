@@ -2,7 +2,7 @@
   <img src="frontend/public/brand/logo-full.svg" alt="Ghost Touch" width="400" />
 </p>
 
-# Ghost Touch 👻
+# Ghost Touch
 
 [![CI](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/ci.yml/badge.svg)](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/codeql.yml/badge.svg)](https://github.com/Ratnesh-101/ghost-touch/actions/workflows/codeql.yml)
@@ -39,6 +39,7 @@ Haptic and auditory feedback is tuned to keep tactile sensations distinct:
 - **Curves sing:** Tracing function graphs plays a continuous theremin pitch (200–1000 Hz) that rises with visual height.
 - **TalkBack pass-through:** The TalkBack double-tap-and-hold gesture worked on our prototype on a OnePlus Nord CE6 (docs/research/talkback-spike.md). It has not yet been tested in the full app.
 - **Voice Q&A:** Ask questions aloud ("How long is AB?") and receive spoken answers grounded in detected diagram facts.
+- **Ghost Host:** The creature greets you and tells you the next tap on every screen, jokes only about itself, never after an error twice in a row (Requirement 53; not yet phone- or TalkBack-tested).
 - **"Show me" highlight and outlines:** While a finger is on the diagram, the touched element is drawn thicker and brighter, and dots, the cursor and the guide ring get dark outlines for low vision. Draw-only: it adds no vibration, tone or speech (Requirement 49). Not seen on a phone yet.
 - **Help button:** A footer button speaks the gestures for the current mode, including a second-finger tap while one finger rests on the diagram (Requirement 50). Not tried with TalkBack yet.
 - **Planchette, "Walk me through":** On a diagram that has a template walk (right triangle with the Pythagoras walk, bar differences, longest side) the student can start a step-by-step explanation from a button or by saying "walk me through". Each step is spoken only when the finger finds that part, then "Your turn" asks them to find the next part; "next step", "repeat" and "stop" work by voice. It needs no AI call or backend, adds no vibration or tone, and is not offered on Raw Mode photos or on a student's own graph (Requirement 51). Not tried on a phone.
@@ -99,6 +100,17 @@ ghost-touch/
 ├── docs/             # Briefs, handoffs, reviews, test kits, BUILD_LOG.md, DEPLOY.md
 └── README.md
 ```
+
+## Repository layout
+
+- `.github/` — CI/CD workflows, CodeQL, Gitleaks, and Dependabot automation
+- `.kiro/` — Specifications, steering rules, agent definitions, and hooks
+- `backend/` — FastAPI backend service, multi-provider vision pipeline, and pytest suite
+- `docs/` — Project documentation, briefs, reviews, handoffs, and verification test kits
+- `frontend/` — React 19 + Vite PWA frontend and pure core geometry/haptics logic
+- `prototypes/` — Standalone experimental prototypes and device reference spikes
+- `research/` — Vision model benchmarking, ground truth scoring datasets, and evaluation scripts
+- `scripts/` — Development setup scripts and automation runner utilities
 
 ## Accessibility commitments
 
@@ -186,10 +198,27 @@ backend/.venv/Scripts/python -m ruff format --check backend
 See [docs/DEPLOY.md](docs/DEPLOY.md) for production deployment instructions on Render and Vercel.
 See [docs/TEACHER_GUIDE.md](docs/TEACHER_GUIDE.md) for the three-step teacher guide to preparing, correcting, and sharing diagrams.
 
+## Community and Contributing
+
+We welcome contributions from educators, students, blind and low-vision accessibility specialists, and open-source developers!
+
+- **Contributor Guidelines:** See [CONTRIBUTING.md](CONTRIBUTING.md) for local development setup, coding standards, and verification gates.
+- **Code of Conduct:** We are committed to an inclusive, harassment-free community. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+- **Teacher's Guide:** See [docs/TEACHER_GUIDE.md](docs/TEACHER_GUIDE.md) for classroom device configuration, photography tips, and lesson workflows.
+- **Learn from our Specs:** Explore [.kiro/specs/ghost-touch/](.kiro/specs/ghost-touch/) as an open, worked example of how to write formal specifications, steering rules, and property test oracles for an assistive technology application.
+
+### Good First Issues & Starter Tasks
+Looking to make your first contribution? We actively welcome help with:
+- **Native Speaker Translation Review:** Interface strings and spoken announcements in Hindi (`hi`) and Gujarati (`gu`) are currently machine-translated and pending native-speaker review.
+- **Additional Indian Languages:** Add translations for other regional languages (e.g., Tamil, Telugu, Marathi, Bengali) in `frontend/src/i18n/`.
+- **Curate Offline STEM Diagrams:** Author vetted curriculum diagrams (geometry, kinematics, statistics) as JSON scenes in `frontend/public/samples/`.
+- **Hardware & TalkBack Testing:** Test tactile sensations, TalkBack pass-through gestures, and screen-reader announcements on physical Android devices and document results in `docs/PHONE_TEST.md`.
+- **Teacher Feedback:** Share your classroom experiences, lesson plans, or student feedback by opening an issue on our [GitHub Issue Tracker](https://github.com/Ratnesh-101/ghost-touch/issues).
+
 ## Acknowledgements
 
 The TalkBack guide started from an outside contribution (PR #36 by drv653); we adopted and corrected it in lane bu10.
 
 ## License
 
-MIT
+[MIT License](LICENSE)
