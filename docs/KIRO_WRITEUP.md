@@ -109,3 +109,16 @@ Authorship is mixed: one commit authored "Kiro" added review and prop-test hooks
 **No MCP server exists in this repo yet**, and there is no MCP configuration under `.kiro/settings/`. A small stdio server is planned (win-plan item W15): `validate_scene` wrapping `backend/app/validate.py` and `raw_outline` wrapping `backend/app/raw_mode.py`, to be used for real once and recorded. Until then this heading has nothing to show.
 
 No student has used the app, and the full app has had no recorded phone test beyond the canvas confirmation above.
+
+## 7. A spec-first example: Ghost Host (task 92)
+
+The newest feature shows the order the specs give us. Requirement 53 (a friendly spoken voice, with rules for jokes and error wording) and properties P188 to P198 were written in `.kiro/specs/ghost-touch/` before any code. Task 92.1 says so in `tasks.md`, and the task forbids touching `screens/`, `flow/`, `i18n/`, the haptic engine or any tuned value in that step. The pure policy helper `frontend/src/core/hostPolicy.ts` came next. Then P192 to P196 were written as `it.fails` oracles, so unfinished copy and wiring showed as test results. Lanes H-copy and H-wire turned them green.
+
+- **Steering at work:** `tech.md` made the helper pure (no imports, named exports) and P197 pins the tuned haptic values, so the voice work cannot change them. `product.md` principle 5 (the creature is the clumsy one, never the user) became criterion 53.7.
+- **Hooks that match these files:** `run-tests-on-core-save` for `core/hostPolicy.ts`, `a11y-on-save` for `Start.tsx` and `Explore.tsx`, `css-guard-on-save` for `explore.css`. I have no recorded firing of any of them, so I do not say they ran.
+- **Mutation checks:** 11 hand mutants against the policy properties and 3 against the screen oracles, all killed (listed in the test header and BUILD_LOG).
+- **Who did what:** Kiro wrote the spec, the helper, the properties and the oracles. The owner reports that Antigravity began the copy lane and ran out of quota; Kiro finished the copy and wiring in a resumed run, and Claude Code reviewed and verified (the owner's account; the repo has no agy report for this lane and no Claude Code entry for task 92 yet).
+- **Check this session:** the three Ghost Host test files give 53 passing tests, `tsc --noEmit` exits 0, and the full `vitest run` shows 264 files and 3381 passed, 1 todo.
+- **Open:** nothing is committed. 92.7 to 92.9 stay open, the phone and TalkBack rows are unrun, and the Hindi and Gujarati strings are machine-translated.
+
+Full trace with file paths: `docs/kiro-evidence/t92-spec-first.md`.

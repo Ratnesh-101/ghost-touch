@@ -1,4 +1,6 @@
-# Demo Script: Ghost Touch (2:55 Storyboard)
+﻿# Demo Script: Ghost Touch (2:55 Storyboard)
+
+> **SUPERSEDED.** The single script is [`submission/demo_script.md`](../submission/demo_script.md) (2:50). Follow that file. This file is kept for its setup checklist and fallbacks. Differences that matter: Kiro is on screen for about 80 s there (1:20 to 2:40), not 15 s, and it is not gated on "recorded evidence"; and a 0:25 to 0:35 clip shows Ghost Host (Requirement 53) speaking its greeting and the next-step line ("Take a photo of a diagram, choose an image, or try a sample. Samples work without internet."), mirrored below.
 
 > **Target Duration:** 2 minutes 55 seconds (Hard limit: 3:00)  
 > **Audience:** Kiroween and STEMergent judges.  
@@ -43,7 +45,7 @@
 | **1:40–2:00** (20s) | **Mathematical Curves & Bar Charts:** Sine wave sample: continuous tone rises and falls with wave height (200–1000 Hz). Cut to Bar chart: touching bars plays height tone and speaks value. | Explore screen (Sine wave / Bar chart). | *"Height becomes pitch."* | `[HW: owner to confirm]` (Audio volume on phone loudspeaker). |
 | **2:00–2:15** (15s) | **TalkBack Screen Reader:** TalkBack on. Double-tap and hold, then drag across diagram lines. Vibration passes through. Film only if recorded evidence exists. | Explore screen with TalkBack accessibility focus. | *"It works with the screen reader blind students already use."* | `[HW: owner to confirm]` (Gesture passed on prototype on Nord CE6; full-app check pending; film only if recorded evidence exists). |
 | **2:15–2:30** (15s) | **Raw Mode Safety Net:** Messy or poorly lit photo. App announces: *"The creature's eyes are blurry, you can still feel the outlines."* Explore opens with Canny edges. | Explore screen with Raw Mode banner and edge outlines. | *"It still gives outlines to follow when online, even if rough."* | `[HW: owner to confirm]` (Raw Mode on cluttered photo on phone). |
-| **2:30–2:45** (15s) | **Spec-Driven Rigor:** Kiro IDE screen capture: formal EARS requirements, agent hook running tests on save, property test failing then passing. Film only if recorded evidence exists. | Kiro IDE (spec task list, hooks, property test). | *"Specs, steering, hooks and property tests, built with Kiro."* | Recorded from Kiro IDE (`docs/kiro-evidence/`; film only if recorded evidence exists). |
+| **2:30–2:45** (15s) | **Spec-Driven Rigor:** Kiro IDE screen capture: formal EARS requirements, agent hook running tests on save, property test failing then passing. Film per `submission/demo_script.md` (spec, hook, steering). | Kiro IDE (spec task list, hooks, property test). | *"Specs, steering, hooks and property tests, built with Kiro."* | Recorded from Kiro IDE (`docs/kiro-evidence/`). |
 | **2:45–2:55** (10s) | **Closing & Next Steps:** Final title card with repository link and live app URL. | Final title card: Ghost Touch, GitHub link, live URL. | *"Next: first sessions with blind students."* | Honest forward-looking close (school sessions pending). |
 
 ---
@@ -79,3 +81,4 @@
    but stay off until the user turns them on in Settings; neither has been tested on a phone.
 8. **No claims of bug-free or completely secure code:** Security and bug audits are actively
    ongoing.
+
