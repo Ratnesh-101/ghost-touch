@@ -1,4 +1,5 @@
 import { test, expect, type Page, type CDPSession } from '@playwright/test';
+import { toPage } from './support/phoneSpies';
 
 /**
  * End-to-end verification for Planchette speech preservation and cancellation (Lane hi16):
@@ -105,17 +106,6 @@ async function touch(
     type,
     touchPoints: type === 'touchEnd' ? [] : [{ x: Math.round(x), y: Math.round(y), id: 0 }],
   });
-}
-
-/** Maps normalized unit-square coordinates to canvas page coordinates. */
-async function toPage(page: Page, nx: number, ny: number): Promise<{ x: number; y: number }> {
-  const box = await page.locator('canvas.gt-explore__canvas').boundingBox();
-  if (!box) throw new Error('no canvas box');
-  const scale = Math.min(box.width, box.height);
-  return {
-    x: box.x + (box.width - scale) / 2 + nx * scale,
-    y: box.y + (box.height - scale) / 2 + ny * scale,
-  };
 }
 
 test.describe('Explore Walk Speech Preservation & Lift Cancellation (hi16)', () => {

@@ -10,7 +10,7 @@
  * gives `null` or `false`, never an exception.
  */
 
-import { makeViewport, toScreen } from './geometry';
+import { makeInsetViewport, toScreen } from './geometry';
 import type { ScreenPoint, Viewport } from './geometry';
 import { DEFAULT_RADII, hitTest } from './hitTest';
 import type { Target } from './hitTest';
@@ -133,7 +133,7 @@ export function isAnchorReachable(
     if (!(scales.length > 0)) return false;
     for (const scale of scales) {
       if (!(scale > 0) || !Number.isFinite(scale)) return false;
-      const view = makeViewport(scale, scale);
+      const view = makeInsetViewport(scale, scale); // the mapping Explore draws and hit-tests with
       const finger = toScreen({ x: anchor.x, y: anchor.y }, view);
       const target = hitTest(scene, finger, view);
       if (target.kind !== 'line' || !anchor.acceptIds.includes(target.id)) return false;

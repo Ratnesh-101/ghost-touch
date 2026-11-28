@@ -9,7 +9,7 @@
  * driver support on a phone.
  */
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type JSX } from 'react';
-import { warmBackend } from './api/health';
+import { warmBackendOncePerSession } from './api/health';
 import type { SceneMode } from './api/scene';
 import { isShareEnvOn } from './config/features';
 import type { DiagramScene } from './core/scene';
@@ -348,7 +348,7 @@ export function App({ watcher, drivers: initialDrivers }: AppProps = {}): JSX.El
     if (isShareEnvOn() && (parseShareHash(readHash()) !== null || isTeachHash(readHash()))) {
       return;
     }
-    void warmBackend();
+    void warmBackendOncePerSession();
   }, []);
 
   useEffect(() => {

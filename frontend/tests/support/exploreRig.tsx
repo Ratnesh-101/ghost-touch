@@ -10,6 +10,7 @@ import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { vi } from 'vitest';
 import { setStoredGuideSetting } from '../../src/config/features';
+import { VIEW_INSET_PX } from '../../src/core/geometry';
 import type { DiagramScene } from '../../src/core/scene';
 import { MemoryDiagramStore, type Drivers } from '../../src/drivers';
 import {
@@ -28,7 +29,13 @@ import {
 } from '../../src/flow/explore';
 import { Explore } from '../../src/screens/Explore';
 
+/**
+ * Side of the unit square in CSS px. Task 94 (Requirement 54.1): Explore keeps a `VIEW_INSET_PX` margin,
+ * so the mocked canvas is SIZE + 2 * inset and the rig shifts every pointer by the inset. Tests keep
+ * giving positions as scene coordinates times SIZE, and pixel distances are unchanged.
+ */
 export const SIZE = 400;
+export const CANVAS_SIZE = SIZE + 2 * VIEW_INSET_PX;
 
 export type Calls = unknown[][];
 
@@ -74,7 +81,12 @@ export interface Rig {
 }
 
 function fire(el: Element, type: string, x: number, y: number, pointerId: number): void {
-  const event = new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true });
+  const event = new MouseEvent(type, {
+    clientX: x + VIEW_INSET_PX,
+    clientY: y + VIEW_INSET_PX,
+    bubbles: true,
+    cancelable: true,
+  });
   Object.assign(event, { pointerId });
   act(() => {
     el.dispatchEvent(event);
@@ -105,10 +117,10 @@ export function setupRigEnv(): void {
       y: 0,
       left: 0,
       top: 0,
-      right: SIZE,
-      bottom: SIZE,
-      width: SIZE,
-      height: SIZE,
+      right: CANVAS_SIZE,
+      bottom: CANVAS_SIZE,
+      width: CANVAS_SIZE,
+      height: CANVAS_SIZE,
       toJSON: () => ({}),
     } as DOMRect;
   };

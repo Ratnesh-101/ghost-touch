@@ -75,6 +75,35 @@ export function makeViewport(
   };
 }
 
+/**
+ * Margin kept between the unit square and the canvas edge on every side, in CSS pixels.
+ * Slightly larger than the vertex hit radius (22 px, unchanged) so a corner at 0 or 1
+ * is drawn whole, keeps its label, and can be reached by a finger. Task 94, Requirement 33.
+ */
+export const VIEW_INSET_PX = 24;
+
+/**
+ * Like `makeViewport`, but shrinks the unit square by `VIEW_INSET_PX` on each side.
+ * Render and hit-testing share this one mapping through `Viewport`, so they cannot disagree.
+ * On a canvas too small to hold the inset the inset is capped at a quarter of the short side.
+ */
+export function makeInsetViewport(
+  canvasWidth: number,
+  canvasHeight: number,
+  insetPx: number = VIEW_INSET_PX,
+): Viewport {
+  const side = Math.min(canvasWidth, canvasHeight);
+  const inset = Math.max(0, Math.min(insetPx, side / 4));
+  const scale = Math.max(0, side - 2 * inset);
+  return {
+    canvasWidth,
+    canvasHeight,
+    scale,
+    offsetX: (canvasWidth - scale) / 2,
+    offsetY: (canvasHeight - scale) / 2,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Coordinate transforms
 // ---------------------------------------------------------------------------

@@ -95,7 +95,7 @@ describe('Lab theme i18n & copy parity (Lane lab-i18n)', () => {
     expect(t('lab.settings.language')).toBe('Language');
     expect(t('lab.settings.rate')).toBe('Speech speed');
     expect(t('lab.settings.opened')).toBe('Settings opened');
-    expect(t('lab.settings.closed')).toBe('Lab settings closed');
+    expect(t('lab.settings.closed')).toBe('Settings closed');
 
     expect(t('lab.loading.title')).toBe('The lab is powering up');
     expect(t('lab.loading.hint')).toBe('Reading your diagram…');

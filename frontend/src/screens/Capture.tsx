@@ -29,7 +29,7 @@ declare module 'react' {
   }
 }
 import { loadSample, type SampleId, type SceneMode } from '../api/scene';
-import { warmBackend } from '../api/health';
+import { warmBackend, warmBackendOncePerSession } from '../api/health';
 import { hostFlows } from '../flow/host';
 import { AccessibleButton } from '../components/AccessibleButton';
 import { LabLoading } from '../components/loading/LabLoading';
@@ -114,7 +114,7 @@ export function Capture({
   const activeRate = drivers.speech.getRate ? drivers.speech.getRate() : currentRate;
 
   useEffect(() => {
-    void warmBackend();
+    void warmBackendOncePerSession();
     takeButton.current?.focus();
     const controller = new AbortController();
     lifetime.current = controller;

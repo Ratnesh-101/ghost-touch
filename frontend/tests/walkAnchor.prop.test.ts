@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import { hitTest } from '../src/core/hitTest';
-import { makeViewport, toScreen } from '../src/core/geometry';
+import { makeInsetViewport, toScreen } from '../src/core/geometry';
 import type { DiagramScene } from '../src/core/scene';
 import {
   ANCHOR_RADIUS_PX,
@@ -81,7 +81,7 @@ describe('P170: spot anchors (walkAnchor)', () => {
         if (a === null) return; // flat curve: no peak, nothing to check
         expect(isAnchorReachable(scene, a)).toBe(true);
         for (const scale of REACH_SCALES) {
-          const view = makeViewport(scale, scale);
+          const view = makeInsetViewport(scale, scale);
           const finger = toScreen({ x: a.x, y: a.y }, view);
           const target = hitTest(scene, finger, view);
           expect(target.kind).toBe('line');
@@ -101,7 +101,7 @@ describe('P170: spot anchors (walkAnchor)', () => {
   it('a target that is not a line of an accepted id never reaches a spot, even on top of it', () => {
     const scene = graphScene([[[0.1, 0.6], [0.5, 0.2], [0.9, 0.6]]], { x_axis_y: 0.6, y_axis_x: 0.1 });
     const peak = anchorPoint(scene, 'peak')!;
-    const view = makeViewport(360, 360);
+    const view = makeInsetViewport(360, 360);
     const finger = toScreen({ x: peak.x, y: peak.y }, view);
     expect(spotReached(peak, { kind: 'none' }, finger, view)).toBe(false);
     expect(spotReached(peak, { kind: 'vertex', id: 'curve' }, finger, view)).toBe(false);
@@ -239,4 +239,47 @@ describe('P170: spot anchors (walkAnchor)', () => {
     expect(peak.y).toBeLessThan(trough.y);
     expect(peak.elementId).toBe('sine_curve');
   });
-});
+
+  it('task 94 follow-up: the anchor mapping is the Explore (inset) mapping, not the full-canvas one', () => {
+    // Independent oracle: the Explore viewport written out from the task 94 formula.
+    const explore = (w: number, h: number): { scale: number; offsetX: number; offsetY: number } => {
+      const side = Math.min(w, h);
+      const inset = Math.max(0, Math.min(24, side / 4));
+      const scale = Math.max(0, side - 2 * inset);
+      return { scale, offsetX: (w - scale) / 2, offsetY: (h - scale) / 2 };
+    };
+    fc.assert(
+      fc.property(
+        curveArb,
+        axesArb,
+        fc.integer({ min: 40, max: 900 }),
+        fc.double({ min: -0.2, max: 0.2, noNaN: true }),
+        fc.double({ min: -0.2, max: 0.2, noNaN: true }),
+        (curve, axes, side, dx, dy) => {
+          const scene = graphScene([curve], axes);
+          const peak = anchorPoint(scene, 'peak');
+          if (peak === null) return;
+          const e = explore(side, side);
+          const view = { canvasWidth: side, canvasHeight: side, ...e };
+          expect(toScreen({ x: peak.x, y: peak.y }, view)).toEqual(
+            toScreen({ x: peak.x, y: peak.y }, makeInsetViewport(side, side)),
+          );
+          const x = Math.min(1, Math.max(0, peak.x + dx));
+          const y = Math.min(1, Math.max(0, peak.y + dy));
+          const blocked: DiagramScene = { ...scene, points: [{ id: 'P', x, y, label: 'P' }] };
+          const finger = toScreen({ x: peak.x, y: peak.y }, view);
+          const t = hitTest(blocked, finger, view);
+          const expected = t.kind === 'line' && peak.acceptIds.includes(t.id);
+          expect(isAnchorReachable(blocked, peak, [side])).toBe(expected);
+        },
+      ),
+      { numRuns: runs(400) },
+    );
+  });
+
+  it('pinned: a point 0.13 away blocks the peak at side 200 under the inset mapping (15.2 px; full would be 26 px)', () => {
+    const scene = graphScene([[[0.1, 0.6], [0.5, 0.2], [0.9, 0.6]]], { x_axis_y: 0.9, y_axis_x: 0.05 });
+    const peak = anchorPoint(scene, 'peak')!;
+    const blocked: DiagramScene = { ...scene, points: [{ id: 'P', x: peak.x, y: peak.y + 0.13, label: 'P' }] };
+    expect(isAnchorReachable(blocked, peak, [200])).toBe(false);
+  });});

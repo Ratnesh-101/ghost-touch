@@ -1,4 +1,5 @@
 import { test, expect, type Page, type CDPSession } from '@playwright/test';
+import { toPage } from './support/phoneSpies';
 
 /**
  * End-to-end checks for the Help button (Requirement 50) and the "show me" highlight
@@ -25,22 +26,6 @@ async function touch(cdp: CDPSession, type: 'touchStart' | 'touchMove' | 'touchE
     type,
     touchPoints: type === 'touchEnd' ? [] : [{ x: Math.round(x), y: Math.round(y), id: 0 }],
   });
-}
-
-/**
- * Maps normalized unit-square coordinates to canvas page coordinates.
- * Note: Copies makeViewport letterboxing logic for unit-square scenes;
- * this must be updated if aspect-ratio support is added to scene models
- * (Requirement: scene is a unit square "unless aspect is added later").
- */
-async function toPage(page: Page, nx: number, ny: number): Promise<{ x: number; y: number }> {
-  const box = await page.locator('canvas.gt-explore__canvas').boundingBox();
-  if (!box) throw new Error('no canvas box');
-  const scale = Math.min(box.width, box.height);
-  return {
-    x: box.x + (box.width - scale) / 2 + nx * scale,
-    y: box.y + (box.height - scale) / 2 + ny * scale,
-  };
 }
 
 /**

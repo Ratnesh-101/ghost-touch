@@ -158,7 +158,7 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
 
     expect(speakMock).toHaveBeenCalledTimes(1);
     expect(speakMock).toHaveBeenCalledWith(t('lab.settings.closed'), LANG_BCP47['en']);
-    expect(speakMock).toHaveBeenCalledWith('Lab settings closed', 'en-IN');
+    expect(speakMock).toHaveBeenCalledWith('Settings closed', 'en-IN');
   });
 
   it('closing by scrim click speaks closed once', () => {
@@ -179,7 +179,7 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
     });
 
     expect(speakMock).toHaveBeenCalledTimes(1);
-    expect(speakMock).toHaveBeenCalledWith('Lab settings closed', 'en-IN');
+    expect(speakMock).toHaveBeenCalledWith('Settings closed', 'en-IN');
   });
 
   it('closing by Escape speaks closed once', () => {
@@ -197,7 +197,7 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
     });
 
     expect(speakMock).toHaveBeenCalledTimes(1);
-    expect(speakMock).toHaveBeenCalledWith('Lab settings closed', 'en-IN');
+    expect(speakMock).toHaveBeenCalledWith('Settings closed', 'en-IN');
   });
 
   it('opening twice speaks twice in total', () => {
@@ -221,7 +221,7 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
       harnessControl!.setOpen(false);
     });
     expect(speakMock).toHaveBeenCalledTimes(2);
-    expect(speakMock).toHaveBeenLastCalledWith('Lab settings closed', 'en-IN');
+    expect(speakMock).toHaveBeenLastCalledWith('Settings closed', 'en-IN');
 
     // Second open
     act(() => {
@@ -250,7 +250,7 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
     });
 
     expect(speakMock).toHaveBeenCalledTimes(1);
-    expect(speakMock).toHaveBeenCalledWith('Lab settings closed', 'en-IN');
+    expect(speakMock).toHaveBeenCalledWith('Settings closed', 'en-IN');
   });
 
   it('speaks through explicit speak prop when provided', () => {
@@ -277,7 +277,7 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
       closeBtn!.click();
     });
 
-    expect(customSpeak).toHaveBeenCalledWith('Lab settings closed', 'en-IN');
+    expect(customSpeak).toHaveBeenCalledWith('Settings closed', 'en-IN');
     expect(speakMock).not.toHaveBeenCalled();
   });
 
@@ -306,7 +306,7 @@ describe('LabSettings spoken announcements on open and close (Lane hi18)', () =>
     });
 
     expect(speakMock).toHaveBeenCalledTimes(1);
-    expect(speakMock).toHaveBeenCalledWith('Lab settings closed', 'en-IN');
+    expect(speakMock).toHaveBeenCalledWith('Settings closed', 'en-IN');
   });
 
   it('does not speak when sheet is closed silently (handleClose(true))', () => {

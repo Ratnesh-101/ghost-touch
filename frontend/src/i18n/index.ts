@@ -299,7 +299,7 @@ const en: Record<string, string> = {
   'lab.settings.moreSettingsExpanded': 'More settings expanded.',
   'lab.settings.moreSettingsCollapsed': 'More settings collapsed.',
   'lab.settings.opened': 'Settings opened',
-  'lab.settings.closed': 'Lab settings closed',
+  'lab.settings.closed': 'Settings closed',
   'lab.settings.vibrationHelpTitle': 'Device Vibration Settings',
   'lab.settings.vibrationHelpIntro':
     "Web apps cannot override your phone's system settings. For Ghost Touch to vibrate, sound and vibration must be enabled on your device.",

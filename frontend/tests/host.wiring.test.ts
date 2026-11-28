@@ -133,7 +133,8 @@ describe('W4, W5, W6: ask and capture error lines', () => {
 
 describe('A3-01 / 53.17: the backend is warmed when the app starts', () => {
   it('App.tsx and the Capture screen both call warmBackend', () => {
-    expect(appSource).toMatch(/void warmBackend\(\)/);
+    expect(appSource).toMatch(/void warmBackendOncePerSession\(\)/);
+    expect(captureSource).toMatch(/void warmBackendOncePerSession\(\)/);
     expect(captureSource).toMatch(/void warmBackend\(\)/);
   });
 

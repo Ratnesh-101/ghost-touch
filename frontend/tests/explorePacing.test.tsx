@@ -206,20 +206,20 @@ describe('Explore Screen — Speech Pacing Wiring (Requirement M2)', () => {
     // Simulate canvas layout dimensions (400 x 400)
     canvas.getBoundingClientRect = () =>
       ({
-        width: 400,
-        height: 400,
+        width: 448,
+        height: 448,
         left: 0,
         top: 0,
-        right: 400,
-        bottom: 400,
+        right: 448,
+        bottom: 448,
         x: 0,
         y: 0,
         toJSON: () => {},
       }) as DOMRect;
 
     if (canvas.parentElement) {
-      Object.defineProperty(canvas.parentElement, 'clientWidth', { value: 400, configurable: true });
-      Object.defineProperty(canvas.parentElement, 'clientHeight', { value: 400, configurable: true });
+      Object.defineProperty(canvas.parentElement, 'clientWidth', { value: 448, configurable: true });
+      Object.defineProperty(canvas.parentElement, 'clientHeight', { value: 448, configurable: true });
     }
 
     // Touch down on Bar 1 (Q1 at x = 80, y = 300)
@@ -227,8 +227,8 @@ describe('Explore Screen — Speech Pacing Wiring (Requirement M2)', () => {
       canvas.dispatchEvent(
         new PointerEvent('pointerdown', {
           bubbles: true,
-          clientX: 80,
-          clientY: 300,
+          clientX: 80 + 24,
+          clientY: 300 + 24,
           pointerId: 1,
         }),
       );
@@ -243,8 +243,8 @@ describe('Explore Screen — Speech Pacing Wiring (Requirement M2)', () => {
       canvas.dispatchEvent(
         new PointerEvent('pointermove', {
           bubbles: true,
-          clientX: 160,
-          clientY: 300,
+          clientX: 160 + 24,
+          clientY: 300 + 24,
           pointerId: 1,
         }),
       );

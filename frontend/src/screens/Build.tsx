@@ -120,7 +120,7 @@ export function Build({
     if (!speakTitleOnceRef.current) {
       speakTitleOnceRef.current = true;
       // One utterance: the title then the next step (speak() cancels the previous line).
-      drivers.speech.speak(joinAnnouncements([t('build.title'), t('build.prompt')]), LANG_BCP47[getLang()]);
+      drivers.speech.speak(joinAnnouncements([t('build.title'), t('host.build.next')]), LANG_BCP47[getLang()]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);

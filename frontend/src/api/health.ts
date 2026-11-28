@@ -42,10 +42,36 @@ export function isBackendWarmed(now: () => number = activeClock): boolean {
   return currentTime >= lastWarmAttemptAt && currentTime - lastWarmAttemptAt < WARM_INTERVAL_MS;
 }
 
+/** sessionStorage key: set once the load-time warm-up has fired in this browser session. */
+export const WARM_SESSION_KEY = 'gt_warm_session_done';
+
 /** Reset the warm-up guard (for testing only). */
 export function resetWarmGuardForTesting(): void {
   lastWarmAttemptAt = null;
   activeClock = () => Date.now();
+  try {
+    globalThis.sessionStorage?.removeItem(WARM_SESSION_KEY);
+  } catch {
+    // storage unavailable: nothing to reset
+  }
+}
+
+/**
+ * Load-time warm-up: fires on the first load of a browser session only, so reloads
+ * do not wake the backend again. If sessionStorage is unavailable it still fires
+ * (the in-memory 10-minute guard in `warmBackend` applies).
+ */
+export async function warmBackendOncePerSession(options: WarmBackendOptions = {}): Promise<void> {
+  try {
+    const store = globalThis.sessionStorage;
+    if (store) {
+      if (store.getItem(WARM_SESSION_KEY) === '1') return;
+      store.setItem(WARM_SESSION_KEY, '1');
+    }
+  } catch {
+    // storage blocked: fall through and warm
+  }
+  await warmBackend(options);
 }
 
 /**

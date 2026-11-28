@@ -1,5 +1,6 @@
 import { test, expect, type Page, type CDPSession } from '@playwright/test';
 import { t } from '../src/i18n';
+import { toPage } from './support/phoneSpies';
 
 /**
  * End-to-end tests for Lane hi8 Help and landscape fixes:
@@ -16,16 +17,6 @@ async function openTriangle(page: Page): Promise<void> {
   await page.getByRole('button', { name: /triangle/i }).click();
   await expect(page.locator('canvas.gt-explore__canvas')).toBeVisible();
   await page.waitForTimeout(300);
-}
-
-async function toPage(page: Page, nx: number, ny: number): Promise<{ x: number; y: number }> {
-  const box = await page.locator('canvas.gt-explore__canvas').boundingBox();
-  if (!box) throw new Error('no canvas box');
-  const scale = Math.min(box.width, box.height);
-  return {
-    x: box.x + (box.width - scale) / 2 + nx * scale,
-    y: box.y + (box.height - scale) / 2 + ny * scale,
-  };
 }
 
 test.describe('Lane hi8: Help second-finger touch, status card expansion, landscape layout', () => {

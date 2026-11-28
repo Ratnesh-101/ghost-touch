@@ -74,8 +74,8 @@ describe('Build entry is one utterance (53.19)', () => {
     const lines = speak.mock.calls.map((c) => String(c[0]));
     const entry = lines.filter((l) => l.includes(t('build.title')));
     expect(entry).toHaveLength(1);
-    expect(entry[0]).toContain(t('build.prompt'));
-    expect(entry[0]!.indexOf(t('build.title'))).toBeLessThan(entry[0]!.indexOf(t('build.prompt')));
+    expect(entry[0]).toContain(t('host.build.next'));
+    expect(entry[0]!.indexOf(t('build.title'))).toBeLessThan(entry[0]!.indexOf(t('host.build.next')));
     // The last utterance is the combined one, so nothing cancels the next step.
     expect(lines[lines.length - 1]).toBe(entry[0]);
     await act(async () => {

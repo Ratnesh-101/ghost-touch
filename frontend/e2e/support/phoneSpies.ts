@@ -130,11 +130,17 @@ export async function touch(cdp: CDPSession, type: 'touchStart' | 'touchMove' | 
   });
 }
 
-/** Page coordinates of a unit-square point (letterboxed canvas, scale = min(w, h)). */
+/**
+ * Page coordinates of a unit-square point on the Explore canvas. Mirrors `makeInsetViewport` in
+ * `src/core/geometry.ts` (task 94): side = min(w, h); inset = min(24, side / 4);
+ * scale = side - 2 * inset; the square is centred. e2e files must not copy this: import it.
+ */
 export async function toPage(page: Page, nx: number, ny: number): Promise<{ x: number; y: number }> {
   const box = await page.locator('canvas.gt-explore__canvas').boundingBox();
   if (!box) throw new Error('no canvas box');
-  const scale = Math.min(box.width, box.height);
+  const side = Math.min(box.width, box.height);
+  const inset = Math.max(0, Math.min(24, side / 4));
+  const scale = Math.max(0, side - 2 * inset);
   return {
     x: box.x + (box.width - scale) / 2 + nx * scale,
     y: box.y + (box.height - scale) / 2 + ny * scale,

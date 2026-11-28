@@ -14,7 +14,7 @@ import { SettingsLauncher } from '../components/SettingsLauncher';
 import { StatusText } from '../components/StatusText';
 import { VerifiedBanner } from '../components/VerifiedBanner';
 import {
-  makeViewport,
+  makeInsetViewport,
   toNorm,
   toScreen,
   type NormPoint,
@@ -555,7 +555,7 @@ export function Explore({
   const activePointers = useRef<Map<number, PointerHistory>>(new Map());
   const primaryPointerId = useRef<number | null>(null);
   const leaving = useRef(false);
-  const viewportRef = useRef<Viewport>(makeViewport(300, 300));
+  const viewportRef = useRef<Viewport>(makeInsetViewport(300, 300));
   const firstTouchOffset = useRef<{ dx: number; dy: number } | null>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasBoxRef = useRef<CanvasBox | null>(null);
@@ -1747,7 +1747,7 @@ export function Explore({
       ctx.setTransform(box.dpr, 0, 0, box.dpr, 0, 0);
     }
 
-    const view = makeViewport(box.cssWidth, box.cssHeight);
+    const view = makeInsetViewport(box.cssWidth, box.cssHeight);
     viewportRef.current = view;
     setCanvasSize((prev) =>
       prev.w === box.cssWidth && prev.h === box.cssHeight
@@ -2869,7 +2869,7 @@ export function Explore({
   const helpTap = useTouchTap(handleHelpClick);
 
   const renderA11yTree = (): JSX.Element => {
-    const view = makeViewport(canvasSize.w, canvasSize.h);
+    const view = makeInsetViewport(canvasSize.w, canvasSize.h);
     return (
       <div
         className="gt-explore__a11y-tree"

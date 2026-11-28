@@ -208,9 +208,9 @@ describe('LANE hi13: App Screen Wiring for Build (Requirement 52.9, 52.18)', () 
     expect(buildRoot?.getAttribute('data-mode')).toBe('form');
     expect(buildRoot?.getAttribute('data-pins')).toBe('0');
 
-    // Verify build.prompt spoken
+    // Verify the Build next-step line is spoken (Requirement 53, host.build.next)
     expect(mockDrivers.speak).toHaveBeenCalledWith(
-      expect.stringContaining(t('build.prompt')),
+      expect.stringContaining(t('host.build.next')),
       expect.any(String),
     );
 

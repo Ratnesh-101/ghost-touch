@@ -14,6 +14,7 @@ import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_HAPTICS } from '../src/core/hapticEngine';
+import { makeInsetViewport, toScreen } from '../src/core/geometry';
 import { pitchForValue } from '../src/core/pitch';
 import type { DiagramScene } from '../src/core/scene';
 import { MemoryDiagramStore, type Drivers } from '../src/drivers';
@@ -379,9 +380,11 @@ describe('direct canvas touch still works', () => {
     mount(triangle, drivers);
     const canvas = container.querySelector('canvas') as HTMLCanvasElement;
     const Ctor = (globalThis as { PointerEvent?: typeof MouseEvent }).PointerEvent ?? MouseEvent;
+    // Task 94: the corner's drawn position through the same inset mapping Explore uses.
+    const corner = toScreen({ x: 0.1, y: 0.9 }, makeInsetViewport(SIZE, SIZE));
     act(() => {
       canvas.dispatchEvent(
-        new Ctor('pointerdown', { bubbles: true, clientX: 0.1 * SIZE, clientY: 0.9 * SIZE }),
+        new Ctor('pointerdown', { bubbles: true, clientX: corner.x, clientY: corner.y }),
       );
     });
     expect(vibrate).toHaveBeenCalledWith(DEFAULT_HAPTICS.cornerPattern);
