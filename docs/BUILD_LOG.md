@@ -5091,3 +5091,51 @@ Format for each entry:
 
 ## 2026-11-25 (Kiro): task 91, directionHint boundary flake
 - Tool = Kiro. CI failure on f0cf241 in `guide.geometry.prop.test.ts` was a test generator problem: r = 0.05 times cos/sin recomputed by `hypot` can be 0.05000000000000001, correctly outside the dead zone. `guide/geometry.ts` unchanged. Test now uses a 1e-9 relative margin inside, a "just outside never here" property, an exact-axis example and the pinned counterexample; mutant `+ 1e-6` killed it. Finding in `docs/reviews/kiro-review-planchette-spec.md`. `hasArrived` (+1e-9) vs `directionHint` (none) noted, not changed.
+
+## 2026-11-27 (Kiro): task 92, Ghost Host policy core and properties (92.1 to 92.3, part of 92.4)
+- Tool = Kiro. Requirement 53 and P188 to P198 were already written. Added `frontend/src/core/hostPolicy.ts` (`mayJoke`, `composeErrorLine`, `nextFlowState`, `lintHostLine`, `INITIAL_HOST_FLOW`): pure, no imports, total. Jokes are English only; hi and gu get none (P188). `lintHostLine` takes an optional third argument `category` so the "error needs an action word" rule can be checked.
+- Tests: `tests/hostPolicy.prop.test.ts` (P188 to P191, P197 code half, P198; 250 to 300 runs) and `tests/host.i18n.oracle.test.ts` (P192, P193 as `it.fails`, waiting on lane H-copy; the key names the lane must use are in the file header). P194 to P196 (jsdom screen oracles) are NOT written yet.
+- Mutants killed: no category check, no language check, `failures > 2`, same-joke check removed, gap 3 to 2, success not resetting failures, joke before plain, joke returned for empty plain, em dash unbanned, sentence limit 26, sorry count removed (11 of 11; the first attempt at joke-before-plain did not patch and was redone).
+- Known wrinkle: the lint bans the word "correct" as spec 53.8 lists it, so a host line cannot say "Correct mode"; lane H-copy should word around it. Lint word checks run in English only.
+- Gate: `tsc --noEmit` 0 errors; `vitest run`: 263 files, 3367 passed, 3 expected fail (the oracles), 1 todo; `npm run build` OK. Not committed. Hindi and Gujarati untouched.
+- Files: frontend/src/core/hostPolicy.ts, frontend/tests/hostPolicy.prop.test.ts, frontend/tests/host.i18n.oracle.test.ts, .kiro/specs/ghost-touch/tasks.md, docs/BUILD_LOG.md.
+
+## 2026-11-27 (Kiro): task 92 resumed, Ghost Host oracles, copy and wiring (92.4 to 92.6)
+- Tool = Kiro. A previous run stopped mid-way. On resume the full vitest run was already green (263 files), so no test needed its old English string changed in this run; the earlier edits to the old-flow tests in the working tree (start, capture, explore, i18n, overview, speech, lang, locale, teach routing, n2) were left as they were. I did not weaken any a11y or behaviour assertion.
+- `.fails` is gone from P192 and P193 (the `host.*` keys and replaced error values pass `lintHostLine` in en, hi, gu).
+- New `frontend/tests/host.screen.oracle.test.tsx`: P194 (Start greeting spoken once, replaced and not queued by the tap, one Capture line, short button name so a screen reader does not repeat the greeting), P195 (after a failed voice ask for no-speech, timeout, denied and failed, `#gt-ask-input` is open and focused and the last spoken line mentions the box), P196 (the Explore action buttons use `min-height`, no fixed `height`; Start button name non-empty in all three languages).
+- Mutants killed: Explore focus always to the Ask button (4 tests fail), fixed `height: 48px` back in `explore.css` (1 fails), Start `aria-label` set to the greeting (1 fails). The first attempt at the last mutant did not patch (missing backticks) and was redone.
+- Source state checked against the audit: GH-01 (`openTextFallback` and focus), GH-03, GH-04 (short Start name), GH-05 (`onEnd` in `SpeechDriver`, flag written when heard), GH-06 (`voiceLangName`), GH-09 (one Back wording, crash line), GH-10 (`min-height`), GH-12 (no dash in `lab.raw.notice`) are present in `drivers/speech.ts`, `flow/start.ts`, `screens/Start.tsx`, `screens/Explore.tsx`, `styles/explore.css`, `i18n/index.ts`.
+- Docs: added section 6 (Ghost Host lines, 14 rows) to `docs/user-test/translation-review.md`; the CSV already had the rows. Ticked 92.4 to 92.6 in `tasks.md`; 92.7 to 92.9 stay open.
+- Honest limits: jsdom has no layout, so P196 reads the stylesheet text and does not measure a 200 % font; P194 covers Start, the tap and the Capture line, not every screen's next-step line; the Explore entry "one utterance" part of P194 is not tested here. The `speech.noVoiceNotice` English text in the CSV is older than the table. Hindi and Gujarati are machine-translated. Nothing was tried on a phone or with TalkBack.
+- Gate: `tsc --noEmit` 0 errors; `vitest run`: 264 files, 3381 passed, 1 todo; `npm run build` OK. Not committed. `.kiro/agents` not touched by me (its modified files were already in the working tree).
+- Files: frontend/tests/host.screen.oracle.test.tsx, docs/user-test/translation-review.md, .kiro/specs/ghost-touch/tasks.md, docs/BUILD_LOG.md.
+
+## 2026-11-27 (Kiro): package 7, spec-first evidence for task 92
+- Tool = Kiro. Docs only. Wrote `docs/kiro-evidence/t92-spec-first.md`, which traces Requirement 53 to P188-P198 to task 92 (92.1 to 92.9) to the real files and tests, and lists which hooks' matchers and which steering files cover them. Added section 7 to `docs/KIRO_WRITEUP.md`.
+- Attribution as the owner stated it: agy began the copy lane and hit quota, Kiro finished it, Claude Code reviewed and verified. The repo itself has no agy report for H-copy or H-wire and no Claude Code entry for task 92, so the evidence file marks this as the owner's account and gives no per-file split.
+- Real runs this session: the three Ghost Host test files, 3 files and 53 tests passed; `npx tsc --noEmit` exit 0; full `vitest run`, 264 files, 3381 passed, 1 todo. `npm run build` was not re-run.
+- Not claimed: any hook firing (`docs/kiro-evidence/hooks-check.md` records none), any phone or TalkBack result, any commit hash (nothing is committed). 92.7 to 92.9 stay open.
+- Files: docs/kiro-evidence/t92-spec-first.md, docs/KIRO_WRITEUP.md, docs/BUILD_LOG.md. `.kiro/agents` not touched.
+
+## 2026-11-27 (Claude Code): orchestration and verification for task 92 and the submission pack
+- Tool = Claude Code. Ran the audit (`SUBMISSION_AUDIT.md`, secret scan with `git grep` and `git log -G`; two `AIza`-shaped strings found, both test or report fixtures, owner confirmed they are not the real key). Ran Kiro agents (gt-auditor, gt-fixer, gt-writer) and agy lanes; wrote no feature code.
+- agy: teacher-guide quick version, README layout, the copy lane (partial, hit quota mid-run: i18n `host.*` keys, translation-review files, GH-10 min-height) and PHONE_TEST rows. Kiro finished the copy and wire lanes and updated 13 old tests to the new wording.
+- Verified by Claude Code: `tsc --noEmit` clean, full `vitest run` 264 files / 3381 passed, `npm run build` ok, no change to core haptic files. Ran `kiro-cli agent upgrade .kiro/agents` (format and engine fields only; prompts unchanged).
+- Wrote `submission/` (Devpost draft, demo script, checklist, built_with, STEMergent notes) with a Kiro default-agent lane; nothing committed. Opus 5.5 planned the work and advised on the start-date wording, Hindi/Gujarati disclosure and the commit plan.
+
+## 2026-11-15 — Kiro — Task 92: close low review findings (92.7, 92.9)
+- P194 gap: added a test in `frontend/tests/host.screen.oracle.test.tsx` that builds the Explore entry line with `exploreAnnouncement`, checks it with `lintHostLine` (en, hi, gu), renders `Explore`, and confirms the line is shown once and Explore does not speak it again on mount.
+- P196: jsdom has no layout, so a 200 % font scale cannot be measured. Kept the stylesheet check and renamed the test to say "stylesheet text only (no 200% font measurement)". The 200 % font row stays with the phone test (92.8, open, owner runs it).
+- No `frontend/src` change; no bug found. Gate: `tsc --noEmit` 0 errors, `vitest run` 264 files / 3384 passed / 1 todo, `npm run build` ok. Ticked 92.7 and 92.9 in `tasks.md`; 92.8 left open. Nothing committed.
+
+## 2026-11-15 - Kiro - e2e: Start tap now speaks host.capture.next (Requirement 53.2)
+- `frontend/e2e/phone-test-emulated.spec.ts`: PT 2.1/2.2, PT 3.8/3.9 and PT 12 hi/gu expected `capture.prompt`; the app speaks `host.capture.next` after the Start tap. The three assertions now use `host.capture.next` per language (`t(...)`, `tables.hi[...]`, `tables[lang][...]`). Vibration 50, the persistence reload and the language selection are unchanged. Not a source regression, so no `src` change.
+- Results: `phone-test-emulated.spec.ts` 32 passed (both projects); full `npx playwright test` 188 passed, 0 failed (output in `playwright-full.txt` at the repo root). Nothing committed.
+
+## 2026-11-28 (Claude Code): Wave A audits, Wave B fixes, Playwright verification
+- Tool = Claude Code (orchestration and verification only; no feature code). Opus 5.5 planned the lanes. Wave A: 6 Kiro audits + 2 agy audits (`docs/reports/wa-*.md`). Wave B: Kiro gt-fixer lanes B-host, B-a11y, B-focus, B-speech; Kiro default lanes B-e2e, B-sub; agy lane B-comm (CONTRIBUTING, CODE_OF_CONDUCT, TEACHER_GUIDE, README).
+- Real bugs found by tests/probes: Ask-error focus never landed in the typing box (disabled input race, fixed in Explore.tsx), plus 4 speech collisions found by an Opus-run Playwright probe (`docs/reports/wb-playwright-probe.md`).
+- Verified by Claude Code: tsc clean, vitest 268 files / 3428 passed, build ok, Playwright 210 passed on both emulated phones. No commits made. `.kiro/agents` permission rules added by `kiro-cli agent upgrade` are flagged for the owner (audit A4-1).
+
+- 2026-11-28 (Claude Code): updated one stale assertion in frontend/e2e/phone-test-emulated-2.spec.ts:174 (PT 11 expects host.correct.next, per task 93.3a).

@@ -97,8 +97,9 @@ Three real defects were found by this pass and fixed before any phone test: the 
 | **Step 17** | Planchette: Walk me through (added 2026-11-22) | ~6 min (estimate) | OFF, then ON |
 | **Step 18** | Ghost Hand: Make my own graph (added 2026-11-22) | ~7 min (estimate) | OFF, then ON |
 | **Step 19** | Compact footer at 360 px in English, Hindi and Gujarati (added 2026-11-22) | ~3 min (estimate) | OFF |
+| **Step 20** | Ghost Host guide voice (added 2026-11-27) | ~4 min (estimate) | OFF & ON |
 | **Total (Steps 0 to 14)** | **End-to-End Phone Evaluation** | **~27.5 min** | |
-| **Total (Steps 15 to 19)** | **Added on 2026-11-22; run as a second session** | **~23 min (estimate)** | |
+| **Total (Steps 15 to 20)** | **Added on 2026-11-22 and 2026-11-27; run as a second session** | **~27 min (estimate)** | |
 
 ---
 
@@ -319,10 +320,10 @@ Three real defects were found by this pass and fixed before any phone test: the 
 
 ---
 
-## Steps 15 to 19: features built since 2026-11-20 (added 2026-11-22)
+## Steps 15 to 20: features built since 2026-11-20 (added 2026-11-22, Step 20 added 2026-11-27)
 
 > [!WARNING]
-> **Everything in Steps 15 to 19 is untested on a phone.** It passes automated tests in a simulated browser and, for some layout checks, in an emulated Chrome. Nobody has felt, heard or looked at any of it on a real device, with or without TalkBack. A fail here is expected information, not a surprise. Hindi and Gujarati wording is machine-translated and not reviewed by native speakers.
+> **Everything in Steps 15 to 20 is untested on a phone.** It passes automated tests in a simulated browser and, for some layout checks, in an emulated Chrome. Nobody has felt, heard or looked at any of it on a real device, with or without TalkBack. A fail here is expected information, not a surprise. Hindi and Gujarati wording is machine-translated and not reviewed by native speakers.
 >
 > **Two ways to test, write which one you used in the notes:** **TalkBack OFF** (direct touch) and **TalkBack ON** (double-tap-and-hold, then drag, as in Step 5). If you have no TalkBack, do only the OFF rows and write "no TalkBack" in the notes. Time estimates are guesses.
 >
@@ -419,6 +420,23 @@ Three real defects were found by this pass and fixed before any phone test: the 
 | 19.5 | TalkBack ON, English. Swipe through every footer button. | Each button has a clear name; all are reached in a sensible order. **Fail:** a button is skipped, read twice, or has no name. | |
 | 19.6 | Set Language back to English when finished. | Language is English. | |
 
+### Step 20: Ghost Host guide voice (added 2026-11-27)
+
+> [!NOTE]
+> Ghost Host is the app's spoken persona (Requirement 53). It greets the user, gives a one-sentence next step on each screen, uses plain action words instead of technical jargon for errors, moves focus to the typing box after an Ask failure, and keeps jokes English-only and creature-focused. These rows test live synthesized speech and TalkBack coordination on the phone.
+
+| # | Do this | Expected | Result (pass / fail / notes) |
+|---|---|---|---|
+| 20.1 | **TalkBack greeting overlap.** Turn TalkBack ON (Volume Up + Down). Launch the PWA cold (or navigate to Start `#/` and reload). Listen to the opening announcement and inspect TalkBack focus. | Synthesized speech speaks the greeting once: *"Hi, I'm Ghost Host. I turn diagrams into touch and sound. Tap anywhere to begin. With TalkBack, double-tap."* TalkBack's initial button focus announcement does **not** speak over or overlap with the synthesized greeting. **Fail:** TalkBack focus announcement collides with the greeting, the intro is spoken twice or echoes, or the wording says only "tap" without mentioning double-tap. | |
+| 20.2 | **No double greeting & tap cancel.** On Start screen (TalkBack ON or OFF), tap (or double-tap) while the greeting is playing. Return to Start and tap again. | Tapping immediately cancels the synthesized greeting (it is never queued to finish). App plays start earcon and speaks the Capture screen next-step line (*"Okay. Take a photo of a diagram, choose an image, or try a sample. Samples work without internet."*) as one clean utterance. The greeting is not repeated after the tap. **Fail:** Greeting continues playing under or after the capture line, greeting plays twice, or capture line is delayed. | |
+| 20.3 | **TTS reading of new lines in English.** Navigate through Start -> Capture -> Right triangle in Explore -> Settings -> Teach (if Teacher tools ON) -> Build graph -> Saved diagrams. Listen to each screen's opening line. | Each screen speaks exactly one next-step line as a single utterance on opening (at most 25 words), naming a clear action (try, type, choose, pick, press, drag, double-tap). explore and raw announcements do not speak a second disjoint sentence. **Fail:** Screen is silent, speaks multiple disjoint utterances, exceeds 25 words, uses dashes that cause odd speech pauses, or repeats Back hints. | |
+| 20.4 | **TTS reading of new lines in Hindi and Gujarati.** In Lab Settings, switch language to **हिन्दी** (Hindi), close Settings, and navigate Start -> Capture -> Triangle Explore. Then switch to **ગુજરાતી** (Gujarati) and repeat. | System TTS speaks all new host lines in authentic Hindi and Gujarati phonetics with natural phrasing at commas and dandas. No English words (e.g. no English "angle" or "server"), no untranslated text, and no raw codes. Note whether voices sound clear or robotic on this device. **Fail:** Mispronounced words, English words spoken in Hindi/Gujarati mode, sentences cut short, or missing translations. | |
+| 20.5 | **Missing-voice notice with language name.** In Lab Settings, select Hindi or Gujarati on a phone that lacks that offline TTS voice (or temporarily set system TTS engine to one without it). | Notice speaks the language's full English name from `LANG_NAMES`: *"I don't have a Hindi voice on this phone, so I'll speak English for now. You can add a Hindi voice in your phone's text-to-speech settings."* (or Gujarati). Does **not** say the raw code "HI" or "GU". **Fail:** Speaks "No system voice found for HI" or raw abbreviation. | |
+| 20.6 | **Error line then plain action.** In Explore on Right triangle, tap Ask (or voice command). Stay completely silent until listening times out. Inspect speech and status card. | Spoken error gives what happened and the plain next action first: *"I didn't hear anything. Try again, or type your question in the box below the diagram."* At most one short joke clause about the creature may follow at the end in English (*"My brain is slow today."*). Contains at least one action word (try, type, choose, pick, check, allow, press, wait) and **no technical words** ("timed out", "server", "request", "network", "error"). Text on screen matches without em dashes. **Fail:** Technical jargon spoken, joke comes first or delays the action, joke is about the user, or no next action is offered. | |
+| 20.7 | **Second failure drops joke (protected lines).** Immediately after 20.6, tap Ask again and remain silent a second time. Also test with Airplane Mode ON (network failure) and with microphone permission blocked. | On the second consecutive failure, the joke clause is dropped: app speaks **only** the plain part. Offline error and permission denied errors never include a joke. In Hindi and Gujarati, error lines are always plain and joke-free. **Fail:** Same joke repeats on consecutive failures, or a joke is spoken for network/permission errors or in Hindi/Gujarati. | |
+| 20.8 | **Focus moves to typing box after Ask error.** Turn TalkBack ON. In Explore on Right triangle, tap Ask. Stay silent until listening times out. When the error line finishes, observe visual and TalkBack focus. | The typing box opens below the diagram, status speaks *"in the box below the diagram"*, and focus moves automatically to the text input field (`#gt-ask-input`). TalkBack announces the input box and virtual keyboard is ready for typing. Focus does **not** stay on the Ask button. **Fail:** Focus stays on Ask button or canvas; user must swipe or search across controls to find the typing input. | |
+| 20.9 | **Touch targets $\ge 48 \times 48$ px and large font wrapping.** In Android Settings > Display, set Font size to **Largest** (or 200%). Inspect touch controls across Start, Capture, Settings, Explore footer (Back, Where am I, Ask, Help), and the Ask typing box + Send button in English, Hindi, and Gujarati. | Every interactive control maintains a touch target of at least 48 × 48 CSS px (`min-height: 48px; min-width: 48px`). Multi-line labels in Hindi and Gujarati wrap cleanly without vertical clipping or truncation inside fixed-height boxes. Tap targets do not overlap. **Fail:** Any control is smaller than 48 × 48 px, or text is clipped/cut off inside a fixed 48 px height container. | |
+
 ---
 
 ## Paste This Back to the Team
@@ -453,7 +471,8 @@ Tester: Owner
 17 (Walk me through):          PASS/FAIL - <triangle and bar walks? next step by voice and button? Your turn wrong touch? lift during step? stop? no walk on sine / Raw photo (what actually happened on sine)?>
 18 (Ghost Hand):               PASS/FAIL - <sliders under TalkBack? Pin, Undo, Stitch? Feel and touching a pin? Back kept pins? Hand in link opened? share on this build?>
 19 (footer at 360 px):         PASS/FAIL - <English / Hindi / Gujarati, anything clipped? width used>
-(Steps 15 to 19 were not tested on any phone before this run.)
+20 (Ghost Host voice):        PASS/FAIL - <greeting overlap with TalkBack? no double greeting? TTS en/hi/gu? error line then plain action? typing box focus on Ask error? targets >=48px?>
+(Steps 15 to 20 were not tested on any phone before this run.)
 
 ------------------------------------------------------
 FAILURE / ANOMALY DATA (fill in if any step failed or behaved strangely):
@@ -465,6 +484,42 @@ FAILURE / ANOMALY DATA (fill in if any step failed or behaved strangely):
 - Network state:            <Wi-Fi / 5G / Airplane Mode>
 ======================================================
 ```
+
+## Step 21: What Playwright could not check (added 2026-11-28)
+
+Playwright proved names, 48 px targets, 200% font overflow, focus (`document.activeElement`) and the offline sample on emulated phones (see `docs/reports/wb-playwright-probe.md`). These need a real phone with TalkBack. Tick only what you actually heard or felt.
+
+Tester: ____  Phone model: ____  Android / Chrome: ____  Date: ____
+
+- [ ] Settings sheet: with TalkBack on, swipe right past the last control. Does focus escape into the Capture screen behind it? (`aria-modal` without `inert`.) Expected: it must stay inside until Close.
+- [ ] Every screen entry (Start, Capture, Explore, Ask, Correct, Teach, Build, Saved, Settings): does the app's spoken line talk over TalkBack's own focus announcement? Note any screen where you lose the next-step line.
+- [ ] Build ("Make my own graph"): do you hear the next-step line ("Set x and y, then press Pin") or only "Plot a graph"? (Fix is in; confirm on the real voice.)
+- [ ] Correct: is the intro spoken once, not twice?
+- [ ] Raw Mode notice: is it announced once, not twice?
+- [ ] Teach, then Back: you land on Capture, not Start.
+- [ ] Saved diagrams: Delete, then Confirm or Cancel. Does TalkBack focus stay on the new button?
+- [ ] Hindi and Gujarati: is there an installed voice? How does it sound? Does the English "no voice" notice make sense? Ask a native speaker to listen to Start, Capture and the error lines (use `docs/user-test/translation-review.md`).
+- [ ] Ask by voice: listening tone, the 6 s timeout, the two-finger long-press, and a real answer spoken back. Try "How long is AB?" on the triangle.
+- [ ] Ask error in the typed fallback: after a failed Ask, does focus land in the typing box and does the spoken line tell you where it is?
+- [ ] Ghost Host tone: does the greeting make you smile and still tell you what to tap next? Does any joke get in the way?
+- [ ] Android "Largest" display size and font size together: any control cut off or smaller than a fingertip? Double-tap-and-hold on the canvas still traces?
+- [ ] Vibration feel (tuned values, do not change): line buzz, corner "bzzzz-tap", quiet after a corner. Budget-phone motor if you have one.
+- [ ] Real textbook photo: a printed triangle returns AI mode; a messy photo falls back to Raw Mode with outlines.
+
+## Step 22: Live deployment and uptime (added 2026-11-28, before STEMergent judging)
+
+Do this on the LIVE URL (https://ghost-touch-iota.vercel.app), not localhost, after the commits are pushed and Vercel has redeployed. Judges see what is live.
+
+Tester: ____  Phone model: ____  Android / Chrome: ____  Date: ____
+
+- [ ] Vercel shows the latest commit as deployed (dashboard, Deployments). Note the commit hash: ____
+- [ ] Render backend: open `<render-url>/api/v1/health`. Expect `{"ok": true}`. Note the time of the first answer after idle: ____ s (free tier cold start is about 30 s).
+- [ ] Uptime bot (if you set one up): after 20 minutes idle, `/api/v1/health` answers in under 2 s. If it is still slow, the bot interval is too long or it is not hitting the right URL.
+- [ ] Logged-out, incognito, desktop and phone: the live app loads over HTTPS, Start tap vibrates and speaks.
+- [ ] Run Steps 2, 13 (Ask), Step 21 and the three samples again on the live build, not only on your dev build.
+- [ ] Install as PWA from Chrome menu; open it in airplane mode: a sample still opens.
+- [ ] A real photo upload reaches the backend and returns AI mode within about 30 s on a cold start, and the app speaks "reading" while waiting.
+- [ ] Do not hammer Ask or upload before judges arrive (Gemini free-tier limits). Three or four calls total is enough.
 
 ## Budget-phone check: worst-case share link (only if Share is turned on)
 
